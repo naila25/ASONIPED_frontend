@@ -38,7 +38,7 @@ const Volunteers = () => {
               </span>
             </h1>
             <p className="text-lg text-neutral-500 max-w-2xl mx-auto">
-              Explora todas las oportunidades disponibles y encuentra la que mejor se adapte a tus habilidades
+              Explora todas las oportunidades disponibles y encuentra la que mejor se adapte a tus habilidades.
             </p>
           </div>
 
