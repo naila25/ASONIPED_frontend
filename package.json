@@ -16,6 +16,7 @@
     "@tanstack/react-router": "^1.120.10",
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.9.0",
+    "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-slick": "^0.30.3",
