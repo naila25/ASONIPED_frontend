@@ -104,7 +104,7 @@ const MostrarTalleres: React.FC = () => {
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
 
   return (
-    <div>
+    <div className='py-10'> {/* Espacio entre cada componente */}
       <h1 className="text-orange-600 text-center text-3xl font-bold mb-6">Talleres</h1>
       <Slider {...settings}>
         {workshops.map(workshop => (

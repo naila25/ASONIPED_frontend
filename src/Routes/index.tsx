@@ -9,6 +9,8 @@ import VolunteersSubDashboard from '../Pages/Admin/VolunteersSubDashboard';
 import DonacionesPage from '../Pages/Donaciones/Donaciones.page';
 import FormularioDonacion from '../Components/Donation/FormularioDonacion';
 import ConocenosSection from '../Components/Landing/Conocenos';
+import EventsNewsList from '../Pages/Events/EventsNewsList';
+import EventsNewsAdmin from '../Pages/Admin/EventsNewsAdmin';
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const AdminDashboard = lazy(() => import('../Pages/Admin/AdminDashboard'));
@@ -119,6 +121,18 @@ const volunteerFormsRoute = createRoute({
   ),
 });
 
+const eventsNewsAdminRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'events-news',
+  component: EventsNewsAdmin,
+});
+
+const eventsNewsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'events-news',
+  component: EventsNewsList,
+});
+
 // Route tree construction
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -133,8 +147,10 @@ const routeTree = rootRoute.addChildren([
       volunteerFormsRoute
     ]),
     donationsAdminRoute,
-    attendanceAdminRoute
-  ])
+    attendanceAdminRoute,
+    eventsNewsAdminRoute,
+  ]),
+  eventsNewsRoute,
 ]);
 
 // Singleton router instance

@@ -4,20 +4,18 @@ import Testimonials from "../src/Components/Landing/Testimonials"
 import VolunteersSection from "../src/Components/Volunteers/VolunteersSection"
 import Donaciones from "../src/Components/Donation/Donaciones"
 import MostrarTalleres from "../src/Components/Workshop/MostrarTalleres"
+import EventsNews from "../src/Components/Landing/EventsNews"
 
 const Home = () => {
   return (
     <div className="max-w-7xl mx-auto pt-10 px-6">
       <HeroSection />
-      <div className="max-w-7xl mx-auto pt-10 px-6">
+      <div className="space-y-8 pt-10">
         <AboutSection />
         <VolunteersSection />
-        <div id="donaciones">
-          <Donaciones />
-        </div>
-        <div id="talleres">
-          <MostrarTalleres/>
-        </div>
+        <div id="donaciones"><Donaciones /></div>
+        <div id="talleres"><MostrarTalleres/></div>
+        <EventsNews />
         <Testimonials />
       </div>
     </div>

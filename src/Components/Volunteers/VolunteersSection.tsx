@@ -22,7 +22,7 @@ const VolunteersSection = () => {
   const latestVolunteers = [...volunteers].slice(-3).reverse();
 
   return (
-    <section className="py-25">
+    <section className="py-5">  {/* Espacio entre cada componente */}
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-orange-500 text-3xl sm:text-5xl lg:text-6xl mt-10 lg:mt-20 tracking wide py-6">
