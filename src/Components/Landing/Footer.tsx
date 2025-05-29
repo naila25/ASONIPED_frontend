@@ -1,14 +1,23 @@
   {/*import { communityLinks, platformLinks } from "../../Constanst/index"*/}
 
+import logoAsoniped from "../../assets/logoasoniped.png";
+
 const Footer = () => {
   return (
-    <footer className="bg-blue-500 text-white py-10 border-t border-white-700 mt-20">
+    <footer className="bg-black text-white py-10 border-t border-white-700 mt-20">
       <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-sm">
         
         
-        <div className="flex flex-col items-center lg:items-start">
-          <img src="../assets/profile-pictures/logoasoniped.png" alt="Logo ASONIPED" className="h-16 mb-3" /> 
-          <p className="text-center lg:text-left">ASONIPED Digital</p>
+        <div className="flex flex-row items-center gap-4 lg:items-start">
+          <img
+            src={logoAsoniped}
+            alt="ASONIPED logo"
+            className="h-16 mb-3 rounded-full"
+            loading="lazy"
+          />
+          <span className="text-center lg:text-left  tracking-wide">
+            ASONIPED Digital
+          </span>
         </div>
 
         
