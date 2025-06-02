@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { fetchVolunteers, addVolunteerOption, updateVolunteerOptions, deleteVolunteerOption } from '../../Utils/fetchVolunteers';
+import { fetchVolunteerOptions, addVolunteerOption, deleteVolunteerOption, updateVolunteerOption } from '../../Utils/fetchVolunteers';
 import type { VolunteerOption } from '../../types/volunteer';
+// import VolunteerRegistrationForm from '../../Components/Volunteers/VolunteerRegistrationForm';
 
+// Admin page for managing volunteer options (CRUD)
 const VolunteerOptionsPage = () => {
+  // State for options, form, loading, error, and UI
   const [options, setOptions] = useState<VolunteerOption[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Omit<VolunteerOption, 'id'>>({
@@ -16,19 +19,20 @@ const VolunteerOptionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  // TODO: Replace with real admin token logic
+  const token = 'supersecrettoken';
 
+  // Load volunteer options on mount
   useEffect(() => {
     loadOptions();
   }, []);
 
+  // Fetch all volunteer options from API
   const loadOptions = async () => {
     try {
       setLoading(true);
-      const response = await fetchVolunteers();
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-      setOptions(response.data);
+      const options = await fetchVolunteerOptions();
+      setOptions(Array.isArray(options) ? options : []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading options');
@@ -37,16 +41,19 @@ const VolunteerOptionsPage = () => {
     }
   };
 
+  // Handle form field changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Start adding a new option
   const handleAdd = () => {
     setIsAdding(true);
     setForm({ title: '', description: '', imageUrl: '', date: '', location: '' });
     setEditingId(null);
   };
 
+  // Start editing an existing option
   const handleEdit = (option: VolunteerOption) => {
     setEditingId(option.id);
     setForm({
@@ -59,38 +66,27 @@ const VolunteerOptionsPage = () => {
     setIsAdding(false);
   };
 
+  // Delete an option after confirmation
   const handleDelete = async (id: string) => {
     if (!window.confirm('¿Está seguro de que desea eliminar esta opción de voluntariado?')) {
       return;
     }
-
     try {
-      const response = await deleteVolunteerOption(id);
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
+      await deleteVolunteerOption(Number(id), token);
       await loadOptions();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error deleting option');
     }
   };
 
+  // Submit add/edit form
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       if (editingId) {
-        const updatedOptions = options.map((opt) => 
-          opt.id === editingId ? { ...opt, ...form } : opt
-        );
-        const response = await updateVolunteerOptions(updatedOptions);
-        if (response.error) {
-          throw new Error(response.error.message);
-        }
+        await updateVolunteerOption(Number(editingId), form, token);
       } else {
-        const response = await addVolunteerOption(form);
-        if (response.error) {
-          throw new Error(response.error.message);
-        }
+        await addVolunteerOption(form, token);
       }
       await loadOptions();
       setForm({ title: '', description: '', imageUrl: '', date: '', location: '' });
@@ -101,18 +97,21 @@ const VolunteerOptionsPage = () => {
     }
   };
 
+  // Cancel add/edit
   const handleCancel = () => {
     setEditingId(null);
     setIsAdding(false);
     setForm({ title: '', description: '', imageUrl: '', date: '', location: '' });
   };
 
-  const filteredOptions = options.filter(option =>
+  // Filter options by search term
+  const filteredOptions = (options ?? []).filter(option =>
     option.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     option.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     option.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -124,6 +123,7 @@ const VolunteerOptionsPage = () => {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -146,6 +146,7 @@ const VolunteerOptionsPage = () => {
     );
   }
 
+  // Main render: search, add/edit form, and options table
   return (
     <div className="bg-gray-50 py-10">
       <main className="container mx-auto py-8 px-4">
@@ -169,6 +170,7 @@ const VolunteerOptionsPage = () => {
             </div>
           </div>
 
+          {/* Add/Edit Option Form */}
           {(isAdding || editingId) && (
             <div className="mb-6 bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4">
@@ -245,7 +247,7 @@ const VolunteerOptionsPage = () => {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end space-x-4">
+                <div className="flex gap-2 mt-4">
                   <button
                     type="button"
                     onClick={handleCancel}
@@ -264,6 +266,7 @@ const VolunteerOptionsPage = () => {
             </div>
           )}
 
+          {/* Options Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -276,7 +279,7 @@ const VolunteerOptionsPage = () => {
                   <th className="px-4 py-2">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {filteredOptions.map((option) => (
                   <tr key={option.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">

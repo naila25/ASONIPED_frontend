@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import VolunteerRegistrationForm from './VolunteerRegistrationForm';
-import { addVolunteerForm } from '../../Utils/jsonbin';
 import type { VolunteerOption } from '../../types/volunteer';
 
+// Modal for displaying volunteer opportunity details and registration form
 interface VolunteerModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -10,10 +10,10 @@ interface VolunteerModalProps {
 }
 
 const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => {
+    // State for showing registration form
     const [showRegistrationForm, setShowRegistrationForm] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    // Handle ESC key press
+    // Handle ESC key press to close modal
     useEffect(() => {
       const handleEsc = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
@@ -30,28 +30,17 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
       };
     }, [isOpen, onClose]);
 
-    const handleFormSubmit = async (formData: any) => {
-      try {
-        const response = await addVolunteerForm({
-          ...formData,
-          volunteerOptionId: volunteer.id,
-        });
-        
-        if (response.error) {
-          throw new Error(response.error.message);
-        }
-
-        setShowRegistrationForm(false);
-        onClose();
-        alert('¡Registro exitoso! Nos pondremos en contacto contigo pronto.');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al enviar el formulario');
-        alert('Error al enviar el formulario. Por favor, intente nuevamente.');
-      }
+    // Handle successful registration form submission
+    const handleFormSubmit = () => {
+      setShowRegistrationForm(false);
+      onClose();
+      alert('¡Registro exitoso! Nos pondremos en contacto contigo pronto.');
     };
 
+    // Do not render if modal is not open
     if (!isOpen) return null;
   
+    // Main render: details or registration form
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -102,8 +91,9 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                                 </button>
                             </div>
                             <VolunteerRegistrationForm
+                                volunteerOptionId={volunteer.id}
                                 onSubmit={handleFormSubmit}
-                                onCancel={() => setShowRegistrationForm(false)}
+                                onCancel={onClose}
                             />
                         </div>
                     )}
