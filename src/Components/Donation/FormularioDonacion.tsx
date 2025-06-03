@@ -17,24 +17,14 @@ const FormularioDonacion = () => {
     onSubmit: async ({ value }) => {
       setStatus(null);
       try {
-        const res = await fetch("https://api.jsonbin.io/v3/b/6825f9d88a456b79669e5167/latest", {
-          headers: {
-            "X-Master-Key": "$2a$10$BJMzT3zue5BZsi314H8t6u2C73TJwlouGy11ORUKAxfBQNZvrmFii",
-          },
-        });
-        if (!res.ok) throw new Error("Error al obtener registros anteriores");
-        const data = await res.json();
-        const registrosAnteriores = data.record || [];
-
-        const putRes = await fetch("https://api.jsonbin.io/v3/b/6825f9d88a456b79669e5167", {
-          method: "PUT",
+        const res = await fetch("http://localhost:3000/donations", {
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Master-Key": "$2a$10$BJMzT3zue5BZsi314H8t6u2C73TJwlouGy11ORUKAxfBQNZvrmFii",
           },
-          body: JSON.stringify([...registrosAnteriores, value]),
+          body: JSON.stringify(value),
         });
-        if (!putRes.ok) throw new Error("Error al guardar la donación");
+        if (!res.ok) throw new Error("Error al guardar la donación");
         setStatus({ type: 'success', message: "Donación enviada con éxito." });
         form.reset();
       } catch (err) {

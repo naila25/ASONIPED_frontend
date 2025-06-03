@@ -1,8 +1,13 @@
-
 import { useState, useEffect } from 'react';
-import  { DonationForm, fetchDonationForms, updateDonationForm } from '../../Utils/donationForms';
+import type { DonationForm } from '../../Utils/donationForms';
+import { fetchDonationForms, updateDonationForm, deleteDonationForm } from '../../Utils/donationForms';
 
+/**
+ * Admin page for managing donation forms.
+ * Allows viewing, updating status, and deleting donations.
+ */
 const DonationForms = () => {
+  // State for donation forms, loading, error, pagination
   const [forms, setForms] = useState<DonationForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -10,66 +15,72 @@ const DonationForms = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
+  // Fetch donation forms on mount and when page changes
   useEffect(() => {
     const loadForms = async () => {
       try {
-        console.log('Starting to fetch donation forms...');
         setLoading(true);
         setError(null);
         const response = await fetchDonationForms(page, itemsPerPage);
-        console.log('Fetch response:', response);
-        
         if (response.error) {
-          console.error('Error in response:', response.error);
           setError(response.error.message);
           return;
         }
-
         if (response.data) {
-          console.log('Setting forms:', response.data);
           setForms(response.data);
           if (response.metadata) {
             setTotalPages(Math.ceil(response.metadata.total / itemsPerPage));
           }
         }
-      } catch (err) {
-        console.error('Error in loadForms:', err);
+      } catch {
         setError('Failed to load donation forms');
       } finally {
         setLoading(false);
       }
     };
-
     loadForms();
   }, [page]);
 
+ 
   const handleStatusChange = async (correo: string, newStatus: 'pending' | 'approved' | 'rejected') => {
     try {
-      console.log('Updating form status:', { correo, newStatus });
       setError(null);
       const response = await updateDonationForm(correo, newStatus);
-      console.log('Update response:', response);
-      
       if (response.error) {
-        console.error('Error in update:', response.error);
         setError(response.error.message);
         return;
       }
-
       // Update local state
-      setForms(forms.map(form => 
+      setForms(forms.map(form =>
         form.correo === correo ? { ...form, status: newStatus } : form
       ));
-    } catch (err) {
-      console.error('Error in handleStatusChange:', err);
+    } catch {
       setError('Failed to update donation form status');
     }
   };
 
+ 
+  const handleDelete = async (correo: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta donación?')) return;
+    setError(null);
+    try {
+      const response = await deleteDonationForm(correo);
+      if (response.error) {
+        setError(response.error.message);
+        return;
+      }
+      setForms(forms.filter(form => form.correo !== correo));
+    } catch {
+      setError('Error al eliminar la donación');
+    }
+  };
+
+  // Loading state
   if (loading) {
     return <div className="text-center py-10">Loading...</div>;
   }
 
+  // Error state
   if (error) {
     return (
       <div className="text-center py-10">
@@ -134,6 +145,12 @@ const DonationForms = () => {
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
                       </select>
+                      <button
+                        onClick={() => handleDelete(form.correo)}
+                        className="ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-700"
+                      >
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))}
