@@ -1,25 +1,19 @@
 import { useState, useEffect } from 'react';
 import VolunteerCard from './VolunteerCard';
 import { Link } from '@tanstack/react-router';
-import { fetchVolunteers } from '../../Utils/fetchVolunteers';
+import { fetchVolunteerOptions } from '../../Utils/fetchVolunteers';
 import type { VolunteerOption } from '../../types/volunteer'
 
 const VolunteersSection = () => {
-  const [volunteers, setVolunteers] = useState<VolunteerOption[]>([]);
+  const [options, setOptions] = useState<VolunteerOption[]>([]);
 
   useEffect(() => {
-    fetchVolunteers()
-      .then(response => {
-        if (response.error) {
-          console.error(response.error);
-          return;
-        }
-        setVolunteers(response.data);
-      })
+    fetchVolunteerOptions()
+      .then(options => setOptions(Array.isArray(options) ? options : []))
       .catch(console.error);
   }, []);
 
-  const latestVolunteers = [...volunteers].slice(-3).reverse();
+  const latestOptions = [...options].slice(-3).reverse();
 
   return (
     <section className="py-5">  {/* Espacio entre cada componente */}
@@ -34,7 +28,7 @@ const VolunteersSection = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {latestVolunteers.map((option) => (
+          {latestOptions.map((option) => (
             <VolunteerCard key={option.id} {...option} />
           ))}
         </div>

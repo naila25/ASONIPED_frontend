@@ -4,16 +4,32 @@ import { useNavigate } from '@tanstack/react-router';
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple hardcoded check for demo
-    if (username === 'admin' && password === 'admin123') {
-      localStorage.setItem('isAdmin', 'true');
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok) {
+        alert('Credenciales incorrectas');
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      localStorage.setItem('jwt', data.token); // Store the JWT
       navigate({ to: '/admin', search: (prev) => prev, params: (prev) => prev });
-    } else {
-      alert('Credenciales incorrectas');
+    } catch (err) {
+      alert('Error de red o servidor');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,8 +54,9 @@ const AdminLogin = () => {
         <button
           type="submit"
           className="w-full bg-gradient-to-r from-orange-500 to-orange-800 text-white py-2 rounded"
+          disabled={loading}
         >
-          Ingresar
+          {loading ? 'Ingresando...' : 'Ingresar'}
         </button>
       </form>
     </div>

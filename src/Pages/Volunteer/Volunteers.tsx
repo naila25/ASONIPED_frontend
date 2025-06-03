@@ -1,31 +1,30 @@
 import { useEffect, useState } from 'react';
-import { fetchVolunteers } from '../../Utils/fetchVolunteers';
+import { fetchVolunteerOptions } from '../../Utils/fetchVolunteers';
 import VolunteerCard from '../../Components/Volunteers/VolunteerCard';
 import type  { VolunteerOption } from '../../types/volunteer';
 
+// Page to display all available volunteer opportunities
 const Volunteers = () => {
+  // State for volunteer options and pagination
   const [volunteers, setVolunteers] = useState<VolunteerOption[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
+  // Fetch volunteer options on mount
   useEffect(() => {
-    fetchVolunteers()
-      .then(response => {
-        if (response.error) {
-          console.error(response.error);
-          return;
-        }
-        setVolunteers(response.data);
-      })
-      .catch(console.error);
+    fetchVolunteerOptions()
+      .then(options => setVolunteers(Array.isArray(options) ? options : []))
+      .catch(() => setVolunteers([]));
   }, []);
 
+  // Pagination logic
   const totalPages = Math.ceil(volunteers.length / itemsPerPage);
   const currentItems = volunteers.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
+  // Main render: volunteer cards and pagination
   return (
     <>
       <main className="min-h-screen bg-black-50">

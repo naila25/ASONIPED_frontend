@@ -1,9 +1,27 @@
 import { useState, useEffect } from 'react';
-import { fetchVolunteerForms, updateVolunteerFormStatus } from '../../Utils/jsonbin';
-import { fetchVolunteers } from '../../Utils/fetchVolunteers';
+import { fetchVolunteerForms, updateVolunteerFormStatus, fetchVolunteerOptions } from '../../Utils/fetchVolunteers';
 import type { VolunteerForm, VolunteerOption } from '../../types/volunteer';
 
+// Type for backend volunteer data
+type BackendVolunteer = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  age?: string;
+  availability_days?: string;
+  availability_time_slots?: string;
+  skills?: string;
+  motivation?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submission_date: string;
+  volunteer_option_id: string;
+};
+
+// Volunteer forms admin page component
 const VolunteerFormsPage = () => {
+  // State for forms, options, loading, error, pagination, filters
   const [forms, setForms] = useState<VolunteerForm[]>([]);
   const [options, setOptions] = useState<VolunteerOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,25 +32,38 @@ const VolunteerFormsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOption, setSelectedOption] = useState<string>('all');
 
+  // Load forms and options on mount or page change
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         const [formsResponse, optionsResponse] = await Promise.all([
           fetchVolunteerForms(currentPage, 10),
-          fetchVolunteers()
+          fetchVolunteerOptions()
         ]);
-
-        if (formsResponse.error) {
-          throw new Error(formsResponse.error.message);
-        }
-        if (optionsResponse.error) {
-          throw new Error(optionsResponse.error.message);
-        }
-
-        setForms(formsResponse.data);
-        setOptions(optionsResponse.data);
-        setTotalPages(Math.ceil((formsResponse.metadata?.total || 0) / 10));
+        // Transform backend data to frontend format
+        const transformedForms = (formsResponse.volunteers as BackendVolunteer[]).map((v) => ({
+          id: String(v.id),
+          personalInfo: {
+            firstName: v.first_name,
+            lastName: v.last_name,
+            email: v.email,
+            phone: v.phone || '',
+            age: v.age || '',
+          },
+          availability: {
+            days: v.availability_days ? v.availability_days.split(',').map((d) => d.trim()) : [],
+            timeSlots: v.availability_time_slots ? v.availability_time_slots.split(',').map((t) => t.trim()) : [],
+          },
+          skills: v.skills || '',
+          motivation: v.motivation || '',
+          volunteerOptionId: String(v.volunteer_option_id),
+          submissionDate: v.submission_date,
+          status: v.status,
+        }));
+        setForms(transformedForms);
+        setOptions(optionsResponse);
+        setTotalPages(Math.ceil((formsResponse.total || 0) / 10));
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error loading data');
@@ -40,35 +71,33 @@ const VolunteerFormsPage = () => {
         setLoading(false);
       }
     };
-
     loadData();
   }, [currentPage]);
 
-  const handleStatusChange = async (formId: string, newStatus: 'pending' | 'approved' | 'rejected') => {
+  // Handle status change for a volunteer form
+  const handleStatusChange = async (formId: number, newStatus: 'pending' | 'approved' | 'rejected') => {
     try {
-      const response = await updateVolunteerFormStatus(formId, newStatus);
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
+      await updateVolunteerFormStatus(formId, newStatus, 'supersecrettoken');
       setForms(forms.map(form => 
-        form.id === formId ? { ...form, status: newStatus } : form
+        Number(form.id) === formId ? { ...form, status: newStatus } : form
       ));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error updating form status');
     }
   };
 
+  // Filter forms by status, search, and option
   const filteredForms = forms.filter(form => {
     const matchesStatus = statusFilter === 'all' || form.status === statusFilter;
     const matchesSearch = searchTerm === '' || 
       form.personalInfo.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       form.personalInfo.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       form.personalInfo.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesOption = selectedOption === 'all' || form.volunteerOptionId === selectedOption;
+    const matchesOption = selectedOption === 'all' || String(form.volunteerOptionId) === selectedOption;
     return matchesStatus && matchesSearch && matchesOption;
   });
 
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -80,6 +109,7 @@ const VolunteerFormsPage = () => {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -102,6 +132,7 @@ const VolunteerFormsPage = () => {
     );
   }
 
+  // Main render: filters and (currently commented) forms list
   return (
     <div className=" bg-gray-50">
       <main className="container mx-auto py-8 px-4">
@@ -138,10 +169,9 @@ const VolunteerFormsPage = () => {
               />
             </div>
           </div>
-
           <div className="space-y-6">
             {options.map(option => {
-              const optionForms = filteredForms.filter(form => form.volunteerOptionId === option.id);
+              const optionForms = filteredForms.filter(form => String(form.volunteerOptionId) === String(option.id));
               if (optionForms.length === 0) return null;
 
               return (
@@ -193,7 +223,7 @@ const VolunteerFormsPage = () => {
                             <td className="px-4 py-3">
                               <select
                                 value={form.status}
-                                onChange={(e) => handleStatusChange(form.id, e.target.value as 'pending' | 'approved' | 'rejected')}
+                                onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected')}
                                 className="px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500 text-gray-900"
                               >
                                 <option value="pending">Pendiente</option>

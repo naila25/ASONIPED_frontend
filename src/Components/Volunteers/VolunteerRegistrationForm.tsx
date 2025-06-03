@@ -1,10 +1,15 @@
 import { useForm } from '@tanstack/react-form'
+import { addVolunteer } from '../../Utils/fetchVolunteers'
+import { useState } from 'react'
 
+// Props for the volunteer registration form
 interface VolunteerRegistrationFormProps {
+  volunteerOptionId: string;
   onSubmit: (formData: VolunteerFormData) => void;
   onCancel: () => void;
 }
 
+// Data structure for the volunteer registration form
 interface VolunteerFormData {
   personalInfo: {
     firstName: string;
@@ -22,8 +27,17 @@ interface VolunteerFormData {
   motivation: string;
 }
 
-const VolunteerRegistrationForm = ({ onSubmit, onCancel }: VolunteerRegistrationFormProps) => {
-  const form = useForm<VolunteerFormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>({
+// Volunteer registration form component
+const VolunteerRegistrationForm = ({
+  volunteerOptionId,
+  onSubmit,
+  onCancel
+}: VolunteerRegistrationFormProps) => {
+  // State for submission status
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form setup and submission logic
+  const form = useForm<VolunteerFormData>({
     defaultValues: {
       personalInfo: {
         firstName: '',
@@ -41,6 +55,24 @@ const VolunteerRegistrationForm = ({ onSubmit, onCancel }: VolunteerRegistration
       motivation: '',
     },
     onSubmit: async ({ value }) => {
+      if (submitting) return;
+      setSubmitting(true);
+      // Prepare payload for backend
+      const volunteerPayload = {
+        first_name: value.personalInfo.firstName,
+        last_name: value.personalInfo.lastName,
+        email: value.personalInfo.email,
+        phone: value.personalInfo.phone,
+        age: value.personalInfo.age,
+        availability_days: value.availability.days.join(','),
+        availability_time_slots: value.availability.timeSlots.join(','),
+        interests: value.interests.join(','),
+        skills: value.skills,
+        motivation: value.motivation,
+        volunteer_option_id: volunteerOptionId,
+      };
+      await addVolunteer(volunteerPayload);
+      setSubmitting(false);
       onSubmit(value);
     },
   });
@@ -327,6 +359,7 @@ const VolunteerRegistrationForm = ({ onSubmit, onCancel }: VolunteerRegistration
         <button
           type="submit"
           className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+          disabled={submitting}
         >
           Enviar Registro
         </button>
