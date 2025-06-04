@@ -4,6 +4,7 @@ interface Attendance {
   nombre: string;
   cedula: string;
   tipo: string;
+  created_at?: string;
 }
 
 interface Props {
@@ -15,7 +16,7 @@ const AttendanceTable: React.FC<Props> = ({ registros }) => {
 
   return (
     <div className="mt-8">
-      <h3 className="text-xl font-semibold mb-3 text-center">Tabla de Asistencias Registradas</h3>
+      <h3 className="text-xl  mb-3 text-center">Tabla de Asistencias Registradas</h3>
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-300 text-center">
           <thead className="bg-gray-200">
@@ -23,6 +24,7 @@ const AttendanceTable: React.FC<Props> = ({ registros }) => {
               <th className="py-2 px-4 border">Nombre completo</th>
               <th className="py-2 px-4 border">Cédula</th>
               <th className="py-2 px-4 border">Tipo de asistencia</th>
+              <th className="py-2 px-4 border">Fecha de registro</th>
             </tr>
           </thead>
           <tbody>
@@ -31,6 +33,7 @@ const AttendanceTable: React.FC<Props> = ({ registros }) => {
                 <td className="py-2 px-4 border">{r.nombre}</td>
                 <td className="py-2 px-4 border">{r.cedula}</td>
                 <td className="py-2 px-4 border">{r.tipo}</td>
+                <td className="py-2 px-4 border">{r.created_at ? new Date(r.created_at).toLocaleString() : '-'}</td>
               </tr>
             ))}
           </tbody>

@@ -1,6 +1,6 @@
 // src/router.ts
 import { createRouter, createRootRoute, createRoute } from '@tanstack/react-router';
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import App from '../App';
 import Volunteers from '../Pages/Volunteer/Volunteers';
 import Home from '../Home';
@@ -11,6 +11,8 @@ import FormularioDonacion from '../Components/Donation/FormularioDonacion';
 import ConocenosSection from '../Components/Landing/Conocenos';
 import EventsNewsList from '../Pages/Events/EventsNewsList';
 import EventsNewsAdmin from '../Pages/Admin/EventsNewsAdmin';
+import ProtectedRoute from "./ProtectedRoute"; 
+
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const AdminDashboard = lazy(() => import('../Pages/Admin/AdminDashboard'));
@@ -18,6 +20,7 @@ const VolunteerOptionsPage = lazy(() => import('../Pages/Volunteer/VolunteerOpti
 const VolunteerFormsPage = lazy(() => import('../Pages/Volunteer/VolunteerFormsPage'));
 const DonationForms = lazy(() => import('../Pages/Admin/DonationForms'));
 const AttendancePage = lazy(() => import('../Pages/Admin/AttendancePage'));
+
 
 // Root route - SINGLE SOURCE OF TRUTH
 const rootRoute = createRootRoute({
@@ -68,9 +71,9 @@ const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'admin',
   component: () => (
-    <Suspense fallback={<div style={{color:'red',fontSize:'2rem',textAlign:'center'}}>Loading AdminDashboard...</div>}>
+    <ProtectedRoute>
       <AdminDashboard />
-    </Suspense>
+    </ProtectedRoute>
   ),
 });
 
@@ -85,9 +88,7 @@ const donationsAdminRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: 'donations',
   component: () => (
-    <Suspense fallback={<div style={{color:'red',fontSize:'2rem',textAlign:'center'}}>Loading DonationForms...</div>}>
       <DonationForms />
-    </Suspense>
   ),
 });
 
@@ -95,9 +96,7 @@ const attendanceAdminRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: 'attendance',
   component: () => (
-    <Suspense fallback={<div style={{color:'red',fontSize:'2rem',textAlign:'center'}}>Loading AttendancePage...</div>}>
       <AttendancePage />
-    </Suspense>
   ),
 });
 
@@ -105,9 +104,7 @@ const volunteerOptionsRoute = createRoute({
   getParentRoute: () => volunteersAdminRoute,
   path: 'options',
   component: () => (
-    <Suspense fallback={<div style={{color:'red',fontSize:'2rem',textAlign:'center'}}>Loading VolunteerOptionsPage...</div>}>
       <VolunteerOptionsPage />
-    </Suspense>
   ),
 });
 
@@ -115,9 +112,7 @@ const volunteerFormsRoute = createRoute({
   getParentRoute: () => volunteersAdminRoute,
   path: 'forms',
   component: () => (
-    <Suspense fallback={<div style={{color:'red',fontSize:'2rem',textAlign:'center'}}>Loading VolunteerFormsPage...</div>}>
       <VolunteerFormsPage />
-    </Suspense>
   ),
 });
 

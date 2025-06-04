@@ -36,7 +36,7 @@ export default function AdminDashboard() {
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden"
+          className="fixed inset-0  bg-opacity-30 z-20 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}

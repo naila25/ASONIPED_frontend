@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { login } from '../../Utils/auth';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -24,7 +25,7 @@ const AdminLogin = () => {
       }
 
       const data = await response.json();
-      localStorage.setItem('jwt', data.token); // Store the JWT
+      login(data.token);
       navigate({ to: '/admin', search: (prev) => prev, params: (prev) => prev });
     } catch (err) {
       alert('Error de red o servidor');
