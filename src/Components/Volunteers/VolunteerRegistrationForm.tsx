@@ -106,10 +106,10 @@ const VolunteerRegistrationForm = ({
                   type="text"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-400"
                 />
                 {field.state.meta.errors && (
-                  <p className="text-red-500 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
+                  <p className="text-red-400 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
                 )}
               </div>
             )}
@@ -131,7 +131,7 @@ const VolunteerRegistrationForm = ({
                   type="text"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-400"
                 />
                 {field.state.meta.errors && (
                   <p className="text-red-500 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
@@ -161,10 +161,10 @@ const VolunteerRegistrationForm = ({
                   type="email"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-400"
                 />
                 {field.state.meta.errors && (
-                  <p className="text-red-500 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
+                  <p className="text-red-400 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
                 )}
               </div>
             )}
@@ -186,10 +186,10 @@ const VolunteerRegistrationForm = ({
                   type="tel"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-400"
                 />
                 {field.state.meta.errors && (
-                  <p className="text-red-500 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
+                  <p className="text-red-400 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
                 )}
               </div>
             )}
@@ -201,7 +201,7 @@ const VolunteerRegistrationForm = ({
               onChange: ({ value }) => {
                 if (!value) return 'La edad es requerida';
                 const age = parseInt(value);
-                if (isNaN(age) || age < 18) return 'Debe ser mayor de 18 años';
+                if (isNaN(age) || age < 16) return 'Debe ser mayor de 16 años';
                 return undefined;
               },
             }}
@@ -215,11 +215,11 @@ const VolunteerRegistrationForm = ({
                   type="number"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
-                  min="18"
+                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  min="16"
                 />
                 {field.state.meta.errors && (
-                  <p className="text-red-500 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
+                  <p className="text-red-400 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
                 )}
               </div>
             )}
@@ -231,7 +231,7 @@ const VolunteerRegistrationForm = ({
       <div>
         <h3 className="text-lg font-medium mb-4">Disponibilidad</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map((day) => (
+          {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'].map((day) => (
             <form.Field
               key={day}
               name="availability.days"
@@ -251,7 +251,7 @@ const VolunteerRegistrationForm = ({
                         : field.state.value.filter(d => d !== day);
                       field.handleChange(newValue);
                     }}
-                    className="rounded text-orange-500 focus:ring-orange-500"
+                    className="rounded text-orange-400 focus:ring-orange-400"
                   />
                   <span className="text-sm">{day}</span>
                 </label>
@@ -280,7 +280,6 @@ const VolunteerRegistrationForm = ({
                 <option value="">Seleccione un horario</option>
                 <option value="morning">Mañana (8:00 - 12:00)</option>
                 <option value="afternoon">Tarde (12:00 - 16:00)</option>
-                <option value="evening">Noche (16:00 - 20:00)</option>
               </select>
               {field.state.meta.errors && (
                 <p className="text-red-500 text-sm mt-1">{field.state.meta.errors.join(', ')}</p>
@@ -352,13 +351,13 @@ const VolunteerRegistrationForm = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border rounded hover:bg-gray-50"
+          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-700"
           disabled={submitting}
         >
           Enviar Registro

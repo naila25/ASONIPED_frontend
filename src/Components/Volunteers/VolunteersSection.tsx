@@ -19,10 +19,14 @@ const VolunteersSection = () => {
     <section className="py-5">  {/* Espacio entre cada componente */}
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
-          <h2 className="text-orange-500 text-3xl sm:text-5xl lg:text-6xl mt-10 lg:mt-20 tracking wide py-6">
-            Oportunidades de Voluntariado
+          <h2 className="text-orange-700 text-4xl sm:text-5xl lg:text-6xl mt-10 lg:mt-20 tracking wide py-6">
+            Oportunidades de
+            <span className="bg-gradient-to-r from-orange-500 to-red-800 text-transparent bg-clip-text">
+            {" "}
+             Voluntariado
+          </span>
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p className="text-neutral-500 text-xl text-center lg:text-center py-6">
             Únete a nuestra comunidad y ayuda a crear un impacto positivo
           </p>
         </div>
@@ -36,7 +40,7 @@ const VolunteersSection = () => {
         <div className="text-center mt-8">
           <Link
             to="/volunteers"
-            className="inline-block bg-gradient-to-r from-orange-500 to-orange-800 text-white py-2 px-6 rounded hover:bg-orange-600 transition-colors"
+            className="inline-block bg-gradient-to-r from-orange-400 to-orange-700 text-white py-2 px-6 rounded  hover:bg-orange-800 transition-colors hover:opacity-90"
           >
             Ver todas las oportunidades
           </Link>

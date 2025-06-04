@@ -17,7 +17,7 @@ const AttendancePage = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold text-center mb-8">Administración de Asistencia</h1>
+      <h1 className="text-3xl  text-center mb-8"> Asistencia</h1>
       <div className="space-y-8">
         <ListaAsistencia onNewAttendance={handleNewAttendance} />
         <TablaListaAsistencia registros={attendanceRecords} />

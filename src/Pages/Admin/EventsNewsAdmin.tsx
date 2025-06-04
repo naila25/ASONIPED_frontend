@@ -104,7 +104,7 @@ const EventsNewsAdmin: React.FC = () => {
 
   return (
     <section className="max-w-4xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-8 text-center">Admin: Eventos y Noticias</h1>
+      <h1 className="text-2xl  mb-8 text-center">Eventos y Noticias</h1>
       {/* Create Form */}
       <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-lg p-6 mb-10 flex flex-col gap-4 border border-gray-100">
         <h2 className="font-semibold text-lg mb-2">Agregar nuevo evento/noticia</h2>
@@ -165,7 +165,7 @@ const EventsNewsAdmin: React.FC = () => {
             <tbody>
               {items.map((item, idx) => (
                 <tr key={item.id} className={
-                  `border-b border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-orange-50 transition-colors`
+                  `border-b border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}  hover:bg-zinc-100 transition-colors`
                 }>
                   <td className="p-3 font-semibold max-w-[160px] truncate" title={item.title}>{item.title}</td>
                   <td className="p-3">{new Date(item.date).toLocaleDateString()}</td>

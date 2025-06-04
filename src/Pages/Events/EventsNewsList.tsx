@@ -33,11 +33,11 @@ const EventsNewsList: React.FC = () => {
   const paginatedItems = items.slice(startIdx, startIdx + ITEMS_PER_PAGE);
 
   return (
-    <section className="min-h-screen max-w-7xl mx-auto py-50 px-4 flex flex-col">
+    <section className=" max-w-7xl mx-auto py-20 px-4 flex flex-col">
       <div className="flex justify-start mb-6">
         <Link
           to="/"
-          className="bg-gray-100 text-orange-700 py-2 px-6 rounded hover:bg-orange-50 transition-colors font-medium border border-gray-200"
+          className="bg-gradient-to-r text-white from-orange-400 to-orange-700 py-3 px-6 rounded-md text-sm hover:opacity-90 transition"
         >
           Volver al inicio
         </Link>
@@ -108,7 +108,7 @@ const EventsNewsList: React.FC = () => {
               <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg relative">
                 <button
                   onClick={() => setModalItem(null)}
-                  className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
+                  className="absolute top-2 right-2 text-red-500 hover:text-red-600 text-2xl font-bold"
                   aria-label="Cerrar"
                 >
                   ×
@@ -142,7 +142,7 @@ const EventsNewsList: React.FC = () => {
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className={`px-4 py-2 rounded bg-orange-500 text-white font-medium transition-colors hover:bg-orange-700 disabled:opacity-50`}
+              className={`px-4 py-2 rounded bg-blue-600 text-white font-medium transition-colors hover:bg-blue-700 disabled:opacity-50`}
             >
               Previous
             </button>
@@ -152,7 +152,7 @@ const EventsNewsList: React.FC = () => {
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded bg-orange-500 text-white font-medium transition-colors hover:bg-orange-700 disabled:opacity-50`}
+              className={`px-4 py-2 rounded bg-blue-600 text-white font-medium transition-colors hover:bg-blue-700 disabled:opacity-50`}
             >
               Next
             </button>

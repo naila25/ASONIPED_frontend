@@ -37,7 +37,7 @@ const VolunteerCard = ({
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className=" text-white w-full bg-gradient-to-r from-orange-500 to-orange-800 py-2 rounded hover:bg-orange-600 transition-colors hover:opacity-80 "
+            className=" text-white w-full bg-gradient-to-r from-orange-400 to-orange-700 py-2 rounded hover:bg-orange-600 transition-colors hover:opacity-90 "
           >
             Ver más
           </button>

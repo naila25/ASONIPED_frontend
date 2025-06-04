@@ -2,11 +2,15 @@ import { testimonials } from '../../Constanst/index'
 
 const Testimonials = () => {
     return (
-        <div className='mt-20 tracking-wide'>
-            <h2 className='text-orange-600 text-3xl sm:text-5xl lg:text-6xl text-center my-10 lg:my-20'>
-                Que Piensan De Nosotros?
+        <div className=' tracking-wide py-20'>
+            <h2 className='text-orange-700 text-3xl sm:text-6xl lg:text-5xl text-center tracking-wide'>
+                Que Piensan
+                <span className="bg-gradient-to-r from-orange-500 to-red-800 text-transparent bg-clip-text">
+                    {" "}
+                    De Nosotros? 
+                </span>
             </h2>
-            <div className='flex flex-wrap justify-center gap-6 '>
+            <div className='flex flex-wrap justify-center gap-6 pt-20 '>
                 {testimonials.map((testimonial, index) => (
                     <div
                         key={index}

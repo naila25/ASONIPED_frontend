@@ -73,7 +73,7 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                                 </div>
                                 <button
                                     onClick={() => setShowRegistrationForm(true)}
-                                    className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600 transition-colors"
+                                    className="w-full bg-gradient-to-r text-white from-orange-400 to-orange-700 py-3 px-6 rounded-mdtext-sm hover:opacity-80 transition"
                                 >
                                     Registrarse como Voluntario
                                 </button>
