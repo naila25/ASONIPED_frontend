@@ -2,7 +2,8 @@ import logo from "../../assets/logoasoniped.png";
 import { navItems } from "../../Constanst/index";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { isLoggedIn } from "../../Utils/auth";
 
 const NavBar = () => {
 
@@ -10,6 +11,17 @@ const NavBar = () => {
     const toggleNavbar = () => {
         setMobileDrawerOpen(!mobileDrawerOpen);
     }
+
+    const navigate = useNavigate();
+
+    const handleAdminClick = () => {
+        if (isLoggedIn()) {
+          navigate({ to: "/admin" });
+        } else {
+          navigate({ to: "/admin-login" });
+        }
+      };
+
   return (
     <nav className="bg-blue-500 text-white sticky top-0 z-50 py-5 backdrop-blur-lg border-b.border-neutral-700/80">
         <div className="container mx-auto px-4 text-sm relative">
@@ -29,11 +41,14 @@ const NavBar = () => {
                         </li>
                     ))}
                 </ul>
-                {/* Right: Login Button */}
+                {/* Right: Admin Button */}
                 <div className="hidden lg:flex items-center flex-shrink-0">
-                    <Link to="/admin-login" className="py-2 px-3 border rounded-md ml-2">
-                        Login
-                    </Link>
+                    <button
+                        onClick={handleAdminClick}
+                        className="py-2 px-3 border rounded-md ml-2 bg-teal-400 text-black"
+                    >
+                        Admin
+                    </button>
                 </div>
                 {/* Mobile Toggle Button (always far right) */}
                 <div className="lg:hidden flex flex-col justify-end ml-auto">

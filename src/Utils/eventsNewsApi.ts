@@ -1,47 +1,47 @@
 // Utility functions for interacting with JsonBin for EventNewsItem CRUD
 import type { EventNewsItem } from '../types/eventsNews';
 
-const JSONBIN_API_KEY = '$2a$10$5iW5mNvCihHbi0EF9JWv1eEyj0krBYq5egcBGd1weGSAcJ3er/ATG';
-const JSONBIN_BIN_ID = '683685968960c979a5a2024a';
-const BASE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
-
-const headers = {
-  'Content-Type': 'application/json',
-  'X-Master-Key': JSONBIN_API_KEY,
-};
+const BASE_URL = 'http://localhost:3000/events-news';
 
 export async function getEventsNews(): Promise<EventNewsItem[]> {
-  const res = await fetch(BASE_URL, { headers });
-  const data = await res.json();
-  return data.record || [];
+  const res = await fetch(BASE_URL);
+  if (!res.ok) throw new Error('Failed to fetch events/news');
+  return await res.json();
 }
 
 export async function addEventNews(item: EventNewsItem): Promise<void> {
-  const items = await getEventsNews();
-  items.push(item);
-  await fetch(BASE_URL, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(items),
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(BASE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify(item),
   });
+  if (!res.ok) throw new Error('Failed to add event/news');
 }
 
 export async function updateEventNews(updatedItem: EventNewsItem): Promise<void> {
-  const items = await getEventsNews();
-  const newItems = items.map(item => item.id === updatedItem.id ? updatedItem : item);
-  await fetch(BASE_URL, {
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(`${BASE_URL}/${updatedItem.id}`, {
     method: 'PUT',
-    headers,
-    body: JSON.stringify(newItems),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify(updatedItem),
   });
+  if (!res.ok) throw new Error('Failed to update event/news');
 }
 
 export async function deleteEventNews(id: string): Promise<void> {
-  const items = await getEventsNews();
-  const newItems = items.filter(item => item.id !== id);
-  await fetch(BASE_URL, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(newItems),
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch(`${BASE_URL}/${id}`, {
+    method: 'DELETE',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
   });
+  if (!res.ok) throw new Error('Failed to delete event/news');
 } 

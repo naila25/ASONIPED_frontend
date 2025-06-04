@@ -114,7 +114,7 @@ const EventsNewsAdmin: React.FC = () => {
         </div>
         <textarea name="description" value={form.description} onChange={handleChange} placeholder="Descripción" className="border rounded p-2" required rows={2} />
         <input name="imageUrl" value={form.imageUrl} onChange={handleChange} placeholder="URL de la imagen (opcional)" className="border rounded p-2" />
-        <button type="submit" disabled={submitting} className="self-end bg-gradient-to-r from-orange-500 to-orange-800 text-white px-6 py-2 rounded shadow hover:scale-105 transition-transform">
+        <button type="submit" disabled={submitting} className="self-end bg-gradient-to-r from-blue-400 to-blue-700 text-white px-6 py-2 rounded shadow hover:scale-105 transition-transform">
           {submitting ? 'Agregando...' : 'Agregar'}
         </button>
       </form>
