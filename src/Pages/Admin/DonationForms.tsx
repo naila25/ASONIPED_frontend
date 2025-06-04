@@ -97,7 +97,7 @@ const DonationForms = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold mb-6">Donation Forms Management</h2>
+      <h2 className="text-2xl  mb-6">Formularios de Donaciones</h2>
       
       {forms.length === 0 ? (
         <div className="text-center py-10 text-gray-500">No donation forms found</div>

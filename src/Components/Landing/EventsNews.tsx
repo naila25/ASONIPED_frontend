@@ -31,9 +31,13 @@ const EventsNews: React.FC = () => {
     <section className='py-10'>
       <h2
         id="events-news-heading"
-        className="text-2xl font-bold mb-6 text-center text-gray-800"
+        className="text-orange-700 text-3xl sm:text-6xl lg:text-5xl text-center tracking-wide py-6"
       >
         Eventos y Noticias
+        <span className="bg-gradient-to-r from-orange-500 to-red-800 text-transparent bg-clip-text">
+            {" "}
+            De ASONIPED
+          </span>
       </h2>
       {loading ? (
         <div className="grid gap-6 md:grid-cols-3">
@@ -51,7 +55,7 @@ const EventsNews: React.FC = () => {
           No hay eventos o noticias disponibles.
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 py-3">
           {latestItems.map((item) => (
             <article
               key={item.id}
@@ -85,7 +89,7 @@ const EventsNews: React.FC = () => {
       <div className="flex justify-center mt-6">
         <Link
           to="/events-news"
-          className="text-white bg-gradient-to-r from-orange-500 to-orange-800 py-2 px-6 rounded hover:bg-orange-600 transition-colors hover:opacity-80 font-medium"
+          className="text-white bg-gradient-to-r from-orange-400 to-orange-700 py-2 px-6 rounded hover:bg-orange-600 transition-colors hover:opacity-90 font-medium"
         >
           Ver todos los eventos y noticias
         </Link>
