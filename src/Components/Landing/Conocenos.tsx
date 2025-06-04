@@ -1,4 +1,5 @@
-import quienesSomosImg from "../../assets/quienessomos.png"; 
+import asoniped from '../../assets/asoniped.jpg'; 
+import asoniped1 from '../../assets/asoniped1.jpg'
 import { Link } from '@tanstack/react-router';
 import { X } from 'lucide-react';
 
@@ -17,7 +18,7 @@ const ConocenosSection = () => {
 
      
       <div className="flex flex-col lg:flex-row items-center gap-10 mb-24">
-        <img src={quienesSomosImg} alt="Quiénes somos" className="w-full lg:w-1/2 rounded-xl shadow-xl" />
+        <img src={asoniped1} alt="Quiénes somos" className="w-full lg:w-1/2 rounded-xl shadow-xl" />
         <div className="w-full lg:w-1/2">
           <h3 className="text-orange-600 text-2xl font-semibold mb-4"> ¿Qué es ASONIPED?</h3>
           <p className="text-neutral-700 text-lg">
@@ -28,7 +29,7 @@ const ConocenosSection = () => {
 
       
       <div className="flex flex-col lg:flex-row-reverse items-center gap-10 mb-24">
-        <img src={quienesSomosImg} alt="A quiénes ayudamos" className="w-full lg:w-1/2 rounded-xl shadow-xl" />
+        <img src={asoniped} alt="A quiénes ayudamos" className="w-full lg:w-1/2 rounded-xl shadow-xl" />
         <div className="w-full lg:w-1/2">
           <h3 className=" text-orange-600 text-2xl font-semibold mb-4"> ¿A Quiénes Ayudamos?</h3>
           <p className="text-neutral-700 text-lg">
