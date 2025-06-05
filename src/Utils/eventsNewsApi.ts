@@ -10,7 +10,7 @@ export async function getEventsNews(): Promise<EventNewsItem[]> {
 }
 
 export async function addEventNews(item: EventNewsItem): Promise<void> {
-  const token = localStorage.getItem('adminToken');
+  const token = sessionStorage.getItem('adminToken');
   const res = await fetch(BASE_URL, {
     method: 'POST',
     headers: {
@@ -23,7 +23,7 @@ export async function addEventNews(item: EventNewsItem): Promise<void> {
 }
 
 export async function updateEventNews(updatedItem: EventNewsItem): Promise<void> {
-  const token = localStorage.getItem('adminToken');
+  const token = sessionStorage.getItem('adminToken');
   const res = await fetch(`${BASE_URL}/${updatedItem.id}`, {
     method: 'PUT',
     headers: {
@@ -36,7 +36,7 @@ export async function updateEventNews(updatedItem: EventNewsItem): Promise<void>
 }
 
 export async function deleteEventNews(id: string): Promise<void> {
-  const token = localStorage.getItem('adminToken');
+  const token = sessionStorage.getItem('adminToken');
   const res = await fetch(`${BASE_URL}/${id}`, {
     method: 'DELETE',
     headers: {
