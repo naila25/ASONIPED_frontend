@@ -9,7 +9,7 @@ export async function fetchAttendance(): Promise<Attendance[]> {
 }
 
 export async function addAttendance(record: Omit<Attendance, 'id' | 'created_at'>): Promise<void> {
-  const token = localStorage.getItem('adminToken');
+  const token = sessionStorage.getItem('adminToken');
   const res = await fetch(BASE_URL, {
     method: 'POST',
     headers: {
