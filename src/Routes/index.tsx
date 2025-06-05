@@ -14,6 +14,7 @@ import EventsNewsAdmin from '../Pages/Admin/EventsNewsAdmin';
 import ProtectedRoute from "./ProtectedRoute"; 
 import {FormularioMatricula} from '../Components/Workshop/FormularioMatricula';
 import PublicWorkshopsPage from '../Components/Workshop/PublicWorkshopsPage';
+import WorkshopForms from '../Components/Workshop/components/WorkshopForm';
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const AdminDashboard = lazy(() => import('../Pages/Admin/AdminDashboard'));
@@ -142,6 +143,12 @@ const eventsNewsRoute = createRoute({
   component: EventsNewsList,
 });
 
+const adminWorkshopFormsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'workshop-forms',
+  component: WorkshopForms,
+});
+
 // Route tree construction
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -160,8 +167,10 @@ const routeTree = rootRoute.addChildren([
     donationsAdminRoute,
     attendanceAdminRoute,
     eventsNewsAdminRoute,
+    adminWorkshopFormsRoute
   ]),
   eventsNewsRoute,
+  
 ]);
 
 // Singleton router instance

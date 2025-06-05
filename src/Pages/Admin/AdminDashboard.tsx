@@ -6,6 +6,7 @@ const navLinks = [
   { to: "/admin/donations", label: "Admin Donaciones" },
   { to: "/admin/events-news", label: "Admin Eventos" },
   { to: "/admin/attendance", label: "Admin Asistencia" },
+  { to: "/admin/workshop-forms", label: "Admin Talleres" },
   // Add more as needed
 ];
 
