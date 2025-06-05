@@ -3,7 +3,7 @@ import AboutSection from "../src/Components/Landing/AboutSection"
 import Testimonials from "../src/Components/Landing/Testimonials"
 import VolunteersSection from "../src/Components/Volunteers/VolunteersSection"
 import Donaciones from "../src/Components/Donation/Donaciones"
-import MostrarTalleres from "../src/Components/Workshop/MostrarTalleres"
+import PublicWorkshopsPage from "./Components/Workshop/PublicWorkshopsPage"
 import EventsNews from "../src/Components/Landing/EventsNews"
 
 const Home = () => {
@@ -14,7 +14,7 @@ const Home = () => {
         <AboutSection />
         <VolunteersSection />
         <div id="donaciones"><Donaciones /></div>
-        <div id="talleres"><MostrarTalleres/></div>
+        <div id="talleres"><PublicWorkshopsPage /></div>
         <EventsNews />
         <Testimonials />
       </div>
