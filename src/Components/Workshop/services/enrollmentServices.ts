@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAuthHeader } from '../../../Utils/auth';
 
 export interface WorkshopEnrollment {
   id: number;
@@ -11,6 +12,8 @@ export interface WorkshopEnrollment {
 }
 
 export const getAllEnrollments = async (): Promise<WorkshopEnrollment[]> => {
-  const { data } = await axios.get('http://localhost:3000/enrollments');
-  return data;
+  const { data } = await axios.get('http://localhost:3000/enrollments', {
+    headers: getAuthHeader()
+  });
+  return data;
 };
