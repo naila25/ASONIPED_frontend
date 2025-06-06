@@ -19,8 +19,6 @@ const VolunteerOptionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  // TODO: Replace with real admin token logic
-  const token = 'supersecrettoken';
 
   // Load volunteer options on mount
   useEffect(() => {
@@ -72,7 +70,7 @@ const VolunteerOptionsPage = () => {
       return;
     }
     try {
-      await deleteVolunteerOption(Number(id), token);
+      await deleteVolunteerOption(Number(id));
       await loadOptions();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error deleting option');
@@ -84,9 +82,9 @@ const VolunteerOptionsPage = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await updateVolunteerOption(Number(editingId), form, token);
+        await updateVolunteerOption(Number(editingId), form);
       } else {
-        await addVolunteerOption(form, token);
+        await addVolunteerOption(form);
       }
       await loadOptions();
       setForm({ title: '', description: '', imageUrl: '', date: '', location: '' });
@@ -322,4 +320,4 @@ const VolunteerOptionsPage = () => {
   );
 };
 
-export default VolunteerOptionsPage; 
+export default VolunteerOptionsPage;

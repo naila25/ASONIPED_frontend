@@ -6,7 +6,8 @@ const navLinks = [
   { to: "/admin/donations", label: "Admin Donaciones" },
   { to: "/admin/events-news", label: "Admin Eventos" },
   { to: "/admin/attendance", label: "Admin Asistencia" },
-  { to: "/admin/workshop-forms", label: "Admin Talleres" },
+  { to: "/admin/workshop-forms", label: "Admin Talleres" },
+  { to: "/admin/users", label: "Gestión de Usuarios" },
   // Add more as needed
 ];
 
@@ -18,13 +19,13 @@ export default function AdminDashboard() {
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-30 w-60 bg-white shadow-lg transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-200 ease-in-out md:relative md:translate-x-0 md:w-64`}>
         <div className="p-6">
-          <h2 className="text-2xl  mb-9">Panel de Administración</h2>
+          <h2 className="text-2xl font-semibold mb-9 text-gray-800">Panel de Administración</h2>
           <nav className="flex flex-col gap-6">
             {navLinks.map(link => (
               <Link
                 key={link.to}
                 to={link.to}
-                className="p-3 rounded hover:bg-zinc-100 text-orange-600  transition"
+                className="p-3 rounded hover:bg-zinc-100 text-orange-600 transition"
                 onClick={() => setSidebarOpen(false)}
               >
                 {link.label}
@@ -37,7 +38,7 @@ export default function AdminDashboard() {
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0  bg-opacity-30 z-20 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../../types/eventsNews';
-import { getEventsNews, addEventNews, updateEventNews, deleteEventNews } from '../../Utils/eventsNewsApi';
+import { fetchEventsNews, createEventNews, updateEventNews, deleteEventNews } from '../../Utils/eventsNewsApi';
 
 const initialForm: Omit<EventNewsItem, 'id'> = {
   title: '',
@@ -22,10 +22,10 @@ const EventsNewsAdmin: React.FC = () => {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const data = await getEventsNews();
-      setItems(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      const data = await fetchEventsNews();
+      setItems(data.sort((a: EventNewsItem, b: EventNewsItem) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Error fetching events/news.');
     } finally {
       setLoading(false);
@@ -52,7 +52,7 @@ const EventsNewsAdmin: React.FC = () => {
         id: Date.now().toString(),
         ...form,
       };
-      await addEventNews(newItem);
+      await createEventNews(newItem);
       setForm(initialForm);
       fetchItems();
     } catch {
@@ -78,7 +78,7 @@ const EventsNewsAdmin: React.FC = () => {
     if (!editingId) return;
     setSubmitting(true);
     try {
-      await updateEventNews({ id: editingId, ...editForm });
+      await updateEventNews(parseInt(editingId), editForm);
       setEditingId(null);
       setShowEditModal(false);
       fetchItems();
@@ -165,8 +165,8 @@ const EventsNewsAdmin: React.FC = () => {
             <tbody>
               {items.map((item, idx) => (
                 <tr key={item.id} className={
-                  `border-b border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}  hover:bg-zinc-100 transition-colors`
-                }>
+                  `border-b border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}  hover:bg-zinc-100 transition-colors
+                `}>
                   <td className="p-3 font-semibold max-w-[160px] truncate" title={item.title}>{item.title}</td>
                   <td className="p-3">{new Date(item.date).toLocaleDateString()}</td>
                   <td className="p-3 max-w-[220px] truncate" title={item.description}>{item.description}</td>

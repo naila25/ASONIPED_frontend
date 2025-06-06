@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../../types/eventsNews';
-import { getEventsNews } from '../../Utils/eventsNewsApi';
+import { fetchEventsNews } from '../../Utils/eventsNewsApi';
 import { Link } from '@tanstack/react-router';
 
 const ITEMS_PER_PAGE = 9;
@@ -15,11 +15,14 @@ const EventsNewsList: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getEventsNews();
+        const data = await fetchEventsNews();
         setItems(
-          data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          data.sort((a: EventNewsItem, b: EventNewsItem) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          )
         );
-      } catch (err) {
+      } catch (error) {
+        console.error('Error fetching events/news:', error);
         setError('Error fetching events/news.');
       } finally {
         setLoading(false);

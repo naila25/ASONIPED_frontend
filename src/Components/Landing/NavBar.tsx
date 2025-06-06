@@ -3,7 +3,7 @@ import { navItems } from "../../Constanst/index";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from '@tanstack/react-router';
-import { isLoggedIn } from "../../Utils/auth";
+import { isAuthenticated } from "../../Utils/auth";
 
 const NavBar = () => {
 
@@ -15,12 +15,20 @@ const NavBar = () => {
     const navigate = useNavigate();
 
     const handleAdminClick = () => {
-        if (isLoggedIn()) {
-          navigate({ to: "/admin" });
+        if (isAuthenticated()) {
+          navigate({ 
+            to: "/admin",
+            search: (prev) => prev,
+            params: (prev) => prev
+          });
         } else {
-          navigate({ to: "/admin-login" });
+          navigate({ 
+            to: "/admin/login",
+            search: (prev) => prev,
+            params: (prev) => prev
+          });
         }
-      };
+    };
 
   return (
     <nav className="bg-blue-500 text-white sticky top-0 z-50 py-5 backdrop-blur-lg border-b.border-neutral-700/80">
@@ -79,5 +87,3 @@ const NavBar = () => {
 }
 
 export default NavBar
-
- 

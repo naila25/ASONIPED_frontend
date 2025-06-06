@@ -1,45 +1,47 @@
-
 import React, { useState } from "react";
-import FormularioMatricula from "../../Components/Workshop/FormularioMatricula";
-import WorkshopDetails from "../../Components/Workshop/WorshopDetails";
+import { FormularioMatricula } from "../../Components/Workshop/FormularioMatricula";
+import { WorkshopDetailsModal } from "../../Components/Workshop/components/WorkshopDetailsModal";
+import type { Workshop } from "../../Components/Workshop/types/workshop";
 
 // Ejemplo de talleres, reemplaza por tu fuente de datos real
-const talleres = [
+const talleres: Workshop[] = [
   {
-    id: 1,
-    name: "Taller de Pintura",
+    id: "1",
+    title: "Taller de Pintura",
     description: "Aprende técnicas básicas y avanzadas de pintura.",
+    imageUrl: "",
     objectives: [
       "Desarrollar la creatividad",
       "Aprender técnicas de acuarela",
       "Mejorar la expresión artística",
     ],
     materials: ["Pinceles", "Acuarelas", "Lienzo"],
-    learnings: "Al finalizar, podrás crear tus propias obras de arte.",
+    learnText: "Al finalizar, podrás crear tus propias obras de arte.",
   },
   {
-    id: 2,
-    name: "Taller de Música",
+    id: "2",
+    title: "Taller de Música",
     description: "Iníciate en el mundo de la música y los instrumentos.",
+    imageUrl: "",
     objectives: [
       "Conocer instrumentos musicales",
       "Aprender a leer partituras",
       "Desarrollar el oído musical",
     ],
     materials: ["Instrumento musical propio (opcional)", "Cuaderno"],
-    learnings: "Podrás interpretar piezas sencillas y comprender la teoría básica.",
+    learnText: "Podrás interpretar piezas sencillas y comprender la teoría básica.",
   },
 ];
 
 const TalleresPage: React.FC = () => {
   const [showMatricula, setShowMatricula] = useState(false);
-  const [selectedWorkshop, setSelectedWorkshop] = useState<any>(null);
+  const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
   const handleOpenMatricula = () => setShowMatricula(true);
   const handleCloseMatricula = () => setShowMatricula(false);
 
-  const handleShowDetails = (workshop: any) => {
+  const handleShowDetails = (workshop: Workshop) => {
     setSelectedWorkshop(workshop);
     setShowDetails(true);
   };
@@ -60,7 +62,7 @@ const TalleresPage: React.FC = () => {
             className="bg-white rounded-xl shadow-lg p-6 flex flex-col justify-between"
           >
             <div>
-              <h2 className="text-2xl font-semibold text-orange-600 mb-2">{taller.name}</h2>
+              <h2 className="text-2xl font-semibold text-orange-600 mb-2">{taller.title}</h2>
               <p className="text-neutral-700 mb-4">{taller.description}</p>
             </div>
             <div className="flex gap-4 mt-4">
@@ -82,8 +84,12 @@ const TalleresPage: React.FC = () => {
       </div>
 
       {/* Modal de detalles */}
-      {showDetails && (
-        <WorkshopDetails workshop={selectedWorkshop} onClose={handleCloseDetails} />
+      {showDetails && selectedWorkshop && (
+        <WorkshopDetailsModal 
+          workshop={selectedWorkshop} 
+          onClose={handleCloseDetails}
+          onEnroll={handleOpenMatricula}
+        />
       )}
 
       {/* Modal de matrícula */}
@@ -97,7 +103,11 @@ const TalleresPage: React.FC = () => {
             >
               &times;
             </button>
-            <FormularioMatricula />
+            <FormularioMatricula 
+              workshopId={selectedWorkshop?.id || ''}
+              onSuccess={handleCloseMatricula}
+              onCancel={handleCloseMatricula}
+            />
           </div>
         </div>
       )}

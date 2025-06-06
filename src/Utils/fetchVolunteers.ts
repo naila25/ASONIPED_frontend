@@ -1,4 +1,5 @@
 import type { Volunteer, VolunteerOption } from '../types/volunteer';
+import { getAuthHeader } from './auth';
 
 const API_URL = 'http://localhost:3000/volunteers';
 const OPTIONS_API_URL = 'http://localhost:3000/volunteer-options';
@@ -9,16 +10,24 @@ export const fetchVolunteers = async (page = 1, limit = 10, status?: string, nam
   if (status) params.append('status', status);
   if (name) params.append('name', name);
 
-  const res = await fetch(`${API_URL}?${params.toString()}`);
+  const res = await fetch(`${API_URL}?${params.toString()}`, {
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
   if (!res.ok) throw new Error('Failed to fetch volunteers');
   return res.json();
 };
 
 // Add a new volunteer
 export const addVolunteer = async (volunteer: Volunteer) => {
-  const res = await fetch('http://localhost:3000/volunteers', {
+  const res = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(volunteer),
   });
   if (!res.ok) throw new Error('Failed to create volunteer');
@@ -26,12 +35,12 @@ export const addVolunteer = async (volunteer: Volunteer) => {
 };
 
 // Update an existing volunteer (admin only)
-export const updateVolunteer = async (id: number, data: Partial<Volunteer>, token: string): Promise<{ message: string }> => {
+export const updateVolunteer = async (id: number, data: Partial<Volunteer>): Promise<{ message: string }> => {
   const res = await fetch(`${API_URL}/${id}`, {
     method: 'PUT',
     headers: {
+      ...getAuthHeader(),
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(data),
   });
@@ -40,12 +49,10 @@ export const updateVolunteer = async (id: number, data: Partial<Volunteer>, toke
 };
 
 // Delete a volunteer (admin only)
-export const deleteVolunteer = async (id: number, token: string): Promise<{ message: string }> => {
+export const deleteVolunteer = async (id: number): Promise<{ message: string }> => {
   const res = await fetch(`${API_URL}/${id}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: getAuthHeader(),
   });
   if (!res.ok) throw new Error('Failed to delete volunteer');
   return res.json();
@@ -53,18 +60,23 @@ export const deleteVolunteer = async (id: number, token: string): Promise<{ mess
 
 // Fetch all available volunteer options
 export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
-  const res = await fetch(OPTIONS_API_URL);
+  const res = await fetch(OPTIONS_API_URL, {
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
   if (!res.ok) throw new Error('Failed to fetch volunteer options');
   return res.json();
 };
 
 // Add a new volunteer option (admin only)
-export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'>, token: string): Promise<{ message: string }> => {
+export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'>): Promise<{ message: string }> => {
   const res = await fetch(OPTIONS_API_URL, {
     method: 'POST',
     headers: {
+      ...getAuthHeader(),
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(option),
   });
@@ -73,12 +85,12 @@ export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'>, to
 };
 
 // Update a volunteer option (admin only)
-export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOption, 'id'>, token: string): Promise<{ message: string }> => {
+export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOption, 'id'>): Promise<{ message: string }> => {
   const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
     method: 'PUT',
     headers: {
+      ...getAuthHeader(),
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(option),
   });
@@ -87,12 +99,10 @@ export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOp
 };
 
 // Delete a volunteer option (admin only)
-export const deleteVolunteerOption = async (id: number, token: string): Promise<{ message: string }> => {
+export const deleteVolunteerOption = async (id: number): Promise<{ message: string }> => {
   const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: getAuthHeader(),
   });
   if (!res.ok) throw new Error('Failed to delete volunteer option');
   return res.json();
@@ -101,16 +111,24 @@ export const deleteVolunteerOption = async (id: number, token: string): Promise<
 // Fetch a paginated list of volunteer forms
 export const fetchVolunteerForms = async (page = 1, limit = 10) => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-  const res = await fetch(`${API_URL}?${params.toString()}`);
+  const res = await fetch(`${API_URL}?${params.toString()}`, {
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
   if (!res.ok) throw new Error('Failed to fetch volunteer forms');
-  return res.json(); // Should return { volunteers: Volunteer[], total, page, limit }
+  return res.json();
 };
 
 // Add a new volunteer form
 export const addVolunteerForm = async (form: Volunteer) => {
   const res = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(form),
   });
   if (!res.ok) throw new Error('Failed to create volunteer form');
@@ -118,12 +136,12 @@ export const addVolunteerForm = async (form: Volunteer) => {
 };
 
 // Update the status of a volunteer form
-export const updateVolunteerFormStatus = async (id: number, status: 'pending' | 'approved' | 'rejected', token: string) => {
+export const updateVolunteerFormStatus = async (id: number, status: 'pending' | 'approved' | 'rejected') => {
   const res = await fetch(`${API_URL}/${id}`, {
     method: 'PUT',
     headers: {
+      ...getAuthHeader(),
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ status }),
   });
