@@ -1,47 +1,68 @@
 // Utility functions for interacting with JsonBin for EventNewsItem CRUD
 import type { EventNewsItem } from '../types/eventsNews';
+import { getAuthHeader } from './auth.ts';
 
-const BASE_URL = 'http://localhost:3000/events-news';
+const API_URL = 'http://localhost:3000/events-news';
 
-export async function getEventsNews(): Promise<EventNewsItem[]> {
-  const res = await fetch(BASE_URL);
-  if (!res.ok) throw new Error('Failed to fetch events/news');
-  return await res.json();
-}
+export const fetchEventsNews = async () => {
+  try {
+    const response = await fetch(API_URL, {
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) throw new Error('Failed to fetch events/news');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching events/news:', error);
+    throw error;
+  }
+};
 
-export async function addEventNews(item: EventNewsItem): Promise<void> {
-  const token = sessionStorage.getItem('adminToken');
-  const res = await fetch(BASE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(item),
-  });
-  if (!res.ok) throw new Error('Failed to add event/news');
-}
+export const createEventNews = async (data: Omit<EventNewsItem, 'id'>) => {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create event/news');
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating event/news:', error);
+    throw error;
+  }
+};
 
-export async function updateEventNews(updatedItem: EventNewsItem): Promise<void> {
-  const token = sessionStorage.getItem('adminToken');
-  const res = await fetch(`${BASE_URL}/${updatedItem.id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(updatedItem),
-  });
-  if (!res.ok) throw new Error('Failed to update event/news');
-}
+export const updateEventNews = async (id: number, data: Partial<EventNewsItem>) => {
+  try {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update event/news');
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating event/news:', error);
+    throw error;
+  }
+};
 
 export async function deleteEventNews(id: string): Promise<void> {
-  const token = sessionStorage.getItem('adminToken');
-  const res = await fetch(`${BASE_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: 'DELETE',
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
     },
   });
   if (!res.ok) throw new Error('Failed to delete event/news');
-} 
+}

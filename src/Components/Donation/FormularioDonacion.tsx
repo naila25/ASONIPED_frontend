@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
+import { getAuthHeader, isAuthenticated } from "../../Utils/auth";
 
 const FormularioDonacion = () => {
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -16,19 +17,34 @@ const FormularioDonacion = () => {
     },
     onSubmit: async ({ value }) => {
       setStatus(null);
+      
+      if (!isAuthenticated()) {
+        setStatus({ type: 'error', message: 'Por favor, inicia sesión para realizar una donación.' });
+        return;
+      }
+
       try {
         const res = await fetch("http://localhost:3000/donations", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeader()
           },
           body: JSON.stringify(value),
         });
-        if (!res.ok) throw new Error("Error al guardar la donación");
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+          }
+          throw new Error("Error al guardar la donación");
+        }
+
         setStatus({ type: 'success', message: "Donación enviada con éxito." });
         form.reset();
       } catch (err) {
-        setStatus({ type: 'error', message: "Error al enviar la donación. Intenta de nuevo." });
+        const errorMessage = err instanceof Error ? err.message : "Error al enviar la donación. Intenta de nuevo.";
+        setStatus({ type: 'error', message: errorMessage });
         console.error("Error al enviar:", err);
       }
     },

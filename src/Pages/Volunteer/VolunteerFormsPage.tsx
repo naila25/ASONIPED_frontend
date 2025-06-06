@@ -77,7 +77,7 @@ const VolunteerFormsPage = () => {
   // Handle status change for a volunteer form
   const handleStatusChange = async (formId: number, newStatus: 'pending' | 'approved' | 'rejected') => {
     try {
-      await updateVolunteerFormStatus(formId, newStatus, 'supersecrettoken');
+      await updateVolunteerFormStatus(formId, newStatus);
       setForms(forms.map(form => 
         Number(form.id) === formId ? { ...form, status: newStatus } : form
       ));
@@ -284,4 +284,4 @@ const VolunteerFormsPage = () => {
   );
 };
 
-export default VolunteerFormsPage; 
+export default VolunteerFormsPage;

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useReactTable, getCoreRowModel, flexRender, getSortedRowModel, getFilteredRowModel} from '@tanstack/react-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { SortingState } from '@tanstack/react-table';
-import { fetchVolunteers } from '../../Utils/fetchVolunteers';
+import { fetchVolunteerOptions } from '../../Utils/fetchVolunteers';
 import type { VolunteerOption } from '../../types/volunteer';
 
 const VolunteerAdminTable = () => {
@@ -11,15 +11,13 @@ const VolunteerAdminTable = () => {
   const [globalFilter, setGlobalFilter] = useState('');
 
   useEffect(() => {
-    fetchVolunteers()
+    fetchVolunteerOptions()
       .then(response => {
-        if (response.error) {
-          console.error(response.error);
-          return;
-        }
-        setVolunteers(response.data);
+        setVolunteers(response);
       })
-      .catch(console.error);
+      .catch(error => {
+        console.error('Error fetching volunteer options:', error);
+      });
   }, []);
 
   const columns: ColumnDef<VolunteerOption>[] = [

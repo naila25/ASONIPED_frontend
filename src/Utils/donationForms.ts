@@ -1,10 +1,4 @@
-/**
- * Types and API utilities for managing donation forms.
- */
-
-/**
- * Represents a donation form entry.
- */
+import { getAuthHeader } from './auth';
 export interface DonationForm {
   nombre: string;
   telefono: string;
@@ -16,9 +10,6 @@ export interface DonationForm {
   status?: 'pending' | 'approved' | 'rejected';
 }
 
-/**
- * Standard API response wrapper.
- */
 export interface ApiResponse<T> {
   data?: T;
   error?: {
@@ -33,10 +24,13 @@ export interface ApiResponse<T> {
   };
 }
 
-
 export const fetchDonationForms = async (page = 1, limit = 10): Promise<ApiResponse<DonationForm[]>> => {
   try {
-    const response = await fetch(`http://localhost:3000/donations`);
+    const response = await fetch(`http://localhost:3000/donations`, {
+      headers: {
+        ...getAuthHeader()
+      }
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch donation forms: ${response.statusText}`);
     }
@@ -64,14 +58,17 @@ export const fetchDonationForms = async (page = 1, limit = 10): Promise<ApiRespo
   }
 };
 
-
 export const updateDonationForm = async (
   correo: string,
   status: 'pending' | 'approved' | 'rejected'
 ): Promise<ApiResponse<void>> => {
   try {
-    // Fetch all donations to find the one with the matching correo
-    const response = await fetch(`http://localhost:3000/donations`);
+
+    const response = await fetch(`http://localhost:3000/donations`, {
+      headers: {
+        ...getAuthHeader()
+      }
+    });
     if (!response.ok) throw new Error('Failed to fetch donations');
     const data = await response.json();
     const donation = data.find((form: DonationForm) => form.correo === correo);
@@ -82,7 +79,7 @@ export const updateDonationForm = async (
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer supersecrettoken', // Use your admin token
+        ...getAuthHeader()
       },
       body: JSON.stringify({ status }),
     });
@@ -98,11 +95,14 @@ export const updateDonationForm = async (
   }
 };
 
-
 export const deleteDonationForm = async (correo: string): Promise<ApiResponse<void>> => {
   try {
-    // Fetch all donations to find the one with the matching correo
-    const response = await fetch(`http://localhost:3000/donations`);
+
+    const response = await fetch(`http://localhost:3000/donations`, {
+      headers: {
+        ...getAuthHeader()
+      }
+    });
     if (!response.ok) throw new Error('Failed to fetch donations');
     const data = await response.json();
     const donation = data.find((form: DonationForm) => form.correo === correo);
@@ -112,7 +112,7 @@ export const deleteDonationForm = async (correo: string): Promise<ApiResponse<vo
     const deleteResponse = await fetch(`http://localhost:3000/donations/${donation.id}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': 'Bearer supersecrettoken', // Use your admin token
+        ...getAuthHeader()
       },
     });
     if (!deleteResponse.ok) throw new Error('Failed to delete donation');

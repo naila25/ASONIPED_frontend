@@ -1,12 +1,12 @@
-import { Navigate } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { isLoggedIn } from "../Utils/auth";
+import { Navigate, Outlet } from '@tanstack/react-router';
+import { isAuthenticated } from "../Utils/auth";
 
-const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  if (!isLoggedIn()) {
-    return <Navigate to="/admin-login" />;
+const ProtectedRoute = () => {
+  if (!isAuthenticated()) {
+    return <Navigate to="/admin/login" />;
   }
-  return children;
+
+  return <Outlet />;
 };
 
-export default ProtectedRoute; 
+export default ProtectedRoute;

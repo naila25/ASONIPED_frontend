@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../../types/eventsNews';
-import { getEventsNews } from '../../Utils/eventsNewsApi';
+import { fetchEventsNews } from '../../Utils/eventsNewsApi';
 import { Link } from '@tanstack/react-router';
 
 const EventsNews: React.FC = () => {
@@ -11,9 +11,10 @@ const EventsNews: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getEventsNews();
+        const data = await fetchEventsNews();
         setItems(data);
-      } catch (err) {
+      } catch (error) {
+        console.error('Error fetching events/news:', error);
         setError('Error fetching events/news.');
       } finally {
         setLoading(false);

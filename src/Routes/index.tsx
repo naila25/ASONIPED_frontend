@@ -1,5 +1,4 @@
-// src/router.ts
-import { createRouter, createRootRoute, createRoute } from '@tanstack/react-router';
+import { createRouter, createRootRoute, createRoute, Router } from '@tanstack/react-router';
 import { lazy } from 'react';
 import App from '../App';
 import Volunteers from '../Pages/Volunteer/Volunteers';
@@ -15,9 +14,10 @@ import ProtectedRoute from "./ProtectedRoute";
 import {FormularioMatricula} from '../Components/Workshop/FormularioMatricula';
 import PublicWorkshopsPage from '../Components/Workshop/PublicWorkshopsPage';
 import WorkshopForms from '../Components/Workshop/components/WorkshopForm';
+import AdminDashboard from '../Pages/Admin/AdminDashboard';
+import UserManagement from '../Pages/Admin/UserManagement';
 
 // Lazy-loaded admin Pages with Suspense boundaries
-const AdminDashboard = lazy(() => import('../Pages/Admin/AdminDashboard'));
 const VolunteerOptionsPage = lazy(() => import('../Pages/Volunteer/VolunteerOptionsPage'));
 const VolunteerFormsPage = lazy(() => import('../Pages/Volunteer/VolunteerFormsPage'));
 const DonationForms = lazy(() => import('../Pages/Admin/DonationForms'));
@@ -45,7 +45,7 @@ const volunteersRoute = createRoute({
 
 const adminLoginRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: 'admin-login',
+  path: 'admin/login',
   component: AdminLogin,
 });
 
@@ -80,27 +80,28 @@ const formularioMatriculaRoute = createRoute({
   component: FormularioMatricula,
 });
 
-
 // Admin routes with lazy loading and authentication check
-const adminRoute = createRoute({
+const protectedRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: 'protected',
+  component: ProtectedRoute,
+});
+
+const adminDashboardRoute = createRoute({
+  getParentRoute: () => protectedRoute,
   path: 'admin',
-  component: () => (
-    <ProtectedRoute>
-      <AdminDashboard />
-    </ProtectedRoute>
-  ),
+  component: AdminDashboard,
 });
 
 // Admin sub-routes
 const volunteersAdminRoute = createRoute({
-  getParentRoute: () => adminRoute,
+  getParentRoute: () => adminDashboardRoute,
   path: 'volunteers',
   component: VolunteersSubDashboard,
 });
 
 const donationsAdminRoute = createRoute({
-  getParentRoute: () => adminRoute,
+  getParentRoute: () => adminDashboardRoute,
   path: 'donations',
   component: () => (
       <DonationForms />
@@ -108,11 +109,17 @@ const donationsAdminRoute = createRoute({
 });
 
 const attendanceAdminRoute = createRoute({
-  getParentRoute: () => adminRoute,
+  getParentRoute: () => adminDashboardRoute,
   path: 'attendance',
   component: () => (
       <AttendancePage />
   ),
+});
+
+const userManagementRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'users',
+  component: UserManagement,
 });
 
 const volunteerOptionsRoute = createRoute({
@@ -132,7 +139,7 @@ const volunteerFormsRoute = createRoute({
 });
 
 const eventsNewsAdminRoute = createRoute({
-  getParentRoute: () => adminRoute,
+  getParentRoute: () => adminDashboardRoute,
   path: 'events-news',
   component: EventsNewsAdmin,
 });
@@ -144,7 +151,7 @@ const eventsNewsRoute = createRoute({
 });
 
 const adminWorkshopFormsRoute = createRoute({
-  getParentRoute: () => adminRoute,
+  getParentRoute: () => adminDashboardRoute,
   path: 'workshop-forms',
   component: WorkshopForms,
 });
@@ -157,24 +164,26 @@ const routeTree = rootRoute.addChildren([
   donacionesRoute,
   conocenosRoute,
   formularioDonacionRoute,
-    publicWorkshopsRoute,
+  publicWorkshopsRoute,
   formularioMatriculaRoute,
-  adminRoute.addChildren([
-    volunteersAdminRoute.addChildren([
-      volunteerOptionsRoute,
-      volunteerFormsRoute
+  protectedRoute.addChildren([
+    adminDashboardRoute.addChildren([
+      volunteersAdminRoute.addChildren([
+        volunteerOptionsRoute,
+        volunteerFormsRoute
+      ]),
+      donationsAdminRoute,
+      attendanceAdminRoute,
+      eventsNewsAdminRoute,
+      adminWorkshopFormsRoute,
+      userManagementRoute
     ]),
-    donationsAdminRoute,
-    attendanceAdminRoute,
-    eventsNewsAdminRoute,
-    adminWorkshopFormsRoute
   ]),
   eventsNewsRoute,
-  
 ]);
 
-// Singleton router instance
-let router: any;
+
+let router: Router<typeof routeTree> | undefined;
 
 if (!router) {
   router = createRouter({
