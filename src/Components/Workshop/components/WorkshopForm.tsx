@@ -9,7 +9,6 @@ const WorkshopForms: React.FC = () => {
   useEffect(() => {
     getAllEnrollments()
       .then(data => {
-        console.log('Enrollments response:', data);
         setEnrollments(data);
       })
       .finally(() => setLoading(false));
@@ -48,4 +47,4 @@ const WorkshopForms: React.FC = () => {
   );
 };
 
-export default WorkshopForms;
+export default WorkshopForms;
