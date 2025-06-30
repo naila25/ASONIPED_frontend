@@ -11,9 +11,9 @@ import ConocenosSection from '../Components/Landing/Conocenos';
 import EventsNewsList from '../Pages/Events/EventsNewsList';
 import EventsNewsAdmin from '../Pages/Admin/EventsNewsAdmin';
 import ProtectedRoute from "./ProtectedRoute"; 
-import {FormularioMatricula} from '../Components/Workshop/FormularioMatricula';
-import PublicWorkshopsPage from '../Components/Workshop/PublicWorkshopsPage';
-import WorkshopForms from '../Components/Workshop/components/WorkshopForm';
+import {FormularioMatricula} from '../Pages/Workshops/FormularioMatricula';
+import PublicWorkshopsPage from '../Pages/Workshops/PublicWorkshopsPage';
+import WorkshopForms from '../Components/Workshop/WorkshopForm';
 import AdminDashboard from '../Pages/Admin/AdminDashboard';
 import UserManagement from '../Pages/Admin/UserManagement';
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, Outlet } from "@tanstack/react-router";
 
 const navLinks = [
-  { to: "/admin/volunteers", label: "Admin Volunteers" },
+  { to: "/admin/volunteers", label: "Admin Voluntarios" },
   { to: "/admin/donations", label: "Admin Donaciones" },
   { to: "/admin/events-news", label: "Admin Eventos" },
   { to: "/admin/attendance", label: "Admin Asistencia" },

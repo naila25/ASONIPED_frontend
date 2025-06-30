@@ -62,7 +62,6 @@ export const deleteVolunteer = async (id: number): Promise<{ message: string }> 
 export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
   const res = await fetch(OPTIONS_API_URL, {
     headers: {
-      ...getAuthHeader(),
       'Content-Type': 'application/json',
     },
   });

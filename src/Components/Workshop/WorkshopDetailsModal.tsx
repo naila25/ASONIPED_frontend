@@ -1,4 +1,4 @@
-import type { Workshop } from "../types/workshop";
+import type { Workshop } from "../../Utils/workshop";
 
 interface Props {
   workshop: Workshop;

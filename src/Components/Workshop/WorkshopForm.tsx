@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getAllEnrollments } from '../services/enrollmentServices';
-import type { WorkshopEnrollment } from '../services/enrollmentServices';
+import { getAllEnrollments } from '../../Utils/enrollmentServices';
+import type { WorkshopEnrollment } from '../../Utils/enrollmentServices';
 
 const WorkshopForms: React.FC = () => {
   const [enrollments, setEnrollments] = useState<WorkshopEnrollment[]>([]);
