@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthHeader } from '../../../Utils/auth';
+import { getAuthHeader } from './auth';
 
 export interface WorkshopEnrollment {
   id: number;

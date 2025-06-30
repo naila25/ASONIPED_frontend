@@ -3,7 +3,7 @@ import AboutSection from "../src/Components/Landing/AboutSection"
 import Testimonials from "../src/Components/Landing/Testimonials"
 import VolunteersSection from "../src/Components/Volunteers/VolunteersSection"
 import Donaciones from "../src/Components/Donation/Donaciones"
-import PublicWorkshopsPage from "./Components/Workshop/PublicWorkshopsPage"
+import PublicWorkshopsPage from "./Pages/Workshops/PublicWorkshopsPage"
 import EventsNews from "../src/Components/Landing/EventsNews"
 
 const Home = () => {

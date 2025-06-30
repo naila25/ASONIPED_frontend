@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Workshop } from '../types/workshop';
+import type { Workshop } from '../../../Utils/workshop';
 
 export function useSelectedWorkshop() {
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);

@@ -1,15 +1,13 @@
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import type { WorkshopEnrollment } from '../types/workshop';
-import type { Workshop } from '../types/workshop';
-import { getAuthHeader } from '../../../Utils/auth';
+import type { WorkshopEnrollment } from './workshop';
+import type { Workshop } from './workshop';
+import { getAuthHeader } from './auth';
 
 const BACKEND_URL = 'http://localhost:3000'; // Change if your backend uses a different port
 
 export const getAllWorkshops = async (): Promise<Workshop[]> => {
-  const { data } = await axios.get(`${BACKEND_URL}/workshops`, {
-    headers: getAuthHeader()
-  });
+  const { data } = await axios.get(`${BACKEND_URL}/workshops`);
   return data;
 };
 

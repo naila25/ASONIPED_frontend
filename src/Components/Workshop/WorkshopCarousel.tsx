@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import type { Workshop } from '../types/workshop';
+import type { Workshop } from '../../Utils/workshop';
 import { WorkshopCard } from './WorkshopCard';
 
 interface Props {

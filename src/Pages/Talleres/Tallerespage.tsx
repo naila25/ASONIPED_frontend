@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { FormularioMatricula } from "../../Components/Workshop/FormularioMatricula";
+import { FormularioMatricula } from "../Workshops/FormularioMatricula";
 import { WorkshopDetailsModal } from "../../Components/Workshop/components/WorkshopDetailsModal";
-import type { Workshop } from "../../Components/Workshop/types/workshop";
+import type { Workshop } from "../../Utils/workshop";
 
 // Ejemplo de talleres, reemplaza por tu fuente de datos real
 const talleres: Workshop[] = [

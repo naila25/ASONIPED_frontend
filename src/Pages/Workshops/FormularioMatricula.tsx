@@ -1,6 +1,6 @@
 import { useForm } from '@tanstack/react-form';
 import { useEffect } from 'react';
-import { useAddEnrollment } from './services/workshopService';
+import { useAddEnrollment } from '../../Utils/workshopService';
 
 interface Props {
   workshopId: string;
