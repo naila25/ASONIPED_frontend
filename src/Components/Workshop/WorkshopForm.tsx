@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getAllEnrollments } from '../services/enrollmentServices';
-import type { WorkshopEnrollment } from '../services/enrollmentServices';
+import { getAllEnrollments } from '../../Utils/enrollmentServices';
+import type { WorkshopEnrollment } from '../../Utils/enrollmentServices';
 
 const WorkshopForms: React.FC = () => {
   const [enrollments, setEnrollments] = useState<WorkshopEnrollment[]>([]);
@@ -9,7 +9,6 @@ const WorkshopForms: React.FC = () => {
   useEffect(() => {
     getAllEnrollments()
       .then(data => {
-        console.log('Enrollments response:', data);
         setEnrollments(data);
       })
       .finally(() => setLoading(false));
@@ -48,4 +47,4 @@ const WorkshopForms: React.FC = () => {
   );
 };
 
-export default WorkshopForms;
+export default WorkshopForms;

@@ -8,7 +8,6 @@ export const fetchEventsNews = async () => {
   try {
     const response = await fetch(API_URL, {
       headers: {
-        ...getAuthHeader(),
         'Content-Type': 'application/json',
       },
     });

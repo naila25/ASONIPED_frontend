@@ -1,11 +1,11 @@
 // PublicWorkshopsPage.tsx
 import { useState, useEffect } from 'react';
-import type { Workshop } from './types/workshop';
-import { useSelectedWorkshop } from './hooks/useSelectedWorkshop';
-import { WorkshopCarousel } from './components/WorkshopCarousel';
-import { WorkshopDetailsModal } from './components/WorkshopDetailsModal';
+import type { Workshop } from '../../Utils/workshop';
+import { useSelectedWorkshop } from '../../Utils/useSelectedWorkshop';
+import { WorkshopCarousel } from '../../Components/Workshop/WorkshopCarousel';
+import { WorkshopDetailsModal } from '../../Components/Workshop/WorkshopDetailsModal';
 import { FormularioMatricula } from './FormularioMatricula';
-import { getAllWorkshops } from './services/workshopService';
+import { getAllWorkshops } from '../../Utils/workshopService';
 
 export default function PublicWorkshopsPage() {
   const {
