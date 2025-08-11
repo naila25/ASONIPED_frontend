@@ -16,12 +16,12 @@ import {
 
 // Mock data - esto se reemplazará con datos reales de la API
 const mockStats = {
-  usuarios: { total: 150, activos: 120, nuevos: 15 },
-  donaciones: { total: 2500000, esteMes: 180000, frecuencia: "Diaria" },
-  eventos: { total: 25, proximos: 8, activos: 12 },
-  expedientes: { total: 89, pendientes: 23, aprobados: 45 },
-  talleres: { total: 15, activos: 8, inscritos: 234 },
-  voluntariado: { programas: 12, voluntarios: 67, horas: 1200 }
+  usuarios: { total: 1, activos: 1, nuevos: 1 },
+  donaciones: { total: 1, esteMes: 1, frecuencia: "Diaria" },
+  eventos: { total: 1, proximos: 1, activos: 1 },
+  expedientes: { total: 1, pendientes: 1, aprobados: 1 },
+  talleres: { total: 1, activos: 1, inscritos: 1 },
+  voluntariado: { programas: 1, voluntarios: 1, horas: 1 }
 };
 
 const mockRecentActivities = [
@@ -33,11 +33,11 @@ const mockRecentActivities = [
 ];
 
 const mockQuickActions = [
-  { title: "Revisar Expedientes", icon: FileText, color: "bg-blue-500", count: 23 },
-  { title: "Gestionar Donaciones", icon: DollarSign, color: "bg-green-500", count: 8 },
+  { title: "Revisar Expedientes", icon: FileText, color: "bg-blue-500", count: 1 },
+  { title: "Gestionar Donaciones", icon: DollarSign, color: "bg-green-500", count: 1 },
   { title: "Programar Evento", icon: Calendar, color: "bg-purple-500", count: 0 },
-  { title: "Administrar Talleres", icon: GraduationCap, color: "bg-orange-500", count: 3 },
-  { title: "Gestión de Usuarios", icon: Users, color: "bg-indigo-500", count: 5 },
+  { title: "Administrar Talleres", icon: GraduationCap, color: "bg-orange-500", count: 1 },
+  { title: "Gestión de Usuarios", icon: Users, color: "bg-indigo-500", count: 1 },
   { title: "Configuración", icon: Settings, color: "bg-gray-500", count: 0 },
 ];
 
@@ -55,7 +55,7 @@ export default function AdminDashboardHome() {
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-500">Último acceso</p>
-            <p className="text-sm font-medium text-gray-900">Hoy, 10:30 AM</p>
+            <p className="text-sm font-medium text-gray-900">null</p>
           </div>
         </div>
       </div>
@@ -218,12 +218,12 @@ export default function AdminDashboardHome() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Estado del Sistema</h2>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <span className="font-medium text-gray-900">Servidor Web</span>
               </div>
-              <span className="text-sm text-green-600">Operativo</span>
+              <span className="text-sm text-red-600">Desconectado</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
               <div className="flex items-center gap-3">
@@ -259,7 +259,7 @@ export default function AdminDashboardHome() {
               <TrendingUp className="w-8 h-8 text-blue-600" />
             </div>
             <p className="font-semibold text-gray-900">Crecimiento</p>
-            <p className="text-2xl font-bold text-blue-600">+23%</p>
+            <p className="text-2xl font-bold text-blue-600">0%</p>
             <p className="text-sm text-gray-500">Este mes</p>
           </div>
           <div className="text-center">
@@ -267,15 +267,15 @@ export default function AdminDashboardHome() {
               <Clock className="w-8 h-8 text-green-600" />
             </div>
             <p className="font-semibold text-gray-900">Tiempo de Respuesta</p>
-            <p className="text-2xl font-bold text-green-600">0.8s</p>
+            <p className="text-2xl font-bold text-green-600">0</p>
             <p className="text-sm text-gray-500">Promedio</p>
           </div>
           <div className="text-center">
             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Award className="w-8 h-8 text-purple-600" />
             </div>
-            <p className="font-semibold text-gray-900">Satisfacción</p>
-            <p className="text-2xl font-bold text-purple-600">4.8/5</p>
+            <p className="font-semibold text-gray-900">Meta</p>
+            <p className="text-2xl font-bold text-purple-600">0</p>
             <p className="text-sm text-gray-500">Usuarios</p>
           </div>
         </div>
