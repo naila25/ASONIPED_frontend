@@ -28,7 +28,7 @@ const navLinks = [
 
 export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifications, setNotifications] = useState(0); // Mock notifications count
+  const [notifications] = useState(0); // Mock notifications count
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -75,9 +75,9 @@ export default function AdminDashboard() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col ml-0 md:ml-4 transition-all">
+      <div className="flex-1 flex flex-col ml-0 md:ml-0 transition-all">
         {/* Top bar */}
-        <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="bg-white shadow-sm border-b border-gray-300">
           <div className="flex items-center justify-between p-4">
             {/* Mobile menu button */}
             <div className="md:hidden">
