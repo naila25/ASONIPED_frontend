@@ -2,7 +2,7 @@ import logo from "../../assets/logoasoniped.png";
 import { navItems } from "../../Constanst/index";
 import { Menu, X, User, LogOut, Settings, FileText, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate, useLocation } from '@tanstack/react-router';
 import { isAuthenticated, logout, getToken } from "../../Utils/auth";
 
 const NavBar = () => {
@@ -12,6 +12,10 @@ const NavBar = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Verificar si estamos en un dashboard
+    const isInDashboard = location.pathname.startsWith('/admin') || location.pathname.startsWith('/user');
 
     // Verificar estado de autenticación al cargar
     useEffect(() => {
@@ -112,14 +116,19 @@ const NavBar = () => {
                         <span className="text-xl tracking-tight">Asoniped Digital</span>
                     </Link>
                 </div>
-                {/* Center: Nav Links */}
-                <ul className="hidden lg:flex mx-auto space-x-12">
-                    {navItems.map((item, index) => (
-                        <li key={index}>
-                            <a href={item.href}>{item.label}</a>
-                        </li>
-                    ))}
-                </ul>
+                {/* Center: Nav Links - Ocultos en dashboards */}
+                {!isInDashboard ? (
+                    <ul className="hidden lg:flex mx-auto space-x-12">
+                        {navItems.map((item, index) => (
+                            <li key={index}>
+                                <a href={item.href}>{item.label}</a>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    /* Espaciador para mantener distribución en dashboards */
+                    <div className="hidden lg:flex flex-1"></div>
+                )}
                 {/* Right: User Menu */}
                 <div className="hidden lg:flex items-center flex-shrink-0">
                     {isLoggedIn ? (
@@ -197,13 +206,15 @@ const NavBar = () => {
             </div>
             {mobileDrawerOpen && (
                     <div className="fixed right-0 z-20 bg-blue-500 w-full p-12 flex delx-col justify-between items-center lg:hidden">
-                        <ul >
-                            {navItems.map((item, index) => (
-                                <li key={index} className="py-4">
-                                    <a href={item.href}>{item.label}</a>
-                                </li>
-                            ))}
-                        </ul>
+                        {!isInDashboard && (
+                            <ul >
+                                {navItems.map((item, index) => (
+                                    <li key={index} className="py-4">
+                                        <a href={item.href}>{item.label}</a>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                         <div className="flex flex-col space-y-3">
                             {isLoggedIn ? (
                                 <>

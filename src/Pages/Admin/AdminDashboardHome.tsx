@@ -8,10 +8,7 @@ import {
   TrendingUp,
   Clock,
   Award,
-  Plus,
-  Eye,
   Settings,
-  Bell
 } from "lucide-react";
 
 // Mock data - esto se reemplazará con datos reales de la API
@@ -25,11 +22,11 @@ const mockStats = {
 };
 
 const mockRecentActivities = [
-  { id: 1, title: "Nuevo expediente registrado", user: "María González", time: "2 min", type: "expediente" },
-  { id: 2, title: "Donación recibida", amount: "₡50,000", time: "15 min", type: "donacion" },
-  { id: 3, title: "Taller completado", workshop: "Inclusión Digital", time: "1 hora", type: "taller" },
-  { id: 4, title: "Nuevo voluntario registrado", user: "Carlos Ruiz", time: "2 horas", type: "voluntario" },
-  { id: 5, title: "Evento programado", event: "Feria de Inclusión", time: "3 horas", type: "evento" },
+  { id: 1, title: "Expedientes nuevos", user: "null", time: "0", type: "expediente" },
+  { id: 2, title: "Donación recibida", amount: "null", time: "o", type: "donacion" },
+  { id: 3, title: "Taller completado", workshop: "null", time: "0", type: "taller" },
+  { id: 4, title: "Nuevo voluntario registrado", user: "null", time: "0", type: "voluntario" },
+  { id: 5, title: "Evento programado", event: "null", time: "0", type: "evento" },
 ];
 
 const mockQuickActions = [
