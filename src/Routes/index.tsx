@@ -23,7 +23,7 @@ import DashboardHome from '../Pages/User/DashboardHome';
 import ExpedientesPage from '../Pages/User/ExpedientesPage';
 import TalleresPage from '../Pages/User/TalleresPage';
 import VoluntariadoPage from '../Pages/User/VoluntariadoPage';
-import DonacionesPage from '../Pages/User/DonacionesPage';
+import DonacionesUserPage from '../Pages/User/DonacionesPage';
 import MensajesPage from '../Pages/User/MensajesPage';
 import CalendarioPage from '../Pages/User/CalendarioPage';
 import PerfilPage from '../Pages/User/PerfilPage';
@@ -146,10 +146,10 @@ const voluntariadoRoute = createRoute({
   component: VoluntariadoPage,
 });
 
-const donacionesRoute = createRoute({
+const donacionesUserRoute = createRoute({
   getParentRoute: () => userDashboardRoute,
   path: 'donaciones',
-  component: DonacionesPage,
+  component: DonacionesUserPage,
 });
 
 const mensajesRoute = createRoute({
@@ -262,7 +262,7 @@ const routeTree = rootRoute.addChildren([
       expedientesRoute,
       talleresRoute,
       voluntariadoRoute,
-      donacionesRoute,
+      donacionesUserRoute,
       mensajesRoute,
       calendarioRoute,
       perfilRoute
