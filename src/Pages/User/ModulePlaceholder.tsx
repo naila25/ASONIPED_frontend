@@ -61,3 +61,4 @@ export default function ModulePlaceholder({ title, description, icon: Icon, colo
     </div>
   );
 }
+

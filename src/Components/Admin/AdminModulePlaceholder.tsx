@@ -61,3 +61,4 @@ export default function AdminModulePlaceholder({ title, description, icon: Icon,
     </div>
   );
 }
+
