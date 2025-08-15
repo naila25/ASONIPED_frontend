@@ -1,25 +1,53 @@
-
+import { motion } from "framer-motion";
 import { FaMoneyBillWave, FaGift, FaMobileAlt, FaUniversity } from "react-icons/fa";
-import quienessomos from "../assets/profile-pictures/quienessomos.png"
+import quienessomos from "../../assets/quienessomos.png"
 
 const DonacionesVisual = () => {
   return (
     <section className="min-h-screen bg-white px-6 py-10 flex flex-col items-center">
       {/* Título principal */}
-      <h2 className="text-4xl font-bold text-orange-700 mb-4 text-center ">¿Por qué donar?</h2>
-      <p className="text-gray-800 max-w-3xl text-center mb-6 text-lg">
+      <motion.h2
+        className="text-4xl font-bold text-orange-700 mb-4 text-center"
+        initial={{ opacity: 0, y: -50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        ¿Por qué donar?
+      </motion.h2>
+
+      <motion.p
+        className="text-gray-800 max-w-3xl text-center mb-6 text-lg"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        viewport={{ once: true, amount: 0.2 }}
+      >
         Cada donación que recibimos es una oportunidad para transformar vidas. En ASONIPED trabajamos día a día
         para brindar apoyo a personas con discapacidad y a sus familias. Tu ayuda nos permite ofrecer talleres,
         entregas de víveres, asistencia técnica y mucho más.
-      </p>
+      </motion.p>
 
       {/* FORMAS DE DONACIÓN */}
-      <h3 className="text-3xl font-bold text-orange-700 mb-10 text-center">Formas de donación</h3>
+      <motion.h3
+        className="text-3xl font-bold text-orange-700 mb-10 text-center"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        viewport={{ once: true, amount: 0.2 }}
+      >
+        Formas de donación
+      </motion.h3>
 
       <div className="flex flex-col gap-12 w-full max-w-6xl">
         {/* Donación Económica */}
-        <div className="flex flex-col md:flex-row items-center bg-white border rounded-xl shadow-md overflow-hidden">
-          {/* Texto */}
+        <motion.div
+          className="flex flex-col md:flex-row items-center bg-white border rounded-xl shadow-md overflow-hidden"
+          initial={{ opacity: 0, x: 100 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          viewport={{ once: true, amount: 0.2 }}
+        >
           <div className="w-full md:w-1/2 p-6">
             <div className="flex items-center mb-4">
               <FaMoneyBillWave className="text-orange-600 text-2xl mr-3" />
@@ -35,19 +63,23 @@ const DonacionesVisual = () => {
             <p className="text-orange-600 font-medium ml-6">IBAN: CR05000123456789123456</p>
           </div>
 
-          
-          <div className="w-full md:w-1/2 h-full p-4 ">
+          <div className="w-full md:w-1/2 h-full p-4">
             <img
-              src={quienessomos}  // 
+              src={quienessomos}
               alt="quienessomos"
               className="object-cover w-full h-full rounded-2xl"
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Donación en Especie */}
-        <div className="flex flex-col md:flex-row-reverse items-center bg-white border rounded-xl shadow-md overflow-hidden">
-          {/* Texto */}
+        <motion.div
+          className="flex flex-col md:flex-row-reverse items-center bg-white border rounded-xl shadow-md overflow-hidden"
+          initial={{ opacity: 0, x: -100 }} 
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          viewport={{ once: true, amount: 0.2 }}
+        >
           <div className="w-full md:w-1/2 p-6">
             <div className="flex items-center mb-4">
               <FaGift className="text-orange-600 text-2xl mr-3" />
@@ -58,21 +90,26 @@ const DonacionesVisual = () => {
             </p>
           </div>
 
-          
           <div className="w-full md:w-1/2 h-full p-4">
             <img
-              src={quienessomos}  
+              src={quienessomos}
               alt="quienessomos"
               className="object-cover w-full h-full rounded-2xl"
             />
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* FORMULARIO EN TARJETA */}
-      <div className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16">
+      <motion.div
+        className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16"
+        initial={{ opacity: 0, y: 100 }} 
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        viewport={{ once: true, amount: 0.2 }}
+      >
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
-          {/* Información de contacto al lado izquierdo */}
+          {/* Información de contacto */}
           <div className="flex flex-col justify-center">
             <h3 className="text-2xl font-bold text-orange-700 mb-4">Recibe información sobre ASONIPED</h3>
             <p className="text-gray-700 mb-4">
@@ -88,7 +125,7 @@ const DonacionesVisual = () => {
             </p>
           </div>
 
-          {/* Formulario en lado derecho */}
+          {/* Formulario */}
           <form className="text-black grid grid-cols-1 gap-4">
             <p className="text-gray-700">Déjanos tu mensaje</p>
             <input
@@ -138,12 +175,9 @@ const DonacionesVisual = () => {
             </button>
           </form>
         </div>
-      </div>
-
-      {/* Botón para volver */}
-    
+      </motion.div>
     </section>
   );
 };
 
-export default DonacionesVisual; 
+export default DonacionesVisual;
