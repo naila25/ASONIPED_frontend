@@ -1,239 +1,149 @@
-import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
-import { getAuthHeader, isAuthenticated } from "../../Utils/auth";
 
-const FormularioDonacion = () => {
-  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+import { FaMoneyBillWave, FaGift, FaMobileAlt, FaUniversity } from "react-icons/fa";
+import quienessomos from "../assets/profile-pictures/quienessomos.png"
 
-  const form = useForm({
-    defaultValues: {
-      nombre: "",
-      telefono: "",
-      correo: "",
-      tipo: "Monetaria",
-      metodo: "",
-      monto: "",
-      aceptar: false,
-    },
-    onSubmit: async ({ value }) => {
-      setStatus(null);
-      
-      if (!isAuthenticated()) {
-        setStatus({ type: 'error', message: 'Por favor, inicia sesión para realizar una donación.' });
-        return;
-      }
-
-      try {
-        const res = await fetch("http://localhost:3000/donations", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeader()
-          },
-          body: JSON.stringify(value),
-        });
-
-        if (!res.ok) {
-          if (res.status === 401) {
-            throw new Error("Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
-          }
-          throw new Error("Error al guardar la donación");
-        }
-
-        setStatus({ type: 'success', message: "Donación enviada con éxito." });
-        form.reset();
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Error al enviar la donación. Intenta de nuevo.";
-        setStatus({ type: 'error', message: errorMessage });
-        console.error("Error al enviar:", err);
-      }
-    },
-  });
-
+const DonacionesVisual = () => {
   return (
-    
-    <section className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      
-      <div className="bg-white shadow-md rounded-lg p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Formulario de Donación</h2>
-        {status && (
-          <div className={`mb-4 p-3 rounded text-center ${status.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {status.message}
+    <section className="min-h-screen bg-white px-6 py-10 flex flex-col items-center">
+      {/* Título principal */}
+      <h2 className="text-4xl font-bold text-orange-700 mb-4 text-center ">¿Por qué donar?</h2>
+      <p className="text-gray-800 max-w-3xl text-center mb-6 text-lg">
+        Cada donación que recibimos es una oportunidad para transformar vidas. En ASONIPED trabajamos día a día
+        para brindar apoyo a personas con discapacidad y a sus familias. Tu ayuda nos permite ofrecer talleres,
+        entregas de víveres, asistencia técnica y mucho más.
+      </p>
+
+      {/* FORMAS DE DONACIÓN */}
+      <h3 className="text-3xl font-bold text-orange-700 mb-10 text-center">Formas de donación</h3>
+
+      <div className="flex flex-col gap-12 w-full max-w-6xl">
+        {/* Donación Económica */}
+        <div className="flex flex-col md:flex-row items-center bg-white border rounded-xl shadow-md overflow-hidden">
+          {/* Texto */}
+          <div className="w-full md:w-1/2 p-6">
+            <div className="flex items-center mb-4">
+              <FaMoneyBillWave className="text-orange-600 text-2xl mr-3" />
+              <h4 className="text-xl font-bold text-orange-700">Donación Económica</h4>
+            </div>
+            <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center">
+              <FaMobileAlt className="text-orange-500 mr-2" /> Sinpe Móvil:
+            </p>
+            <p className="text-orange-600 font-medium mb-3 ml-6">8888-8888</p>
+            <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center">
+              <FaUniversity className="text-orange-500 mr-2" /> Cuenta Bancaria:
+            </p>
+            <p className="text-orange-600 font-medium ml-6">IBAN: CR05000123456789123456</p>
           </div>
-        )}
-        <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
-          {/* Nombre */}
-          <form.Field
-            name="nombre"
-            validators={{
-              onChange: ({ value }) => !value ? "El nombre es requerido" : undefined
-            }}
-          >
-            {(field) => (
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Nombre completo</label>
-                <input
-                  type="text"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  className={`w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 ${field.state.meta.errors.length ? 'border-red-500' : ''}`}
-                  disabled={form.state.isSubmitting}
-                />
-                {field.state.meta.errors[0] && <span className="text-red-500 text-xs">{field.state.meta.errors[0]}</span>}
-              </div>
-            )}
-          </form.Field>
 
-          {/* Teléfono */}
-          <form.Field
-            name="telefono"
-            validators={{
-              onChange: ({ value }) => !value ? "El teléfono es requerido" : undefined
-            }}
-          >
-            {(field) => (
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Teléfono</label>
-                <input
-                  type="tel"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  className={`w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 ${field.state.meta.errors.length ? 'border-red-500' : ''}`}
-                  disabled={form.state.isSubmitting}
-                />
-                {field.state.meta.errors[0] && <span className="text-red-500 text-xs">{field.state.meta.errors[0]}</span>}
-              </div>
-            )}
-          </form.Field>
+          
+          <div className="w-full md:w-1/2 h-full p-4 ">
+            <img
+              src={quienessomos}  // 
+              alt="quienessomos"
+              className="object-cover w-full h-full rounded-2xl"
+            />
+          </div>
+        </div>
 
-          {/* Correo */}
-          <form.Field
-            name="correo"
-            validators={{
-              onChange: ({ value }) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value) ? "Correo inválido" : undefined
-            }}
-          >
-            {(field) => (
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Correo electrónico</label>
-                <input
-                  type="email"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  className={`w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 ${field.state.meta.errors.length ? 'border-red-500' : ''}`}
-                  disabled={form.state.isSubmitting}
-                />
-                {field.state.meta.errors[0] && <span className="text-red-500 text-xs">{field.state.meta.errors[0]}</span>}
-              </div>
-            )}
-          </form.Field>
+        {/* Donación en Especie */}
+        <div className="flex flex-col md:flex-row-reverse items-center bg-white border rounded-xl shadow-md overflow-hidden">
+          {/* Texto */}
+          <div className="w-full md:w-1/2 p-6">
+            <div className="flex items-center mb-4">
+              <FaGift className="text-orange-600 text-2xl mr-3" />
+              <h4 className="text-xl font-bold text-orange-700">Donación en Especie</h4>
+            </div>
+            <p className="text-gray-700">
+              Puedes donar alimentos, ropa, víveres y otros artículos útiles. Contáctanos para coordinar la entrega en nuestras oficinas.
+            </p>
+          </div>
 
-          {/* Tipo de donación */}
-          <form.Field name="tipo">
-            {(field) => (
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Tipo de donación</label>
-                <select
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  disabled={form.state.isSubmitting}
-                >
-                  <option value="Monetaria">Monetaria</option>
-                  <option value="En especie">En especie</option>
-                </select>
-              </div>
-            )}
-          </form.Field>
-
-          {/* Método */}
-          <form.Field
-            name="metodo"
-            validators={{
-              onChange: ({ value }) => !value ? "El método es requerido" : undefined
-            }}
-          >
-            {(field) => (
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Método</label>
-                <input
-                  type="text"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  className={`w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 ${field.state.meta.errors.length ? 'border-red-500' : ''}`}
-                  disabled={form.state.isSubmitting}
-                />
-                {field.state.meta.errors[0] && <span className="text-red-500 text-xs">{field.state.meta.errors[0]}</span>}
-              </div>
-            )}
-          </form.Field>
-
-          {/* Monto o detalle */}
-          <form.Field
-            name="monto"
-            validators={{
-              onChange: ({ value }) => !value ? "El monto o detalle es requerido" : undefined
-            }}
-          >
-            {(field) => (
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Monto o detalle</label>
-                <input
-                  type="number"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  className={`w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 ${field.state.meta.errors.length ? 'border-red-500' : ''}`}
-                  disabled={form.state.isSubmitting}
-                />
-                {field.state.meta.errors[0] && <span className="text-red-500 text-xs">{field.state.meta.errors[0]}</span>}
-              </div>
-            )}
-          </form.Field>
-
-          {/* Aceptar */}
-          <form.Field
-            name="aceptar"
-            validators={{
-              onChange: ({ value }) => !value ? "Debes aceptar para continuar" : undefined
-            }}
-          >
-            {(field) => (
-              <div className="mb-4 flex items-start">
-                <input
-                  id="aceptar"
-                  type="checkbox"
-                  checked={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.checked)}
-                  onBlur={field.handleBlur}
-                  className="mr-2 mt-1"
-                  disabled={form.state.isSubmitting}
-                />
-                <label htmlFor="aceptar" className="text-gray-700 text-sm">
-                  Acepto que esta donación es para fortalecer ASONIDEP.
-                </label>
-                {field.state.meta.errors[0] && <span className="text-red-500 text-xs ml-2">{field.state.meta.errors[0]}</span>}
-              </div>
-            )}
-          </form.Field>
-
-          {/* Botón */}
-          <button
-            type="submit"
-            className="w-full bg-green-500 text-white font-semibold px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-60"
-            disabled={form.state.isSubmitting}
-          >
-            {form.state.isSubmitting ? "Enviando..." : "Enviar mi donación"}
-          </button>
-        </form>
+          
+          <div className="w-full md:w-1/2 h-full p-4">
+            <img
+              src={quienessomos}  
+              alt="quienessomos"
+              className="object-cover w-full h-full rounded-2xl"
+            />
+          </div>
+        </div>
       </div>
+
+      {/* FORMULARIO EN TARJETA */}
+      <div className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16">
+        <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
+          {/* Información de contacto al lado izquierdo */}
+          <div className="flex flex-col justify-center">
+            <h3 className="text-2xl font-bold text-orange-700 mb-4">Recibe información sobre ASONIPED</h3>
+            <p className="text-gray-700 mb-4">
+              ¿Tienes preguntas o deseas colaborar? ¡Contáctanos!
+            </p>
+            <p className="text-gray-700 mb-2">
+              <strong>Teléfono:</strong>{" "}
+              <a href="tel:+50664236461" className="text-orange-600">(506) 64 23 64 61</a>
+            </p>
+            <p className="text-gray-700 mb-2">
+              <strong>Correo:</strong>{" "}
+              <a href="mailto:asoniped@gmail.com" className="text-orange-600">asoniped@gmail.com</a>
+            </p>
+          </div>
+
+          {/* Formulario en lado derecho */}
+          <form className="text-black grid grid-cols-1 gap-4">
+            <p className="text-gray-700">Déjanos tu mensaje</p>
+            <input
+              type="text"
+              placeholder="Nombre"
+              className="border border-gray-300 rounded px-4 py-2"
+            />
+            <input
+              type="email"
+              placeholder="Correo electrónico"
+              className="border border-gray-300 rounded px-4 py-2"
+            />
+            <input
+              type="tel"
+              placeholder="Teléfono"
+              className="border border-gray-300 rounded px-4 py-2"
+            />
+            <input
+              type="text"
+              placeholder="Asunto"
+              className="border border-gray-300 rounded px-4 py-2"
+            />
+            <textarea
+              placeholder="Mensaje"
+              className="border border-gray-300 rounded px-4 py-2 min-h-[100px]"
+            />
+
+            <div className="flex items-start">
+              <input type="checkbox" id="privacy" className="mr-2 mt-1" />
+              <label htmlFor="privacy" className="text-sm text-gray-700">
+                He leído y acepto el aviso de privacidad
+              </label>
+            </div>
+
+            <div className="flex items-start">
+              <input type="checkbox" id="comunicacion" className="mr-2 mt-1" />
+              <label htmlFor="comunicacion" className="text-sm text-gray-700">
+                Acepto recibir comunicación de parte de ASONIPED
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-6 rounded transition self-start"
+            >
+              Enviar mensaje
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Botón para volver */}
+    
     </section>
   );
 };
 
-export default FormularioDonacion;
+export default DonacionesVisual; 
