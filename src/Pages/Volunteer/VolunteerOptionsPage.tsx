@@ -19,11 +19,38 @@ const VolunteerOptionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   // Load volunteer options on mount
   useEffect(() => {
     loadOptions();
+    detectZoomLevel();
+    
+    // Listen for zoom changes
+    window.addEventListener('resize', detectZoomLevel);
+    return () => window.removeEventListener('resize', detectZoomLevel);
   }, []);
+
+  // Detect zoom level based on device pixel ratio and visual viewport
+  const detectZoomLevel = () => {
+    const zoom = window.visualViewport ? window.visualViewport.scale : window.devicePixelRatio;
+    setZoomLevel(zoom);
+  };
+
+  // Get character limit based on zoom level
+  const getCharacterLimit = (baseLimit: number) => {
+    if (zoomLevel <= 0.8) return Math.floor(baseLimit * 1.5); // More characters at lower zoom
+    if (zoomLevel <= 1.0) return baseLimit; // Normal at 100%
+    if (zoomLevel <= 1.2) return Math.floor(baseLimit * 0.8); // Fewer characters at higher zoom
+    if (zoomLevel <= 1.5) return Math.floor(baseLimit * 0.6); // Even fewer at very high zoom
+    return Math.floor(baseLimit * 0.4); // Minimum at extreme zoom
+  };
+
+  // Truncate text based on zoom level
+  const truncateText = (text: string, baseLimit: number) => {
+    const limit = getCharacterLimit(baseLimit);
+    return text.length > limit ? `${text.substring(0, limit)}...` : text;
+  };
 
   // Fetch all volunteer options from API
   const loadOptions = async () => {
@@ -146,7 +173,7 @@ const VolunteerOptionsPage = () => {
 
   // Main render
   return (
-    <div className="space-y-6 min-w-0 max-w-full overflow-hidden">
+    <div className="space-y-6 min-w-0">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
         <div className="flex items-center gap-4">
@@ -347,67 +374,65 @@ const VolunteerOptionsPage = () => {
         )}
 
         {/* Options Table */}
-        <div className="w-full overflow-x-auto">
-          <div className="min-w-full inline-block align-middle">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="inline-block min-w-full align-middle">
             <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-1 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">Img</th>
-                    <th className="px-1 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Título</th>
-                    <th className="px-1 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">Descripción</th>
-                    <th className="px-1 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Fecha</th>
-                    <th className="px-1 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Ubicación</th>
-                    <th className="px-1 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Acciones</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">Img</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Título</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Descripción</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Fecha</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Ubicación</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredOptions.map((option) => (
                     <tr key={option.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-1 py-3 whitespace-nowrap w-10">
+                      <td className="px-2 py-3 whitespace-nowrap w-12">
                         <img
                           src={option.imageUrl}
                           alt={option.title}
                           className="h-6 w-6 object-cover rounded border border-gray-200 flex-shrink-0"
                         />
                       </td>
-                      <td className="px-1 py-3 whitespace-nowrap w-24">
-                        <div className="text-xs font-medium text-gray-900 truncate" title={option.title}>
-                          {option.title}
+                      <td className="px-2 py-3 whitespace-nowrap w-32">
+                        <div className="text-sm font-medium text-gray-900 truncate" title={option.title}>
+                          {truncateText(option.title, 12)}
                         </div>
                       </td>
-                      <td className="px-1 py-3 w-36">
-                        <div className="text-xs text-gray-900 line-clamp-2" title={option.description}>
+                      <td className="px-2 py-3 w-48">
+                        <div className="text-sm text-gray-900 line-clamp-2" title={option.description}>
                           {option.description}
                         </div>
                       </td>
-                      <td className="px-1 py-3 whitespace-nowrap text-xs text-gray-900 w-20">
+                      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-900 w-20">
                         <div className="truncate" title={option.date}>
-                          {option.date}
+                          {truncateText(option.date, 12)}
                         </div>
                       </td>
-                      <td className="px-1 py-3 whitespace-nowrap text-xs text-gray-900 w-20">
+                      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-900 w-24">
                         <div className="truncate" title={option.location}>
                           {option.location}
                         </div>
                       </td>
-                      <td className="px-1 py-3 whitespace-nowrap w-20">
-                        <div className="flex flex-col gap-0.5">
+                      <td className="px-2 py-3 whitespace-nowrap w-20">
+                        <div className="flex flex-col gap-1">
                           <button
                             onClick={() => handleEdit(option)}
-                            className="flex items-center justify-center gap-0.5 px-1 py-0.5 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                            className="flex items-center justify-center gap-1 px-1 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
                           >
                             <Edit className="w-2.5 h-2.5" />
-                            <span className="hidden sm:inline">E</span>
-                            <span className="sm:hidden">E</span>
+                            <span>E</span>
                           </button>
                           <button
                             onClick={() => handleDelete(option.id)}
-                            className="flex items-center justify-center gap-0.5 px-1 py-0.5 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
+                            className="flex items-center justify-center gap-1 px-1 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
                           >
                             <Trash2 className="w-2.5 h-2.5" />
-                            <span className="hidden sm:inline">D</span>
-                            <span className="sm:hidden">D</span>
+                            <span>D</span>
                           </button>
                         </div>
                       </td>
