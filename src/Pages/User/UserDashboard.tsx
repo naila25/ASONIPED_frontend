@@ -68,7 +68,7 @@ export default function UserDashboard() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col ml-0 md:ml-20 transition-all">
+      <div className="flex-1 flex flex-col ml-0 md:ml-2 transition-all">
         {/* Top bar */}
         <div className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between p-4">

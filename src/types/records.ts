@@ -20,54 +20,167 @@ export interface PersonalData {
   updated_at?: string;
 }
 
-export interface DisabilityData {
+// Datos personales completos para Fase 3
+export interface CompletePersonalData {
   id?: number;
   record_id?: number;
-  disability_type: string;
-  diagnosis_date: string;
-  medical_center: string;
-  doctor_name: string;
-  severity_level: 'mild' | 'moderate' | 'severe';
-  description: string;
+  record_number?: string;
+  registration_date: string;
+  full_name: string;
+  cedula: string;
+  gender: 'male' | 'female' | 'other';
+  birth_date: string;
+  age?: number; // Calculado automáticamente
+  birth_place: string;
+  nationality: string;
+  exact_address: string;
+  province: string;
+  district: string;
+  primary_phone: string;
+  secondary_phone: string;
+  email: string;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface RegistrationRequirements {
+// Información familiar
+export interface FamilyInformation {
   id?: number;
   record_id?: number;
-  birth_certificate: boolean;
-  cedula_copy: boolean;
-  medical_diagnosis: boolean;
-  photo: boolean;
-  pension_certificate?: boolean;
-  study_certificate?: boolean;
-  other_documents?: string;
+  mother_name: string;
+  mother_cedula: string;
+  mother_occupation: string;
+  mother_phone: string;
+  father_name: string;
+  father_cedula: string;
+  father_occupation: string;
+  father_phone: string;
+  responsible_person?: string;
+  responsible_address?: string;
+  responsible_phone?: string;
+  family_members: FamilyMember[];
   created_at?: string;
   updated_at?: string;
 }
 
-export interface EnrollmentForm {
+export interface FamilyMember {
+  id?: number;
+  family_info_id?: number;
+  name: string;
+  age: number;
+  relationship: string;
+  occupation: string;
+  marital_status: string;
+}
+
+// Información de discapacidad actualizada
+export interface DisabilityInformation {
   id?: number;
   record_id?: number;
-  enrollment_date: string;
-  program_type: string;
-  special_needs: string;
-  emergency_contact: string;
-  emergency_phone: string;
+  disability_type: 'fisica' | 'visual' | 'auditiva' | 'psicosocial' | 'cognitiva' | 'intelectual' | 'multiple';
+  medical_diagnosis: string;
+  insurance_type: 'rnc' | 'independiente' | 'privado' | 'otro';
+  biomechanical_benefit: BiomechanicalBenefit[];
+  disability_origin: 'nacimiento' | 'accidente' | 'enfermedad';
+  disability_certificate: 'si' | 'no' | 'en_tramite';
+  conapdis_registration: 'si' | 'no' | 'en_tramite';
+  permanent_limitations: PermanentLimitation[];
+  medical_additional: MedicalAdditionalInfo;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface SocioeconomicData {
+export interface BiomechanicalBenefit {
+  id?: number;
+  disability_info_id?: number;
+  type: 'silla_ruedas' | 'baston' | 'andadera' | 'audifono' | 'baston_guia' | 'otro';
+  other_description?: string;
+}
+
+export interface PermanentLimitation {
+  id?: number;
+  disability_info_id?: number;
+  limitation: 'moverse_caminar' | 'ver_lentes' | 'oir_audifono' | 'comunicarse_hablar' | 'entender_aprender' | 'relacionarse';
+  degree: 'leve' | 'moderada' | 'severa' | 'no_se_sabe';
+  observations?: string;
+}
+
+export interface MedicalAdditionalInfo {
+  id?: number;
+  disability_info_id?: number;
+  diseases: string;
+  blood_type: string;
+  medical_observations: string;
+}
+
+// Información socioeconómica actualizada
+export interface SocioeconomicInformation {
   id?: number;
   record_id?: number;
-  family_income: number;
-  family_members: number;
-  housing_type: string;
-  education_level: string;
-  employment_status: string;
-  social_programs: string[];
+  housing_type: 'casa_propia' | 'alquilada' | 'prestada';
+  available_services: AvailableService[];
+  family_income: 'menos_200k' | '200k_400k' | '400k_600k' | '600k_800k' | '800k_1m' | '1m_1.3m' | 'mas_1.3m';
+  working_family_members: WorkingFamilyMember[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AvailableService {
+  id?: number;
+  socioeconomic_info_id?: number;
+  service: 'luz' | 'agua' | 'telefono' | 'alcantarillado' | 'internet';
+}
+
+export interface WorkingFamilyMember {
+  id?: number;
+  socioeconomic_info_id?: number;
+  name: string;
+  work_type: string;
+  work_place: string;
+  work_phone: string;
+}
+
+// Documentación y requisitos
+export interface DocumentationRequirements {
+  id?: number;
+  record_id?: number;
+  documents: RequiredDocument[];
+  affiliation_fee: 'pagada' | 'pendiente';
+  banking_information: string;
+  general_observations: string;
+  signatures: FormSignatures;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RequiredDocument {
+  id?: number;
+  documentation_id?: number;
+  document_type: 'dictamen_medico' | 'constancia_nacimiento' | 'copia_cedula' | 'copias_cedulas_familia' | 'foto_pasaporte' | 'constancia_pension_ccss' | 'constancia_pension_alimentaria' | 'constancia_estudio' | 'cuenta_banco_nacional';
+  status: 'entregado' | 'pendiente' | 'en_tramite' | 'no_aplica';
+  observations?: string;
+}
+
+export interface FormSignatures {
+  id?: number;
+  documentation_id?: number;
+  applicant_signature?: string;
+  applicant_date?: string;
+  parent_signature?: string;
+  parent_date?: string;
+  receiver_signature?: string;
+  receiver_date?: string;
+}
+
+// Control administrativo
+export interface AdministrativeControl {
+  id?: number;
+  record_id?: number;
+  reviewed_by?: string;
+  review_date?: string;
+  record_status: 'borrador' | 'en_revision' | 'aprobado' | 'rechazado' | 'inactivo';
+  administrative_observations?: string;
+  next_review?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -103,20 +216,24 @@ export interface Record {
   created_by?: number;
   // Datos relacionados
   personal_data?: PersonalData;
-  disability_data?: DisabilityData;
-  registration_requirements?: RegistrationRequirements;
-  enrollment_form?: EnrollmentForm;
-  socioeconomic_data?: SocioeconomicData;
+  complete_personal_data?: CompletePersonalData;
+  family_information?: FamilyInformation;
+  disability_information?: DisabilityInformation;
+  socioeconomic_information?: SocioeconomicInformation;
+  documentation_requirements?: DocumentationRequirements;
+  administrative_control?: AdministrativeControl;
   documents?: RecordDocument[];
   notes?: RecordNote[];
 }
 
 export interface RecordWithDetails extends Record {
   personal_data: PersonalData | null;
-  disability_data: DisabilityData | null;
-  registration_requirements: RegistrationRequirements | null;
-  enrollment_form: EnrollmentForm | null;
-  socioeconomic_data: SocioeconomicData | null;
+  complete_personal_data: CompletePersonalData | null;
+  family_information: FamilyInformation | null;
+  disability_information: DisabilityInformation | null;
+  socioeconomic_information: SocioeconomicInformation | null;
+  documentation_requirements: DocumentationRequirements | null;
+  administrative_control: AdministrativeControl | null;
   documents: RecordDocument[];
   notes: RecordNote[];
 }
@@ -139,10 +256,11 @@ export interface Phase1Data {
 }
 
 export interface Phase3Data {
-  disability_data: Omit<DisabilityData, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
-  registration_requirements: Omit<RegistrationRequirements, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
-  enrollment_form: Omit<EnrollmentForm, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
-  socioeconomic_data: Omit<SocioeconomicData, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
+  complete_personal_data: Omit<CompletePersonalData, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
+  family_information: Omit<FamilyInformation, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
+  disability_information: Omit<DisabilityInformation, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
+  socioeconomic_information: Omit<SocioeconomicInformation, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
+  documentation_requirements: Omit<DocumentationRequirements, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
   documents: File[];
 }
 

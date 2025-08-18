@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash } from 'lucide-react';
-import {getRecords, getRecordStats, approvePhase1, rejectPhase1, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord } from '../../Utils/recordsApi';
+import {getRecords, getRecordStats, approvePhase1, rejectPhase1, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote } from '../../Utils/recordsApi';
 import type { Record, RecordStats, RecordWithDetails } from '../../types/records';
+import Phase3Details from './Phase3Details';
 
 const ExpedientesAdminPage: React.FC = () => {
   // State Management
@@ -89,15 +90,30 @@ const ExpedientesAdminPage: React.FC = () => {
         case 'reject-record':
           await rejectRecord(recordId, comment);
           break;
+        case 'add-note':
+          // Agregar nota sin cambiar el estado del expediente
+          if (selectedRecord && comment.trim()) {
+            await addNote(selectedRecord.id, comment.trim(), 'activity');
+          }
+          break;
       }
 
       // Reload data and reset UI
-      await loadData();
+      if (action !== 'add-note') {
+        await loadData();
+        setSelectedRecord(null);
+        setExpandedRows(new Set());
+      } else {
+        // Para add-note, solo recargar los detalles del expediente actual
+        if (selectedRecord) {
+          const updatedRecord = await getRecordById(selectedRecord.id);
+          setSelectedRecord(updatedRecord);
+        }
+      }
+      
       setShowModal(false);
       setComment('');
-      setSelectedRecord(null);
       setPendingAction('');
-      setExpandedRows(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error ejecutando acción');
     } finally {
@@ -331,95 +347,114 @@ const ExpedientesAdminPage: React.FC = () => {
       <tr className="bg-gray-50">
         <td colSpan={6} className="px-6 py-4">
           <div className="space-y-6">
-            {/* Información Personal */}
-            {selectedRecord.personal_data && (
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <User className="w-5 h-5 mr-2" />
-                  Información Personal
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Nombre Completo</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.full_name}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Cédula</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.cedula}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Género</label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {selectedRecord.personal_data.gender === 'male' ? 'Masculino' : 'Femenino'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
-                      <p className="mt-1 text-sm text-gray-900">
-                        {new Date(selectedRecord.personal_data.birth_date).toLocaleDateString()}
-                      </p>
+            {/* Información del Expediente - Mostrar detalles completos para Phase 3 */}
+            {selectedRecord.phase === 'phase3' ? (
+              <Phase3Details record={selectedRecord} />
+            ) : (
+              <>
+                {/* Información Personal */}
+                {selectedRecord.personal_data && (
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                      <User className="w-5 h-5 mr-2" />
+                      Información Personal
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Nombre Completo</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.full_name}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Cédula</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.cedula}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Género</label>
+                          <p className="mt-1 text-sm text-gray-900">
+                            {selectedRecord.personal_data.gender === 'male' ? 'Masculino' : 'Femenino'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
+                          <p className="mt-1 text-sm text-gray-900">
+                            {new Date(selectedRecord.personal_data.birth_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Lugar de Nacimiento</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.birth_place}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Dirección</label>
+                          <p className="mt-1 text-sm text-gray-900 flex items-center">
+                            <MapPin className="w-4 h-4 mr-1" />
+                            {selectedRecord.personal_data.address}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Provincia</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.province}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Distrito</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.district}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Lugar de Nacimiento</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.birth_place}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Dirección</label>
-                      <p className="mt-1 text-sm text-gray-900 flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {selectedRecord.personal_data.address}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Provincia</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.province}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Distrito</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.district}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* Información de la PCD */}
-            {selectedRecord.personal_data && (
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <Info className="w-5 h-5 mr-2" />
-                  Información de la Persona con Discapacidad
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Información de la PCD */}
+                {selectedRecord.personal_data && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Nombre de la PCD</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.pcd_name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Información de Padres</label>
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-900">
-                        <span className="font-medium">Madre:</span> {selectedRecord.personal_data.mother_name} (Cédula: {selectedRecord.personal_data.mother_cedula})
-                      </p>
-                      <p className="text-sm text-gray-900">
-                        <span className="font-medium">Padre:</span> {selectedRecord.personal_data.father_name} (Cédula: {selectedRecord.personal_data.father_cedula})
-                      </p>
+                    <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                      <Info className="w-5 h-5 mr-2" />
+                      Información de la Persona con Discapacidad
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Nombre de la PCD</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.pcd_name}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Información de Padres</label>
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-900">
+                            <span className="font-medium">Madre:</span> {selectedRecord.personal_data.mother_name} (Cédula: {selectedRecord.personal_data.mother_cedula})
+                          </p>
+                          <p className="text-sm text-gray-900">
+                            <span className="font-medium">Padre:</span> {selectedRecord.personal_data.father_name} (Cédula: {selectedRecord.personal_data.father_cedula})
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
 
             {/* Comentarios y Notas */}
-            {selectedRecord.notes && selectedRecord.notes.length > 0 && (
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-medium text-gray-900 flex items-center">
                   <FileText className="w-5 h-5 mr-2" />
                   Comentarios y Notas
                 </h4>
+                {selectedRecord.phase === 'phase3' && (
+                  <button
+                    onClick={() => initiateAction('add-note', selectedRecord.id)}
+                    className="flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                  >
+                    <Edit3 className="w-4 h-4 mr-1" />
+                    Agregar Comentario
+                  </button>
+                )}
+              </div>
+              
+              {selectedRecord.notes && selectedRecord.notes.length > 0 ? (
                 <div className="space-y-4">
                   {selectedRecord.notes.map((note, index: number) => (
                     <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
@@ -486,8 +521,17 @@ const ExpedientesAdminPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                  <p className="text-gray-500 text-sm">
+                    {selectedRecord.phase === 'phase3' 
+                      ? 'No hay comentarios aún. Use el botón "Agregar Comentario" para añadir observaciones sobre este expediente.'
+                      : 'No hay comentarios para este expediente.'
+                    }
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Acciones */}
             {(selectedRecord.phase === 'phase1' && selectedRecord.status === 'pending') && (

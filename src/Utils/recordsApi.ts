@@ -98,21 +98,32 @@ export const createInitialRecord = async (phase1Data: Phase1Data): Promise<Recor
 // Completar expediente (Fase 3)
 export const completeRecord = async (recordId: number, phase3Data: Phase3Data): Promise<Record> => {
   try {
+    console.log('=== COMPLETANDO EXPEDIENTE ===');
+    console.log('Record ID:', recordId);
+    console.log('Phase3Data:', phase3Data);
+    
     const formData = new FormData();
     
     // Agregar datos JSON
     formData.append('data', JSON.stringify({
       phase: 'phase3',
-      disability_data: phase3Data.disability_data,
-      registration_requirements: phase3Data.registration_requirements,
-      enrollment_form: phase3Data.enrollment_form,
-      socioeconomic_data: phase3Data.socioeconomic_data,
+      complete_personal_data: phase3Data.complete_personal_data,
+      family_information: phase3Data.family_information,
+      disability_information: phase3Data.disability_information,
+      socioeconomic_information: phase3Data.socioeconomic_information,
+      documentation_requirements: phase3Data.documentation_requirements,
     }));
     
-         // Agregar documentos
-     phase3Data.documents.forEach((file) => {
-       formData.append(`documents`, file);
-     });
+    // Agregar documentos con nombres de campo específicos
+    phase3Data.documents.forEach((file, index) => {
+      // Determinar el tipo de documento basado en el nombre del archivo o posición
+      const documentTypes = ['medical_diagnosis', 'birth_certificate', 'cedula', 'photo', 'pension_certificate', 'study_certificate'];
+      const documentType = documentTypes[index] || 'other';
+      
+      formData.append(`documents`, file, `${documentType}_${file.name}`);
+    });
+    
+    console.log('FormData preparado, enviando request...');
     
     const response = await fetch(`${API_URL}/${recordId}/complete`, {
       method: 'PUT',
@@ -123,12 +134,23 @@ export const completeRecord = async (recordId: number, phase3Data: Phase3Data): 
       body: formData,
     });
     
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Error completando expediente');
+      const errorText = await response.text();
+      console.error('Response error:', errorText);
+      
+      try {
+        const error = JSON.parse(errorText);
+        throw new Error(error.error || 'Error completando expediente');
+      } catch {
+        throw new Error(`Error completando expediente: ${errorText}`);
+      }
     }
     
-    return await response.json();
+    const data = await response.json();
+    console.log('Expediente completado exitosamente:', data);
+    return data;
   } catch (error) {
     console.error('Error completing record:', error);
     throw error;
@@ -286,6 +308,36 @@ export const rejectRecord = async (recordId: number, comment: string): Promise<v
     }
   } catch (error) {
     console.error('Error rejecting record:', error);
+    throw error;
+  }
+};
+
+// Agregar comentario
+export const addNote = async (recordId: number, note: string, type: string = 'activity'): Promise<void> => {
+  try {
+    console.log('=== AGREGANDO COMENTARIO ===');
+    console.log('Record ID:', recordId);
+    console.log('Note:', note);
+    console.log('Type:', type);
+    
+    const response = await fetch(`${API_URL}/${recordId}/notes`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ note, type }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Response error text:', errorText);
+      throw new Error('Error agregando comentario');
+    }
+    
+    console.log('Comentario agregado exitosamente');
+  } catch (error) {
+    console.error('Error adding note:', error);
     throw error;
   }
 };
