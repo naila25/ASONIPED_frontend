@@ -42,7 +42,7 @@ const DonacionesVisual = () => {
       <div className="flex flex-col gap-12 w-full max-w-6xl">
         {/* Donación Económica */}
         <motion.div
-          className="flex flex-col md:flex-row items-center bg-white border rounded-xl shadow-md overflow-hidden"
+          className="flex flex-col md:flex-row items-center bg-white  rounded-xl shadow-md overflow-hidden"
           initial={{ opacity: 0, x: 100 }}
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -74,7 +74,7 @@ const DonacionesVisual = () => {
 
         {/* Donación en Especie */}
         <motion.div
-          className="flex flex-col md:flex-row-reverse items-center bg-white border rounded-xl shadow-md overflow-hidden"
+          className="flex flex-col md:flex-row-reverse items-center bg-white  rounded-xl shadow-md overflow-hidden"
           initial={{ opacity: 0, x: -100 }} 
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
