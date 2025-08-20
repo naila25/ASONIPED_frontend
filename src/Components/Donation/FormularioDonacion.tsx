@@ -1,13 +1,12 @@
 import { motion } from "framer-motion";
 import { FaMoneyBillWave, FaGift, FaMobileAlt, FaUniversity } from "react-icons/fa";
 import quienessomos from "../../assets/quienessomos.png"
-
 const DonacionesVisual = () => {
   return (
     <section className="min-h-screen bg-white px-6 py-10 flex flex-col items-center">
       {/* Título principal */}
       <motion.h2
-        className="text-4xl font-bold text-orange-700 mb-4 text-center"
+        className="text-amber-600 text-4xl font-bold text-center mb-4 tracking-wide"
         initial={{ opacity: 0, y: -50 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -30,7 +29,7 @@ const DonacionesVisual = () => {
 
       {/* FORMAS DE DONACIÓN */}
       <motion.h3
-        className="text-3xl font-bold text-orange-700 mb-10 text-center"
+        className="text-amber-600 text-3xl font-bold text-center mb-4 tracking-wide"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
@@ -42,7 +41,7 @@ const DonacionesVisual = () => {
       <div className="flex flex-col gap-12 w-full max-w-6xl">
         {/* Donación Económica */}
         <motion.div
-          className="flex flex-col md:flex-row items-center bg-white  rounded-xl shadow-md overflow-hidden"
+          className="flex flex-col md:flex-row items-center bg-white rounded-xl shadow-md overflow-hidden"
           initial={{ opacity: 0, x: 100 }}
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -50,17 +49,17 @@ const DonacionesVisual = () => {
         >
           <div className="w-full md:w-1/2 p-6">
             <div className="flex items-center mb-4">
-              <FaMoneyBillWave className="text-orange-600 text-2xl mr-3" />
-              <h4 className="text-xl font-bold text-orange-700">Donación Económica</h4>
+              <FaMoneyBillWave className="text-amber-600 text-2xl mr-3" />
+              <h4 className="text-xl font-bold text-amber-600">Donación Económica</h4>
             </div>
             <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center">
               <FaMobileAlt className="text-orange-500 mr-2" /> Sinpe Móvil:
             </p>
             <p className="text-orange-600 font-medium mb-3 ml-6">8888-8888</p>
             <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center">
-              <FaUniversity className="text-orange-500 mr-2" /> Cuenta Bancaria:
+              <FaUniversity className="text-amber-600 mr-2" /> Cuenta Bancaria:
             </p>
-            <p className="text-orange-600 font-medium ml-6">IBAN: CR05000123456789123456</p>
+            <p className="text-amber-600 font-medium ml-6">IBAN: CR05000123456789123456</p>
           </div>
 
           <div className="w-full md:w-1/2 h-full p-4">
@@ -72,22 +71,28 @@ const DonacionesVisual = () => {
           </div>
         </motion.div>
 
-        {/* Donación en Especie */}
+        {/* Donación en Especie (con lista inclusiva) */}
         <motion.div
-          className="flex flex-col md:flex-row-reverse items-center bg-white  rounded-xl shadow-md overflow-hidden"
-          initial={{ opacity: 0, x: -100 }} 
+          className="flex flex-col md:flex-row-reverse items-center bg-white rounded-xl shadow-md overflow-hidden"
+          initial={{ opacity: 0, x: -100 }}
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
           viewport={{ once: true, amount: 0.2 }}
         >
           <div className="w-full md:w-1/2 p-6">
             <div className="flex items-center mb-4">
-              <FaGift className="text-orange-600 text-2xl mr-3" />
-              <h4 className="text-xl font-bold text-orange-700">Donación en Especie</h4>
+              <FaGift className="text-amber-600 text-2xl mr-3" />
+              <h4 className="text-xl font-bold text-amber-600">Donación en Especie</h4>
             </div>
-            <p className="text-gray-700">
-              Puedes donar alimentos, ropa, víveres y otros artículos útiles. Contáctanos para coordinar la entrega en nuestras oficinas.
-            </p>
+            <p className="text-gray-700 mb-3">Puedes aportar con artículos como:</p>
+            <ul className="list-disc list-inside text-gray-700 space-y-2">
+              <li>Alimentos no perecederos</li>
+              <li>Ropa en buen estado</li>
+              <li>Víveres básicos</li>
+              <li>Artículos de higiene personal</li>
+              <li>Material educativo</li>
+            </ul>
+            <p className="text-gray-700 mt-3">Contáctanos para coordinar la entrega en nuestras oficinas.</p>
           </div>
 
           <div className="w-full md:w-1/2 h-full p-4">
@@ -100,29 +105,54 @@ const DonacionesVisual = () => {
         </motion.div>
       </div>
 
-      {/* FORMULARIO EN TARJETA */}
+      {/* FORMULARIO + PREGUNTAS FRECUENTES */}
       <motion.div
         className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16"
-        initial={{ opacity: 0, y: 100 }} 
+        initial={{ opacity: 0, y: 100 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
         viewport={{ once: true, amount: 0.2 }}
       >
+
+         <h2 className="text-center text-3xl font-extrabold text-amber-600 mb-12">
+    Resolvemos tus dudas
+        </h2>
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
-          {/* Información de contacto */}
-          <div className="flex flex-col justify-center">
-            <h3 className="text-2xl font-bold text-orange-700 mb-4">Recibe información sobre ASONIPED</h3>
-            <p className="text-gray-700 mb-4">
-              ¿Tienes preguntas o deseas colaborar? ¡Contáctanos!
-            </p>
-            <p className="text-gray-700 mb-2">
-              <strong>Teléfono:</strong>{" "}
-              <a href="tel:+50664236461" className="text-orange-600">(506) 64 23 64 61</a>
-            </p>
-            <p className="text-gray-700 mb-2">
-              <strong>Correo:</strong>{" "}
-              <a href="mailto:asoniped@gmail.com" className="text-orange-600">asoniped@gmail.com</a>
-            </p>
+          {/* Preguntas Frecuentes estilo acordeón */}
+          <div>
+            <h3 className="text-xl font-bold text-black mb-6">Preguntas frecuentes</h3>
+
+            <div className="space-y-4">
+              <details className="group rounded-lg px-4 py-3">
+                <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
+                  ¿Cómo puedo hacer una donación?
+                  <span className="transition-transform group-open:rotate-180">⌄</span>
+                </summary>
+                <p className="mt-2 text-gray-700">
+                  Puedes realizar tu donación a través de transferencia bancaria, sinpe móvil o directamente en nuestras oficinas.
+                </p>
+              </details>
+
+              <details className="group rounded-lg px-4 py-3">
+                <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
+                  ¿Hay un monto mínimo para donar?
+                  <span className="transition-transform group-open:rotate-180">⌄</span>
+                </summary>
+                <p className="mt-2 text-gray-700">
+                  No, cualquier aporte es bien recibido. Toda ayuda, grande o pequeña, hace la diferencia.
+                </p>
+              </details>
+
+              <details className="group rounded-lg px-4 py-3">
+                <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
+                  ¿Cómo puedo colaborar con la asociación?
+                  <span className="transition-transform group-open:rotate-180">⌄</span>
+                </summary>
+                <p className="mt-2 text-gray-700">
+                  Puedes donar, ser voluntario o participar en nuestras actividades. Escríbenos para más información.
+                </p>
+              </details>
+            </div>
           </div>
 
           {/* Formulario */}
