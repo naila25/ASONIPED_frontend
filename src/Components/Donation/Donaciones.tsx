@@ -3,8 +3,8 @@ import { Link } from '@tanstack/react-router';
 
 const Donaciones: React.FC = () => {
   return (
-    <section className=" my-12 px-6 text-gray-800"> {/* Espacio entre cada componente */}
-        <h2 className= "text-amber-600 text-4xl font-bold text-center mb-4 tracking-wide">
+    <section className=" my-12 px-6 text-gray-800"> 
+        <h2 className= "text-orange-500 text-4xl font-bold text-center mb-4 tracking-wide mt-40">
            ¿Por qué ayudar a ASONIPED? 
         </h2>
       <p className="max-w-3xl mx-auto text-center text-lg mb-12">
