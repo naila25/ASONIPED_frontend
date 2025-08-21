@@ -1,8 +1,78 @@
 import { motion } from "framer-motion";
 import { FaMoneyBillWave, FaGift, FaMobileAlt, FaUniversity } from "react-icons/fa";
+import { useState } from "react";
 import quienessomos from "../../assets/quienessomos.png"
 import manoscoloridas from "../../assets/profile-pictures/manoscoloridas.png"
+import type { DonationFormData } from "../../Utils/donationService";
+import { submitDonation, validateDonationForm, formatPhoneNumber } from "../../Utils/donationService";
+
 const DonacionesVisual = () => {
+  const [formData, setFormData] = useState<DonationFormData>({
+    nombre: '',
+    correo: '',
+    telefono: '',
+    asunto: '',
+    mensaje: '',
+    aceptacion_privacidad: false,
+    aceptacion_comunicacion: false
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [submitMessage, setSubmitMessage] = useState('');
+
+  const validateForm = (): boolean => {
+    const newErrors = validateDonationForm(formData);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (field: keyof DonationFormData, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Limpiar error del campo cuando el usuario empiece a escribir
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    const result = await submitDonation(formData);
+
+    if (result.success) {
+      setSubmitStatus('success');
+      setSubmitMessage(result.message);
+      // Limpiar formulario
+      setFormData({
+        nombre: '',
+        correo: '',
+        telefono: '',
+        asunto: '',
+        mensaje: '',
+        aceptacion_privacidad: false,
+        aceptacion_comunicacion: false
+      });
+    } else {
+      setSubmitStatus('error');
+      setSubmitMessage(result.message);
+    }
+
+    setIsSubmitting(false);
+  };
+
   return (
     <section className="min-h-screen bg-white px-6 py-10 flex flex-col items-center gap-3">
       {/* Título principal */}
@@ -156,52 +226,114 @@ const DonacionesVisual = () => {
           </div>
 
           {/* Formulario */}
-          <form className="text-black grid grid-cols-1 gap-4">
+          <form onSubmit={handleSubmit} className="text-black grid grid-cols-1 gap-4">
             <p className="text-gray-700">Déjanos tu mensaje</p>
-            <input
-              type="text"
-              placeholder="Nombre"
-              className="border border-gray-300 rounded px-4 py-2"
-            />
-            <input
-              type="email"
-              placeholder="Correo electrónico"
-              className="border border-gray-300 rounded px-4 py-2"
-            />
-            <input
-              type="tel"
-              placeholder="Teléfono"
-              className="border border-gray-300 rounded px-4 py-2"
-            />
-            <input
-              type="text"
-              placeholder="Asunto"
-              className="border border-gray-300 rounded px-4 py-2"
-            />
-            <textarea
-              placeholder="Mensaje"
-              className="border border-gray-300 rounded px-4 py-2 min-h-[100px]"
-            />
+            
+            <div>
+              <input
+                type="text"
+                placeholder="Nombre completo"
+                value={formData.nombre}
+                onChange={(e) => handleInputChange('nombre', e.target.value)}
+                className={`border ${errors.nombre ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
+              />
+              {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
+            </div>
+
+            <div>
+              <input
+                type="email"
+                placeholder="Correo electrónico"
+                value={formData.correo}
+                onChange={(e) => handleInputChange('correo', e.target.value)}
+                className={`border ${errors.correo ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
+              />
+              {errors.correo && <p className="text-red-500 text-sm mt-1">{errors.correo}</p>}
+            </div>
+
+            <div>
+              <input
+                type="tel"
+                placeholder="Teléfono (88888888)"
+                value={formData.telefono}
+                onChange={(e) => handleInputChange('telefono', formatPhoneNumber(e.target.value))}
+                className={`border ${errors.telefono ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
+              />
+              {errors.telefono && <p className="text-red-500 text-sm mt-1">{errors.telefono}</p>}
+            </div>
+
+            <div>
+              <input
+                type="text"
+                placeholder="Asunto (mínimo 10 caracteres)"
+                value={formData.asunto}
+                onChange={(e) => handleInputChange('asunto', e.target.value)}
+                className={`border ${errors.asunto ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
+              />
+              {errors.asunto && <p className="text-red-500 text-sm mt-1">{errors.asunto}</p>}
+            </div>
+
+            <div>
+              <textarea
+                placeholder="Mensaje (mínimo 10 caracteres)"
+                value={formData.mensaje}
+                onChange={(e) => handleInputChange('mensaje', e.target.value)}
+                className={`border ${errors.mensaje ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 min-h-[100px] w-full`}
+              />
+              {errors.mensaje && <p className="text-red-500 text-sm mt-1">{errors.mensaje}</p>}
+            </div>
 
             <div className="flex items-start">
-              <input type="checkbox" id="privacy" className="mr-2 mt-1" />
+              <input 
+                type="checkbox" 
+                id="privacy" 
+                checked={formData.aceptacion_privacidad}
+                onChange={(e) => handleInputChange('aceptacion_privacidad', e.target.checked)}
+                className="mr-2 mt-1" 
+              />
               <label htmlFor="privacy" className="text-sm text-gray-700">
                 He leído y acepto el aviso de privacidad
               </label>
             </div>
+            {errors.aceptacion_privacidad && <p className="text-red-500 text-sm mt-1">{errors.aceptacion_privacidad}</p>}
 
             <div className="flex items-start">
-              <input type="checkbox" id="comunicacion" className="mr-2 mt-1" />
+              <input 
+                type="checkbox" 
+                id="comunicacion" 
+                checked={formData.aceptacion_comunicacion}
+                onChange={(e) => handleInputChange('aceptacion_comunicacion', e.target.checked)}
+                className="mr-2 mt-1" 
+              />
               <label htmlFor="comunicacion" className="text-sm text-gray-700">
                 Acepto recibir comunicación de parte de ASONIPED
               </label>
             </div>
+            {errors.aceptacion_comunicacion && <p className="text-red-500 text-sm mt-1">{errors.aceptacion_comunicacion}</p>}
+
+            {/* Mensaje de estado */}
+            {submitStatus === 'success' && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                {submitMessage}
+              </div>
+            )}
+
+            {submitStatus === 'error' && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {submitMessage}
+              </div>
+            )}
 
             <button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-6 rounded transition self-start"
+              disabled={isSubmitting}
+              className={`${
+                isSubmitting 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-orange-500 hover:bg-orange-600'
+              } text-white font-semibold py-2 px-6 rounded transition self-start`}
             >
-              Enviar mensaje
+              {isSubmitting ? 'Enviando...' : 'Enviar mensaje'}
             </button>
           </form>
         </div>
