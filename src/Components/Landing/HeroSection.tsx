@@ -13,7 +13,7 @@ const HeroSection = () => {
         </p>
   
         <div className='flex justify-center my-10 flex-wrap gap-4'> 
-          <a href="Donaciones" className='bg-gradient-to-r text-white from-orange-400 to-orange-700 py-3 px-6 rounded-md text-sm hover:opacity-90 transition'>
+          <a href="/donaciones/formulario" className='bg-gradient-to-r text-white from-orange-400 to-orange-700 py-3 px-6 rounded-md text-sm hover:opacity-90 transition'>
             Apoyar la Causa
           </a>
           <a href="Conocenos" className='bg-gradient-to-r text-white from-blue-400 to-blue-700 py-3 px-6 rounded-md text-sm hover:opacity-90 transition'>
