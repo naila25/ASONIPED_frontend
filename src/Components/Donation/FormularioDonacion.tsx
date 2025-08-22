@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { FaMoneyBillWave, FaGift, FaMobileAlt, FaUniversity } from "react-icons/fa";
 import { useState } from "react";
-import quienessomos from "../../assets/quienessomos.png"
-import manoscoloridas from "../../assets/profile-pictures/manoscoloridas.png"
+import { Link } from "@tanstack/react-router"; // <- Importa Link
+import { X } from "lucide-react"; // <- Importa X
+import quienessomos from "../../assets/quienessomos.png";
+import manoscoloridas from "../../assets/profile-pictures/manoscoloridas.png";
 import type { DonationFormData } from "../../Utils/donationService";
 import { submitDonation, validateDonationForm, formatPhoneNumber } from "../../Utils/donationService";
 
@@ -30,7 +32,6 @@ const DonacionesVisual = () => {
 
   const handleInputChange = (field: keyof DonationFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Limpiar error del campo cuando el usuario empiece a escribir
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -55,7 +56,6 @@ const DonacionesVisual = () => {
     if (result.success) {
       setSubmitStatus('success');
       setSubmitMessage(result.message);
-      // Limpiar formulario
       setFormData({
         nombre: '',
         correo: '',
@@ -74,7 +74,17 @@ const DonacionesVisual = () => {
   };
 
   return (
-    <section className="min-h-screen bg-white px-6 py-10 flex flex-col items-center gap-3">
+    <section className="relative min-h-screen bg-white px-6 py-10 flex flex-col items-center gap-3">
+      
+      {/* Botón de cerrar */}
+      <Link 
+        to="/"
+        className="absolute top-4 right-4 p-2 rounded-full hover:bg-orange-100 transition-colors"
+        aria-label="Cerrar página"
+      >
+        <X className="w-6 h-6 text-orange-600" />
+      </Link>
+
       {/* Título principal */}
       <motion.h2
         className="text-orange-500 text-4xl font-bold text-center mb-4 tracking-wide"
@@ -108,10 +118,10 @@ const DonacionesVisual = () => {
       >
         Formas de donación
 
-         <div className="flex items-center justify-center mt-6 gap-3">
-        <div className="w-20 h-[2px] bg-orange-400 rounded"></div>
-        <img src={manoscoloridas} alt="Logo manos" className="w-12 h-12 object-contain" />
-        <div className="w-20 h-[2px] bg-orange-400 rounded"></div>
+        <div className="flex items-center justify-center mt-6 gap-3">
+          <div className="w-20 h-[2px] bg-orange-400 rounded"></div>
+          <img src={manoscoloridas} alt="Logo manos" className="w-12 h-12 object-contain" />
+          <div className="w-20 h-[2px] bg-orange-400 rounded"></div>
         </div>
       </motion.h3>
 
@@ -184,8 +194,8 @@ const DonacionesVisual = () => {
         viewport={{ once: true, amount: 0.2 }}
       >
 
-         <h2 className="text-center text-3xl font-extrabold text-orange-500 mb-12">
-    Resolvemos tus dudas
+        <h2 className="text-center text-3xl font-extrabold text-orange-500 mb-12">
+          Resolvemos tus dudas
         </h2>
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
           {/* Preguntas Frecuentes estilo acordeón */}
