@@ -1,6 +1,6 @@
 import HeroSection from "../src/Components/Landing/HeroSection"
 import AboutSection from "../src/Components/Landing/AboutSection" 
-import Testimonials from "../src/Components/Landing/Testimonials"
+//import Testimonials from "../src/Components/Landing/Testimonials"
 import VolunteersSection from "../src/Components/Volunteers/VolunteersSection"
 import Donaciones from "../src/Components/Donation/Donaciones"
 //import PublicWorkshopsPage from "./Pages/Workshops/PublicWorkshopsPage"
@@ -13,10 +13,10 @@ const Home = () => {
       <div className="space-y-8 pt-10">
         <AboutSection />
         <Donaciones /> {/*Prioridad a Donaciones por el Sprint 0 */}
-        <VolunteersSection />
+        {/*<VolunteersSection />*/}
         {/*<PublicWorkshopsPage />*/ } {/*Taller de voluntariado, por ahora no se implementa*/}
-        <EventsNews />
-        <Testimonials />
+        {/*<EventsNews />*/}
+        {/*<Testimonials />*/}
       </div>
     </div>
   );
