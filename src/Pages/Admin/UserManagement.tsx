@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { getAuthHeader } from '../../Utils/auth';
+import { API_BASE_URL } from '../../Utils/config';
 import { Users, Plus, Edit, Trash2, Shield, Search } from 'lucide-react';
 
 interface Admin {
@@ -36,7 +37,7 @@ const UserManagement = () => {
         ...getAuthHeader(),
       };
 
-      const response = await fetch('http://localhost:3000/users', { headers });
+      const response = await fetch(`${API_BASE_URL}/users`, { headers });
 
       if (!response.ok) {
         throw new Error('Failed to fetch admins');
@@ -59,7 +60,7 @@ const UserManagement = () => {
         ...getAuthHeader(),
       };
 
-      const response = await fetch('http://localhost:3000/users', {
+      const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'POST',
         headers,
         body: JSON.stringify(formData),
@@ -87,7 +88,7 @@ const UserManagement = () => {
         ...getAuthHeader(),
       };
 
-      const response = await fetch(`http://localhost:3000/users/${editingAdmin.id}`, {
+      const response = await fetch(`${API_BASE_URL}/users/${editingAdmin.id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(formData),
@@ -115,7 +116,7 @@ const UserManagement = () => {
         ...getAuthHeader(),
       };
 
-      const response = await fetch(`http://localhost:3000/users/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'DELETE',
         headers,
       });

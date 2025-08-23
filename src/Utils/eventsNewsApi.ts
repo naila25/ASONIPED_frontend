@@ -1,8 +1,9 @@
 // Utility functions for interacting with JsonBin for EventNewsItem CRUD
 import type { EventNewsItem } from '../types/eventsNews';
 import { getAuthHeader } from './auth.ts';
+import { API_BASE_URL } from './config';
 
-const API_URL = 'http://localhost:3000/events-news';
+const API_URL = `${API_BASE_URL}/events-news`;
 
 export const fetchEventsNews = async () => {
   try {

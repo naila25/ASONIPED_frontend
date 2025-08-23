@@ -1,8 +1,9 @@
 import type { Volunteer, VolunteerOption } from '../types/volunteer';
 import { getAuthHeader } from './auth';
+import { API_BASE_URL } from './config';
 
-const API_URL = 'http://localhost:3000/volunteers';
-const OPTIONS_API_URL = 'http://localhost:3000/volunteer-options';
+const API_URL = `${API_BASE_URL}/volunteers`;
+const OPTIONS_API_URL = `${API_BASE_URL}/volunteer-options`;
 
 // Fetch a paginated list of volunteers (optionally filtered)
 export const fetchVolunteers = async (page = 1, limit = 10, status?: string, name?: string): Promise<{ volunteers: Volunteer[]; total: number; page: number; limit: number }> => {

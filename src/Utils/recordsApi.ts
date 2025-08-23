@@ -1,4 +1,5 @@
 import { getAuthHeader, getToken } from './auth';
+import { API_BASE_URL } from './config';
 import type { 
   Record, 
   RecordWithDetails, 
@@ -8,7 +9,7 @@ import type {
   RecordStats
 } from '../types/records';
 
-const API_URL = 'http://localhost:3000/records';
+const API_URL = `${API_BASE_URL}/records`;
 
 // ===== SERVICIOS BÁSICOS =====
 

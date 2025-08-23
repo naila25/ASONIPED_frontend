@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { login } from '../../Utils/auth';
+import { API_BASE_URL } from '../../Utils/config';
 
 const AdminLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,7 +21,7 @@ const AdminLogin = () => {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch('http://localhost:3000/users/login', {
+      const response = await fetch(`${API_BASE_URL}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -34,14 +35,17 @@ const AdminLogin = () => {
              const data = await response.json();
        login(data.token);
        
-       // Determinar a dónde redirigir basado en los roles del usuario
-       const isAdmin = data.user.roles.some((role: any) => role === 'admin' || role.name === 'admin');
-       
-       navigate({ 
-         to: isAdmin ? "/admin" : "/user",
-         search: (prev) => prev,
-         params: (prev) => prev
-       });
+               // Determinar a dónde redirigir basado en los roles del usuario
+        const isAdmin = data.user.roles.some((role: { name?: string } | string) => 
+          typeof role === 'string' ? role === 'admin' : role.name === 'admin'
+        );
+        
+        // Navegar basado en el rol del usuario
+        if (isAdmin) {
+          navigate({ to: "/admin" as any });
+        } else {
+          navigate({ to: "/user" as any });
+        }
     } catch {
       setError('Error de red o servidor');
     } finally {
@@ -55,7 +59,7 @@ const AdminLogin = () => {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch('http://localhost:3000/users/register', {
+      const response = await fetch(`${API_BASE_URL}/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -93,22 +97,22 @@ const AdminLogin = () => {
   const handleSubmit = isLogin ? handleLogin : handleRegister;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-[100dvh] flex flex-col lg:flex-row">
       {/* Left Panel - Login Form */}
-      <div className="w-1/2 bg-gray-900 flex items-center justify-center p-8">
+      <div className="w-full lg:w-1/2 bg-gray-900 flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl text-white mb-2">ASONIPED</h1>
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl text-white mb-2">ASONIPED</h1>
             <p className="text-gray-400 text-sm">Portal de Acceso</p>
           </div>
 
           {/* Toggle Buttons */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <div className="flex bg-gray-800/50 rounded-lg p-1">
               <button
                 onClick={() => setIsLogin(true)}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                className={`flex-1 py-2 px-3 sm:px-4 rounded-md text-sm font-medium transition-all duration-200 ${
                   isLogin 
                     ? 'bg-blue-600 text-white shadow-lg' 
                     : 'text-gray-400 hover:text-white'
@@ -118,7 +122,7 @@ const AdminLogin = () => {
               </button>
               <button
                 onClick={() => setIsLogin(false)}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                className={`flex-1 py-2 px-3 sm:px-4 rounded-md text-sm font-medium transition-all duration-200 ${
                   !isLogin 
                     ? 'bg-blue-600 text-white shadow-lg' 
                     : 'text-gray-400 hover:text-white'
@@ -130,8 +134,8 @@ const AdminLogin = () => {
           </div>
 
           {/* Main Content */}
-          <div className="mb-8">
-            <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-3 sm:mb-4 leading-tight">
               {isLogin ? (
                 <>
                   Donde la inclusión<br />
@@ -148,7 +152,7 @@ const AdminLogin = () => {
                 </>
               )}
             </h2>
-            <p className="text-gray-300 text-lg">
+            <p className="text-gray-300 text-base sm:text-lg">
               {isLogin 
                 ? 'Accede a tu cuenta personal de ASONIPED.'
                 : 'Crea tu cuenta y comienza tu journey con nosotros.'
@@ -157,15 +161,15 @@ const AdminLogin = () => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {error && (
-              <div className="p-4 bg-red-900/50 border border-red-500/50 rounded-lg text-red-300">
+              <div className="p-3 sm:p-4 bg-red-900/50 border border-red-500/50 rounded-lg text-red-300 text-sm sm:text-base">
                 {error}
               </div>
             )}
             
             {success && (
-              <div className="p-4 bg-green-900/50 border border-green-500/50 rounded-lg text-green-300">
+              <div className="p-3 sm:p-4 bg-green-900/50 border border-green-500/50 rounded-lg text-green-300 text-sm sm:text-base">
                 {success}
               </div>
             )}
@@ -176,7 +180,7 @@ const AdminLogin = () => {
                 placeholder="Usuario"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 required
               />
             </div>
@@ -189,7 +193,7 @@ const AdminLogin = () => {
                     placeholder="Correo electrónico"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -200,7 +204,7 @@ const AdminLogin = () => {
                     placeholder="Nombre completo"
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -211,7 +215,7 @@ const AdminLogin = () => {
                     placeholder="Teléfono"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                   />
                 </div>
               </>
@@ -223,14 +227,14 @@ const AdminLogin = () => {
                 placeholder="Contraseña"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 required
               />
             </div>
             
             <button
               type="submit"
-              className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-200 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-200 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               disabled={loading}
             >
               {loading 
@@ -240,38 +244,77 @@ const AdminLogin = () => {
             </button>
           </form>
 
-          {/* Bottom Features */}
-          <div className="mt-12 grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="w-8 h-8 mx-auto mb-2 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-400">Gestión Segura</p>
-            </div>
-            <div className="text-center">
-              <div className="w-8 h-8 mx-auto mb-2 bg-cyan-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-400">Control Total</p>
-            </div>
-            <div className="text-center">
-              <div className="w-8 h-8 mx-auto mb-2 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-400">Analítica</p>
-            </div>
-          </div>
+                     {/* Bottom Features - Hidden on mobile */}
+           <div className="hidden sm:grid mt-8 sm:mt-12 grid-cols-3 gap-4">
+             <div className="text-center">
+               <div className="w-8 h-8 mx-auto mb-2 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                 <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                 </svg>
+               </div>
+               <p className="text-xs text-gray-400">Gestión Segura</p>
+             </div>
+             <div className="text-center">
+               <div className="w-8 h-8 mx-auto mb-2 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+                 <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                 </svg>
+               </div>
+               <p className="text-xs text-gray-400">Control Total</p>
+             </div>
+             <div className="text-center">
+               <div className="w-8 h-8 mx-auto mb-2 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                 <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                   <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                 </svg>
+               </div>
+               <p className="text-xs text-gray-400">Analítica</p>
+             </div>
+           </div>
+
+           {/* Mobile Features - Visible only on mobile */}
+           <div className="sm:hidden mt-10 space-y-8">
+             {/* Contact Info for Mobile */}
+             <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+               <h4 className="text-white text-sm font-medium mb-3">¿Necesitas ayuda?</h4>
+               <div className="space-y-2 text-sm">
+                 <div className="flex items-center space-x-2 text-gray-300">
+                   <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                   </svg>
+                   <span>soporte@asoniped.org</span>
+                 </div>
+                 <div className="flex items-center space-x-2 text-gray-300">
+                   <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                     <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                   </svg>
+                   <span>+506 2222-2222</span>
+                 </div>
+                 <div className="flex items-center space-x-2 text-gray-300">
+                   <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                     <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                   </svg>
+                   <span>San José, Costa Rica</span>
+                 </div>
+               </div>
+             </div>
+
+             {/* Footer for Mobile */}
+             <div className="text-center pt-4 border-t border-gray-700">
+               <p className="text-gray-400 text-xs">
+                 © 2024 ASONIPED. Todos los derechos reservados.
+               </p>
+               <p className="text-gray-500 text-xs mt-1">
+                 Donde la inclusión encuentra el futuro
+               </p>
+             </div>
+           </div>
         </div>
       </div>
 
-      {/* Right Panel - ASONIPED Dashboard */}
-      <div className="w-1/2 bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-900 relative overflow-hidden">
+      {/* Right Panel - ASONIPED Dashboard - Hidden on mobile */}
+      <div className="hidden lg:block w-1/2 bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-900 relative overflow-hidden">
         {/* Background Glow Effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-cyan-500/20"></div>
         

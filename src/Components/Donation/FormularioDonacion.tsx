@@ -1,6 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { getAuthHeader, isAuthenticated } from "../../Utils/auth";
+import { API_BASE_URL } from "../../Utils/config";
 
 const FormularioDonacion = () => {
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -24,7 +25,7 @@ const FormularioDonacion = () => {
       }
 
       try {
-        const res = await fetch("http://localhost:3000/donations", {
+        const res = await fetch(`${API_BASE_URL}/donations`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
