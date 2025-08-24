@@ -3,6 +3,7 @@ import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarCha
 import {getRecords, getRecordStats, approvePhase1, rejectPhase1, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote } from '../../Utils/recordsApi';
 import type { Record, RecordStats, RecordWithDetails } from '../../types/records';
 import Phase3Details from './Phase3Details';
+import Phase4Details from './Phase4Details';
 
 const ExpedientesAdminPage: React.FC = () => {
   // State Management
@@ -347,9 +348,13 @@ const ExpedientesAdminPage: React.FC = () => {
       <tr className="bg-gray-50">
         <td colSpan={6} className="px-6 py-4">
           <div className="space-y-6">
-            {/* Información del Expediente - Mostrar detalles completos para Phase 3 */}
+            {/* Información del Expediente - Mostrar detalles completos para Phase 3, Phase 4 y Completed */}
             {selectedRecord.phase === 'phase3' ? (
               <Phase3Details record={selectedRecord} />
+            ) : selectedRecord.phase === 'phase4' ? (
+              <Phase4Details record={selectedRecord} />
+            ) : selectedRecord.phase === 'completed' ? (
+              <Phase4Details record={selectedRecord} />
             ) : (
               <>
                 {/* Información Personal */}
@@ -443,7 +448,7 @@ const ExpedientesAdminPage: React.FC = () => {
                   <FileText className="w-5 h-5 mr-2" />
                   Comentarios y Notas
                 </h4>
-                {selectedRecord.phase === 'phase3' && (
+                                 {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4' || selectedRecord.phase === 'completed') && (
                   <button
                     onClick={() => initiateAction('add-note', selectedRecord.id)}
                     className="flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
@@ -523,12 +528,12 @@ const ExpedientesAdminPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                  <p className="text-gray-500 text-sm">
-                    {selectedRecord.phase === 'phase3' 
-                      ? 'No hay comentarios aún. Use el botón "Agregar Comentario" para añadir observaciones sobre este expediente.'
-                      : 'No hay comentarios para este expediente.'
-                    }
-                  </p>
+                                     <p className="text-gray-500 text-sm">
+                     {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4' || selectedRecord.phase === 'completed')
+                       ? 'No hay comentarios aún. Use el botón "Agregar Comentario" para añadir observaciones sobre este expediente.'
+                       : 'No hay comentarios para este expediente.'
+                     }
+                   </p>
                 </div>
               )}
             </div>
@@ -556,7 +561,7 @@ const ExpedientesAdminPage: React.FC = () => {
               </div>
             )}
 
-            {(selectedRecord.phase === 'phase3' && selectedRecord.status === 'pending') && (
+            {((selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4') && selectedRecord.status === 'pending') && (
               <div className="border-t border-gray-200 pt-6">
                 <h4 className="text-lg font-medium text-gray-900 mb-4">Acciones</h4>
                 <div className="flex space-x-4">

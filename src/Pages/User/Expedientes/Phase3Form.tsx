@@ -93,6 +93,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     cuenta_banco_nacional: null
   });
 
+  // Estado para documentos genéricos que necesitan asignación manual
+  const [genericDocuments, setGenericDocuments] = useState<File[]>([]);
+  const [documentAssignments, setDocumentAssignments] = useState<{ [key: string]: string }>({});
+
   // Helper function to format date for input[type="date"]
   const formatDateForInput = (dateString: string | Date | null | undefined): string => {
     if (!dateString) return '';
@@ -114,6 +118,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     if (currentRecord?.personal_data) {
       const phase1Data = currentRecord.personal_data;
       
+      console.log('Pre-filling Phase 3 form with Phase 1 data:', phase1Data);
+      
       setForm(prev => ({
         ...prev,
         complete_personal_data: {
@@ -125,7 +131,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           birth_place: phase1Data.birth_place || '',
           province: phase1Data.province || '',
           district: phase1Data.district || '',
-          exact_address: phase1Data.address || ''
+          exact_address: phase1Data.address || '',
+          // Pre-fill PCD name if available
+          pcd_name: phase1Data.pcd_name || phase1Data.full_name || ''
         },
         family_information: {
           ...prev.family_information,
@@ -138,6 +146,71 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     }
   }, [currentRecord]);
 
+  // Initialize document status based on existing documents
+  useEffect(() => {
+    // Always initialize documents array, even if no existing documents
+    setForm(prev => ({
+      ...prev,
+      documentation_requirements: {
+        ...prev.documentation_requirements,
+        documents: documentTypes.map(doc => ({
+          document_type: doc.key as RequiredDocument['document_type'],
+          status: 'pendiente',
+          observations: ''
+        }))
+      }
+    }));
+
+    // If there are existing documents, update their status
+    if (currentRecord?.documents && currentRecord.documents.length > 0) {
+      const existingDocuments = currentRecord.documents;
+      
+      // Create a mapping of document types to their status
+      const documentStatusMap = new Map();
+      existingDocuments.forEach(doc => {
+        // Map backend document types to form document types
+        const formDocumentType = mapBackendDocumentType(doc.document_type);
+        if (formDocumentType) {
+          documentStatusMap.set(formDocumentType, 'entregado');
+        }
+      });
+
+      // Update form with existing document statuses
+      setForm(prev => ({
+        ...prev,
+        documentation_requirements: {
+          ...prev.documentation_requirements,
+          documents: documentTypes.map(doc => ({
+            document_type: doc.key as RequiredDocument['document_type'],
+            status: documentStatusMap.get(doc.key) || 'pendiente',
+            observations: ''
+          }))
+        }
+      }));
+    }
+  }, [currentRecord]);
+
+  // Helper function to map backend document types to form document types
+  const mapBackendDocumentType = (backendType: string): string | null => {
+    const mapping: { [key: string]: string } = {
+      'medical_diagnosis': 'dictamen_medico',
+      'birth_certificate': 'constancia_nacimiento',
+      'cedula': 'copia_cedula',
+      'photo': 'foto_pasaporte',
+      'pension_certificate': 'constancia_pension_ccss',
+      'study_certificate': 'constancia_estudio'
+    };
+    return mapping[backendType] || null;
+  };
+
+  // Debug: Log form state changes
+  useEffect(() => {
+    console.log('Form state updated:', {
+      documents: form.documentation_requirements.documents,
+      documentFiles: Object.keys(documentFiles).filter(key => documentFiles[key] !== null)
+    });
+  }, [form.documentation_requirements.documents, documentFiles]);
+
   const handleChange = (section: keyof Phase3Data, field: string, value: string | number | boolean | string[] | RequiredDocument[] | AvailableService[]) => {
     setForm(prev => ({
       ...prev,
@@ -149,10 +222,96 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   };
 
   const handleDocumentChange = (documentType: string, file: File | null) => {
+    console.log('handleDocumentChange called:', { documentType, file: file?.name });
+    
     setDocumentFiles(prev => ({
       ...prev,
       [documentType]: file
     }));
+
+    // Actualizar automáticamente el estado del documento cuando se sube un archivo
+    if (file) {
+      console.log('File uploaded, updating document status to entregado');
+      
+      setForm(prev => {
+        const existingDoc = prev.documentation_requirements.documents.find(doc => doc.document_type === documentType);
+        console.log('Existing doc:', existingDoc);
+        
+        if (existingDoc) {
+          // Update existing document status to 'entregado'
+          const updatedDocs = prev.documentation_requirements.documents.map(doc => 
+            doc.document_type === documentType ? { ...doc, status: 'entregado' as const } : doc
+          );
+          console.log('Updated docs:', updatedDocs);
+          return {
+            ...prev,
+            documentation_requirements: {
+              ...prev.documentation_requirements,
+              documents: updatedDocs
+            }
+          };
+        } else {
+          // Add new document with 'entregado' status
+          const newDoc: RequiredDocument = {
+            document_type: documentType as RequiredDocument['document_type'],
+            status: 'entregado',
+            observations: ''
+          };
+          const updatedDocs = [...prev.documentation_requirements.documents, newDoc];
+          console.log('Added new doc:', updatedDocs);
+          return {
+            ...prev,
+            documentation_requirements: {
+              ...prev.documentation_requirements,
+              documents: updatedDocs
+            }
+          };
+        }
+      });
+    } else {
+      console.log('File removed, updating document status to pendiente');
+      
+      setForm(prev => {
+        const existingDoc = prev.documentation_requirements.documents.find(doc => doc.document_type === documentType);
+        
+        if (existingDoc) {
+          const updatedDocs = prev.documentation_requirements.documents.map(doc => 
+            doc.document_type === documentType ? { ...doc, status: 'pendiente' as const } : doc
+          );
+          return {
+            ...prev,
+            documentation_requirements: {
+              ...prev.documentation_requirements,
+              documents: updatedDocs
+            }
+          };
+        }
+        return prev;
+      });
+    }
+  };
+
+  const handleGenericDocumentUpload = (files: FileList | null) => {
+    if (files) {
+      const newFiles = Array.from(files);
+      setGenericDocuments(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleDocumentAssignment = (fileName: string, documentType: string) => {
+    setDocumentAssignments(prev => ({
+      ...prev,
+      [fileName]: documentType
+    }));
+  };
+
+  const removeGenericDocument = (fileName: string) => {
+    setGenericDocuments(prev => prev.filter(file => file.name !== fileName));
+    setDocumentAssignments(prev => {
+      const newAssignments = { ...prev };
+      delete newAssignments[fileName];
+      return newAssignments;
+    });
   };
 
   // Handle working family members dynamically
@@ -194,12 +353,25 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convertir archivos a array
-    const documents = Object.values(documentFiles).filter(file => file !== null) as File[];
+    // Convertir archivos específicos a array
+    const specificDocuments = Object.values(documentFiles).filter(file => file !== null) as File[];
+    
+    // Procesar documentos genéricos asignados
+    const assignedGenericDocuments = genericDocuments
+      .filter(file => documentAssignments[file.name])
+      .map(file => {
+        // Crear un nuevo archivo con el nombre del tipo de documento
+        const assignedType = documentAssignments[file.name];
+        const newFileName = `${assignedType}_${file.name}`;
+        return new File([file], newFileName, { type: file.type });
+      });
+    
+    // Combinar todos los documentos
+    const allDocuments = [...specificDocuments, ...assignedGenericDocuments];
     
     const formData: Phase3Data = {
       ...form,
-      documents
+      documents: allDocuments
     };
     
     onSubmit(formData);
@@ -256,6 +428,18 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 onChange={(e) => handleChange('complete_personal_data', 'full_name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nombre de la PCD (si es diferente)
+              </label>
+              <input
+                type="text"
+                value={form.complete_personal_data.pcd_name || ''}
+                onChange={(e) => handleChange('complete_personal_data', 'pcd_name', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Dejar vacío si es el mismo que el nombre completo"
               />
             </div>
             <div>
@@ -778,45 +962,127 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           </div>
         </div>
 
-        {/* Subida de Documentos */}
-        <div className="border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Documentos Requeridos</h3>
-          <div className="space-y-4">
-            {documentTypes.map((doc) => (
-              <div key={doc.key} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    {doc.label} {doc.required && <span className="text-red-500">*</span>}
-                  </label>
-                  {documentFiles[doc.key] && (
-                    <button
-                      type="button"
-                      onClick={() => handleDocumentChange(doc.key, null)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="file"
-                  onChange={(e) => handleDocumentChange(doc.key, e.target.files?.[0] || null)}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  required={doc.required}
-                />
-                {documentFiles[doc.key] && (
-                  <p className="text-xs text-green-600 mt-1">
-                    ✓ {documentFiles[doc.key]?.name}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+                 {/* Subida de Documentos */}
+         <div className="border border-gray-200 rounded-lg p-6">
+           <h3 className="text-lg font-medium text-gray-900 mb-4">Documentos Requeridos</h3>
+           <div className="space-y-4">
+             {documentTypes.map((doc) => {
+               const documentStatus = form.documentation_requirements.documents.find(d => d.document_type === doc.key)?.status || 'pendiente';
+               const hasFile = documentFiles[doc.key];
+               
+               return (
+                 <div key={doc.key} className={`border rounded-lg p-4 ${
+                   documentStatus === 'entregado' ? 'border-green-200 bg-green-50' : 
+                   documentStatus === 'en_tramite' ? 'border-yellow-200 bg-yellow-50' : 
+                   'border-gray-200'
+                 }`}>
+                   <div className="flex items-center justify-between mb-2">
+                     <div className="flex items-center gap-2">
+                       <label className="text-sm font-medium text-gray-700">
+                         {doc.label} {doc.required && <span className="text-red-500">*</span>}
+                       </label>
+                       <span className={`px-2 py-1 text-xs rounded-full ${
+                         documentStatus === 'entregado' ? 'bg-green-100 text-green-800' :
+                         documentStatus === 'en_tramite' ? 'bg-yellow-100 text-yellow-800' :
+                         documentStatus === 'no_aplica' ? 'bg-gray-100 text-gray-800' :
+                         'bg-red-100 text-red-800'
+                       }`}>
+                         {documentStatus === 'entregado' ? 'Entregado' :
+                          documentStatus === 'en_tramite' ? 'En trámite' :
+                          documentStatus === 'no_aplica' ? 'No aplica' :
+                          'Pendiente'}
+                       </span>
+                     </div>
+                     {hasFile && (
+                       <button
+                         type="button"
+                         onClick={() => handleDocumentChange(doc.key, null)}
+                         className="text-red-500 hover:text-red-700"
+                       >
+                         <X className="w-4 h-4" />
+                       </button>
+                     )}
+                   </div>
+                   <input
+                     type="file"
+                     onChange={(e) => handleDocumentChange(doc.key, e.target.files?.[0] || null)}
+                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                     required={doc.required}
+                   />
+                   {hasFile && (
+                     <div className="mt-2 flex items-center gap-2">
+                       <span className="text-xs text-green-600">✓</span>
+                       <p className="text-xs text-green-600">
+                         {documentFiles[doc.key]?.name}
+                       </p>
+                     </div>
+                   )}
+                 </div>
+               );
+             })}
+           </div>
+         </div>
 
-     
+         {/* Documentos Genéricos - Asignación Manual */}
+         {genericDocuments.length > 0 && (
+           <div className="border border-orange-200 rounded-lg p-6 bg-orange-50">
+             <h3 className="text-lg font-medium text-orange-900 mb-4">
+               📄 Documentos Pendientes de Asignación
+             </h3>
+             <p className="text-sm text-orange-800 mb-4">
+               Los siguientes documentos han sido subidos pero necesitan ser asignados a un tipo específico:
+             </p>
+             <div className="space-y-3">
+               {genericDocuments.map((file, index) => (
+                 <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-200">
+                   <div className="flex items-center gap-3">
+                     <span className="text-sm font-medium text-gray-700">{file.name}</span>
+                     <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(1)} KB)</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <select
+                       value={documentAssignments[file.name] || ''}
+                       onChange={(e) => handleDocumentAssignment(file.name, e.target.value)}
+                       className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                     >
+                       <option value="">Seleccionar tipo...</option>
+                       {documentTypes.map(doc => (
+                         <option key={doc.key} value={doc.key}>
+                           {doc.label}
+                         </option>
+                       ))}
+                     </select>
+                     <button
+                       type="button"
+                       onClick={() => removeGenericDocument(file.name)}
+                       className="text-red-500 hover:text-red-700"
+                     >
+                       <X className="w-4 h-4" />
+                     </button>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </div>
+         )}
 
+         {/* Subida de Documentos Genéricos */}
+         <div className="border border-blue-200 rounded-lg p-6 bg-blue-50">
+           <h3 className="text-lg font-medium text-blue-900 mb-4">
+             📁 Subir Documentos Adicionales
+           </h3>
+           <p className="text-sm text-blue-800 mb-4">
+             Si tiene documentos con nombres genéricos (como "CamScanner", "Documento", etc.), súbalos aquí y luego asígnelos al tipo correcto arriba.
+           </p>
+           <input
+             type="file"
+             multiple
+             onChange={(e) => handleGenericDocumentUpload(e.target.files)}
+             className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+           />
+         </div>
 
         {/* Documentación y Requisitos */}
         <div className="border border-gray-200 rounded-lg p-6">
@@ -837,8 +1103,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   Estado del Pago
                 </label>
                 <select
-                  value={form.documentation_requirements.affiliation_fee}
-                  onChange={(e) => handleChange('documentation_requirements', 'affiliation_fee', e.target.value)}
+                  value={form.documentation_requirements.affiliation_fee_paid ? 'pagada' : 'pendiente'}
+                  onChange={(e) => handleChange('documentation_requirements', 'affiliation_fee_paid', e.target.value === 'pagada')}
                   className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="pendiente">Pendiente</option>
@@ -851,8 +1117,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={form.documentation_requirements.banking_information}
-                  onChange={(e) => handleChange('documentation_requirements', 'banking_information', e.target.value)}
+                  value={form.documentation_requirements.bank_account_info || ''}
+                  onChange={(e) => handleChange('documentation_requirements', 'bank_account_info', e.target.value)}
                   className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Número de cuenta, referencia, etc."
                 />

@@ -27,6 +27,7 @@ export interface CompletePersonalData {
   record_number?: string;
   registration_date: string;
   full_name: string;
+  pcd_name?: string; // Nombre de la persona con discapacidad
   cedula: string;
   gender: 'male' | 'female' | 'other';
   birth_date: string;
@@ -145,8 +146,8 @@ export interface DocumentationRequirements {
   id?: number;
   record_id?: number;
   documents: RequiredDocument[];
-  affiliation_fee: 'pagada' | 'pendiente';
-  banking_information: string;
+  affiliation_fee_paid?: boolean;
+  bank_account_info?: string;
   general_observations: string;
   signatures: FormSignatures;
   created_at?: string;

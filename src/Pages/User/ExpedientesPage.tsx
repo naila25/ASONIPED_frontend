@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { FileText, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { getUserRecord, createInitialRecord, completeRecord } from '../../Utils/recordsApi';
 import type { RecordWithDetails, Phase1Data, Phase3Data } from '../../types/records';
 import {
@@ -9,7 +9,8 @@ import {
   RecordStatus,
   Phase3Info,
   RejectionInfo,
-  IntroductionInfo
+  IntroductionInfo,
+  CompleteRecordView
 } from './Expedientes';
 
 // Componente principal
@@ -99,154 +100,151 @@ const ExpedientesPage: React.FC = () => {
     }
   };
 
-  const handleStartProcess = () => {
-    setShowIntroduction(false);
-  };
+  // Mostrar introducción si no hay expediente y no se está cargando
+  if (showIntroduction && !record && !loading) {
+    return (
+      <IntroductionInfo onStartProcess={() => setShowIntroduction(false)} />
+    );
+  }
 
+  // Mostrar loading
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="text-gray-600">Cargando expediente...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando expediente...</p>
         </div>
       </div>
     );
   }
 
+  // Mostrar error
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full">
-          <div className="flex items-center space-x-3 text-red-600 mb-4">
-            <AlertCircle className="h-6 w-6" />
-            <h3 className="text-lg font-medium">Error</h3>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-sm p-6 max-w-md w-full">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertCircle className="w-6 h-6 text-red-600" />
+            <h3 className="text-lg font-medium text-gray-900">Error</h3>
           </div>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={loadUserRecord}
-            className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Intentar nuevamente
+            Reintentar
           </button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-100 rounded-lg">
-            <FileText className="w-8 h-8 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mi Expediente</h1>
-            <p className="text-gray-600">Gestiona tu expediente de beneficiario de ASONIPED</p>
+  // Si no hay expediente, mostrar formulario inicial
+  if (!record) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="text-center mb-6">
+              <FileText className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Solicitud de Expediente</h1>
+              <p className="text-gray-600">Complete el formulario inicial para comenzar su proceso de expediente</p>
+            </div>
+            <Phase1Form onSubmit={handlePhase1Submit} submitting={submitting} />
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Progress Indicator */}
-      {record && <ProgressIndicator currentPhase={record.phase} />}
-
-
-
-      {/* Content based on record status */}
-      {!record ? (
-        // No hay expediente - Mostrar información introductoria o formulario de Fase 1
-        showIntroduction ? (
-          <IntroductionInfo onStartProcess={handleStartProcess} />
-        ) : (
-          <Phase1Form 
-            onSubmit={handlePhase1Submit} 
-            loading={submitting} 
-            onBackToIntro={() => setShowIntroduction(true)}
-          />
-        )
-      ) : record.phase === 'phase1' ? (
-        // Fase 1 - Mostrar estado actual y esperar aprobación
-        <RecordStatus record={record} />
-      ) : record.phase === 'phase2' ? (
-        // Fase 2 - Mostrar aprobación/rechazo según el status
-        record.status === 'approved' ? (
-          showPhase3Form ? (
-            // Mostrar formulario de Fase 3
-            <Phase3Form onSubmit={handlePhase3Submit} loading={submitting} currentRecord={record} />
-          ) : (
-            // Mostrar información de Fase 3 y botón para continuar
-            <Phase3Info record={record} onContinue={handleContinueToPhase3} />
-          )
-        ) : record.status === 'rejected' ? (
-          // Mostrar información de rechazo y opción para reiniciar
-          <RejectionInfo record={record} onRestart={handleRestartProcess} />
-        ) : (
-          // Status pendiente - Mostrar estado actual
-          <RecordStatus record={record} />
-        )
-      ) : record.phase === 'phase3' ? (
-        // Fase 3 - Mostrar estado actual del expediente completado
-        record.status === 'pending' ? (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <div className="flex items-center space-x-3 text-yellow-600 mb-4">
-              <AlertCircle className="h-6 w-6" />
-              <h3 className="text-lg font-medium">Expediente Completado</h3>
+  // Si el expediente está completado, mostrar vista completa
+  if (record.phase === 'completed' && record.status === 'active') {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Expediente Completado</h1>
             </div>
-            <p className="text-yellow-800 mb-4">
-              Su expediente ha sido completado y está en revisión final. Debe esperar la aprobación administrativa.
-            </p>
-            <div className="bg-white border border-yellow-300 rounded-lg p-4">
-              <h4 className="font-medium text-yellow-900 mb-2">Estado Actual:</h4>
-              <ul className="text-sm text-yellow-800 space-y-1">
-                <li>• <strong>Fase:</strong> 3 (Completada)</li>
-                <li>• <strong>Estado:</strong> Pendiente de revisión</li>
-                <li>• <strong>Número de Expediente:</strong> {record.record_number}</li>
-                <li>• <strong>Fecha de Creación:</strong> {new Date(record.created_at).toLocaleDateString()}</li>
-              </ul>
-            </div>
+            <p className="text-gray-600">Su expediente ha sido aprobado y está activo. A continuación puede ver todos los detalles.</p>
           </div>
-        ) : record.status === 'approved' ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <div className="flex items-center space-x-3 text-green-600 mb-4">
-              <CheckCircle className="h-6 w-6" />
-              <h3 className="text-lg font-medium">Expediente Aprobado</h3>
-            </div>
-            <p className="text-green-800 mb-4">
-              ¡Felicitaciones! Su expediente ha sido aprobado completamente.
-            </p>
-            <div className="bg-white border border-green-300 rounded-lg p-4">
-              <h4 className="font-medium text-green-900 mb-2">Información del Expediente:</h4>
-              <ul className="text-sm text-green-800 space-y-1">
-                <li>• <strong>Número de Expediente:</strong> {record.record_number}</li>
-                <li>• <strong>Estado:</strong> Aprobado</li>
-                <li>• <strong>Fecha de Aprobación:</strong> {new Date(record.updated_at).toLocaleDateString()}</li>
-              </ul>
-            </div>
-          </div>
-        ) : (
-          <RecordStatus record={record} />
-        )
-      ) : (
-        // Otros estados - Mostrar estado actual
-        <RecordStatus record={record} />
-      )}
-
-      {/* Información adicional */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-3">Información del Proceso</h3>
-        <div className="space-y-2 text-sm text-blue-800">
-          <p>• <strong>Fase 1:</strong> Registro inicial con datos personales básicos</p>
-          <p>• <strong>Fase 2:</strong> Revisión administrativa de la solicitud inicial (debe ser aprobada)</p>
-          <p>• <strong>Fase 3:</strong> Completar formulario completo y subir documentos (solo después de aprobación)</p>
-          <p>• <strong>Fase 4:</strong> Revisión final y aprobación del expediente</p>
+          <CompleteRecordView record={record} isAdmin={false} />
         </div>
-        {record && record.phase === 'phase1' && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>Estado actual:</strong> Su expediente está en revisión. Debe esperar la aprobación de la Fase 1 antes de poder continuar con la Fase 3.
-            </p>
+      </div>
+    );
+  }
+
+  // Mostrar progreso y estado actual
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Indicador de progreso */}
+        <ProgressIndicator currentPhase={record.phase} status={record.status} />
+        
+        {/* Estado del expediente */}
+        <div className="mt-6">
+          <RecordStatus record={record} />
+        </div>
+
+        {/* Contenido específico según la fase */}
+        {record.phase === 'phase1' && record.status === 'pending' && (
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-600" />
+              <div>
+                <h3 className="font-medium text-blue-900">Solicitud en Revisión</h3>
+                <p className="text-blue-800 text-sm">Su solicitud inicial está siendo revisada por el administrador. Recibirá una notificación cuando sea aprobada.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {record.phase === 'phase1' && record.status === 'rejected' && (
+          <div className="mt-6">
+            <RejectionInfo record={record} onRestart={handleRestartProcess} />
+          </div>
+        )}
+
+        {record.phase === 'phase2' && record.status === 'approved' && !showPhase3Form && (
+          <div className="mt-6">
+            <Phase3Info record={record} onContinue={handleContinueToPhase3} />
+          </div>
+        )}
+
+        {record.phase === 'phase2' && record.status === 'approved' && showPhase3Form && (
+          <div className="mt-6">
+            <Phase3Form 
+              onSubmit={handlePhase3Submit} 
+              submitting={submitting} 
+              currentRecord={record}
+            />
+          </div>
+        )}
+
+        {record.phase === 'phase3' && record.status === 'pending' && (
+          <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-yellow-600" />
+              <div>
+                <h3 className="font-medium text-yellow-900">Expediente Completo en Revisión</h3>
+                <p className="text-yellow-800 text-sm">Su expediente completo está siendo revisado para aprobación final. Este proceso puede tomar algunos días.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {record.phase === 'phase3' && record.status === 'rejected' && (
+          <div className="mt-6">
+            <RejectionInfo record={record} onRestart={handleRestartProcess} />
+          </div>
+        )}
+
+        {/* Mostrar expediente completo si está en fase 4 o completado pero no activo */}
+        {(record.phase === 'phase4' || (record.phase === 'completed' && record.status !== 'active')) && (
+          <div className="mt-6">
+            <CompleteRecordView record={record} isAdmin={false} />
           </div>
         )}
       </div>

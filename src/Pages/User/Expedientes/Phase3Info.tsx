@@ -34,7 +34,7 @@ const Phase3Info: React.FC<Phase3InfoProps> = ({ record, onContinue }) => {
       </div>
 
       {/* Comentario del administrador si existe */}
-      {record.notes && record.notes.length > 0 && (
+      {record.notes && Array.isArray(record.notes) && record.notes.length > 0 && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
           <h4 className="font-medium text-gray-900 mb-2">Comentario del Administrador</h4>
           <div className="space-y-2">

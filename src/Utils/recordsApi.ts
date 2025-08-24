@@ -36,10 +36,15 @@ export const getUserRecord = async (): Promise<RecordWithDetails | null> => {
       return null; // Usuario no tiene expediente
     }
     
+    if (response.status === 401) {
+      console.log('User not authenticated');
+      throw new Error('Sesión expirada. Por favor, inicie sesión nuevamente.');
+    }
+    
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Response error:', errorText);
-      throw new Error('Error obteniendo expediente');
+      throw new Error(`Error obteniendo expediente: ${response.status}`);
     }
     
     const data = await response.json();
@@ -117,11 +122,56 @@ export const completeRecord = async (recordId: number, phase3Data: Phase3Data): 
     
     // Agregar documentos con nombres de campo específicos
     phase3Data.documents.forEach((file, index) => {
-      // Determinar el tipo de documento basado en el nombre del archivo o posición
-      const documentTypes = ['medical_diagnosis', 'birth_certificate', 'cedula', 'photo', 'pension_certificate', 'study_certificate'];
-      const documentType = documentTypes[index] || 'other';
+      // Determinar el tipo de documento basado en el nombre del archivo
+      let documentType = 'other';
       
-      formData.append(`documents`, file, `${documentType}_${file.name}`);
+      // Mapeo inteligente basado en el nombre del archivo
+      const fileName = file.name.toLowerCase();
+      
+      // Patrones para identificar tipos de documentos
+      if (fileName.includes('dictamen') || fileName.includes('medico') || fileName.includes('diagnostico') || fileName.includes('diagnóstico')) {
+        documentType = 'dictamen_medico';
+      } else if (fileName.includes('nacimiento') || fileName.includes('birth') || fileName.includes('partida')) {
+        documentType = 'constancia_nacimiento';
+      } else if (fileName.includes('cedula') || fileName.includes('identificacion') || fileName.includes('identificación') || fileName.includes('dni') || fileName.includes('carnet')) {
+        documentType = 'copia_cedula';
+      } else if (fileName.includes('foto') || fileName.includes('photo') || fileName.includes('imagen') || fileName.includes('retrato')) {
+        documentType = 'foto_pasaporte';
+      } else if (fileName.includes('pension') || fileName.includes('ccss') || fileName.includes('pensión')) {
+        documentType = 'constancia_pension_ccss';
+      } else if (fileName.includes('estudio') || fileName.includes('study') || fileName.includes('academico') || fileName.includes('académico')) {
+        documentType = 'constancia_estudio';
+      } else if (fileName.includes('socioeconomica') || fileName.includes('socioeconómica') || fileName.includes('beca') || fileName.includes('solicitud')) {
+        documentType = 'cuenta_banco_nacional'; // O crear un nuevo tipo específico
+      }
+      
+      // Si no se pudo mapear, intentar con el formato anterior
+      if (documentType === 'other') {
+        const fileNameParts = file.name.split('_');
+        if (fileNameParts.length > 0) {
+          const extractedType = fileNameParts[0];
+          const typeMapping: { [key: string]: string } = {
+            'dictamen_medico': 'dictamen_medico',
+            'constancia_nacimiento': 'constancia_nacimiento',
+            'copia_cedula': 'copia_cedula',
+            'foto_pasaporte': 'foto_pasaporte',
+            'constancia_pension_ccss': 'constancia_pension_ccss',
+            'constancia_estudio': 'constancia_estudio',
+            'medical_diagnosis': 'dictamen_medico',
+            'birth_certificate': 'constancia_nacimiento',
+            'cedula': 'copia_cedula',
+            'photo': 'foto_pasaporte',
+            'pension_certificate': 'constancia_pension_ccss',
+            'study_certificate': 'constancia_estudio'
+          };
+          documentType = typeMapping[extractedType] || 'other';
+        }
+      }
+      
+      console.log(`Mapeando archivo "${file.name}" como tipo: ${documentType}`);
+      
+      // Usar el tipo de documento como nombre del campo
+      formData.append(documentType, file);
     });
     
     console.log('FormData preparado, enviando request...');

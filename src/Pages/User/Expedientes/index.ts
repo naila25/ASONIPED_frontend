@@ -5,3 +5,4 @@ export { default as RecordStatus } from './RecordStatus';
 export { default as Phase3Info } from './Phase3Info';
 export { default as RejectionInfo } from './RejectionInfo';
 export { default as IntroductionInfo } from './IntroductionInfo';
+export { default as CompleteRecordView } from './CompleteRecordView';
