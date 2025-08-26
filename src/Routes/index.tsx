@@ -15,7 +15,18 @@ import {FormularioMatricula} from '../Pages/Workshops/FormularioMatricula';
 import PublicWorkshopsPage from '../Pages/Workshops/PublicWorkshopsPage';
 import WorkshopForms from '../Components/Workshop/WorkshopForm';
 import AdminDashboard from '../Pages/Admin/AdminDashboard';
+import AdminDashboardHome from '../Pages/Admin/AdminDashboardHome';
+import ExpedientesAdminPage from '../Pages/Admin/ExpedientesAdminPage';
 import UserManagement from '../Pages/Admin/UserManagement';
+import UserDashboard from '../Pages/User/UserDashboard';
+import DashboardHome from '../Pages/User/DashboardHome';
+import ExpedientesPage from '../Pages/User/ExpedientesPage';
+import TalleresPage from '../Pages/User/TalleresPage';
+import VoluntariadoPage from '../Pages/User/VoluntariadoPage';
+import DonacionesUserPage from '../Pages/User/DonacionesPage';
+import MensajesPage from '../Pages/User/MensajesPage';
+import CalendarioPage from '../Pages/User/CalendarioPage';
+import PerfilPage from '../Pages/User/PerfilPage';
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../Pages/Volunteer/VolunteerOptionsPage'));
@@ -93,6 +104,72 @@ const adminDashboardRoute = createRoute({
   component: AdminDashboard,
 });
 
+const adminHomeRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: '/',
+  component: AdminDashboardHome,
+});
+
+const expedientesAdminRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'expedientes',
+  component: ExpedientesAdminPage,
+});
+
+const userDashboardRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: 'user',
+  component: UserDashboard,
+});
+
+const userHomeRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: '/',
+  component: DashboardHome,
+});
+
+const expedientesRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'expedientes',
+  component: ExpedientesPage,
+});
+
+const talleresRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'talleres',
+  component: TalleresPage,
+});
+
+const voluntariadoRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'voluntariado',
+  component: VoluntariadoPage,
+});
+
+const donacionesUserRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'donaciones',
+  component: DonacionesUserPage,
+});
+
+const mensajesRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'mensajes',
+  component: MensajesPage,
+});
+
+const calendarioRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'calendario',
+  component: CalendarioPage,
+});
+
+const perfilRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'perfil',
+  component: PerfilPage,
+});
+
 // Admin sub-routes
 const volunteersAdminRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
@@ -168,6 +245,8 @@ const routeTree = rootRoute.addChildren([
   formularioMatriculaRoute,
   protectedRoute.addChildren([
     adminDashboardRoute.addChildren([
+      adminHomeRoute,
+      expedientesAdminRoute,
       volunteersAdminRoute.addChildren([
         volunteerOptionsRoute,
         volunteerFormsRoute
@@ -177,6 +256,16 @@ const routeTree = rootRoute.addChildren([
       eventsNewsAdminRoute,
       adminWorkshopFormsRoute,
       userManagementRoute
+    ]),
+    userDashboardRoute.addChildren([
+      userHomeRoute,
+      expedientesRoute,
+      talleresRoute,
+      voluntariadoRoute,
+      donacionesUserRoute,
+      mensajesRoute,
+      calendarioRoute,
+      perfilRoute
     ]),
   ]),
   eventsNewsRoute,

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchVolunteerForms, updateVolunteerFormStatus, fetchVolunteerOptions } from '../../Utils/fetchVolunteers';
 import type { VolunteerForm, VolunteerOption } from '../../types/volunteer';
+import { Users, Search, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 // Type for backend volunteer data
 type BackendVolunteer = {
@@ -97,10 +98,18 @@ const VolunteerFormsPage = () => {
     return matchesStatus && matchesSearch && matchesOption;
   });
 
+  // Calculate statistics
+  const stats = {
+    total: forms.length,
+    pending: forms.filter(f => f.status === 'pending').length,
+    approved: forms.filter(f => f.status === 'approved').length,
+    rejected: forms.filter(f => f.status === 'rejected').length,
+  };
+
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
           <p className="text-gray-600">Cargando formularios...</p>
@@ -112,12 +121,10 @@ const VolunteerFormsPage = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full">
           <div className="flex items-center space-x-3 text-red-600 mb-4">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+            <XCircle className="h-6 w-6" />
             <h3 className="text-lg font-medium">Error</h3>
           </div>
           <p className="text-red-600 mb-4">{error}</p>
@@ -132,154 +139,248 @@ const VolunteerFormsPage = () => {
     );
   }
 
-  // Main render: filters and (currently commented) forms list
+  // Main render
   return (
-    <div className=" bg-gray-50">
-      <main className="container mx-auto py-8 px-4">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
-            <h2 className="text-2xl font-bold text-gray-800">Formularios de Voluntariado</h2>
-            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-              <select
-                value={selectedOption}
-                onChange={(e) => setSelectedOption(e.target.value)}
-                className="px-4 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
-              >
-                <option value="all">Todos los voluntariados</option>
-                {options.map(option => (
-                  <option key={option.id} value={option.id}>{option.title}</option>
-                ))}
-              </select>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                className="px-4 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="pending">Pendiente</option>
-                <option value="approved">Aprobado</option>
-                <option value="rejected">Rechazado</option>
-              </select>
+    <div className="space-y-6 min-w-0">
+      {/* Header */}
+      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
+            <Users className="w-6 h-6 text-orange-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Voluntarios</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Administra y revisa todos los formularios de voluntariado</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-600">Total Voluntarios</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
+              <Users className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-yellow-500">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-600">Pendientes</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.pending}</p>
+            </div>
+            <div className="p-3 bg-yellow-100 rounded-lg flex-shrink-0">
+              <Clock className="w-6 h-6 text-yellow-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-600">Aprobados</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.approved}</p>
+            </div>
+            <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-red-500">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-600">Rechazados</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.rejected}</p>
+            </div>
+            <div className="p-3 bg-red-100 rounded-lg flex-shrink-0">
+              <XCircle className="w-6 h-6 text-red-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
+          <h2 className="text-lg font-semibold text-gray-900">Filtros y Búsqueda</h2>
+          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Buscar..."
+                placeholder="Buscar voluntarios..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-4 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
+            <select
+              value={selectedOption}
+              onChange={(e) => setSelectedOption(e.target.value)}
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="all">Todos los voluntariados</option>
+              {options.map(option => (
+                <option key={option.id} value={option.id}>{option.title}</option>
+              ))}
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="pending">Pendiente</option>
+              <option value="approved">Aprobado</option>
+              <option value="rejected">Rechazado</option>
+            </select>
           </div>
-          <div className="space-y-6">
-            {options.map(option => {
-              const optionForms = filteredForms.filter(form => String(form.volunteerOptionId) === String(option.id));
-              if (optionForms.length === 0) return null;
+        </div>
 
-              return (
-                <div key={option.id} className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-xl font-semibold mb-4 text-gray-800">{option.title}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-sm font-medium text-gray-700">
-                          <th className="px-4 py-2">Nombre</th>
-                          <th className="px-4 py-2">Email</th>
-                          <th className="px-4 py-2">Teléfono</th>
-                          <th className="px-4 py-2">Edad</th>
-                          <th className="px-4 py-2">Disponibilidad</th>
-                          <th className="px-4 py-2">Habilidades</th>
-                          <th className="px-4 py-2">Estado</th>
-                          <th className="px-4 py-2">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {optionForms.map(form => (
-                          <tr key={form.id} className="hover:bg-gray-100">
-                            <td className="px-4 py-3 text-gray-900">
-                              {form.personalInfo.firstName} {form.personalInfo.lastName}
-                            </td>
-                            <td className="px-4 py-3 text-gray-900">{form.personalInfo.email}</td>
-                            <td className="px-4 py-3 text-gray-900">{form.personalInfo.phone}</td>
-                            <td className="px-4 py-3 text-gray-900">{form.personalInfo.age}</td>
-                            <td className="px-4 py-3">
-                              <div className="text-sm text-gray-900">
-                                <div>{form.availability.days.join(', ')}</div>
-                                <div className="text-gray-600">{form.availability.timeSlots.join(', ')}</div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="max-w-xs truncate text-gray-900">{form.skills}</div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`px-2 py-1 rounded-full text-sm font-medium ${
-                                form.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                form.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {form.status === 'approved' ? 'Aprobado' :
-                                 form.status === 'rejected' ? 'Rechazado' :
-                                 'Pendiente'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <select
-                                value={form.status}
-                                onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected')}
-                                className="px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-orange-500 text-gray-900"
-                              >
-                                <option value="pending">Pendiente</option>
-                                <option value="approved">Aprobar</option>
-                                <option value="rejected">Rechazar</option>
-                              </select>
-                            </td>
+        {/* Forms by Category */}
+        <div className="space-y-6">
+          {options.map(option => {
+            const optionForms = filteredForms.filter(form => String(form.volunteerOptionId) === String(option.id));
+            if (optionForms.length === 0) return null;
+
+            return (
+              <div key={option.id} className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">{option.title}</h3>
+                  <span className="bg-orange-100 text-orange-800 text-sm font-medium px-3 py-1 rounded-full flex-shrink-0">
+                    {optionForms.length} voluntarios
+                  </span>
+                </div>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <div className="inline-block min-w-full align-middle">
+                    <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                      <table className="min-w-full divide-y divide-gray-300">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Nombre</th>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Email</th>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Teléfono</th>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[60px]">Edad</th>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Disponibilidad</th>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Habilidades</th>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Estado</th>
+                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Acciones</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {optionForms.map(form => (
+                            <tr key={form.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-3 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900 min-w-[120px]" title={`${form.personalInfo.firstName} ${form.personalInfo.lastName}`}>
+                                  {form.personalInfo.firstName} {form.personalInfo.lastName}
+                                </div>
+                              </td>
+                              <td className="px-3 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-900 min-w-[180px]" title={form.personalInfo.email}>
+                                  {form.personalInfo.email}
+                                </div>
+                              </td>
+                              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px]">
+                                {form.personalInfo.phone}
+                              </td>
+                              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[60px]">
+                                {form.personalInfo.age}
+                              </td>
+                              <td className="px-3 py-4">
+                                <div className="text-sm text-gray-900 min-w-[150px]">
+                                  <div className="font-medium" title={form.availability.days.join(', ')}>
+                                    {form.availability.days.join(', ')}
+                                  </div>
+                                  <div className="text-gray-600" title={form.availability.timeSlots.join(', ')}>
+                                    {form.availability.timeSlots.join(', ')}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-3 py-4">
+                                <div className="min-w-[120px] text-sm text-gray-900" title={form.skills}>
+                                  {form.skills}
+                                </div>
+                              </td>
+                              <td className="px-3 py-4 whitespace-nowrap">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium min-w-[100px] inline-block text-center ${
+                                  form.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                  form.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {form.status === 'approved' ? 'Aprobado' :
+                                   form.status === 'rejected' ? 'Rechazado' :
+                                   'Pendiente'}
+                                </span>
+                              </td>
+                              <td className="px-3 py-4 whitespace-nowrap">
+                                <select
+                                  value={form.status}
+                                  onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected')}
+                                  className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 min-w-[100px]"
+                                >
+                                  <option value="pending">Pendiente</option>
+                                  <option value="approved">Aprobar</option>
+                                  <option value="rejected">Rechazar</option>
+                                </select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <nav className="flex items-center space-x-2">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-                >
-                  {'<<'}
-                </button>
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-                >
-                  {'<'}
-                </button>
-                <span className="px-3 py-1">
-                  Página {currentPage} de {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-                >
-                  {'>'}
-                </button>
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-                >
-                  {'>>'}
-                </button>
-              </nav>
-            </div>
-          )}
+              </div>
+            );
+          })}
         </div>
-      </main>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-8">
+            <nav className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              >
+                {'<<'}
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              >
+                {'<'}
+              </button>
+              <span className="px-4 py-2 text-gray-700">
+                Página {currentPage} de {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              >
+                {'>'}
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              >
+                {'>>'}
+              </button>
+            </nav>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
