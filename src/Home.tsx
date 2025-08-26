@@ -5,6 +5,7 @@ import VolunteersSection from "../src/Components/Volunteers/VolunteersSection"
 import Donaciones from "../src/Components/Donation/Donaciones"
 //import PublicWorkshopsPage from "./Pages/Workshops/PublicWorkshopsPage"
 import EventsNews from "../src/Components/Landing/EventsNews"
+import LocationMap from "./Components/Landing/LocationMap"
 
 const Home = () => {
   return (
@@ -17,6 +18,7 @@ const Home = () => {
         {/*<PublicWorkshopsPage />*/ } {/*Taller de voluntariado, por ahora no se implementa*/}
         <EventsNews />
         <Testimonials />
+        <LocationMap />
       </div>
     </div>
   );
