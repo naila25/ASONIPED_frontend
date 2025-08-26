@@ -14,9 +14,9 @@ import user6 from "../assets/profile-pictures/mainUser.png";
 
 export const navItems = [
   { label: "Quienes Somos", href: "/conocenos" },
-  { label: "Talleres", href: "#talleres" },
-  { label: "Como ayudar", href: "#donaciones" },
-  { label: "Contacto", href: "#contacto" },
+  { label: "Voluntariado", href: "/volunteers" },
+  { label: "Como ayudar", href: "/donaciones/formulario" },
+ 
 ];
 
 export const testimonials = [

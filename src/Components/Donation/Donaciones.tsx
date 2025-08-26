@@ -3,21 +3,17 @@ import { Link } from '@tanstack/react-router';
 
 const Donaciones: React.FC = () => {
   return (
-    <section className="py-5 my-12 px-6 text-gray-800"> {/* Espacio entre cada componente */}
-        <h2 className="text-orange-700 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide">
-           ¿Por qué ayudar a 
-          <span className="bg-gradient-to-r from-orange-500 to-red-800 text-transparent bg-clip-text">
-            {" "}
-            ASONIPED?
-          </span>
+    <section className=" my-12 px-6 text-gray-800"> 
+        <h2 className= "text-2xl sm:text-4xl lg:text-5xl text-center font-bold text-orange-500 mb-5 tracking-wide mt-40">
+           ¿Por qué ayudar a ASONIPED? 
         </h2>
-      <p className="text-neutral-500 text-xl text-center lg:text-center py-7">
+      <p className="max-w-3xl mx-auto text-center text-lg mb-12">
         Las donaciones a ASONIPED permiten ofrecer paseos recreativos a los niños, renovar el mobiliario como pupitres
         y mantener en buen estado las instalaciones de la organización. Cada aporte suma a mejorar su calidad de vida.
       </p>
 
       {/* Tarjetas de inversión del dinero */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 ">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-9 mb-12 ">
         {[
           {
             title: 'Paseos y actividades',
@@ -44,7 +40,7 @@ const Donaciones: React.FC = () => {
               </div>
               <Link
                 to="/donaciones/formulario"
-                className=" text-white w-full bg-gradient-to-r from-orange-400 to-orange-700 py-2 rounded hover:bg-orange-600 transition-colors hover:opacity-90">
+                className=" mt-auto bg-orange-500 text-white py-2 px-4 rounded-2xl hover:bg-orange-600 transition">
                 Quiero donar
               </Link>
             </div>
