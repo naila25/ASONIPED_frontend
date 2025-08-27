@@ -118,7 +118,7 @@ const NavBar = () => {
                 </div>
                 {/* Center: Nav Links - Ocultos en dashboards */}
                 {!isInDashboard ? (
-                    <ul className="hidden lg:flex mx-auto space-x-12">
+                    <ul className="hidden lg:flex ml-auto space-x-12">
                         {navItems.map((item, index) => (
                             <li key={index}>
                                 <a href={item.href}>{item.label}</a>
