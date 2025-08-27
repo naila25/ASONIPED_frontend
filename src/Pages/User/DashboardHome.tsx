@@ -14,16 +14,15 @@ import {
 
 // Mock data - esto se reemplazará con datos reales de la API
 const mockStats = {
-  expedientes: { total: 5, activos: 3, pendientes: 2 },
-  talleres: { inscritos: 3, completados: 2, proximos: 1 },
-  voluntariado: { programas: 2, horas: 45, activo: true },
-  donaciones: { total: 50000, frecuencia: "Mensual", ultima: "2024-01-15" }
+  expediente: { total: 0, activos: 0, pendientes: 0 },
+  talleres: { inscritos: 0, completados: 0, proximos: 0 },
+  voluntariado: { programas: 0, horas: 0, activo: true }
 };
 
 const mockActivities = [
-  { id: 1, title: "Taller de Inclusión Digital", date: "2024-01-20", time: "14:00", type: "taller" },
-  { id: 2, title: "Voluntariado - Centro Comunitario", date: "2024-01-22", time: "09:00", type: "voluntariado" },
-  { id: 3, title: "Revisión de Expediente #123", date: "2024-01-25", time: "10:00", type: "expediente" },
+  { id: 1, title: "Talleres", date: "0-0-0", time: "00-00", type: "taller" },
+  { id: 2, title: "Voluntariado", date: "0-0-0", time: "00:00", type: "voluntariado" },
+  { id: 3, title: "Revisión de Expediente #123", date: "0-0-0", time: "00:00", type: "expediente" },
 ];
 
 export default function DashboardHome() {
@@ -38,10 +37,6 @@ export default function DashboardHome() {
             <h1 className="text-2xl font-bold text-gray-900">¡Hola, Usuario!</h1>
             <p className="text-gray-600">Bienvenido a tu panel personal de ASONIPED</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Último acceso</p>
-            <p className="text-sm font-medium text-gray-900">Hoy, 10:30 AM</p>
-          </div>
         </div>
       </div>
 
@@ -51,9 +46,9 @@ export default function DashboardHome() {
         <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Expedientes</p>
-              <p className="text-2xl font-bold text-gray-900">{mockStats.expedientes.total}</p>
-              <p className="text-xs text-gray-500">{mockStats.expedientes.activos} activos</p>
+              <p className="text-sm font-medium text-gray-600">Expediente</p>
+              <p className="text-2xl font-bold text-gray-900">{mockStats.expediente.total}</p>
+              <p className="text-xs text-gray-500">{mockStats.expediente.activos} activos</p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
               <FileText className="w-6 h-6 text-blue-600" />
@@ -88,20 +83,6 @@ export default function DashboardHome() {
             </div>
           </div>
         </div>
-
-        {/* Donaciones Card */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Donaciones</p>
-              <p className="text-2xl font-bold text-gray-900">₡{mockStats.donaciones.total.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">{mockStats.donaciones.frecuencia}</p>
-            </div>
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Quick Actions */}
@@ -110,7 +91,7 @@ export default function DashboardHome() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors">
             <Plus className="w-5 h-5 text-blue-600" />
-            <span className="font-medium text-gray-700">Crear Expediente</span>
+            <span className="font-medium text-gray-700">Expediente</span>
           </button>
           <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors">
             <GraduationCap className="w-5 h-5 text-green-600" />

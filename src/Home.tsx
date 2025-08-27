@@ -1,10 +1,10 @@
 import HeroSection from "../src/Components/Landing/HeroSection"
 import AboutSection from "../src/Components/Landing/AboutSection" 
 //import Testimonials from "../src/Components/Landing/Testimonials"
-import VolunteersSection from "../src/Components/Volunteers/VolunteersSection"
+//import VolunteersSection from "../src/Components/Volunteers/VolunteersSection"
 import Donaciones from "../src/Components/Donation/Donaciones"
 //import PublicWorkshopsPage from "./Pages/Workshops/PublicWorkshopsPage"
-import EventsNews from "../src/Components/Landing/EventsNews"
+//import EventsNews from "../src/Components/Landing/EventsNews"
 import LocationMap from "./Components/Landing/LocationMap"
 
 const Home = () => {
@@ -18,8 +18,7 @@ const Home = () => {
         {/*<PublicWorkshopsPage />*/ } {/*Taller de voluntariado, por ahora no se implementa*/}
         {/*<EventsNews />*/}
         {/*<Testimonials />*/}
-        <EventsNews />
-        <Testimonials />
+        {/*<EventsNews />*/}
         <LocationMap />
       </div>
     </div>
