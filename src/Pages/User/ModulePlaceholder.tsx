@@ -30,32 +30,6 @@ export default function ModulePlaceholder({ title, description, icon: Icon, colo
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
             {title} - En Desarrollo
           </h2>
-          <p className="text-gray-500 mb-6">
-            Este módulo está siendo desarrollado. Pronto podrás:
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <span className="text-blue-600 text-sm font-bold">1</span>
-              </div>
-              <p className="text-sm font-medium text-gray-900">Ver información</p>
-              <p className="text-xs text-gray-500">Acceder a datos relevantes</p>
-            </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <span className="text-green-600 text-sm font-bold">2</span>
-              </div>
-              <p className="text-sm font-medium text-gray-900">Gestionar contenido</p>
-              <p className="text-xs text-gray-500">Crear y editar elementos</p>
-            </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <span className="text-purple-600 text-sm font-bold">3</span>
-              </div>
-              <p className="text-sm font-medium text-gray-900">Seguimiento</p>
-              <p className="text-xs text-gray-500">Monitorear progreso</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

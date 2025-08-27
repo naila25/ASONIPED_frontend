@@ -13,17 +13,15 @@ import {
 
 // Mock data - esto se reemplazará con datos reales de la API
 const mockStats = {
-  usuarios: { total: 1, activos: 1, nuevos: 1 },
-  donaciones: { total: 1, esteMes: 1, frecuencia: "Diaria" },
-  eventos: { total: 1, proximos: 1, activos: 1 },
-  expedientes: { total: 1, pendientes: 1, aprobados: 1 },
-  talleres: { total: 1, activos: 1, inscritos: 1 },
-  voluntariado: { programas: 1, voluntarios: 1, horas: 1 }
+  usuarios: { total: 0, activos: 0, nuevos: 0 },
+  eventos: { total: 0, proximos: 0, activos: 0 },
+  expedientes: { total: 0, pendientes: 0, aprobados: 0 },
+  talleres: { total: 0, activos: 0, inscritos: 0 },
+  voluntariado: { programas: 0, voluntarios: 0, horas: 0 }
 };
 
 const mockRecentActivities = [
   { id: 1, title: "Expedientes nuevos", user: "null", time: "0", type: "expediente" },
-  { id: 2, title: "Donación recibida", amount: "null", time: "o", type: "donacion" },
   { id: 3, title: "Taller completado", workshop: "null", time: "0", type: "taller" },
   { id: 4, title: "Nuevo voluntario registrado", user: "null", time: "0", type: "voluntario" },
   { id: 5, title: "Evento programado", event: "null", time: "0", type: "evento" },
@@ -31,7 +29,7 @@ const mockRecentActivities = [
 
 const mockQuickActions = [
   { title: "Revisar Expedientes", icon: FileText, color: "bg-blue-500", count: 1 },
-  { title: "Gestionar Donaciones", icon: DollarSign, color: "bg-green-500", count: 1 },
+  { title: "Consulta sobre Donaciones", icon: DollarSign, color: "bg-green-500", count: 1 },
   { title: "Programar Evento", icon: Calendar, color: "bg-purple-500", count: 0 },
   { title: "Administrar Talleres", icon: GraduationCap, color: "bg-orange-500", count: 1 },
   { title: "Gestión de Usuarios", icon: Users, color: "bg-indigo-500", count: 1 },
@@ -69,20 +67,6 @@ export default function AdminDashboardHome() {
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
               <Users className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Donaciones Card */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Donaciones</p>
-              <p className="text-2xl font-bold text-gray-900">₡{(mockStats.donaciones.total / 1000000).toFixed(1)}M</p>
-              <p className="text-xs text-gray-500">Este mes: ₡{mockStats.donaciones.esteMes.toLocaleString()}</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -234,7 +218,7 @@ export default function AdminDashboardHome() {
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                 <span className="font-medium text-gray-900">Almacenamiento</span>
               </div>
-              <span className="text-sm text-yellow-600">75% usado</span>
+              <span className="text-sm text-yellow-600">0% usado</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
               <div className="flex items-center gap-3">

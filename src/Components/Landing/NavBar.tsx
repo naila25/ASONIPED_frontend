@@ -160,16 +160,16 @@ const NavBar = () => {
                                             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                                         >
                                             <FileText className="w-4 h-4 mr-3 text-gray-500" />
-                                                                                         {userData?.roles?.some((role: any) => role === 'admin' || role.name === 'admin') ? 'Panel Admin' : 'Inicio'}
+                                            {userData?.roles?.some((role: any) => role === 'admin' || role.name === 'admin') ? 'Panel Admin' : 'Dashboard'}
                                         </button>
                                         
-                                        <button
+                                        {/*<button
                                             onClick={handleProfileClick}
                                             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                                         >
                                             <Settings className="w-4 h-4 mr-3 text-gray-500" />
                                             Mi Perfil
-                                        </button>
+                                        </button>*/}
                                     </div>
                                     
                                     {/* Separador */}
