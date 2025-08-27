@@ -4,13 +4,10 @@ import { Link } from '@tanstack/react-router';
 const AboutSection = () => {
     return (
       <div className="flex flex-col items-center mt-20 tracking-wide lg:mt-32">
-        <h2 className="text-orange-700 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide">
-          Conoce Más Sobre
-          <span className="bg-gradient-to-r from-orange-500 to-red-800 text-transparent bg-clip-text">
-            {" "}
-            Nuestra Historia
-          </span>
+        <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide">
+          Conoce Más Sobre  Nuestra Historia
         </h2>
+        
         <div className="flex flex-col lg:flex-row items-center justify-center mt-10 gap-10">
           <div className="w-full lg:w-1/2 p-4">
             <img src={quienesSomosImg} alt="ASONIPED" className="rounded-xl shadow-2xl"/>

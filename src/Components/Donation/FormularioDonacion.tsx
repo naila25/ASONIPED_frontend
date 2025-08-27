@@ -1,8 +1,6 @@
 import { motion } from "framer-motion";
 import { FaMoneyBillWave, FaGift, FaMobileAlt, FaUniversity } from "react-icons/fa";
 import { useState } from "react";
-import { Link } from "@tanstack/react-router"; // <- Importa Link
-import { X } from "lucide-react"; // <- Importa X
 import quienessomos from "../../assets/quienessomos.png";
 import manoscoloridas from "../../assets/profile-pictures/manoscoloridas.png";
 import type { DonationFormData } from "../../Utils/donationService";
@@ -75,15 +73,6 @@ const DonacionesVisual = () => {
 
   return (
     <section className="relative min-h-screen bg-white px-6 py-10 flex flex-col items-center gap-3">
-      
-      {/* Botón de cerrar */}
-      <Link 
-        to="/"
-        className="absolute top-4 right-4 p-2 rounded-full hover:bg-orange-100 transition-colors"
-        aria-label="Cerrar página"
-      >
-        <X className="w-6 h-6 text-orange-600" />
-      </Link>
 
       {/* Título principal */}
       <motion.h2

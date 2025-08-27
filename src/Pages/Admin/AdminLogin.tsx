@@ -295,7 +295,7 @@ const AdminLogin = () => {
                    <svg className="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                    </svg>
-                   <span>San José, Costa Rica</span>
+                   <span> Nicoya, Costa Rica</span>
                  </div>
                </div>
              </div>
@@ -303,7 +303,7 @@ const AdminLogin = () => {
              {/* Footer for Mobile */}
              <div className="text-center pt-4 border-t border-gray-700">
                <p className="text-gray-400 text-xs">
-                 © 2024 ASONIPED. Todos los derechos reservados.
+                 © 2025 ASONIPED. Todos los derechos reservados.
                </p>
                <p className="text-gray-500 text-xs mt-1">
                  Donde la inclusión encuentra el futuro
