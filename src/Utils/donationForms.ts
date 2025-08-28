@@ -1,4 +1,6 @@
 import { getAuthHeader } from './auth';
+import { API_BASE_URL } from './config';
+
 export interface DonationForm {
   nombre: string;
   telefono: string;
@@ -26,7 +28,7 @@ export interface ApiResponse<T> {
 
 export const fetchDonationForms = async (page = 1, limit = 10): Promise<ApiResponse<DonationForm[]>> => {
   try {
-    const response = await fetch(`http://localhost:3000/donations`, {
+    const response = await fetch(`${API_BASE_URL}/donations`, {
       headers: {
         ...getAuthHeader()
       }
@@ -64,7 +66,7 @@ export const updateDonationForm = async (
 ): Promise<ApiResponse<void>> => {
   try {
 
-    const response = await fetch(`http://localhost:3000/donations`, {
+    const response = await fetch(`${API_BASE_URL}/donations`, {
       headers: {
         ...getAuthHeader()
       }
@@ -75,7 +77,7 @@ export const updateDonationForm = async (
     if (!donation) throw new Error('Donation not found');
 
     // Update the status
-    const updateResponse = await fetch(`http://localhost:3000/donations/${donation.id}`, {
+    const updateResponse = await fetch(`${API_BASE_URL}/donations/${donation.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +100,7 @@ export const updateDonationForm = async (
 export const deleteDonationForm = async (correo: string): Promise<ApiResponse<void>> => {
   try {
 
-    const response = await fetch(`http://localhost:3000/donations`, {
+    const response = await fetch(`${API_BASE_URL}/donations`, {
       headers: {
         ...getAuthHeader()
       }
@@ -109,7 +111,7 @@ export const deleteDonationForm = async (correo: string): Promise<ApiResponse<vo
     if (!donation) throw new Error('Donation not found');
 
     // Delete the donation
-    const deleteResponse = await fetch(`http://localhost:3000/donations/${donation.id}`, {
+    const deleteResponse = await fetch(`${API_BASE_URL}/donations/${donation.id}`, {
       method: 'DELETE',
       headers: {
         ...getAuthHeader()

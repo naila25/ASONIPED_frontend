@@ -1,21 +1,13 @@
 import asoniped from '../../assets/asoniped.jpg'; 
 import asoniped1 from '../../assets/asoniped1.jpg'
-import { Link } from '@tanstack/react-router';
-import { X } from 'lucide-react';
+
 import { motion } from "framer-motion";
 
 const ConocenosSection = () => {
   return (
     <section className="py-16 px-4 max-w-7xl mx-auto relative">
-      <Link 
-        to="/"
-        className="absolute top-4 right-4 p-2 rounded-full hover:bg-orange-100 transition-colors"
-        aria-label="Cerrar página"
-      >
-        <X className="w-6 h-6 text-orange-600" />
-      </Link>
-     
-      <h2 className="text-4xl font-bold text-center text-orange-600 mb-16">Conócenos</h2>
+  
+      <h1 className="text-4xl font-bold text-center text-orange-600 mb-16">Conócenos</h1>
 
       {/* Primera sección */}
       <div className="flex flex-col lg:flex-row items-center gap-10 mb-24">

@@ -1,34 +1,32 @@
 import { useState } from "react";
 import { Link, Outlet } from "@tanstack/react-router";
-import {
-  Home,
-  Users,
-  DollarSign,
+import { 
+  Home, 
+  FileText, 
+  GraduationCap, 
+  Heart, 
+  DollarSign, 
+  MessageSquare, 
   Calendar,
-  FileText,
-  GraduationCap,
-  TrendingUp,
   Settings,
   Bell,
-  User,
-  Shield
+  User
 } from "lucide-react";
 
 const navLinks = [
-  { to: "/admin", label: "Dashboard", icon: Home },
-  { to: "/admin/expedientes", label: "Expedientes", icon: FileText },
-  { to: "/admin/volunteers", label: "Voluntarios", icon: Users },
-  { to: "/admin/donations", label: "Donaciones", icon: DollarSign },
-  { to: "/admin/events-news", label: "Eventos", icon: Calendar },
-  { to: "/admin/attendance", label: "Asistencia", icon: TrendingUp },
-  { to: "/admin/workshop-forms", label: "Talleres", icon: GraduationCap },
-  { to: "/admin/users", label: "Gestión de Usuarios", icon: Settings },
-  // Add more as needed
+  { to: "/user", label: "Dashboard", icon: Home },
+  { to: "/user/expedientes", label: "Expedientes", icon: FileText },
+  { to: "/user/talleres", label: "Talleres", icon: GraduationCap },
+  { to: "/user/voluntariado", label: "Voluntariado", icon: Heart },
+  { to: "/user/donaciones", label: "Donaciones", icon: DollarSign },
+  { to: "/user/mensajes", label: "Mensajes", icon: MessageSquare },
+  { to: "/user/calendario", label: "Calendario", icon: Calendar },
+  { to: "/user/perfil", label: "Mi Perfil", icon: Settings },
 ];
 
-export default function AdminDashboard() {
+export default function UserDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifications] = useState(0); // Mock notifications count
+  const [notifications, setNotifications] = useState(3); // Mock notifications count
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -37,12 +35,7 @@ export default function AdminDashboard() {
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-800">Admin Panel</h2>
-            </div>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Mi Panel</h2>
             <p className="text-sm text-gray-600">ASONIPED Digital</p>
           </div>
 
@@ -54,7 +47,7 @@ export default function AdminDashboard() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 hover:text-orange-600 text-gray-700 transition-colors duration-200"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-gray-700 transition-colors duration-200"
                   onClick={() => setSidebarOpen(false)}
                 >
                   <Icon className="w-5 h-5" />
@@ -75,9 +68,9 @@ export default function AdminDashboard() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col ml-0 md:ml-0 transition-all">
+      <div className="flex-1 flex flex-col ml-0 md:ml-2 transition-all">
         {/* Top bar */}
-        <div className="bg-white shadow-sm border-b border-gray-300">
+        <div className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between p-4">
             {/* Mobile menu button */}
             <div className="md:hidden">
@@ -93,7 +86,7 @@ export default function AdminDashboard() {
 
             {/* Page title */}
             <div className="hidden md:block">
-              <h1 className="text-xl font-semibold text-gray-800">Panel de Administración</h1>
+              <h1 className="text-xl font-semibold text-gray-800">Dashboard de Usuario</h1>
             </div>
 
             {/* Right side - Notifications and User */}
@@ -110,11 +103,11 @@ export default function AdminDashboard() {
 
               {/* User menu */}
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                   <User className="w-4 h-4 text-white" />
                 </div>
                 <span className="hidden md:block text-sm font-medium text-gray-700">
-                  Administrador
+                  Usuario
                 </span>
               </div>
             </div>
@@ -129,3 +122,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

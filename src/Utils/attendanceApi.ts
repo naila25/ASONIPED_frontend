@@ -1,7 +1,8 @@
 import type { Attendance } from '../types/attendance'; // Create this type if needed
 import { getAuthHeader } from './auth';
+import { API_BASE_URL } from './config';
 
-const API_URL = 'http://localhost:3000/attendance';
+const API_URL = `${API_BASE_URL}/attendance`;
 
 export const fetchAttendance = async (): Promise<Attendance[]> => {
   try {
