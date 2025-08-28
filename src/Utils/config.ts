@@ -1,4 +1,4 @@
-import { autoNetwork } from './autoNetworkConfig';
+import { simpleNetwork } from './simpleNetworkConfig';
 
 // Configuración centralizada para las URLs del backend
 export const BACKEND_CONFIG = {
@@ -9,7 +9,7 @@ export const BACKEND_CONFIG = {
   getCurrentUrl: async () => {
     try {
       // Detección automática del backend
-      const backendUrl = await autoNetwork.getBackendUrl();
+      const backendUrl = await simpleNetwork.getBackendUrl();
       console.log(`🌐 Backend detectado automáticamente: ${backendUrl}`);
       return backendUrl;
     } catch (error) {
@@ -46,7 +46,7 @@ export const setBackendUrl = (url: string) => {
 // Función para forzar nueva detección automática
 export const refreshBackendDetection = async () => {
   try {
-    const newUrl = await autoNetwork.refreshDetection();
+    const newUrl = await simpleNetwork.refreshDetection();
     _API_BASE_URL = `http://${newUrl}:3000`;
     console.log(`🔄 Nueva detección completada: ${_API_BASE_URL}`);
     return _API_BASE_URL;

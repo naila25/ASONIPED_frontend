@@ -47,7 +47,15 @@ const AdminLogin = () => {
           window.location.href = '/user';
         }
     } catch {
-      setError('Error de red o servidor');
+      setError('Error de red o servidor. Verificando conexión automáticamente...');
+      // Intentar nueva detección automática
+      try {
+        const { refreshBackendDetection } = await import('../../Utils/config');
+        await refreshBackendDetection();
+        setError('Conexión restaurada. Intenta iniciar sesión nuevamente.');
+      } catch {
+        setError('Error de red. Asegúrate de que el servidor esté ejecutándose.');
+      }
     } finally {
       setLoading(false);
     }
@@ -163,11 +171,46 @@ const AdminLogin = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            {error && (
-              <div className="p-3 sm:p-4 bg-red-900/50 border border-red-500/50 rounded-lg text-red-300 text-sm sm:text-base">
-                {error}
-              </div>
-            )}
+                         {error && (
+               <div className="p-3 sm:p-4 bg-red-900/50 border border-red-500/50 rounded-lg text-red-300 text-sm sm:text-base">
+                 <div className="flex items-center justify-between">
+                   <span>{error}</span>
+                                       {error.includes('Error de red') && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            setError('Verificando conexión...');
+                            try {
+                              const { refreshBackendDetection } = await import('../../Utils/config');
+                              await refreshBackendDetection();
+                              setError('Conexión restaurada. Intenta iniciar sesión nuevamente.');
+                            } catch {
+                              setError('Error de red. Asegúrate de que el servidor esté ejecutándose.');
+                            }
+                          }}
+                          className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors"
+                        >
+                          Reintentar
+                        </button>
+                        <button
+                          onClick={() => {
+                            const ip = prompt('Ingresa la IP del servidor (ej: 192.168.1.100):');
+                                                         if (ip) {
+                               import('../../Utils/simpleNetworkConfig').then(({ simpleNetwork }) => {
+                                 simpleNetwork.setBackendUrl(`http://${ip}:3000`);
+                                 setError('IP configurada. Intenta iniciar sesión nuevamente.');
+                               });
+                             }
+                          }}
+                          className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs transition-colors"
+                        >
+                          Configurar IP
+                        </button>
+                      </div>
+                    )}
+                 </div>
+               </div>
+             )}
             
             {success && (
               <div className="p-3 sm:p-4 bg-green-900/50 border border-green-500/50 rounded-lg text-green-300 text-sm sm:text-base">

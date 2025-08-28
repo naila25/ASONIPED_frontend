@@ -11,7 +11,8 @@ import {
   Settings,
   Bell,
   User,
-  Shield
+  Shield,
+  MessageSquare
 } from "lucide-react";
 
 const navLinks = [
@@ -19,6 +20,7 @@ const navLinks = [
   { to: "/admin/expedientes", label: "Expedientes", icon: FileText },
   { to: "/admin/volunteers", label: "Voluntarios", icon: Users },
   { to: "/admin/donations", label: "Donaciones", icon: DollarSign },
+  { to: "/admin/tickets", label: "Tickets", icon: MessageSquare },
   { to: "/admin/events-news", label: "Eventos", icon: Calendar },
   { to: "/admin/attendance", label: "Asistencia", icon: TrendingUp },
   { to: "/admin/workshop-forms", label: "Talleres", icon: GraduationCap },
