@@ -84,7 +84,7 @@ const DonacionesVisual = () => {
       
       // If the error is authentication related, show specific message
       if (result.error === 'AUTHENTICATION_REQUIRED') {
-        setSubmitMessage('You must log in to send a donation. Please log in or register.');
+        setSubmitMessage('Debe iniciar sesión para enviar una donación. Por favor, inicie sesión o regístrese.');
       }
     }
 
@@ -102,7 +102,7 @@ const DonacionesVisual = () => {
         transition={{ duration: 0.6 }}
         viewport={{ once: true, amount: 0.2 }}
       >
-        Why donate?
+        ¿Por qué donar?
       </motion.h2>
 
       <motion.p
@@ -112,9 +112,9 @@ const DonacionesVisual = () => {
         transition={{ duration: 0.6, delay: 0.1 }}
         viewport={{ once: true, amount: 0.2 }}
       >
-        Every donation we receive is an opportunity to transform lives. At ASONIPED we work daily
-        to provide support to people with disabilities and their families. Your help allows us to offer workshops,
-        food deliveries, technical assistance and much more.
+        Cada donación que recibimos es una oportunidad para transformar vidas. En ASONIPED trabajamos día a día
+        para brindar apoyo a personas con discapacidad y a sus familias. Tu ayuda nos permite ofrecer talleres,
+        entregas de víveres, asistencia técnica y mucho más.
       </motion.p>
 
       {/* DONATION METHODS */}
@@ -125,11 +125,11 @@ const DonacionesVisual = () => {
         transition={{ duration: 0.6, delay: 0.1 }}
         viewport={{ once: true, amount: 0.2 }}
       >
-        Donation methods
+        Formas de donación
 
         <div className="flex items-center justify-center mt-6 gap-3">
           <div className="w-20 h-[2px] bg-orange-400 rounded"></div>
-          <img src={manoscoloridas} alt="Logo hands" className="w-12 h-12 object-contain" />
+          <img src={manoscoloridas} alt="Logo manos" className="w-12 h-12 object-contain" />
           <div className="w-20 h-[2px] bg-orange-400 rounded"></div>
         </div>
       </motion.h3>
@@ -146,14 +146,14 @@ const DonacionesVisual = () => {
           <div className="w-full md:w-1/2 p-6">
             <div className="flex items-center mb-4">
               <FaMoneyBillWave className="text-orange-500 text-2xl mr-3" />
-              <h4 className="text-xl font-bold text-orange-500">Economic Donation</h4>
+              <h4 className="text-xl font-bold text-orange-500">Donación Económica</h4>
             </div>
             <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center">
-              <FaMobileAlt className="text-orange-500 mr-2" /> Sinpe Mobile:
+              <FaMobileAlt className="text-orange-500 mr-2" /> Sinpe Móvil:
             </p>
             <p className="text-orange-500 font-medium mb-3 ml-6">8888-8888</p>
             <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center">
-              <FaUniversity className="text-orange-500 mr-2" /> Bank Account:
+              <FaUniversity className="text-orange-500 mr-2" /> Cuenta Bancaria:
             </p>
             <p className="text-orange-500 font-medium ml-6">IBAN: CR05000123456789123456</p>
           </div>
@@ -178,10 +178,10 @@ const DonacionesVisual = () => {
           <div className="w-full md:w-1/2 p-6">
             <div className="flex items-center mb-4">
               <FaGift className="text-orange-500 text-2xl mr-3" />
-              <h4 className="text-xl font-bold text-orange-500">In-Kind Donation</h4>
+              <h4 className="text-xl font-bold text-orange-500">Donación en Especie</h4>
             </div>
 
-            <p className="text-gray-700 mt-3">You can donate food, clothing, groceries and other useful items. Contact us to coordinate delivery at our offices.</p>
+            <p className="text-gray-700 mt-3">Puedes donar alimentos, ropa, víveres y otros artículos útiles. Contáctanos para coordinar la entrega en nuestras oficinas.</p>
           </div>
 
           <div className="w-full md:w-1/2 h-full p-4">
@@ -204,41 +204,41 @@ const DonacionesVisual = () => {
       >
 
         <h2 className="text-center text-3xl font-extrabold text-orange-500 mb-12">
-          We answer your questions
+          Resolvemos tus dudas
         </h2>
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
           {/* Frequently Asked Questions accordion style */}
           <div>
-            <h3 className="text-xl font-bold text-black mb-6">Frequently asked questions</h3>
+            <h3 className="text-xl font-bold text-black mb-6">Preguntas frecuentes</h3>
 
             <div className="space-y-4">
               <details className="group rounded-lg px-4 py-3">
                 <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
-                  How can I make a donation?
+                  ¿Cómo puedo hacer una donación?
                   <span className="transition-transform group-open:rotate-180">⌄</span>
                 </summary>
                 <p className="mt-2 text-gray-700">
-                  You can make your donation through bank transfer, sinpe mobile or directly at our offices.
+                  Puedes realizar tu donación a través de transferencia bancaria, sinpe móvil o directamente en nuestras oficinas.
                 </p>
               </details>
 
               <details className="group rounded-lg px-4 py-3">
                 <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
-                  Is there a minimum amount to donate?
+                  ¿Hay un monto mínimo para donar?
                   <span className="transition-transform group-open:rotate-180">⌄</span>
                 </summary>
                 <p className="mt-2 text-gray-700">
-                  No, any contribution is welcome. All help, big or small, makes a difference.
+                  No, cualquier aporte es bien recibido. Toda ayuda, grande o pequeña, hace la diferencia.
                 </p>
               </details>
 
               <details className="group rounded-lg px-4 py-3">
                 <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
-                  How can I collaborate with the association?
+                  ¿Cómo puedo colaborar con la asociación?
                   <span className="transition-transform group-open:rotate-180">⌄</span>
                 </summary>
                 <p className="mt-2 text-gray-700">
-                  You can donate, volunteer or participate in our activities. Write to us for more information.
+                  Puedes donar, ser voluntario o participar en nuestras actividades. Escríbenos para más información.
                 </p>
               </details>
             </div>
@@ -251,20 +251,14 @@ const DonacionesVisual = () => {
             </div>
           ) : user ? (
             <form onSubmit={handleSubmit} className="text-black grid grid-cols-1 gap-4">
-            <p className="text-gray-700">Leave us your message</p>
+            <p className="text-gray-700">Déjanos tu mensaje</p>
             
-            {/* Auto-fill message */}
-            {user && (user.full_name || user.email || user.phone) && (
-              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded text-sm">
-                <p className="font-medium">✅ Form auto-filled with your data</p>
-                <p className="text-blue-600">You can modify any field if needed</p>
-              </div>
-            )}
+      
             
             <div>
               <input
                 type="text"
-                placeholder="Full name"
+                placeholder="Nombre completo"
                 value={formData.nombre}
                 onChange={(e) => handleInputChange('nombre', e.target.value)}
                 className={`border ${errors.nombre ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
@@ -275,7 +269,7 @@ const DonacionesVisual = () => {
             <div>
               <input
                 type="email"
-                placeholder="Email address"
+                placeholder="Correo electrónico"
                 value={formData.correo}
                 onChange={(e) => handleInputChange('correo', e.target.value)}
                 className={`border ${errors.correo ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
@@ -286,7 +280,7 @@ const DonacionesVisual = () => {
             <div>
               <input
                 type="tel"
-                placeholder="Phone (88888888)"
+                placeholder="Teléfono (88888888)"
                 value={formData.telefono}
                 onChange={(e) => handleInputChange('telefono', formatPhoneNumber(e.target.value))}
                 className={`border ${errors.telefono ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
@@ -297,7 +291,7 @@ const DonacionesVisual = () => {
             <div>
               <input
                 type="text"
-                placeholder="Subject (minimum 10 characters)"
+                placeholder="Asunto (mínimo 10 caracteres)"
                 value={formData.asunto}
                 onChange={(e) => handleInputChange('asunto', e.target.value)}
                 className={`border ${errors.asunto ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
@@ -307,7 +301,7 @@ const DonacionesVisual = () => {
 
             <div>
               <textarea
-                placeholder="Message (minimum 10 characters)"
+                placeholder="Mensaje (mínimo 10 caracteres)"
                 value={formData.mensaje}
                 onChange={(e) => handleInputChange('mensaje', e.target.value)}
                 className={`border ${errors.mensaje ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 min-h-[100px] w-full`}
@@ -324,7 +318,7 @@ const DonacionesVisual = () => {
                 className="mr-2 mt-1" 
               />
               <label htmlFor="privacy" className="text-sm text-gray-700">
-                I have read and accept the privacy notice
+                He leído y acepto el aviso de privacidad
               </label>
             </div>
             {errors.aceptacion_privacidad && <p className="text-red-500 text-sm mt-1">{errors.aceptacion_privacidad}</p>}
@@ -338,7 +332,7 @@ const DonacionesVisual = () => {
                 className="mr-2 mt-1" 
               />
               <label htmlFor="comunicacion" className="text-sm text-gray-700">
-                I accept to receive communication from ASONIPED
+                Acepto recibir comunicación de parte de ASONIPED
               </label>
             </div>
             {errors.aceptacion_comunicacion && <p className="text-red-500 text-sm mt-1">{errors.aceptacion_comunicacion}</p>}
@@ -365,11 +359,11 @@ const DonacionesVisual = () => {
                   : 'bg-orange-500 hover:bg-orange-600'
               } text-white font-semibold py-2 px-6 rounded transition self-start`}
             >
-              {isSubmitting ? 'Sending...' : 'Send message'}
+              {isSubmitting ? 'Enviando...' : 'Enviar mensaje'}
             </button>
           </form>
           ) : (
-            <AuthRequiredMessage message="You must log in to send a donation and create a support ticket" />
+            <AuthRequiredMessage message="Debe iniciar sesión para enviar una donación y crear un ticket de soporte" />
           )}
         </div>
       </motion.div>

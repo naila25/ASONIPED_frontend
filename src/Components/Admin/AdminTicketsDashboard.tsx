@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getAllTickets, closeTicket } from '../../Utils/ticketService';
 import type { DonationTicket } from '../../Utils/ticketService';
-import { useAuth } from '../../Utils/useAuth';
-import { FaTicketAlt, FaClock, FaCheckCircle, FaTimesCircle, FaEye, FaUser, FaFilter, FaSearch } from 'react-icons/fa';
+import { FaTicketAlt, FaClock, FaCheckCircle, FaEye, FaSearch } from 'react-icons/fa';
 import TicketConversation from '../Donation/TicketConversation';
 
-interface AdminTicketsDashboardProps {
-  // Props if needed
-}
-
-const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
-  const { user } = useAuth();
+const AdminTicketsDashboard: React.FC = () => {
   const [tickets, setTickets] = useState<DonationTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +13,7 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
   // Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [assignedFilter, setAssignedFilter] = useState<'all' | 'assigned' | 'unassigned'>('all');
+  const [assignedFilter] = useState<'all' | 'assigned' | 'unassigned'>('all');
 
   // Statistics
   const [stats, setStats] = useState({
@@ -30,22 +24,22 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
     unassigned: 0
   });
 
-  useEffect(() => {
-    loadTickets();
-  }, []);
-
   const loadTickets = async () => {
     try {
       setLoading(true);
       const ticketsData = await getAllTickets();
       setTickets(ticketsData);
       calculateStats(ticketsData);
-    } catch (error) {
+    } catch {
       setError('Error loading tickets');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadTickets();
+  }, []);
 
   const calculateStats = (ticketsData: DonationTicket[]) => {
     const total = ticketsData.length;
@@ -61,7 +55,7 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
     try {
       await closeTicket(ticketId);
       await loadTickets(); // Reload tickets
-    } catch (error) {
+    } catch {
       setError('Error closing ticket');
     }
   };
@@ -135,13 +129,6 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Donation Tickets Management</h1>
-          <p className="text-gray-600">Manage and respond to donation requests</p>
-        </div>
-      </div>
 
       {/* Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -158,7 +145,7 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
           <div className="flex items-center">
             <FaClock className="text-orange-500 mr-2" />
             <div>
-              <p className="text-sm text-gray-600">Open</p>
+              <p className="text-sm text-gray-600">Abiertos</p>
               <p className="text-xl font-bold text-orange-600">{stats.open}</p>
             </div>
           </div>
@@ -167,26 +154,8 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
           <div className="flex items-center">
             <FaCheckCircle className="text-green-500 mr-2" />
             <div>
-              <p className="text-sm text-gray-600">Closed</p>
+              <p className="text-sm text-gray-600">Cerrados</p>
               <p className="text-xl font-bold text-green-600">{stats.closed}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <FaUser className="text-blue-500 mr-2" />
-            <div>
-              <p className="text-sm text-gray-600">Assigned</p>
-              <p className="text-xl font-bold text-blue-600">{stats.assigned}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <FaTimesCircle className="text-red-500 mr-2" />
-            <div>
-              <p className="text-sm text-gray-600">Unassigned</p>
-              <p className="text-xl font-bold text-red-600">{stats.unassigned}</p>
             </div>
           </div>
         </div>
@@ -200,7 +169,7 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by subject, name or email..."
+                placeholder="Buscar por asunto, nombre o correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -210,21 +179,12 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
           <div className="flex gap-2">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'open' | 'closed')}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
-              <option value="all">All statuses</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-            </select>
-            <select
-              value={assignedFilter}
-              onChange={(e) => setAssignedFilter(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            >
-              <option value="all">All assignments</option>
-              <option value="assigned">Assigned</option>
-              <option value="unassigned">Unassigned</option>
+              <option value="all">Todos los estados</option>
+              <option value="open">Abiertos</option>
+              <option value="closed">Cerrados</option>
             </select>
           </div>
         </div>
@@ -235,7 +195,7 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
         {filteredTickets.length === 0 ? (
           <div className="text-center py-8 bg-white rounded-lg shadow border">
             <FaTicketAlt className="text-gray-400 text-4xl mx-auto mb-4" />
-            <p className="text-gray-600">No tickets found matching the filters</p>
+            <p className="text-gray-600">No se encontraron tickets que coincidan con los filtros</p>
           </div>
         ) : (
           filteredTickets.map((ticket) => (
@@ -250,20 +210,15 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
                     {getStatusBadge(ticket.status)}
                     {ticket.status === 'open' && (
                       <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                        Active
+                        Activo
                       </span>
                     )}
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
-                    <p><strong>Requester:</strong> {ticket.nombre} ({ticket.correo})</p>
-                    <p><strong>Created:</strong> {formatDate(ticket.created_at)}</p>
+                    <p><strong>Solicitante:</strong> {ticket.nombre} ({ticket.correo})</p>
+                    <p><strong>Creado:</strong> {formatDate(ticket.created_at)}</p>
                     {ticket.closed_at && (
-                      <p><strong>Closed:</strong> {formatDate(ticket.closed_at)}</p>
-                    )}
-                    {ticket.admin_name ? (
-                      <p><strong>Assigned to:</strong> {ticket.admin_name}</p>
-                    ) : (
-                      <p className="text-orange-600"><strong>Unassigned</strong></p>
+                      <p><strong>Cerrado:</strong> {formatDate(ticket.closed_at)}</p>
                     )}
                   </div>
                 </div>
@@ -273,7 +228,7 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
                     onClick={() => handleViewConversation(ticket)}
                   >
                     <FaEye />
-                    View conversation
+                    Ver conversación
                   </button>
                   {ticket.status === 'open' && (
                     <button
@@ -281,7 +236,7 @@ const AdminTicketsDashboard: React.FC<AdminTicketsDashboardProps> = () => {
                       onClick={() => handleCloseTicket(ticket.id)}
                     >
                       <FaCheckCircle />
-                      Close
+                      Cerrar
                     </button>
                   )}
                 </div>

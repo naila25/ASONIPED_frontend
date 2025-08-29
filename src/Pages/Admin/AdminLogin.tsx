@@ -288,7 +288,7 @@ const AdminLogin = () => {
             </button>
           </form>
 
-                     {/* Bottom Features - Hidden on mobile */}
+          {/* Bottom Features - Hidden on mobile */}
            <div className="hidden sm:grid mt-8 sm:mt-12 grid-cols-3 gap-4">
              <div className="text-center">
                <div className="w-8 h-8 mx-auto mb-2 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -376,7 +376,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Beneficiarios</p>
-                  <p className="text-white text-xl font-bold">150+</p>
+                  <p className="text-white text-xl font-bold">0+</p>
                 </div>
                 <div className="w-8 h-8 bg-blue-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
@@ -389,7 +389,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Voluntarios</p>
-                  <p className="text-white text-xl font-bold">45</p>
+                  <p className="text-white text-xl font-bold">0+</p>
                 </div>
                 <div className="w-8 h-8 bg-cyan-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-cyan-300" fill="currentColor" viewBox="0 0 20 20">
@@ -402,7 +402,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Talleres</p>
-                  <p className="text-white text-xl font-bold">12</p>
+                  <p className="text-white text-xl font-bold">0+</p>
                 </div>
                 <div className="w-8 h-8 bg-purple-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
@@ -415,7 +415,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Donaciones</p>
-                  <p className="text-white text-xl font-bold">₡2.5M</p>
+                  <p className="text-white text-xl font-bold">0+</p>
                 </div>
                 <div className="w-8 h-8 bg-green-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">

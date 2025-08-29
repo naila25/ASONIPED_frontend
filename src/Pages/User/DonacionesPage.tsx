@@ -1,5 +1,4 @@
 import React from 'react';
-import { DollarSign } from "lucide-react";
 import { useAuth } from "../../Utils/useAuth";
 import UserTicketsList from "../../Components/Donation/UserTicketsList";
 
@@ -24,13 +23,6 @@ export default function DonacionesPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Donaciones</h1>
-        <p className="text-gray-600">
-          Gestiona tus solicitudes de donación y consulta tu historial de contribuciones
-        </p>
-      </div>
-      
       <UserTicketsList userId={user.id} />
     </div>
   );

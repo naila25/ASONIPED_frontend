@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DonationTicket, TicketMessage, getTicketMessages, sendMessage } from '../../Utils/ticketService';
+import { getTicketMessages, sendMessage } from '../../Utils/ticketService';
+import type { DonationTicket, TicketMessage } from '../../Utils/ticketService';
 import { useAuth } from '../../Utils/useAuth';
-import { FaPaperPlane, FaTimes, FaUser, FaUserShield, FaClock } from 'react-icons/fa';
+import { FaPaperPlane, FaUser, FaUserShield, FaCheck, FaCheckDouble, FaSmile, FaImage, FaArrowLeft } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface TicketConversationProps {
   ticket: DonationTicket;
@@ -21,18 +23,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const isAdmin = user?.roles?.some((role: any) => 
-    typeof role === 'string' ? role === 'admin' : role.name === 'admin'
-  );
-
-  useEffect(() => {
-    loadMessages();
-  }, [ticket.id]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const loadMessages = async () => {
     try {
@@ -52,6 +43,22 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    loadMessages();
+  }, [ticket.id]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [newMessage]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -68,10 +75,10 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
       });
 
       setNewMessage('');
-      await loadMessages(); // Recargar mensajes
+      await loadMessages();
       
       if (onTicketUpdate) {
-        onTicketUpdate(); // Actualizar lista de tickets si es necesario
+        onTicketUpdate();
       }
     } catch (err) {
       setError('Error al enviar el mensaje');
@@ -82,13 +89,23 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } else {
+      return date.toLocaleDateString('es-ES', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
   };
 
   const isOwnMessage = (message: TicketMessage) => {
@@ -98,145 +115,201 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   const getSenderName = (message: TicketMessage) => {
     if (message.sender_name) return message.sender_name;
     
-    // Si no hay nombre del remitente, usar lógica basada en roles
     const isMessageFromAdmin = message.sender_id === ticket.assigned_admin_id;
     return isMessageFromAdmin ? 'Administrador' : 'Usuario';
   };
 
   const getSenderIcon = (message: TicketMessage) => {
     const isMessageFromAdmin = message.sender_id === ticket.assigned_admin_id;
-    return isMessageFromAdmin ? <FaUserShield /> : <FaUser />;
+    return isMessageFromAdmin ? <FaUserShield className="text-blue-500" /> : <FaUser className="text-gray-500" />;
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e as React.FormEvent);
+    }
   };
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4">
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-500"></div>
+          <p className="text-gray-500 text-sm">Cargando conversación...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full mx-4 h-[80vh] flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">
-              Ticket #{ticket.id} - {ticket.asunto}
-            </h2>
-            <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                ticket.status === 'open' 
-                  ? 'bg-orange-100 text-orange-800' 
-                  : 'bg-green-100 text-green-800'
-              }`}>
-                {ticket.status === 'open' ? 'Abierto' : 'Cerrado'}
-              </span>
-              <span className="flex items-center gap-1">
-                <FaClock className="text-gray-400" />
-                {formatDate(ticket.created_at)}
-              </span>
-              {ticket.admin_name && (
-                <span>Asignado a: {ticket.admin_name}</span>
-              )}
+    <div className="bg-white h-full flex flex-col border border-gray-100 rounded-lg overflow-hidden">
+      {/* Header - Minimalista */}
+      <div className="bg-white border-b border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <FaArrowLeft className="text-gray-600 text-sm" />
+            </button>
+            <div>
+              <h3 className="font-semibold text-gray-900 text-lg">
+                Ticket #{ticket.id}
+              </h3>
+              <p className="text-gray-500 text-sm">{ticket.asunto}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <FaTimes size={20} />
-          </button>
+          <div className="flex items-center space-x-2">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              ticket.status === 'open' 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {ticket.status === 'open' ? 'Abierto' : 'Cerrado'}
+            </span>
+            {ticket.admin_name && (
+              <div className="flex items-center space-x-1 text-xs text-gray-500">
+                <FaUserShield className="text-blue-500" />
+                <span>{ticket.admin_name}</span>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* Messages - Diseño limpio */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6">
+        <AnimatePresence>
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
           {messages.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No hay mensajes en este ticket.</p>
-              <p className="text-sm">Sé el primero en enviar un mensaje.</p>
-            </div>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${isOwnMessage(message) ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[70%] rounded-lg p-3 ${
-                    isOwnMessage(message)
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs opacity-75">
-                      {getSenderIcon(message)}
-                    </span>
-                    <span className="text-xs font-medium">
-                      {getSenderName(message)}
-                    </span>
-                    <span className="text-xs opacity-75">
-                      {formatDate(message.timestamp)}
-                    </span>
-                  </div>
-                  <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                </div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-16"
+            >
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaSmile className="text-gray-400 text-xl" />
               </div>
-            ))
+              <p className="text-gray-500 font-medium mb-1">No hay mensajes aún</p>
+              <p className="text-sm text-gray-400">Sé el primero en enviar un mensaje</p>
+            </motion.div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((message, index) => (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`flex ${isOwnMessage(message) ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[75%] ${isOwnMessage(message) ? 'order-2' : 'order-1'}`}>
+                    {!isOwnMessage(message) && (
+                      <div className="flex items-center gap-2 mb-1 ml-1">
+                        <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                          {getSenderIcon(message)}
+                        </div>
+                        <span className="text-xs font-medium text-gray-600">
+                          {getSenderName(message)}
+                        </span>
+                      </div>
+                    )}
+                    <div className={`rounded-2xl px-4 py-3 ${
+                      isOwnMessage(message)
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
+                    }`}>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message}</p>
+                      <div className={`flex items-center justify-between mt-2 ${
+                        isOwnMessage(message) ? 'text-blue-100' : 'text-gray-400'
+                      }`}>
+                        <span className="text-xs">
+                          {formatDate(message.timestamp)}
+                        </span>
+                        {isOwnMessage(message) && (
+                          <div className="flex items-center gap-1">
+                            <FaCheck className="text-xs" />
+                            <FaCheckDouble className="text-xs" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           )}
-          <div ref={messagesEndRef} />
-        </div>
+        </AnimatePresence>
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* Message Input */}
-        {ticket.status === 'open' && (
-          <form onSubmit={handleSendMessage} className="p-6 border-t border-gray-200">
-            <div className="flex gap-3">
+      {/* Message Input - Minimalista */}
+      {ticket.status === 'open' ? (
+        <div className="bg-white border-t border-gray-100 p-4">
+          <form onSubmit={handleSendMessage} className="flex items-end space-x-3">
+            <div className="flex-1 relative">
               <textarea
+                ref={textareaRef}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
                 placeholder="Escribe tu mensaje..."
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
-                rows={2}
+                className="w-full border border-gray-200 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                rows={1}
                 disabled={sending}
+                style={{ minHeight: '44px', maxHeight: '120px' }}
               />
-              <button
-                type="submit"
-                disabled={!newMessage.trim() || sending}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                  !newMessage.trim() || sending
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-orange-500 text-white hover:bg-orange-600'
-                }`}
-              >
-                {sending ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <FaPaperPlane />
-                )}
-                Enviar
-              </button>
+              <div className="absolute right-3 top-3 flex items-center space-x-2">
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                >
+                  <FaSmile className="text-sm" />
+                </button>
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                >
+                  <FaImage className="text-sm" />
+                </button>
+              </div>
             </div>
+            <button
+              type="submit"
+              disabled={!newMessage.trim() || sending}
+              className={`p-3 rounded-full transition-all ${
+                !newMessage.trim() || sending
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
+              }`}
+            >
+              {sending ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+              ) : (
+                <FaPaperPlane className="text-sm" />
+              )}
+            </button>
           </form>
-        )}
-
-        {ticket.status === 'closed' && (
-          <div className="p-6 border-t border-gray-200 bg-gray-50 text-center text-gray-600">
-            <p>Este ticket está cerrado. No se pueden enviar más mensajes.</p>
+        </div>
+      ) : (
+        <div className="bg-gray-50 border-t border-gray-100 p-6 text-center">
+          <div className="flex items-center justify-center space-x-2 text-gray-600">
+            <FaCheck className="text-green-500" />
+            <p className="text-sm font-medium">Este ticket está cerrado. No se pueden enviar más mensajes.</p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

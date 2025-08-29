@@ -3,7 +3,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 import {
   Home,
   Users,
-  DollarSign,
+  //DollarSign,
   Calendar,
   FileText,
   GraduationCap,
@@ -19,7 +19,7 @@ const navLinks = [
   { to: "/admin", label: "Dashboard", icon: Home },
   { to: "/admin/expedientes", label: "Expedientes", icon: FileText },
   { to: "/admin/volunteers", label: "Voluntarios", icon: Users },
-  { to: "/admin/donations", label: "Donaciones", icon: DollarSign },
+  //{ to: "/admin/donations", label: "Donaciones", icon: DollarSign },
   { to: "/admin/tickets", label: "Tickets", icon: MessageSquare },
   { to: "/admin/events-news", label: "Eventos", icon: Calendar },
   { to: "/admin/attendance", label: "Asistencia", icon: TrendingUp },
