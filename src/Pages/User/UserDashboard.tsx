@@ -26,7 +26,7 @@ const navLinks = [
 
 export default function UserDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifications, setNotifications] = useState(3); // Mock notifications count
+  const [notifications, setNotifications] = useState(0); // Mock notifications count
 
   return (
     <div className="min-h-screen flex bg-gray-50">

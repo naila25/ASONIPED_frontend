@@ -12,6 +12,7 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   // const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -47,7 +48,15 @@ const AdminLogin = () => {
           window.location.href = '/user';
         }
     } catch {
-      setError('Error de red o servidor');
+      setError('Error de red o servidor. Verificando conexión automáticamente...');
+      // Intentar nueva detección automática
+      try {
+        const { refreshBackendDetection } = await import('../../Utils/config');
+        await refreshBackendDetection();
+        setError('Conexión restaurada. Intenta iniciar sesión nuevamente.');
+      } catch {
+        setError('Error de red. Asegúrate de que el servidor esté ejecutándose.');
+      }
     } finally {
       setLoading(false);
     }
@@ -80,8 +89,8 @@ const AdminLogin = () => {
       }
 
       await response.json();
-      setSuccess('Usuario registrado exitosamente. Ahora puedes iniciar sesión.');
-      setIsLogin(true);
+      setSuccess('Usuario registrado exitosamente. Revisa tu email para verificar tu cuenta.');
+      setShowVerificationMessage(true);
       // Limpiar formulario
       setUsername('');
       setEmail('');
@@ -163,15 +172,75 @@ const AdminLogin = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            {error && (
-              <div className="p-3 sm:p-4 bg-red-900/50 border border-red-500/50 rounded-lg text-red-300 text-sm sm:text-base">
-                {error}
-              </div>
-            )}
+                         {error && (
+               <div className="p-3 sm:p-4 bg-red-900/50 border border-red-500/50 rounded-lg text-red-300 text-sm sm:text-base">
+                 <div className="flex items-center justify-between">
+                   <span>{error}</span>
+                                       {error.includes('Error de red') && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                            setError('Verificando conexión...');
+                            try {
+                              const { refreshBackendDetection } = await import('../../Utils/config');
+                              await refreshBackendDetection();
+                              setError('Conexión restaurada. Intenta iniciar sesión nuevamente.');
+                            } catch {
+                              setError('Error de red. Asegúrate de que el servidor esté ejecutándose.');
+                            }
+                          }}
+                          className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors"
+                        >
+                          Reintentar
+                        </button>
+                        <button
+                          onClick={() => {
+                            const ip = prompt('Ingresa la IP del servidor (ej: 192.168.1.100):');
+                                                         if (ip) {
+                               import('../../Utils/simpleNetworkConfig').then(({ simpleNetwork }) => {
+                                 simpleNetwork.setBackendUrl(`http://${ip}:3000`);
+                                 setError('IP configurada. Intenta iniciar sesión nuevamente.');
+                               });
+                             }
+                          }}
+                          className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs transition-colors"
+                        >
+                          Configurar IP
+                        </button>
+                      </div>
+                    )}
+                 </div>
+               </div>
+             )}
             
             {success && (
               <div className="p-3 sm:p-4 bg-green-900/50 border border-green-500/50 rounded-lg text-green-300 text-sm sm:text-base">
                 {success}
+              </div>
+            )}
+            
+            {showVerificationMessage && (
+              <div className="p-4 bg-blue-900/50 border border-blue-500/50 rounded-lg text-blue-300 text-sm sm:text-base">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-200 mb-2">Verificación de Email Requerida</h4>
+                    <p className="text-blue-300 mb-3">
+                      Hemos enviado un enlace de verificación a tu correo electrónico. 
+                      Por favor, revisa tu bandeja de entrada y haz clic en el enlace para activar tu cuenta.
+                    </p>
+                    <div className="bg-blue-800/30 p-3 rounded border border-blue-600/50">
+                      <p className="text-blue-200 text-sm">
+                        <strong>¿No recibiste el email?</strong> Revisa tu carpeta de spam
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             
@@ -245,7 +314,7 @@ const AdminLogin = () => {
             </button>
           </form>
 
-                     {/* Bottom Features - Hidden on mobile */}
+          {/* Bottom Features - Hidden on mobile */}
            <div className="hidden sm:grid mt-8 sm:mt-12 grid-cols-3 gap-4">
              <div className="text-center">
                <div className="w-8 h-8 mx-auto mb-2 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -333,7 +402,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Beneficiarios</p>
-                  <p className="text-white text-xl font-bold">150+</p>
+                  <p className="text-white text-xl font-bold">0+</p>
                 </div>
                 <div className="w-8 h-8 bg-blue-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
@@ -346,7 +415,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Voluntarios</p>
-                  <p className="text-white text-xl font-bold">45</p>
+                  <p className="text-white text-xl font-bold">0+</p>
                 </div>
                 <div className="w-8 h-8 bg-cyan-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-cyan-300" fill="currentColor" viewBox="0 0 20 20">
@@ -359,7 +428,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Talleres</p>
-                  <p className="text-white text-xl font-bold">12</p>
+                  <p className="text-white text-xl font-bold">0+</p>
                 </div>
                 <div className="w-8 h-8 bg-purple-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
@@ -372,7 +441,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Donaciones</p>
-                  <p className="text-white text-xl font-bold">₡2.5M</p>
+                  <p className="text-white text-xl font-bold">0+</p>
                 </div>
                 <div className="w-8 h-8 bg-green-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
