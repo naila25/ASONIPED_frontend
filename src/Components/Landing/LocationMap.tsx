@@ -24,7 +24,7 @@ const LocationMap = () => {
 
       {/* Contenedor del mapa */}
       <div className="flex justify-center">
-        <div className="relative w-full max-w-5xl bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 mb-25">
+        <div className="relative w-full max-w-5xl bg-white rounded-lg shadow-md overflow-hidden border border-gray-300 mb-25">
           <Map
             height={450}
             center={center}
@@ -33,6 +33,7 @@ const LocationMap = () => {
               setCenter(center);
               setZoom(zoom);
             }}
+            
           >
             <Marker
               anchor={[10.14601, -85.45791]}
