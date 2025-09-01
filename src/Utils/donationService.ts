@@ -1,3 +1,5 @@
+import { getToken } from './auth';
+
 export interface DonationFormData {
   nombre: string;
   correo: string;
@@ -20,10 +22,20 @@ export const submitDonation = async (donationData: DonationFormData): Promise<Do
   try {
     console.log('Enviando datos:', donationData); // Para debugging
     
+    const token = getToken();
+    if (!token) {
+      return {
+        success: false,
+        message: 'Debe iniciar sesión para enviar una donación',
+        error: 'AUTHENTICATION_REQUIRED'
+      };
+    }
+    
     const response = await fetch(`${API_BASE_URL}/donations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         ...donationData,

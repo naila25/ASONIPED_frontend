@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 
 const Donaciones: React.FC = () => {
   return (
-    <section className=" my-12 px-6 text-gray-800"> 
+    <section className="my-12 px-6 text-gray-800"> 
         <h2 className= "text-2xl sm:text-4xl lg:text-5xl text-center font-bold text-orange-500 mb-5 tracking-wide mt-40">
            ¿Por qué ayudar a ASONIPED? 
         </h2>

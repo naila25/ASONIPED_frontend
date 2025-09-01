@@ -231,17 +231,9 @@ const NavBar = () => {
                                             className="flex items-center w-full p-3 bg-white/10 rounded-lg border border-white/20 hover:bg-white/20 transition-colors"
                                         >
                                             <FileText className="w-4 h-4 mr-3 text-white/70" />
-                                                                                         <span className="text-sm text-white">{userData?.roles?.some((role: any) => role === 'admin' || role.name === 'admin') ? 'Panel Admin' : 'Inicio'}</span>
+                                             <span className="text-sm text-white">{userData?.roles?.some((role: any) => role === 'admin' || role.name === 'admin') ? 'Panel Admin' : 'Dashboard'}</span>
                                         </button>
-                                        
-                                        <button
-                                            onClick={handleProfileClick}
-                                            className="flex items-center w-full p-3 bg-white/10 rounded-lg border border-white/20 hover:bg-white/20 transition-colors"
-                                        >
-                                            <Settings className="w-4 h-4 mr-3 text-white/70" />
-                                            <span className="text-sm text-white">Mi Perfil</span>
-                                        </button>
-                                        
+                        
                                         <button
                                             onClick={handleLogout}
                                             className="flex items-center w-full p-3 bg-red-500/20 rounded-lg border border-red-500/30 hover:bg-red-500/30 transition-colors"

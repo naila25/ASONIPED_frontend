@@ -52,7 +52,29 @@ export class AutoNetworkConfig {
         }
       }
 
-      // Método 3: Fallback a localhost
+      // Método 3: Probar IPs comunes de red local
+      const commonIPs = [
+        '192.168.1.100',
+        '192.168.1.101',
+        '192.168.1.102',
+        '192.168.0.100',
+        '192.168.0.101',
+        '10.0.0.100',
+        '10.0.0.101'
+      ];
+
+      for (const ip of commonIPs) {
+        const url = `http://${ip}:3000`;
+        console.log(`🔍 Probando IP común: ${url}`);
+        
+        if (await this.testConnection(url)) {
+          this.backendIP = ip;
+          console.log(`✅ Backend detectado en IP común: ${url}`);
+          return this.backendIP;
+        }
+      }
+
+      // Método 4: Fallback a localhost
       console.log('⚠️ No se pudo detectar el backend, usando localhost');
       this.backendIP = 'localhost';
       return this.backendIP;
@@ -131,7 +153,7 @@ export class AutoNetworkConfig {
   private async testConnection(url: string): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 segundos timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 segundos timeout
 
       const response = await fetch(`${url}/health`, {
         method: 'GET',
@@ -140,8 +162,10 @@ export class AutoNetworkConfig {
       });
 
       clearTimeout(timeoutId);
+      console.log(`✅ Conexión exitosa a: ${url}`);
       return true;
     } catch (error) {
+      console.log(`❌ Error conectando a: ${url}`, error);
       return false;
     }
   }

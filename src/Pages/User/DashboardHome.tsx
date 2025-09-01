@@ -144,37 +144,6 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
-
-      {/* Progress Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Mi Progreso</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
-            </div>
-            <p className="font-semibold text-gray-900">Participación</p>
-            <p className="text-2xl font-bold text-blue-600">85%</p>
-            <p className="text-sm text-gray-500">Excelente progreso</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Clock className="w-8 h-8 text-green-600" />
-            </div>
-            <p className="font-semibold text-gray-900">Horas de Servicio</p>
-            <p className="text-2xl font-bold text-green-600">45h</p>
-            <p className="text-sm text-gray-500">Meta: 50h</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Award className="w-8 h-8 text-purple-600" />
-            </div>
-            <p className="font-semibold text-gray-900">Logros</p>
-            <p className="text-2xl font-bold text-purple-600">12</p>
-            <p className="text-sm text-gray-500">Certificados obtenidos</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
