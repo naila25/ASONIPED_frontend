@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { login } from '../../Utils/auth';
-import { API_BASE_URL } from '../../Utils/config';
+import { getAPIBaseURL } from '../../Utils/config';
 
 const AdminLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,7 +12,7 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +20,8 @@ const AdminLogin = () => {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/users/login`, {
+      const base = await getAPIBaseURL();
+      const response = await fetch(`${base}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -42,9 +42,9 @@ const AdminLogin = () => {
         
         // Navegar basado en el rol del usuario
         if (isAdmin) {
-          navigate({ to: "/admin" as any });
+          window.location.href = '/admin';
         } else {
-          navigate({ to: "/user" as any });
+          window.location.href = '/user';
         }
     } catch {
       setError('Error de red o servidor');
@@ -59,7 +59,8 @@ const AdminLogin = () => {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/users/register`, {
+      const base = await getAPIBaseURL();
+      const response = await fetch(`${base}/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
