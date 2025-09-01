@@ -61,6 +61,12 @@ const adminLoginRoute = createRoute({
   component: AdminLogin,
 });
 
+const emailVerificationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'verify-email',
+  component: lazy(() => import('../Pages/Admin/EmailVerification')),
+});
+
 // Donation routes
 const donacionesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -245,6 +251,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   volunteersRoute,
   adminLoginRoute,
+  emailVerificationRoute,
   donacionesRoute,
   conocenosRoute,
   formularioDonacionRoute,

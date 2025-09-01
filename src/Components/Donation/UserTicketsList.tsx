@@ -194,37 +194,6 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
         </div>
       )}
 
-      {/* Estadísticas */}
-      {tickets.length > 0 && (
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-semibold text-gray-800 mb-2">Resumen</h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-800">{tickets.length}</div>
-              <div className="text-gray-600">Total</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-500">
-                {tickets.filter(t => t.status === 'open').length}
-              </div>
-              <div className="text-gray-600">Abiertos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-500">
-                {tickets.filter(t => t.status === 'closed').length}
-              </div>
-              <div className="text-gray-600">Cerrados</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-500">
-                {tickets.filter(t => t.assigned_admin_id).length}
-              </div>
-              <div className="text-gray-600">Asignados</div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal de conversación */}
       {selectedTicket && (
         <TicketConversation

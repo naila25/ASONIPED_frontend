@@ -12,6 +12,7 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   // const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -88,8 +89,8 @@ const AdminLogin = () => {
       }
 
       await response.json();
-      setSuccess('Usuario registrado exitosamente. Ahora puedes iniciar sesión.');
-      setIsLogin(true);
+      setSuccess('Usuario registrado exitosamente. Revisa tu email para verificar tu cuenta.');
+      setShowVerificationMessage(true);
       // Limpiar formulario
       setUsername('');
       setEmail('');
@@ -215,6 +216,31 @@ const AdminLogin = () => {
             {success && (
               <div className="p-3 sm:p-4 bg-green-900/50 border border-green-500/50 rounded-lg text-green-300 text-sm sm:text-base">
                 {success}
+              </div>
+            )}
+            
+            {showVerificationMessage && (
+              <div className="p-4 bg-blue-900/50 border border-blue-500/50 rounded-lg text-blue-300 text-sm sm:text-base">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-200 mb-2">Verificación de Email Requerida</h4>
+                    <p className="text-blue-300 mb-3">
+                      Hemos enviado un enlace de verificación a tu correo electrónico. 
+                      Por favor, revisa tu bandeja de entrada y haz clic en el enlace para activar tu cuenta.
+                    </p>
+                    <div className="bg-blue-800/30 p-3 rounded border border-blue-600/50">
+                      <p className="text-blue-200 text-sm">
+                        <strong>¿No recibiste el email?</strong> Revisa tu carpeta de spam
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             
