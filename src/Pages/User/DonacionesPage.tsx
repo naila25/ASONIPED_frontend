@@ -1,14 +1,30 @@
-import { DollarSign } from "lucide-react";
-import ModulePlaceholder from "./ModulePlaceholder";
+import React from 'react';
+import { useAuth } from "../../Utils/useAuth";
+import UserTicketsList from "../../Components/Donation/UserTicketsList";
 
 export default function DonacionesPage() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-600">Debe iniciar sesión para ver sus tickets de donación.</p>
+      </div>
+    );
+  }
+
   return (
-    <ModulePlaceholder
-      title="Donaciones"
-      description="Realiza donaciones y consulta tu historial de contribuciones"
-      icon={DollarSign}
-      color="bg-orange-500"
-    />
+    <div className="p-6">
+      <UserTicketsList userId={user.id} />
+    </div>
   );
 }
 

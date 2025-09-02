@@ -18,6 +18,7 @@ import AdminDashboard from '../Pages/Admin/AdminDashboard';
 import AdminDashboardHome from '../Pages/Admin/AdminDashboardHome';
 import ExpedientesAdminPage from '../Pages/Admin/ExpedientesAdminPage';
 import UserManagement from '../Pages/Admin/UserManagement';
+import AdminTicketsPage from '../Pages/Admin/AdminTicketsPage';
 import UserDashboard from '../Pages/User/UserDashboard';
 import DashboardHome from '../Pages/User/DashboardHome';
 import ExpedientesPage from '../Pages/User/ExpedientesPage';
@@ -58,6 +59,12 @@ const adminLoginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'admin/login',
   component: AdminLogin,
+});
+
+const emailVerificationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'verify-email',
+  component: lazy(() => import('../Pages/Admin/EmailVerification')),
 });
 
 // Donation routes
@@ -199,6 +206,12 @@ const userManagementRoute = createRoute({
   component: UserManagement,
 });
 
+const adminTicketsRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'tickets',
+  component: AdminTicketsPage,
+});
+
 const volunteerOptionsRoute = createRoute({
   getParentRoute: () => volunteersAdminRoute,
   path: 'options',
@@ -238,6 +251,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   volunteersRoute,
   adminLoginRoute,
+  emailVerificationRoute,
   donacionesRoute,
   conocenosRoute,
   formularioDonacionRoute,
@@ -255,7 +269,8 @@ const routeTree = rootRoute.addChildren([
       attendanceAdminRoute,
       eventsNewsAdminRoute,
       adminWorkshopFormsRoute,
-      userManagementRoute
+      userManagementRoute,
+      adminTicketsRoute
     ]),
     userDashboardRoute.addChildren([
       userHomeRoute,

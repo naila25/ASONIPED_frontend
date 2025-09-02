@@ -208,31 +208,6 @@ const UserManagement = () => {
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Administradores</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{admins.length}</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
-              <Shield className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-purple-500">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Activos</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{admins.length}</p>
-            </div>
-            <div className="p-3 bg-purple-100 rounded-lg flex-shrink-0">
-              <Users className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">

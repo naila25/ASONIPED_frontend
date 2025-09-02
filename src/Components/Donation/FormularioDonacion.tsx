@@ -1,12 +1,15 @@
 import { motion } from "framer-motion";
 import { FaMoneyBillWave, FaGift, FaMobileAlt, FaUniversity } from "react-icons/fa";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import quienessomos from "../../assets/quienessomos.png";
 import manoscoloridas from "../../assets/profile-pictures/manoscoloridas.png";
 import type { DonationFormData } from "../../Utils/donationService";
 import { submitDonation, validateDonationForm, formatPhoneNumber } from "../../Utils/donationService";
+import { useAuth } from "../../Utils/useAuth";
+import AuthRequiredMessage from "./AuthRequiredMessage";
 
 const DonacionesVisual = () => {
+  const { user, loading } = useAuth();
   const [formData, setFormData] = useState<DonationFormData>({
     nombre: '',
     correo: '',
@@ -21,6 +24,18 @@ const DonacionesVisual = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [submitMessage, setSubmitMessage] = useState('');
+
+  // Auto-fill form with user data when available
+  useEffect(() => {
+    if (user && !formData.nombre && !formData.correo && !formData.telefono) {
+      setFormData(prev => ({
+        ...prev,
+        nombre: user.full_name || '',
+        correo: user.email || '',
+        telefono: user.phone ? formatPhoneNumber(user.phone) : ''
+      }));
+    }
+  }, [user, formData.nombre, formData.correo, formData.telefono]);
 
   const validateForm = (): boolean => {
     const newErrors = validateDonationForm(formData);
@@ -66,6 +81,11 @@ const DonacionesVisual = () => {
     } else {
       setSubmitStatus('error');
       setSubmitMessage(result.message);
+      
+      // If the error is authentication related, show specific message
+      if (result.error === 'AUTHENTICATION_REQUIRED') {
+        setSubmitMessage('Debe iniciar sesión para enviar una donación. Por favor, inicie sesión o regístrese.');
+      }
     }
 
     setIsSubmitting(false);
@@ -74,7 +94,7 @@ const DonacionesVisual = () => {
   return (
     <section className="relative min-h-screen bg-white px-6 py-10 flex flex-col items-center gap-3">
 
-      {/* Título principal */}
+      {/* Main title */}
       <motion.h2
         className="text-orange-600 text-4xl font-semibold text-center mb-4 tracking-wide"
         initial={{ opacity: 0, y: -50 }}
@@ -97,7 +117,7 @@ const DonacionesVisual = () => {
         entregas de víveres, asistencia técnica y mucho más.
       </motion.p>
 
-      {/* FORMAS DE DONACIÓN */}
+      {/* DONATION METHODS */}
       <motion.h3
         className="text-orange-600 text-3xl font-semibold text-center mb-4 tracking-wide"
         initial={{ opacity: 0, y: 30 }}
@@ -115,7 +135,7 @@ const DonacionesVisual = () => {
       </motion.h3>
 
       <div className="flex flex-col gap-15 w-full max-w-6xl">
-        {/* Donación Económica */}
+        {/* Economic Donation */}
         <motion.div
           className="flex flex-col md:flex-row items-center bg-white rounded-xl shadow-md overflow-hidden border border-gray-200"
           initial={{ opacity: 0, x: 100 }}
@@ -147,7 +167,7 @@ const DonacionesVisual = () => {
           </div>
         </motion.div>
 
-        {/* Donación en Especie */}
+        {/* In-Kind Donation */}
         <motion.div
           className="flex flex-col md:flex-row-reverse items-center bg-white rounded-xl shadow-md overflow-hidden border border-gray-200"
           initial={{ opacity: 0, x: -100 }}
@@ -174,7 +194,7 @@ const DonacionesVisual = () => {
         </motion.div>
       </div>
 
-      {/* FORMULARIO + PREGUNTAS FRECUENTES */}
+      {/* FORM + FREQUENTLY ASKED QUESTIONS */}
       <motion.div
         className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16"
         initial={{ opacity: 0, y: 100 }}
@@ -187,7 +207,7 @@ const DonacionesVisual = () => {
           Resolvemos tus dudas
         </h2>
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
-          {/* Preguntas Frecuentes estilo acordeón */}
+          {/* Frequently Asked Questions accordion style */}
           <div>
             <h3 className="text-xl font-bold text-black mb-6">Preguntas frecuentes</h3>
 
@@ -224,9 +244,16 @@ const DonacionesVisual = () => {
             </div>
           </div>
 
-          {/* Formulario */}
-          <form onSubmit={handleSubmit} className="text-black grid grid-cols-1 gap-4">
+          {/* Form */}
+          {loading ? (
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+            </div>
+          ) : user ? (
+            <form onSubmit={handleSubmit} className="text-black grid grid-cols-1 gap-4">
             <p className="text-gray-700">Déjanos tu mensaje</p>
+            
+      
             
             <div>
               <input
@@ -310,7 +337,7 @@ const DonacionesVisual = () => {
             </div>
             {errors.aceptacion_comunicacion && <p className="text-red-500 text-sm mt-1">{errors.aceptacion_comunicacion}</p>}
 
-            {/* Mensaje de estado */}
+            {/* Status message */}
             {submitStatus === 'success' && (
               <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
                 {submitMessage}
@@ -335,6 +362,9 @@ const DonacionesVisual = () => {
               {isSubmitting ? 'Enviando...' : 'Enviar mensaje'}
             </button>
           </form>
+          ) : (
+            <AuthRequiredMessage message="Debe iniciar sesión para enviar una donación y crear un ticket de soporte" />
+          )}
         </div>
       </motion.div>
     </section>
