@@ -8,7 +8,7 @@ const EmailVerification = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+    useEffect(() => {
     const verifyEmail = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
@@ -32,9 +32,14 @@ const EmailVerification = () => {
           setStatus('success');
           setMessage('¡Tu email ha sido verificado exitosamente! Ahora puedes iniciar sesión.');
         } else {
-          const errorData = await response.json();
-          setStatus('error');
-          setMessage(errorData.message || 'Error al verificar el email');
+          try {
+            const errorData = await response.json();
+            setStatus('error');
+            setMessage(errorData.error || errorData.message || 'Error al verificar el email');
+          } catch {
+            setStatus('error');
+            setMessage('No se pudo procesar la respuesta del servidor');
+          }
         }
       } catch {
         setStatus('error');
@@ -121,6 +126,8 @@ const EmailVerification = () => {
               >
                 Intentar Nuevamente
               </button>
+              
+
             </div>
           )}
         </div>
