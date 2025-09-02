@@ -96,7 +96,7 @@ const DonacionesVisual = () => {
 
       {/* Main title */}
       <motion.h2
-        className="text-orange-500 text-4xl font-bold text-center mb-4 tracking-wide"
+        className="text-orange-600 text-4xl font-semibold text-center mb-4 tracking-wide"
         initial={{ opacity: 0, y: -50 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -119,7 +119,7 @@ const DonacionesVisual = () => {
 
       {/* DONATION METHODS */}
       <motion.h3
-        className="text-orange-500 text-3xl font-bold text-center mb-4 tracking-wide"
+        className="text-orange-600 text-3xl font-semibold text-center mb-4 tracking-wide"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
@@ -128,9 +128,9 @@ const DonacionesVisual = () => {
         Formas de donación
 
         <div className="flex items-center justify-center mt-6 gap-3">
-          <div className="w-20 h-[2px] bg-orange-400 rounded"></div>
+          <div className="w-20 h-[2px] bg-orange-500 rounded"></div>
           <img src={manoscoloridas} alt="Logo manos" className="w-12 h-12 object-contain" />
-          <div className="w-20 h-[2px] bg-orange-400 rounded"></div>
+          <div className="w-20 h-[2px] bg-orange-500 rounded"></div>
         </div>
       </motion.h3>
 
@@ -145,17 +145,17 @@ const DonacionesVisual = () => {
         >
           <div className="w-full md:w-1/2 p-6">
             <div className="flex items-center mb-4">
-              <FaMoneyBillWave className="text-orange-500 text-2xl mr-3" />
-              <h4 className="text-xl font-bold text-orange-500">Donación Económica</h4>
+              <FaMoneyBillWave className="text-orange-600 text-2xl mr-3" />
+              <h4 className="text-xl font-bold text-orange-600">Donación Económica</h4>
             </div>
             <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center">
-              <FaMobileAlt className="text-orange-500 mr-2" /> Sinpe Móvil:
+              <FaMobileAlt className="text-orange-600 mr-2" /> Sinpe Móvil:
             </p>
-            <p className="text-orange-500 font-medium mb-3 ml-6">8888-8888</p>
+            <p className="text-orange-600 font-medium mb-3 ml-6">8888-8888</p>
             <p className="text-sm font-semibold text-gray-700 mb-1 flex items-center">
-              <FaUniversity className="text-orange-500 mr-2" /> Cuenta Bancaria:
+              <FaUniversity className="text-orange-600 mr-2" /> Cuenta Bancaria:
             </p>
-            <p className="text-orange-500 font-medium ml-6">IBAN: CR05000123456789123456</p>
+            <p className="text-orange-600 font-medium ml-6">IBAN: CR05000123456789123456</p>
           </div>
 
           <div className="w-full md:w-1/2 h-full p-4">
@@ -177,8 +177,8 @@ const DonacionesVisual = () => {
         >
           <div className="w-full md:w-1/2 p-6">
             <div className="flex items-center mb-4">
-              <FaGift className="text-orange-500 text-2xl mr-3" />
-              <h4 className="text-xl font-bold text-orange-500">Donación en Especie</h4>
+              <FaGift className="text-orange-600 text-2xl mr-3" />
+              <h4 className="text-xl font-bold text-orange-600">Donación en Especie</h4>
             </div>
 
             <p className="text-gray-700 mt-3">Puedes donar alimentos, ropa, víveres y otros artículos útiles. Contáctanos para coordinar la entrega en nuestras oficinas.</p>
@@ -203,7 +203,7 @@ const DonacionesVisual = () => {
         viewport={{ once: true, amount: 0.2 }}
       >
 
-        <h2 className="text-center text-3xl font-extrabold text-orange-500 mb-12">
+        <h2 className="text-center text-3xl font-extrabold text-orange-600 mb-12">
           Resolvemos tus dudas
         </h2>
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
@@ -356,7 +356,7 @@ const DonacionesVisual = () => {
               className={`${
                 isSubmitting 
                   ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-orange-500 hover:bg-orange-600'
+                  : 'bg-orange-600 hover:bg-orange-500'
               } text-white font-semibold py-2 px-6 rounded transition self-start`}
             >
               {isSubmitting ? 'Enviando...' : 'Enviar mensaje'}
