@@ -4,6 +4,7 @@ import type { DonationTicket, TicketMessage } from '../../Utils/ticketService';
 import { useAuth } from '../../Utils/useAuth';
 import { FaPaperPlane, FaUser, FaUserShield, FaCheck, FaCheckDouble, FaSmile, FaImage, FaArrowLeft } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import socketService from '../../Utils/socketService';
 
 interface TicketConversationProps {
   ticket: DonationTicket;
@@ -22,6 +23,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -40,11 +42,54 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll within the messages container, not the whole page
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer && messagesEndRef.current) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
   };
+
+  const setupSocketConnection = async () => {
+    try {
+      console.log('🔌 Setting up Socket.io connection...');
+      await socketService.connect();
+      setIsConnected(true);
+      console.log('✅ Socket.io connected successfully');
+      
+      // Join ticket room
+      socketService.joinTicketRoom(ticket.id);
+      console.log(`🎫 Joined ticket room: ${ticket.id}`);
+      
+      // Listen for new messages
+      socketService.onMessageReceived((message) => {
+        console.log('📨 Received message via Socket.io:', message);
+        setMessages(prev => [...prev, message]);
+      });
+      
+      
+      
+    } catch (error) {
+      console.error('❌ Failed to connect to Socket.io:', error);
+      setIsConnected(false);
+    }
+  };
+
+  const cleanupSocketConnection = () => {
+    socketService.leaveTicketRoom(ticket.id);
+    socketService.removeAllListeners();
+    socketService.disconnect();
+    setIsConnected(false);
+  };
+
+
 
   useEffect(() => {
     loadMessages();
+    setupSocketConnection();
+    
+    return () => {
+      cleanupSocketConnection();
+    };
   }, [ticket.id]);
 
   useEffect(() => {
@@ -59,6 +104,8 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     }
   }, [newMessage]);
 
+
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -67,22 +114,41 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     try {
       setSending(true);
       
-      await sendMessage({
-        module_type: 'donations',
+      // Create message object
+      const messageData = {
+        module_type: 'donations' as const,
         module_id: ticket.id,
         sender_id: user.id,
         message: newMessage.trim()
-      });
+      };
+
+      // Send via API first
+      console.log('📤 Sending message via API...');
+      await sendMessage(messageData);
+      console.log('✅ Message sent via API successfully');
+
+      // Send via Socket.io for real-time delivery
+      if (isConnected) {
+        console.log('📡 Broadcasting message via Socket.io...');
+        socketService.sendMessage(ticket.id, {
+          ...messageData,
+          sender_name: user.full_name || 'Usuario',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.warn('⚠️ Socket.io not connected, message sent via API only');
+      }
 
       setNewMessage('');
-      await loadMessages();
+      
+
       
       if (onTicketUpdate) {
         onTicketUpdate();
       }
     } catch (err) {
       setError('Error al enviar el mensaje');
-      console.error('Error sending message:', err);
+      console.error('❌ Error sending message:', err);
     } finally {
       setSending(false);
     }
@@ -143,9 +209,9 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   }
 
   return (
-    <div className="bg-white h-full flex flex-col border border-gray-100 rounded-lg overflow-hidden">
-      {/* Header - Minimalista */}
-      <div className="bg-white border-b border-gray-100 px-6 py-4">
+    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden">
+             {/* Header - Minimalista */}
+       <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button
@@ -169,6 +235,9 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
             }`}>
               {ticket.status === 'open' ? 'Abierto' : 'Cerrado'}
             </span>
+            
+            
+            
             {ticket.admin_name && (
               <div className="flex items-center space-x-1 text-xs text-gray-500">
                 <FaUserShield className="text-blue-500" />
@@ -179,8 +248,8 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
         </div>
       </div>
 
-      {/* Messages - Diseño limpio */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6">
+             {/* Messages - Diseño limpio */}
+       <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container" style={{ maxHeight: '400px' }}>
         <AnimatePresence>
           {error && (
             <motion.div 
@@ -250,19 +319,23 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
               ))}
             </div>
           )}
+          
+
         </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input - Minimalista */}
-      {ticket.status === 'open' ? (
-        <div className="bg-white border-t border-gray-100 p-4">
+             {/* Message Input - Minimalista */}
+       {ticket.status === 'open' ? (
+         <div className="bg-white border-t border-gray-100 p-4 flex-shrink-0">
           <form onSubmit={handleSendMessage} className="flex items-end space-x-3">
             <div className="flex-1 relative">
               <textarea
                 ref={textareaRef}
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                                 onChange={(e) => {
+                   setNewMessage(e.target.value);
+                 }}
                 onKeyPress={handleKeyPress}
                 placeholder="Escribe tu mensaje..."
                 className="w-full border border-gray-200 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"

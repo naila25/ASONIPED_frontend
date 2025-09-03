@@ -199,61 +199,67 @@ const AdminTicketsDashboard: React.FC = () => {
           </div>
         ) : (
           filteredTickets.map((ticket) => (
-            <div key={ticket.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <FaTicketAlt className="text-orange-500" />
-                    <h3 className="font-semibold text-gray-800">
-                      Ticket #{ticket.id} - {ticket.asunto}
-                    </h3>
-                    {getStatusBadge(ticket.status)}
-                    {ticket.status === 'open' && (
-                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                        Activo
-                      </span>
-                    )}
+            <div key={ticket.id}>
+              <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <FaTicketAlt className="text-orange-500" />
+                      <h3 className="font-semibold text-gray-800">
+                        Ticket #{ticket.id} - {ticket.asunto}
+                      </h3>
+                      {getStatusBadge(ticket.status)}
+                      {ticket.status === 'open' && (
+                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          Activo
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p><strong>Solicitante:</strong> {ticket.nombre} ({ticket.correo})</p>
+                      <p><strong>Creado:</strong> {formatDate(ticket.created_at)}</p>
+                      {ticket.closed_at && (
+                        <p><strong>Cerrado:</strong> {formatDate(ticket.closed_at)}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p><strong>Solicitante:</strong> {ticket.nombre} ({ticket.correo})</p>
-                    <p><strong>Creado:</strong> {formatDate(ticket.created_at)}</p>
-                    {ticket.closed_at && (
-                      <p><strong>Cerrado:</strong> {formatDate(ticket.closed_at)}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-                    onClick={() => handleViewConversation(ticket)}
-                  >
-                    <FaEye />
-                    Ver conversación
-                  </button>
-                  {ticket.status === 'open' && (
+                  <div className="flex gap-2">
                     <button
-                      className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                      onClick={() => handleCloseTicket(ticket.id)}
+                      className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                      onClick={() => handleViewConversation(ticket)}
                     >
-                      <FaCheckCircle />
-                      Cerrar
+                      <FaEye />
+                      Ver conversación
                     </button>
-                  )}
+                    {ticket.status === 'open' && (
+                      <button
+                        className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                        onClick={() => handleCloseTicket(ticket.id)}
+                      >
+                        <FaCheckCircle />
+                        Cerrar
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
+              
+              {/* Conversation opens below the specific ticket */}
+              {selectedTicket && selectedTicket.id === ticket.id && (
+                <div className="mt-4">
+                  <TicketConversation
+                    ticket={selectedTicket}
+                    onClose={handleCloseConversation}
+                    onTicketUpdate={loadTickets}
+                  />
+                </div>
+              )}
             </div>
           ))
         )}
       </div>
 
-      {/* Conversation modal */}
-      {selectedTicket && (
-        <TicketConversation
-          ticket={selectedTicket}
-          onClose={handleCloseConversation}
-          onTicketUpdate={loadTickets}
-        />
-      )}
+
     </div>
   );
 };
