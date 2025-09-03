@@ -312,6 +312,19 @@ const AdminLogin = () => {
                 : (isLogin ? 'CONECTAR' : 'REGISTRARSE')
               }
             </button>
+            
+            {/* Forgot Password Link - Only show on login */}
+            {isLogin && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/forgot-password'}
+                  className="text-blue-400 hover:text-blue-300 text-sm transition-colors underline"
+                >
+                  ¿Olvidó su contraseña?
+                </button>
+              </div>
+            )}
           </form>
 
           {/* Bottom Features - Hidden on mobile */}

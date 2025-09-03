@@ -67,6 +67,21 @@ const emailVerificationRoute = createRoute({
   component: lazy(() => import('../Pages/Admin/EmailVerification')),
 });
 
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'forgot-password',
+  component: lazy(() => import('../Pages/User/ForgotPassword')),
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'reset-password',
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: search.token as string,
+  }),
+  component: lazy(() => import('../Pages/User/ResetPassword')),
+});
+
 // Donation routes
 const donacionesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -95,7 +110,7 @@ const publicWorkshopsRoute = createRoute({
 const formularioMatriculaRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'formulario-matricula',
-  component: FormularioMatricula,
+  component: () => <FormularioMatricula workshopId="" onSuccess={() => {}} onCancel={() => {}} />,
 });
 
 // Admin routes with lazy loading and authentication check
@@ -252,6 +267,8 @@ const routeTree = rootRoute.addChildren([
   volunteersRoute,
   adminLoginRoute,
   emailVerificationRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
   donacionesRoute,
   conocenosRoute,
   formularioDonacionRoute,
