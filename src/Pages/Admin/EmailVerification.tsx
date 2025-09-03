@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { getAPIBaseURL } from '../../Utils/config';
 
@@ -7,9 +7,14 @@ const EmailVerification = () => {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const hasRequestedRef = useRef(false);
 
     useEffect(() => {
     const verifyEmail = async () => {
+      if (hasRequestedRef.current) {
+        return;
+      }
+      hasRequestedRef.current = true;
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
       
