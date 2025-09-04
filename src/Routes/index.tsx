@@ -24,10 +24,11 @@ import DashboardHome from '../Pages/User/DashboardHome';
 import ExpedientesPage from '../Pages/User/ExpedientesPage';
 import TalleresPage from '../Pages/User/TalleresPage';
 import VoluntariadoPage from '../Pages/User/VoluntariadoPage';
-import DonacionesUserPage from '../Pages/User/DonacionesPage';
+// Removed DonacionesUserPage route from user dashboard; tickets moved to /user/mensajes
 import MensajesPage from '../Pages/User/MensajesPage';
 import CalendarioPage from '../Pages/User/CalendarioPage';
 import PerfilPage from '../Pages/User/PerfilPage';
+import SoportePage from '../Pages/Support/SoportePage';
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../Pages/Volunteer/VolunteerOptionsPage'));
@@ -93,6 +94,12 @@ const conocenosRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'conocenos',
   component: ConocenosSection,
+});
+
+const soporteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'soporte',
+  component: SoportePage,
 });
 
 const formularioDonacionRoute = createRoute({
@@ -168,11 +175,7 @@ const voluntariadoRoute = createRoute({
   component: VoluntariadoPage,
 });
 
-const donacionesUserRoute = createRoute({
-  getParentRoute: () => userDashboardRoute,
-  path: 'donaciones',
-  component: DonacionesUserPage,
-});
+// Removed user dashboard Donaciones route in favor of /user/mensajes
 
 const mensajesRoute = createRoute({
   getParentRoute: () => userDashboardRoute,
@@ -271,6 +274,7 @@ const routeTree = rootRoute.addChildren([
   resetPasswordRoute,
   donacionesRoute,
   conocenosRoute,
+  soporteRoute,
   formularioDonacionRoute,
   publicWorkshopsRoute,
   formularioMatriculaRoute,
@@ -294,7 +298,6 @@ const routeTree = rootRoute.addChildren([
       expedientesRoute,
       talleresRoute,
       voluntariadoRoute,
-      donacionesUserRoute,
       mensajesRoute,
       calendarioRoute,
       perfilRoute

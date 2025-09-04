@@ -12,28 +12,33 @@ class SocketService {
     return new Promise((resolve, reject) => {
       try {
         const token = getToken();
-        if (!token) {
-          reject(new Error('No authentication token available'));
-          return;
-        }
-
+        
         // Get backend URL from config
         const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
         
-        this.socket = io(backendURL, {
-          auth: { token },
+        // Configure connection options
+        const connectionOptions: any = {
           transports: ['websocket', 'polling'],
           timeout: 10000,
           reconnection: true,
           reconnectionAttempts: 5,
           reconnectionDelay: 1000,
           forceNew: true
-        });
+        };
+
+        // Add token if available (for authenticated users)
+        if (token) {
+          connectionOptions.auth = { token };
+        }
+        
+        this.socket = io(backendURL, connectionOptions);
 
         this.socket.on('connect', () => {
           console.log('🔌 Connected to Socket.io server');
           console.log('🔌 Socket ID:', this.socket?.id);
           console.log('🔌 Backend URL:', backendURL);
+          console.log('🔌 Connection type:', token ? 'Authenticated' : 'Anonymous');
+          console.log('🔌 Socket instance:', this.socket);
           this.isConnected = true;
           resolve();
         });
@@ -42,7 +47,15 @@ class SocketService {
           console.error('❌ Socket.io connection error:', error);
           console.error('❌ Error details:', error.message);
           this.isConnected = false;
-          reject(error);
+          
+          // For anonymous users, don't reject on auth errors
+          if (!token && error.message.includes('Authentication error')) {
+            console.log('🔌 Anonymous user - continuing without authentication');
+            this.isConnected = true;
+            resolve();
+          } else {
+            reject(error);
+          }
         });
 
         this.socket.on('disconnect', () => {
@@ -82,11 +95,34 @@ class SocketService {
   }
 
   /**
+   * Join an anonymous ticket room
+   */
+  joinAnonymousTicketRoom(ticketId: string): void {
+    if (this.socket && this.isConnected) {
+      console.log(`🎫 Joining anonymous ticket room: ${ticketId}`);
+      console.log(`🎫 Socket status:`, { isConnected: this.isConnected, socketId: this.socket?.id });
+      this.socket.emit('join_anonymous_ticket_room', ticketId);
+    } else {
+      console.warn(`⚠️ Cannot join room ${ticketId}: WebSocket not connected`);
+      console.warn(`⚠️ Socket status:`, { isConnected: this.isConnected, socket: !!this.socket });
+    }
+  }
+
+  /**
    * Leave a ticket room
    */
   leaveTicketRoom(ticketId: number): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('leave_ticket_room', ticketId);
+    }
+  }
+
+  /**
+   * Leave an anonymous ticket room
+   */
+  leaveAnonymousTicketRoom(ticketId: string): void {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('leave_anonymous_ticket_room', ticketId);
     }
   }
 
@@ -99,6 +135,18 @@ class SocketService {
     }
   }
 
+  /**
+   * Send a new anonymous message
+   */
+  sendAnonymousMessage(ticketId: string, message: any): void {
+    if (this.socket && this.isConnected) {
+      console.log('📡 Sending anonymous message via WebSocket:', { ticketId, message });
+      this.socket.emit('new_anonymous_message', { ticketId, message });
+    } else {
+      console.warn('⚠️ Cannot send message: WebSocket not connected');
+    }
+  }
+
 
 
   /**
@@ -107,6 +155,15 @@ class SocketService {
   onMessageReceived(callback: (message: any) => void): void {
     if (this.socket) {
       this.socket.on('message_received', callback);
+    }
+  }
+
+  /**
+   * Listen for new anonymous messages
+   */
+  onAnonymousMessageReceived(callback: (message: any) => void): void {
+    if (this.socket) {
+      this.socket.on('anonymous_message_received', callback);
     }
   }
 
@@ -122,10 +179,26 @@ class SocketService {
   }
 
   /**
+   * Remove specific listener
+   */
+  removeListener(event: string): void {
+    if (this.socket) {
+      this.socket.off(event);
+    }
+  }
+
+  /**
    * Check if connected
    */
   getConnectionStatus(): boolean {
-    return this.isConnected;
+    return this.isConnected && this.socket !== null;
+  }
+
+  /**
+   * Get socket instance for debugging
+   */
+  getSocket(): Socket | null {
+    return this.socket;
   }
 }
 

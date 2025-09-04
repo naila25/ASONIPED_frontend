@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getTicketMessages, sendMessage } from '../../Utils/ticketService';
 import type { DonationTicket, TicketMessage } from '../../Utils/ticketService';
 import { useAuth } from '../../Utils/useAuth';
-import { FaPaperPlane, FaUser, FaUserShield, FaCheck, FaCheckDouble, FaSmile, FaImage, FaArrowLeft } from 'react-icons/fa';
+import { FaPaperPlane, FaUser, FaUserShield, FaCheck, FaCheckDouble, FaSmile, FaArrowLeft } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import socketService from '../../Utils/socketService';
 
@@ -51,25 +51,19 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
 
   const setupSocketConnection = async () => {
     try {
-      console.log('🔌 Setting up Socket.io connection...');
       await socketService.connect();
       setIsConnected(true);
-      console.log('✅ Socket.io connected successfully');
       
       // Join ticket room
       socketService.joinTicketRoom(ticket.id);
-      console.log(`🎫 Joined ticket room: ${ticket.id}`);
       
       // Listen for new messages
       socketService.onMessageReceived((message) => {
-        console.log('📨 Received message via Socket.io:', message);
         setMessages(prev => [...prev, message]);
       });
       
-      
-      
     } catch (error) {
-      console.error('❌ Failed to connect to Socket.io:', error);
+      console.error('Failed to connect to Socket.io:', error);
       setIsConnected(false);
     }
   };
@@ -123,20 +117,18 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
       };
 
       // Send via API first
-      console.log('📤 Sending message via API...');
       await sendMessage(messageData);
-      console.log('✅ Message sent via API successfully');
+      
+      // Reload messages to ensure admin message appears
+      await loadMessages();
 
       // Send via Socket.io for real-time delivery
       if (isConnected) {
-        console.log('📡 Broadcasting message via Socket.io...');
         socketService.sendMessage(ticket.id, {
           ...messageData,
           sender_name: user.full_name || 'Usuario',
           timestamp: new Date().toISOString()
         });
-      } else {
-        console.warn('⚠️ Socket.io not connected, message sent via API only');
       }
 
       setNewMessage('');
@@ -148,7 +140,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
       }
     } catch (err) {
       setError('Error al enviar el mensaje');
-      console.error('❌ Error sending message:', err);
+      console.error('Error sending message:', err);
     } finally {
       setSending(false);
     }
@@ -270,8 +262,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaSmile className="text-gray-400 text-xl" />
               </div>
-              <p className="text-gray-500 font-medium mb-1">No hay mensajes aún</p>
-              <p className="text-sm text-gray-400">Sé el primero en enviar un mensaje</p>
+              <p className="text-gray-500 font-medium mb-1">No hay Tickets aún</p>
             </motion.div>
           ) : (
             <div className="space-y-4">
@@ -343,20 +334,6 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
                 disabled={sending}
                 style={{ minHeight: '44px', maxHeight: '120px' }}
               />
-              <div className="absolute right-3 top-3 flex items-center space-x-2">
-                <button
-                  type="button"
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                >
-                  <FaSmile className="text-sm" />
-                </button>
-                <button
-                  type="button"
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                >
-                  <FaImage className="text-sm" />
-                </button>
-              </div>
             </div>
             <button
               type="submit"

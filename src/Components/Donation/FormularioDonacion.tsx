@@ -2,14 +2,13 @@ import { motion } from "framer-motion";
 import { FaMoneyBillWave, FaGift, FaMobileAlt, FaUniversity } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import quienessomos from "../../assets/quienessomos.png";
-import manoscoloridas from "../../assets/profile-pictures/manoscoloridas.png";
 import type { DonationFormData } from "../../Utils/donationService";
 import { submitDonation, validateDonationForm, formatPhoneNumber } from "../../Utils/donationService";
 import { useAuth } from "../../Utils/useAuth";
-import AuthRequiredMessage from "./AuthRequiredMessage";
+import manoscoloridas from "../../assets/profile-pictures/manoscoloridas.png";
 
 const DonacionesVisual = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [formData, setFormData] = useState<DonationFormData>({
     nombre: '',
     correo: '',
@@ -24,21 +23,29 @@ const DonacionesVisual = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [submitMessage, setSubmitMessage] = useState('');
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
-  // Auto-fill form with user data when available
+  // Auto-fill form with user data when available and ensure authenticated users can't be anonymous
   useEffect(() => {
-    if (user && !formData.nombre && !formData.correo && !formData.telefono) {
-      setFormData(prev => ({
-        ...prev,
-        nombre: user.full_name || '',
-        correo: user.email || '',
-        telefono: user.phone ? formatPhoneNumber(user.phone) : ''
-      }));
+    if (user) {
+      // Authenticated users can never be anonymous
+      setIsAnonymous(false);
+      
+      // Auto-fill user data
+      if (!formData.nombre && !formData.correo && !formData.telefono) {
+        setFormData(prev => ({
+          ...prev,
+          nombre: user.full_name || '',
+          correo: user.email || '',
+          telefono: user.phone ? formatPhoneNumber(user.phone) : ''
+        }));
+      }
     }
   }, [user, formData.nombre, formData.correo, formData.telefono]);
 
   const validateForm = (): boolean => {
-    const newErrors = validateDonationForm(formData);
+    const newErrors = validateDonationForm(formData, isAnonymous);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -63,12 +70,20 @@ const DonacionesVisual = () => {
 
     setIsSubmitting(true);
     setSubmitStatus('idle');
+    setTicketId(null);
 
-    const result = await submitDonation(formData);
+    const result = await submitDonation(formData, isAnonymous);
 
     if (result.success) {
       setSubmitStatus('success');
       setSubmitMessage(result.message);
+      
+      // Store ticket ID if it's an anonymous donation
+      if (result.ticketId) {
+        setTicketId(result.ticketId);
+      }
+      
+      // Reset form data
       setFormData({
         nombre: '',
         correo: '',
@@ -78,14 +93,14 @@ const DonacionesVisual = () => {
         aceptacion_privacidad: false,
         aceptacion_comunicacion: false
       });
+      
+      // Reset anonymous state for non-authenticated users
+      if (!user) {
+        setIsAnonymous(false);
+      }
     } else {
       setSubmitStatus('error');
       setSubmitMessage(result.message);
-      
-      // If the error is authentication related, show specific message
-      if (result.error === 'AUTHENTICATION_REQUIRED') {
-        setSubmitMessage('Debe iniciar sesión para enviar una donación. Por favor, inicie sesión o regístrese.');
-      }
     }
 
     setIsSubmitting(false);
@@ -129,7 +144,7 @@ const DonacionesVisual = () => {
 
         <div className="flex items-center justify-center mt-6 gap-3">
           <div className="w-20 h-[2px] bg-orange-500 rounded"></div>
-          <img src={manoscoloridas} alt="Logo manos" className="w-12 h-12 object-contain" />
+         <img src={manoscoloridas} alt="Logo manos" className="w-12 h-12 object-contain" />
           <div className="w-20 h-[2px] bg-orange-500 rounded"></div>
         </div>
       </motion.h3>
@@ -245,48 +260,73 @@ const DonacionesVisual = () => {
           </div>
 
           {/* Form */}
-          {loading ? (
-            <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            </div>
-          ) : user ? (
-            <form onSubmit={handleSubmit} className="text-black grid grid-cols-1 gap-4">
+          <form onSubmit={handleSubmit} className="text-black grid grid-cols-1 gap-4">
             <p className="text-gray-700">Déjanos tu mensaje</p>
             
-      
+            {/* Anonymous option - only show for non-authenticated users */}
+            {!user && (
+              <div className="flex items-start">
+                <input 
+                  type="checkbox" 
+                  id="anonymous" 
+                  checked={isAnonymous}
+                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                  className="mr-2 mt-1" 
+                />
+                <label htmlFor="anonymous" className="text-sm text-gray-700">
+                  Enviar de forma anónima (sin nombre, correo ni teléfono)
+                </label>
+              </div>
+            )}
             
-            <div>
-              <input
-                type="text"
-                placeholder="Nombre completo"
-                value={formData.nombre}
-                onChange={(e) => handleInputChange('nombre', e.target.value)}
-                className={`border ${errors.nombre ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
-              />
-              {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
-            </div>
+            {/* Auto-fill notice for authenticated users */}
+            {user && !isAnonymous && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded text-sm">
+                ✓ Tus datos han sido autocompletados automáticamente
+              </div>
+            )}
+            
+            {/* Name field - hidden when anonymous */}
+            {!isAnonymous && (
+              <div>
+                <input
+                  type="text"
+                  placeholder="Nombre completo"
+                  value={formData.nombre}
+                  onChange={(e) => handleInputChange('nombre', e.target.value)}
+                  className={`border ${errors.nombre ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
+                />
+                {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
+              </div>
+            )}
 
-            <div>
-              <input
-                type="email"
-                placeholder="Correo electrónico"
-                value={formData.correo}
-                onChange={(e) => handleInputChange('correo', e.target.value)}
-                className={`border ${errors.correo ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
-              />
-              {errors.correo && <p className="text-red-500 text-sm mt-1">{errors.correo}</p>}
-            </div>
+            {/* Email field - hidden when anonymous */}
+            {!isAnonymous && (
+              <div>
+                <input
+                  type="email"
+                  placeholder="Correo electrónico"
+                  value={formData.correo}
+                  onChange={(e) => handleInputChange('correo', e.target.value)}
+                  className={`border ${errors.correo ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
+                />
+                {errors.correo && <p className="text-red-500 text-sm mt-1">{errors.correo}</p>}
+              </div>
+            )}
 
-            <div>
-              <input
-                type="tel"
-                placeholder="Teléfono (88888888)"
-                value={formData.telefono}
-                onChange={(e) => handleInputChange('telefono', formatPhoneNumber(e.target.value))}
-                className={`border ${errors.telefono ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
-              />
-              {errors.telefono && <p className="text-red-500 text-sm mt-1">{errors.telefono}</p>}
-            </div>
+            {/* Phone field - hidden when anonymous */}
+            {!isAnonymous && (
+              <div>
+                <input
+                  type="tel"
+                  placeholder="Teléfono (88888888)"
+                  value={formData.telefono}
+                  onChange={(e) => handleInputChange('telefono', formatPhoneNumber(e.target.value))}
+                  className={`border ${errors.telefono ? 'border-red-500' : 'border-gray-300'} rounded px-4 py-2 w-full`}
+                />
+                {errors.telefono && <p className="text-red-500 text-sm mt-1">{errors.telefono}</p>}
+              </div>
+            )}
 
             <div>
               <input
@@ -340,7 +380,47 @@ const DonacionesVisual = () => {
             {/* Status message */}
             {submitStatus === 'success' && (
               <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-                {submitMessage}
+                <p className="font-semibold mb-2">{submitMessage}</p>
+                
+                {/* Show different content based on user authentication status */}
+                {user ? (
+                  // Authenticated user - show dashboard link
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                    <p className="text-blue-800 font-medium mb-2">
+                      Tu ticket ha sido creado exitosamente
+                    </p>
+                    <p className="text-blue-700 text-sm mb-3">
+                      Puedes hacer seguimiento de tu solicitud en tu panel de usuario
+                    </p>
+                    <a 
+                      href="/user/mensajes" 
+                      className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      Ir a Mis Mensajes
+                    </a>
+                  </div>
+                ) : (
+                  // Anonymous user - show support link
+                  ticketId && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-blue-800 font-medium mb-2">
+                        Tu ticket de soporte ha sido creado
+                      </p>
+                      <p className="text-blue-700 text-sm mb-3">
+                        <strong>Ticket ID:</strong> {ticketId}
+                      </p>
+                      <p className="text-blue-700 text-sm mb-3">
+                        Puedes hacer seguimiento de tu solicitud en nuestra página de soporte
+                      </p>
+                      <a 
+                        href="/soporte" 
+                        className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        Ir a Soporte
+                      </a>
+                    </div>
+                  )
+                )}
               </div>
             )}
 
@@ -361,10 +441,7 @@ const DonacionesVisual = () => {
             >
               {isSubmitting ? 'Enviando...' : 'Enviar mensaje'}
             </button>
-          </form>
-          ) : (
-            <AuthRequiredMessage message="Debe iniciar sesión para enviar una donación y crear un ticket de soporte" />
-          )}
+                      </form>
         </div>
       </motion.div>
     </section>

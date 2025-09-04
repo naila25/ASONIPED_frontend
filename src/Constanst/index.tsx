@@ -16,6 +16,7 @@ export const navItems = [
   { label: "Quienes Somos", href: "/conocenos" },
   //{ label: "Voluntariado", href: "/volunteers" },
   { label: "Como ayudar", href: "/donaciones/formulario" },
+  { label: "Soporte", href: "/soporte" },
  
 ];
 

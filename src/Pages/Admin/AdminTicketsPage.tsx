@@ -11,7 +11,7 @@ export default function AdminTicketsPage() {
           <h1 className="text-2xl font-bold text-gray-800">Gestión de Tickets</h1>
         </div>
         <p className="text-gray-600">
-          Administra y responde a las solicitudes de donación de los usuarios
+          Administra y responde a las tickets de los usuarios
         </p>
       </div>
 
