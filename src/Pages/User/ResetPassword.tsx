@@ -24,7 +24,7 @@ const ResetPassword = () => {
   }, []);
 
   const validatePassword = (password: string): boolean => {
-    // Simple validation - just check if password exists
+    // Only require non-empty password per backend
     return password.length > 0;
   };
 

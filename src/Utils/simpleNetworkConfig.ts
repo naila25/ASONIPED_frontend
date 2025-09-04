@@ -18,7 +18,6 @@ export class SimpleNetworkConfig {
   async getBackendUrl(): Promise<string> {
     // Verificar cache primero
     if (this.currentBackendUrl && this.isCacheValid()) {
-      console.log(`🚀 Usando URL cacheada: ${this.currentBackendUrl}`);
       return this.currentBackendUrl;
     }
 

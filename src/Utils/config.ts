@@ -11,13 +11,11 @@ export const BACKEND_CONFIG = {
       // Usar cache si está disponible
       const cachedUrl = simpleNetwork.getCurrentUrl();
       if (cachedUrl && cachedUrl !== 'http://localhost:3000') {
-        console.log(`🚀 Usando URL cacheada: ${cachedUrl}`);
         return cachedUrl;
       }
 
       // Detección automática del backend solo si es necesario
       const backendUrl = await simpleNetwork.getBackendUrl();
-      console.log(`🌐 Backend detectado automáticamente: ${backendUrl}`);
       return backendUrl;
     } catch (error) {
       console.warn('⚠️ Error en detección automática, usando localhost:', error);

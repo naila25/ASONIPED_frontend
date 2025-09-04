@@ -1,14 +1,12 @@
-import { MessageSquare } from "lucide-react";
-import ModulePlaceholder from "./ModulePlaceholder";
+import UserTicketsList from "../../Components/Donation/UserTicketsList";
+import { useAuth } from "../../Utils/useAuth";
 
 export default function MensajesPage() {
+  const { user } = useAuth();
   return (
-    <ModulePlaceholder
-      title="Mensajes"
-      description="Comunícate directamente con los administradores de ASONIPED"
-      icon={MessageSquare}
-      color="bg-indigo-500"
-    />
+    <div className="max-w-7xl mx-auto">
+      {user && <UserTicketsList userId={user.id} />}
+    </div>
   );
 }
 

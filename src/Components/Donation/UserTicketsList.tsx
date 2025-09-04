@@ -12,7 +12,7 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
   const [tickets, setTickets] = useState<DonationTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'open' | 'closed'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'open' | 'closed' | 'archived'>('open');
   const [selectedTicket, setSelectedTicket] = useState<DonationTicket | null>(null);
 
   useEffect(() => {
@@ -57,28 +57,59 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
     });
   };
 
-  const getStatusIcon = (status: 'open' | 'closed') => {
-    return status === 'open' ? (
-      <FaClock className="text-orange-500" />
-    ) : (
-      <FaCheckCircle className="text-green-500" />
-    );
+  const getStatusIcon = (status: 'open' | 'closed' | 'archived') => {
+    switch (status) {
+      case 'open':
+        return <FaClock className="text-orange-500" />;
+      case 'closed':
+        return <FaCheckCircle className="text-green-500" />;
+      case 'archived':
+        return <FaTimesCircle className="text-gray-500" />;
+      default:
+        return <FaClock className="text-orange-500" />;
+    }
   };
 
-  const getStatusText = (status: 'open' | 'closed') => {
-    return status === 'open' ? 'Abierto' : 'Cerrado';
+  const getStatusText = (status: 'open' | 'closed' | 'archived') => {
+    switch (status) {
+      case 'open':
+        return 'Abierto';
+      case 'closed':
+        return 'Cerrado';
+      case 'archived':
+        return 'Archivado';
+      default:
+        return 'Abierto';
+    }
   };
 
-  const getStatusBadge = (status: 'open' | 'closed') => {
-    return status === 'open' ? (
-      <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-        Abierto
-      </span>
-    ) : (
-      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-        Cerrado
-      </span>
-    );
+  const getStatusBadge = (status: 'open' | 'closed' | 'archived') => {
+    switch (status) {
+      case 'open':
+        return (
+          <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            Abierto
+          </span>
+        );
+      case 'closed':
+        return (
+          <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            Cerrado
+          </span>
+        );
+      case 'archived':
+        return (
+          <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            Archivado
+          </span>
+        );
+      default:
+        return (
+          <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+            Abierto
+          </span>
+        );
+    }
   };
 
   if (loading) {
@@ -109,19 +140,20 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
       {/* Header y filtros */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Mis Tickets de Donación</h2>
-          <p className="text-gray-600">Gestiona tus solicitudes de donación</p>
+          <h2 className="text-2xl font-bold text-gray-800">Mis Tickets</h2>
+          <p className="text-gray-600">Gestiona tus solicitudes de Tickets</p>
         </div>
         
         <div className="flex gap-2">
           <select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value as 'all' | 'open' | 'closed')}
+            onChange={(e) => setSelectedStatus(e.target.value as 'all' | 'open' | 'closed' | 'archived')}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <option value="all">Todos los tickets</option>
             <option value="open">Abiertos</option>
             <option value="closed">Cerrados</option>
+            <option value="archived">Archivados</option>
           </select>
         </div>
       </div>

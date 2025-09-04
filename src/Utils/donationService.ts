@@ -14,43 +14,69 @@ export interface DonationResponse {
   success: boolean;
   message: string;
   error?: string;
+  ticketId?: string;
+  ticketType?: string;
 }
 
 const API_BASE_URL = 'http://localhost:3000';
 
-export const submitDonation = async (donationData: DonationFormData): Promise<DonationResponse> => {
+export const submitDonation = async (donationData: DonationFormData, isAnonymous: boolean = false): Promise<DonationResponse> => {
   try {
-    console.log('Enviando datos:', donationData); // Para debugging
+    console.log('Enviando datos:', donationData, 'Anonymous:', isAnonymous); // Para debugging
     
+    // Get authentication token if available
     const token = getToken();
-    if (!token) {
-      return {
-        success: false,
-        message: 'Debe iniciar sesión para enviar una donación',
-        error: 'AUTHENTICATION_REQUIRED'
-      };
+    
+    // Prepare the data to send
+    const dataToSend = {
+      ...donationData,
+      isAnonymous: isAnonymous
+    };
+    
+    // Only include phone if not anonymous
+    if (!isAnonymous) {
+      dataToSend.telefono = donationData.telefono.replace(/\D/g, ''); // Solo números
+    }
+    
+    // For authenticated users, don't send isAnonymous flag - let backend determine based on auth
+    if (token) {
+      delete dataToSend.isAnonymous;
+    }
+    
+    // Prepare headers with authentication if available
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
     
     const response = await fetch(`${API_BASE_URL}/donations`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        ...donationData,
-        telefono: donationData.telefono.replace(/\D/g, '') // Solo números
-      }),
+      headers,
+      body: JSON.stringify(dataToSend),
     });
 
     console.log('Respuesta del servidor:', response.status); // Para debugging
 
     if (response.ok) {
       const result = await response.json();
-      return {
-        success: true,
-        message: '¡Mensaje enviado exitosamente! Nos pondremos en contacto contigo pronto.'
-      };
+      
+      // Check if this is an anonymous donation
+      if (result.ticketType === 'anonymous') {
+        return {
+          success: true,
+          message: `¡Mensaje enviado exitosamente! Tu ticket de soporte es: ${result.ticketId}. Guárdalo para acceder a tu conversación en /soporte.`,
+          ticketId: result.ticketId,
+          ticketType: 'anonymous'
+        };
+      } else {
+        return {
+          success: true,
+          message: '¡Mensaje enviado exitosamente! Nos pondremos en contacto contigo pronto.'
+        };
+      }
     } else {
       let errorMessage = 'Error al enviar el mensaje. Inténtalo de nuevo.';
       try {
@@ -76,22 +102,25 @@ export const submitDonation = async (donationData: DonationFormData): Promise<Do
   }
 };
 
-export const validateDonationForm = (formData: DonationFormData): Record<string, string> => {
+export const validateDonationForm = (formData: DonationFormData, isAnonymous: boolean = false): Record<string, string> => {
   const errors: Record<string, string> = {};
 
-  // Validar nombre completo (mínimo nombre y apellido)
-  if (!formData.nombre.trim() || formData.nombre.trim().split(' ').length < 2) {
-    errors.nombre = 'Debe ingresar un nombre completo (mínimo nombre y apellido)';
-  }
+  // Only validate personal fields if not anonymous
+  if (!isAnonymous) {
+    // Validar nombre completo (mínimo nombre y apellido)
+    if (!formData.nombre.trim() || formData.nombre.trim().split(' ').length < 2) {
+      errors.nombre = 'Debe ingresar un nombre completo (mínimo nombre y apellido)';
+    }
 
-  // Validar correo electrónico
-  if (!formData.correo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
-    errors.correo = 'Correo electrónico inválido';
-  }
+    // Validar correo electrónico
+    if (!formData.correo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
+      errors.correo = 'Correo electrónico inválido';
+    }
 
-  // Validar teléfono (formato 88888888)
-  if (!formData.telefono || !/^[0-9]{8}$/.test(formData.telefono.replace(/\D/g, ''))) {
-    errors.telefono = 'Teléfono inválido (formato 88888888)';
+    // Validar teléfono (formato 88888888)
+    if (!formData.telefono || !/^[0-9]{8}$/.test(formData.telefono.replace(/\D/g, ''))) {
+      errors.telefono = 'Teléfono inválido (formato 88888888)';
+    }
   }
 
   // Validar asunto (mínimo 10 caracteres)
