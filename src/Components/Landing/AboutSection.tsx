@@ -1,5 +1,5 @@
 import quienesSomosImg from "../../assets/quienessomos.png";
-import { Link } from '@tanstack/react-router';
+
 
 const AboutSection = () => {
   return (
@@ -28,12 +28,12 @@ const AboutSection = () => {
 
           {/* Botón */}
           <div className="flex justify-center lg:justify-start gap-4 mt-6">
-            <Link 
-              to="/conocenos"
+            <a
+              href="/conocenos"
               className="bg-gradient-to-r from-blue-400 to-blue-700 text-white py-3 px-6 rounded-md text-sm hover:opacity-90 transition"
             >
               Conócenos Más
-            </Link>
+            </a>
           </div>
         </div>
       </div>
