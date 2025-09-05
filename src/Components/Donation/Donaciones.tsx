@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from '@tanstack/react-router';
+
 
 const Donaciones: React.FC = () => {
   return (
@@ -38,11 +38,11 @@ const Donaciones: React.FC = () => {
                 <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
                 <p className="text-sm text-gray-600 mb-4">{item.description}</p>
               </div>
-              <Link
-                to="/donaciones/formulario"
+              <a
+                href="/donaciones/formulario"
                 className=" mt-auto bg-orange-500 text-white py-2 px-4 rounded-2xl hover:bg-orange-600 transition">
                 Quiero donar
-              </Link>
+              </a>
             </div>
           </div>
         ))}
