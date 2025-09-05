@@ -4,6 +4,19 @@ import { getAuthHeader } from '../../Utils/auth';
 import { API_BASE_URL } from '../../Utils/config';
 import { Users, Plus, Edit, Trash2, Shield, Search } from 'lucide-react';
 
+// Validation function for admin user data
+const validateAdminInput = (username: string, password: string): string | null => {
+  // Validar que el nombre de usuario solo contenga letras y tenga máximo 15 caracteres
+  if (!/^[A-Za-z]{1,15}$/.test(username)) {
+    return 'El usuario solo debe contener letras y máximo 15 caracteres.';
+  }
+  // Validar que la contraseña tenga mínimo 6 caracteres y máximo 20 caracteres y solo letras y números
+  if (!/^[A-Za-z0-9]{6,20}$/.test(password)) {
+    return 'La contraseña debe tener mínimo 6 caracteres y máximo 20 caracteres y solo letras y números.';
+  }
+  return null;
+};
+
 interface Admin {
   id: number;
   username: string;
@@ -54,6 +67,14 @@ const UserManagement = () => {
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validaciones personalizadas
+    const validationError = validateAdminInput(formData.username, formData.password);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    
     try {
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
