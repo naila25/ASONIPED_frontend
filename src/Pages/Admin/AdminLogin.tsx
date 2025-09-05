@@ -2,6 +2,31 @@ import { useState } from 'react';
 import { login } from '../../Utils/auth';
 import { getAPIBaseURL } from '../../Utils/config';
 
+// Validation function for user data
+const validateUserInput = (username: string, email: string, fullName: string, phone: string, password: string): string | null => {
+  
+  if (!/^[A-Za-z]{1,15}$/.test(username)) {
+    return 'El usuario solo debe contener letras y máximo 15 caracteres.';
+  }
+  
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return 'Debe ingresar un correo electrónico válido.';
+  }
+ 
+  if (!/^([A-Za-zÁÉÍÓÚáéíóúÑñ]+(\s+|$)){2,}$/.test(fullName.trim())) {
+    return 'Debe ingresar un nombre completo válido (al menos dos palabras).';
+  }
+
+  if (!/^[0-9]{8}$/.test(phone)) {
+    return 'El teléfono debe tener exactamente 8 dígitos.';
+  }
+ 
+  if (!/^[A-Za-z0-9]{6,20}$/.test(password)) {
+    return 'La contraseña debe tener mínimo 6 caracteres y máximo 20 caracteres y solo letras y números.';
+  }
+  return null;
+};
+
 const AdminLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
@@ -67,6 +92,15 @@ const AdminLogin = () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    
+    
+    const validationError = validateUserInput(username, email, fullName, phone, password);
+    if (validationError) {
+      setError(validationError);
+      setLoading(false);
+      return;
+    }
+    
     try {
       const base = await getAPIBaseURL();
       const response = await fetch(`${base}/users/register`, {
@@ -282,9 +316,16 @@ const AdminLogin = () => {
                 <div>
                   <input
                     type="tel"
-                    placeholder="Teléfono"
+                    placeholder="Teléfono (8 dígitos)"
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    onChange={e => {
+                      const value = e.target.value;
+                      // Only allow numbers and limit to 8 digits
+                      if (/^\d{0,8}$/.test(value)) {
+                        setPhone(value);
+                      }
+                    }}
+                    maxLength={8}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                   />
                 </div>
