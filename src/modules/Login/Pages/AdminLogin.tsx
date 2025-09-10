@@ -60,6 +60,7 @@ const AdminLogin = () => {
 
              const data = await response.json();
        login(data.token);
+       localStorage.setItem('username', data.user.username);
        
                // Determinar a dónde redirigir basado en los roles del usuario
         const isAdmin = data.user.roles.some((role: { name?: string } | string) => 
