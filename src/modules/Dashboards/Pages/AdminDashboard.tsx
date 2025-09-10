@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, Outlet } from "@tanstack/react-router";
 import {
   Home,
   Users,
-  //DollarSign,
   Calendar,
   FileText,
   GraduationCap,
@@ -19,23 +18,33 @@ const navLinks = [
   { to: "/admin", label: "Dashboard", icon: Home },
   { to: "/admin/expedientes", label: "Expedientes", icon: FileText },
   { to: "/admin/volunteers", label: "Voluntarios", icon: Users },
-  //{ to: "/admin/donations", label: "Donaciones", icon: DollarSign },
   { to: "/admin/tickets", label: "Tickets", icon: MessageSquare },
   { to: "/admin/events-news", label: "Eventos", icon: Calendar },
   { to: "/admin/attendance", label: "Asistencia", icon: TrendingUp },
   { to: "/admin/workshop-forms", label: "Talleres", icon: GraduationCap },
   { to: "/admin/users", label: "Gestión de Usuarios", icon: Settings },
-  // Add more as needed
 ];
 
 export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifications] = useState(0); // Mock notifications count
+  const [notifications] = useState(0);
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("username");
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 w-60 bg-white shadow-lg transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-200 ease-in-out md:relative md:translate-x-0 md:w-64`}>
+      <div
+        className={`fixed inset-y-0 left-0 z-30 w-60 bg-white shadow-lg transform ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } transition-transform duration-200 ease-in-out md:relative md:translate-x-0 md:w-64`}
+      >
         <div className="p-6">
           {/* Header */}
           <div className="mb-8">
@@ -50,7 +59,7 @@ export default function AdminDashboard() {
 
           {/* Navigation */}
           <nav className="flex flex-col gap-2">
-            {navLinks.map(link => {
+            {navLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <Link
@@ -87,15 +96,27 @@ export default function AdminDashboard() {
                 className="text-gray-600 hover:text-gray-900"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
             </div>
 
             {/* Page title */}
             <div className="hidden md:block">
-              <h1 className="text-xl font-semibold text-gray-800">Panel de Administración</h1>
+              <h1 className="text-xl font-semibold text-gray-800">
+                Panel de Administración
+              </h1>
             </div>
 
             {/* Right side - Notifications and User */}
@@ -116,7 +137,7 @@ export default function AdminDashboard() {
                   <User className="w-4 h-4 text-white" />
                 </div>
                 <span className="hidden md:block text-sm font-medium text-gray-700">
-                  Administrador
+                  {username ? username : "Administrador"}
                 </span>
               </div>
             </div>
