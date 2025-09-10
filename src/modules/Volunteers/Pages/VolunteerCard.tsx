@@ -1,6 +1,8 @@
 import quienessomos from "../../../assets/quienessomos.png";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import VolunteerModal from '../Components/VolunteerModal';
+import { fetchVolunteerOptions } from '../Services/fetchVolunteers';
+import type { VolunteerOption } from '../Types/volunteer';
 
 interface VolunteerCardProps {
   id: string;
@@ -21,8 +23,70 @@ const VolunteerCard = ({
 }: VolunteerCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  return (
+    <>
+      <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <img
+          src={imageUrl}
+          alt={title}
+          className="w-full h-48 object-cover rounded-t-lg"
+        />
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-2">{title}</h3>
+          <p className="text-gray-600 text-sm mb-4 line-clamp-2">{description}</p>
+          <div className="flex items-center text-sm text-gray-500 mb-4">
+            <span className="mr-4">{date}</span>
+            <span>{location}</span>
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="text-white w-full bg-gradient-to-r from-orange-400 to-orange-700 py-2 rounded hover:bg-orange-600 transition-colors hover:opacity-90"
+          >
+            Ver más
+          </button>
+        </div>
+      </div>
+
+      <VolunteerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        volunteer={{
+          id,
+          title,
+          description,
+          imageUrl,
+          date,
+          location,
+        }}
+      />
+    </>
+  );
+};
 
 const Voluntariados = () => {
+  const [volunteers, setVolunteers] = useState<VolunteerOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch volunteer options from backend
+  useEffect(() => {
+    const loadVolunteers = async () => {
+      try {
+        setLoading(true);
+        const options = await fetchVolunteerOptions();
+        setVolunteers(Array.isArray(options) ? options : []);
+        setError(null);
+      } catch (err) {
+        setError('Error al cargar las oportunidades de voluntariado');
+        setVolunteers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadVolunteers();
+  }, []);
+
   return (
     <div className="w-full">
       {/* Hero con imagen de fondo */}
@@ -58,41 +122,28 @@ const Voluntariados = () => {
           Áreas de voluntariado en ASONIPED
         </h2>
 
-              <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-        <img
-          src={imageUrl}
-          alt={title}
-          className="w-full h-48 object-cover rounded-t-lg"
-        />
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-2">{title}</h3>
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">{description}</p>
-          <div className="flex items-center text-sm text-gray-500 mb-4">
-            <span className="mr-4">{date}</span>
-            <span>{location}</span>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando oportunidades de voluntariado...</p>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className=" text-white w-full bg-gradient-to-r from-orange-400 to-orange-700 py-2 rounded hover:bg-orange-600 transition-colors hover:opacity-90 "
-          >
-            Ver más
-          </button>
-        </div>
-      </div>
-
-      <VolunteerModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        volunteer={{
-          id,
-          title,
-          description,
-          imageUrl,
-          date,
-          location,
-        }}
-      />
-    
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 text-lg">{error}</p>
+          </div>
+        ) : volunteers.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">
+              No hay oportunidades de voluntariado disponibles en este momento.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {volunteers.map((volunteer) => (
+              <VolunteerCard key={volunteer.id} {...volunteer} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Bloque final con formulario */}
@@ -151,8 +202,6 @@ const Voluntariados = () => {
       </div>
     </div>
   );
-
 };
-
 
 export default Voluntariados;
