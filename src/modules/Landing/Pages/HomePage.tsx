@@ -1,7 +1,7 @@
 import HeroSection from "../Components/HeroSection";
 import AboutSection from "../Components/AboutSection";
 //import Testimonials from "../Components/Testimonials";
-//import VolunteersSection from "../src/Components/Volunteers/VolunteersSection";
+import VolunteersSection from "../../Volunteers/Components/VolunteersSection";
 import Donaciones from "../../Donation/Components/Donaciones";
 //import PublicWorkshopsPage from "./Pages/Workshops/PublicWorkshopsPage";
 //import EventsNews from "../../EventsNews/Components/EventsNews";
@@ -15,13 +15,11 @@ const Home = () => {
       <div className="space-y-8 pt-10">
         <AboutSection />
         <Donaciones /> {/*Prioridad a Donaciones por el Sprint 0 */}
-        {/*<VolunteersSection />*/}
+        <VolunteersSection />
         {/*<PublicWorkshopsPage />*/} {/*Taller de voluntariado, por ahora no se implementa*/}
         {/*<EventsNews />*/}
         {/*<Testimonials />*/}
-        
         <HistoriasdeVida /> 
-        
         <LocationMap />
       </div>
     </div>

@@ -41,7 +41,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
       });
     }
   }, [record, isAdmin]);
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string | boolean) => {
     switch (status) {
       case 'entregado':
       case true:
@@ -56,7 +56,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | boolean) => {
     switch (status) {
       case 'entregado':
       case true:
@@ -193,24 +193,53 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Nombre de la Madre</label>
-              <p className="text-sm text-gray-900">{record.personal_data.mother_name}</p>
+              <p className="text-sm text-gray-900">{record.personal_data.mother_name || 'No disponible'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Cédula de la Madre</label>
-              <p className="text-sm text-gray-900 font-mono">{record.personal_data.mother_cedula}</p>
+              <p className="text-sm text-gray-900 font-mono">{record.personal_data.mother_cedula || 'No disponible'}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Teléfono de la Madre</label>
+              <p className="text-sm text-gray-900">{record.personal_data.mother_phone || 'No disponible'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Nombre del Padre</label>
-              <p className="text-sm text-gray-900">{record.personal_data.father_name}</p>
+              <p className="text-sm text-gray-900">{record.personal_data.father_name || 'No disponible'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Cédula del Padre</label>
-              <p className="text-sm text-gray-900 font-mono">{record.personal_data.father_cedula}</p>
+              <p className="text-sm text-gray-900 font-mono">{record.personal_data.father_cedula || 'No disponible'}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Teléfono del Padre</label>
+              <p className="text-sm text-gray-900">{record.personal_data.father_phone || 'No disponible'}</p>
             </div>
           </div>
         ) : (
           <div className="text-center py-4 text-gray-500">
             <p>No hay información familiar disponible</p>
+          </div>
+        )}
+
+        {/* Legal Guardian Information */}
+        {record.personal_data?.legal_guardian_name && (
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="text-md font-medium text-blue-900 mb-3">Información del Encargado Legal</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nombre del Encargado Legal</label>
+                <p className="text-sm text-gray-900">{record.personal_data.legal_guardian_name}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Cédula del Encargado Legal</label>
+                <p className="text-sm text-gray-900 font-mono">{record.personal_data.legal_guardian_cedula || 'No disponible'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Teléfono del Encargado Legal</label>
+                <p className="text-sm text-gray-900">{record.personal_data.legal_guardian_phone || 'No disponible'}</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -688,7 +717,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
               <div>
                 <span className="text-gray-600">Teléfono:</span>
                 <span className="ml-2 text-gray-900">
-                  {record.personal_data?.primary_phone || 'No disponible'}
+                  {record.personal_data?.phone || 'No disponible'}
                 </span>
               </div>
               <div>

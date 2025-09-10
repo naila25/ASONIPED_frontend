@@ -70,7 +70,7 @@ const AdminLogin = () => {
         if (isAdmin) {
           window.location.href = '/admin';
         } else {
-          window.location.href = '/user';
+          window.location.href = '/';
         }
     } catch {
       setError('Error de red o servidor. Verificando conexión automáticamente...');

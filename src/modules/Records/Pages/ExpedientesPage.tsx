@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { getUserRecord, createInitialRecord, completeRecord } from '../Services/recordsApi';
+import { getUserRecord, createInitialRecord, completeRecord, updatePhase1Data } from '../Services/recordsApi';
 import type { RecordWithDetails, Phase1Data, Phase3Data } from '../Types/records';
 import {
   ProgressIndicator,
@@ -42,8 +42,15 @@ const ExpedientesPage: React.FC = () => {
   const handlePhase1Submit = async (data: Phase1Data) => {
     try {
       setSubmitting(true);
-      await createInitialRecord(data);
-      // Recargar el expediente completo después de crearlo
+      
+      // Check if this is a modification (record exists and status is needs_modification)
+      if (record && record.status === 'needs_modification') {
+        await updatePhase1Data(record.id, data);
+      } else {
+        await createInitialRecord(data);
+      }
+      
+      // Recargar el expediente completo después de crearlo/actualizarlo
       await loadUserRecord();
       setError(null);
     } catch (err) {
@@ -196,6 +203,57 @@ const ExpedientesPage: React.FC = () => {
               <div>
                 <h3 className="font-medium text-blue-900">Solicitud en Revisión</h3>
                 <p className="text-blue-800 text-sm">Su solicitud inicial está siendo revisada por el administrador. Recibirá una notificación cuando sea aprobada.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {record.phase === 'phase1' && record.status === 'needs_modification' && (
+          <div className="mt-6">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle className="w-6 h-6 text-orange-600" />
+                <div>
+                  <h3 className="text-lg font-medium text-orange-900">Modificación Requerida</h3>
+                  <p className="text-orange-800 text-sm">El administrador ha solicitado modificaciones en su expediente. Por favor, revise y actualice la información según se solicite.</p>
+                </div>
+              </div>
+              
+              {/* Show admin's comment if available */}
+              <div className="mt-4 mb-6">
+                <h4 className="text-sm font-medium text-orange-900 mb-2">Comentario del Administrador:</h4>
+                <div className="bg-white border border-orange-200 rounded-lg p-4">
+                  {record.notes && record.notes.length > 0 ? (
+                    record.notes
+                      .filter(note => note.type === 'activity' && note.note?.includes('Modification requested'))
+                      .map((note, index) => (
+                        <div key={index} className="text-sm text-gray-700">
+                          <p className="font-medium text-gray-900 mb-1">
+                            {note.note?.includes('Modification requested by admin: ') 
+                              ? note.note.replace('Modification requested by admin: ', '')
+                              : note.note?.includes('Modification requested by admin')
+                              ? 'El administrador ha solicitado modificaciones en su expediente.'
+                              : note.note || 'Sin comentario específico'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {note.created_at ? new Date(note.created_at).toLocaleDateString() : 'Sin fecha'}
+                          </p>
+                        </div>
+                      ))
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">No hay comentarios del administrador disponibles.</p>
+                  )}
+                  
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <Phase1Form 
+                  onSubmit={handlePhase1Submit} 
+                  submitting={submitting}
+                  currentRecord={record}
+                  isModification={true}
+                />
               </div>
             </div>
           </div>

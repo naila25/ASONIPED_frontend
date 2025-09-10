@@ -321,6 +321,48 @@ export const rejectPhase1 = async (recordId: number, comment: string): Promise<v
   }
 };
 
+// Solicitar modificación de fase 1
+export const requestPhase1Modification = async (recordId: number, comment?: string): Promise<void> => {
+  try {
+    const response = await fetch(`${API_URL}/${recordId}/request-modification`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ comment }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error solicitando modificación');
+    }
+  } catch (error) {
+    console.error('Error requesting modification:', error);
+    throw error;
+  }
+};
+
+// Update phase 1 data (for modifications)
+export const updatePhase1Data = async (recordId: number, personalData: any): Promise<void> => {
+  try {
+    const response = await fetch(`${API_URL}/${recordId}/update-phase1`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(personalData),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error actualizando datos');
+    }
+  } catch (error) {
+    console.error('Error updating phase 1 data:', error);
+    throw error;
+  }
+};
+
 // Aprobar expediente completo
 export const approveRecord = async (recordId: number, comment?: string): Promise<void> => {
   try {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash } from 'lucide-react';
-import {getRecords, getRecordStats, approvePhase1, rejectPhase1, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote } from '../Services/recordsApi';
+import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote } from '../Services/recordsApi';
 import type { Record, RecordStats, RecordWithDetails } from '../Types/records';
 import Phase3Details from './Phase3Details';
 import Phase4Details from './Phase4Details';
@@ -27,11 +27,6 @@ const ExpedientesAdminPage: React.FC = () => {
   const [noteLoading, setNoteLoading] = useState<number | null>(null);
   const [deletingRecordId, setDeletingRecordId] = useState<number | null>(null);
 
-  // ===== EFFECTS =====
-  useEffect(() => {
-    loadData();
-  }, [currentPage, searchTerm, statusFilter, phaseFilter]);
-
   // ===== DATA LOADING =====
   const loadData = useCallback(async () => {
     try {
@@ -51,6 +46,11 @@ const ExpedientesAdminPage: React.FC = () => {
       setLoading(false);
     }
   }, [currentPage, statusFilter, phaseFilter, searchTerm]);
+
+  // ===== EFFECTS =====
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // ===== ROW EXPANSION =====
   const toggleRowExpansion = async (recordId: number) => {
@@ -84,6 +84,9 @@ const ExpedientesAdminPage: React.FC = () => {
           break;
         case 'reject-phase1':
           await rejectPhase1(recordId, comment);
+          break;
+        case 'request-modification':
+          await requestPhase1Modification(recordId, comment);
           break;
         case 'approve-record':
           await approveRecord(recordId, comment);
@@ -214,6 +217,8 @@ const ExpedientesAdminPage: React.FC = () => {
         return { color: 'gray', icon: Clock, text: 'Borrador' };
       case 'pending':
         return { color: 'yellow', icon: Clock, text: 'Pendiente' };
+      case 'needs_modification':
+        return { color: 'orange', icon: Edit3, text: 'Necesita Modificación' };
       case 'approved':
         return { color: 'green', icon: CheckCircle, text: 'Aprobado' };
       case 'rejected':
@@ -303,6 +308,14 @@ const ExpedientesAdminPage: React.FC = () => {
               title="Aprobar Fase 1"
             >
               <CheckCircle className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => initiateAction('request-modification', record.id)}
+              disabled={actionLoading === 'request-modification'}
+              className="text-yellow-600 hover:text-yellow-900 transition-colors p-1 rounded hover:bg-yellow-50 disabled:opacity-50"
+              title="Solicitar Modificación"
+            >
+              <Edit3 className="w-4 h-4" />
             </button>
             <button
               onClick={() => initiateAction('reject-phase1', record.id)}
@@ -404,8 +417,16 @@ const ExpedientesAdminPage: React.FC = () => {
                           <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.province}</p>
                         </div>
                         <div>
+                          <label className="block text-sm font-medium text-gray-700">Cantón</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.canton || 'No disponible'}</p>
+                        </div>
+                        <div>
                           <label className="block text-sm font-medium text-gray-700">Distrito</label>
                           <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.district}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Teléfono</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.phone || 'No disponible'}</p>
                         </div>
                       </div>
                     </div>
@@ -425,14 +446,43 @@ const ExpedientesAdminPage: React.FC = () => {
                         <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.pcd_name}</p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Información de Padres</label>
+                        <label className="block text-sm font-medium text-gray-700">Información Familiar</label>
                         <div className="space-y-2">
-                          <p className="text-sm text-gray-900">
-                            <span className="font-medium">Madre:</span> {selectedRecord.personal_data.mother_name} (Cédula: {selectedRecord.personal_data.mother_cedula})
-                          </p>
-                          <p className="text-sm text-gray-900">
-                            <span className="font-medium">Padre:</span> {selectedRecord.personal_data.father_name} (Cédula: {selectedRecord.personal_data.father_cedula})
-                          </p>
+                          {/* Show parents only if at least one exists */}
+                          {(selectedRecord.personal_data.mother_name || selectedRecord.personal_data.father_name) && (
+                            <>
+                              {selectedRecord.personal_data.mother_name && (
+                                <p className="text-sm text-gray-900">
+                                  <span className="font-medium">Madre:</span> {selectedRecord.personal_data.mother_name}
+                                  {selectedRecord.personal_data.mother_cedula && ` (Cédula: ${selectedRecord.personal_data.mother_cedula})`}
+                                  {selectedRecord.personal_data.mother_phone && ` - Tel: ${selectedRecord.personal_data.mother_phone}`}
+                                </p>
+                              )}
+                              {selectedRecord.personal_data.father_name && (
+                                <p className="text-sm text-gray-900">
+                                  <span className="font-medium">Padre:</span> {selectedRecord.personal_data.father_name}
+                                  {selectedRecord.personal_data.father_cedula && ` (Cédula: ${selectedRecord.personal_data.father_cedula})`}
+                                  {selectedRecord.personal_data.father_phone && ` - Tel: ${selectedRecord.personal_data.father_phone}`}
+                                </p>
+                              )}
+                            </>
+                          )}
+                          
+                          {/* Show legal guardian if no parents or if explicitly provided */}
+                          {selectedRecord.personal_data.legal_guardian_name && (
+                            <p className="text-sm text-gray-900">
+                              <span className="font-medium">Encargado Legal:</span> {selectedRecord.personal_data.legal_guardian_name}
+                              {selectedRecord.personal_data.legal_guardian_cedula && ` (Cédula: ${selectedRecord.personal_data.legal_guardian_cedula})`}
+                              {selectedRecord.personal_data.legal_guardian_phone && ` - Tel: ${selectedRecord.personal_data.legal_guardian_phone}`}
+                            </p>
+                          )}
+                          
+                          {/* Show message if no family information */}
+                          {!selectedRecord.personal_data.mother_name && 
+                           !selectedRecord.personal_data.father_name && 
+                           !selectedRecord.personal_data.legal_guardian_name && (
+                            <p className="text-sm text-gray-500 italic">No hay información familiar disponible</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -549,6 +599,13 @@ const ExpedientesAdminPage: React.FC = () => {
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
                     Aprobar Fase 1
+                  </button>
+                  <button
+                    onClick={() => initiateAction('request-modification', selectedRecord.id)}
+                    className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
+                  >
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Solicitar Modificación
                   </button>
                   <button
                     onClick={() => initiateAction('reject-phase1', selectedRecord.id)}
@@ -847,12 +904,15 @@ const ExpedientesAdminPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               {pendingAction === 'approve-phase1' ? 'Aprobar Fase 1' :
                pendingAction === 'reject-phase1' ? 'Rechazar Fase 1' :
+               pendingAction === 'request-modification' ? 'Solicitar Modificación' :
                pendingAction === 'approve-record' ? 'Aprobar Expediente Completo' :
                'Rechazar Expediente Completo'}
             </h3>
             <p className="text-gray-600 mb-4">
               {pendingAction.includes('approve') ?
                 '¿Está seguro de que desea aprobar este expediente?' :
+                pendingAction === 'request-modification' ?
+                '¿Está seguro de que desea solicitar modificación de este expediente?' :
                 '¿Está seguro de que desea rechazar este expediente?'}
             </p>
             <textarea
@@ -878,11 +938,15 @@ const ExpedientesAdminPage: React.FC = () => {
                 onClick={() => handleAction(selectedRecord.id, pendingAction)}
                 disabled={actionLoading === pendingAction}
                 className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
-                  pendingAction.includes('approve') ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                  pendingAction.includes('approve') ? 'bg-green-500 hover:bg-green-600' :
+                  pendingAction === 'request-modification' ? 'bg-yellow-500 hover:bg-yellow-600' :
+                  'bg-red-500 hover:bg-red-600'
                 }`}
               >
                 {actionLoading === pendingAction ? 'Procesando...' :
-                 pendingAction.includes('approve') ? 'Aprobar' : 'Rechazar'}
+                 pendingAction.includes('approve') ? 'Aprobar' :
+                 pendingAction === 'request-modification' ? 'Solicitar Modificación' :
+                 'Rechazar'}
               </button>
             </div>
           </div>
