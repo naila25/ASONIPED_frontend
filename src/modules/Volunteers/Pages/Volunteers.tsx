@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchVolunteerOptions } from '../Services/fetchVolunteers';
-import VolunteerCard from '../Components/VolunteerCard';
+import VolunteerCard from './VolunteerCard';
 import type  { VolunteerOption } from '../Types/volunteer';
 
 // Page to display all available volunteer opportunities
