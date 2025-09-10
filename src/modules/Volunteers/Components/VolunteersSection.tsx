@@ -1,5 +1,6 @@
 import asoPrin from "../../../assets/profile-pictures/asoPrin.jpg" 
 
+
 const VoluntariadoSection = () => {
   return (
     <section
@@ -35,7 +36,7 @@ const VoluntariadoSection = () => {
 
         {/* Botón */}
         <a
-          href="/volnteerCard" 
+          href="/VolunteerCard" 
           aria-label="Ir a la página con más información sobre voluntariado en ASONIPED"
         >
           <button 
