@@ -7,7 +7,7 @@ const Donaciones: React.FC = () => {
         <h2 className= "text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mt-40 mb-5">
            ¿Por qué ayudar a ASONIPED? 
         </h2>
-      <p className="text-neutral-600 max-w-3xl mx-auto text-center text-lg mb-12">
+      <p className="text-neutral-700 max-w-3xl mx-auto text-center text-lg mb-12">
         Las donaciones a ASONIPED permiten ofrecer paseos recreativos a los niños, renovar el mobiliario como pupitres
         y mantener en buen estado las instalaciones de la organización. Cada aporte suma a mejorar su calidad de vida.
       </p>
