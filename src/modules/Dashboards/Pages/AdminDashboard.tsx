@@ -23,6 +23,7 @@ const navLinks = [
   { to: "/admin/attendance", label: "Asistencia", icon: TrendingUp },
   { to: "/admin/workshop-forms", label: "Talleres", icon: GraduationCap },
   { to: "/admin/users", label: "Gestión de Usuarios", icon: Settings },
+  { to: "/admin/landing", label: "Gestión del Landing", icon: Settings},
 ];
 
 export default function AdminDashboard() {
@@ -87,6 +88,9 @@ export default function AdminDashboard() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col ml-0 md:ml-0 transition-all">
+        <div>
+          
+    </div>
         {/* Top bar */}
         <div className="bg-white shadow-sm border-b border-gray-300">
           <div className="flex items-center justify-between p-4">
