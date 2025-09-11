@@ -20,7 +20,7 @@ const AboutSection = () => {
 
         {/* Contenido */}
         <div className="w-full lg:w-1/2 p-4 space-y-6">
-          <p className="text-neutral-600 text-lg leading-relaxed text-center lg:text-left py-2 tracking-wide">
+          <p className="text-neutral-700 text-lg leading-relaxed text-center lg:text-left py-2 tracking-wide">
             Desde 1989, <span className="font-semibold text-orange-600">ASONIPED</span> ha trabajado para transformar la vida de personas con discapacidad en la región de Nicoya. 
             Lo que comenzó como un pequeño grupo de apoyo familiar, hoy es una asociación consolidada que impulsa programas 
             educativos, sociales y recreativos para promover la inclusión y el desarrollo integral.

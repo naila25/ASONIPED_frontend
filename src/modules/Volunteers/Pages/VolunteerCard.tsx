@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import VolunteerModal from "../Components/VolunteerModal";
 import { fetchVolunteerOptions } from "../Services/fetchVolunteers";
 import type { VolunteerOption } from "../Types/volunteer";
+import { FaRegCalendarAlt } from "react-icons/fa";
+import { MdLocationOn } from "react-icons/md";
 
 interface VolunteerCardProps {
   id: string;
@@ -34,19 +36,28 @@ const VolunteerCard = ({
         />
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-2">{title}</h3>
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+          <p className="text-gray-700 text-sm mb-4 line-clamp-2">
             {description}
           </p>
-          <div className="flex items-center text-sm text-gray-500 mb-4">
-            <span className="mr-4">{date}</span>
-            <span>{location}</span>
+          <div className="flex flex-col text-sm text-gray-500 mb-4">
+            <span className=" flex items-center mb-2">
+              <FaRegCalendarAlt className="w-4 h-4 mr-1 text-gray-700" />
+              {date}
+              </span>
+            <span className="flex items-center">
+               <MdLocationOn className="w-4 h-4 mr-1 text-gray-700" />
+              {location}
+              </span>
           </div>
+
+          <div className="flex justify-center items-center">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="text-white w-full bg-gradient-to-r from-orange-400 to-orange-700 py-2 rounded hover:bg-orange-600 transition-colors hover:opacity-90"
+            className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
           >
             Ver más
           </button>
+          </div>
         </div>
       </div>
 
@@ -121,7 +132,7 @@ const Voluntariados = () => {
 
       {/* Áreas de voluntariado */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        <h2 className="text-orange-600 text-4xl text-center font-semibold mb-20">
+        <h2 className="text-orange-600 text-4xl text-center font-semibold mb-15">
           Áreas de voluntariado en ASONIPED
         </h2>
 

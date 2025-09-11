@@ -41,7 +41,7 @@ const HistoriasdeVida = () => {
       </h2>
 
       {/* Subtítulo */}
-      <p className="text-gray-600 mb-12 max-w-3xl mx-auto">
+      <p className="text-neutral-700 mb-12 max-w-3xl mx-auto">
         “Descubre cómo la voz de quienes forman parte de ASONIDEP refleja esperanza, inclusión y superación, a través de experiencias que inspiran y motivan a toda nuestra comunidad.”
       </p>
 

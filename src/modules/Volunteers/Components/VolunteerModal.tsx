@@ -48,10 +48,10 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                     {!showRegistrationForm ? (
                         <div>
                             <div className="flex justify-between items-start mb-4">
-                                <h2 className="text-xl font-semibold text-gray-900">{volunteer.title}</h2>
+                                <h2 className="text-lg font-semibold mb-2">{volunteer.title}</h2>
                                 <button
                                     onClick={onClose}
-                                    className="text-gray-500 hover:text-gray-700"
+                                    className="text-gray-700 hover:text-gray-800"
                                 >
                                     ✕
                                 </button>
@@ -62,21 +62,24 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                                     alt={volunteer.title}
                                     className="w-full h-48 object-cover rounded"
                                 />
-                                <p className="text-gray-700">{volunteer.description}</p>
+                                <p className="text-neutral-700">{volunteer.description}</p>
                                 <div className="flex gap-4 text-sm text-gray-600">
                                     <div>
-                                        <span className="font-medium text-gray-900">Fecha:</span> {volunteer.date}
+                                        <span className="font-medium text-gray-900 ">Fecha:</span> {volunteer.date}
                                     </div>
                                     <div>
                                         <span className="font-medium text-gray-900">Ubicación:</span> {volunteer.location}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setShowRegistrationForm(true)}
-                                    className="w-full bg-gradient-to-r text-white from-orange-400 to-orange-700 py-3 px-6 rounded-mdtext-sm hover:opacity-80 transition"
-                                >
-                                    Registrarse como Voluntario
-                                </button>
+                                <div className="flex justify-center items-center">
+                                 <button
+                                   onClick={() => setShowRegistrationForm(true)}
+                                   className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
+                                    >
+                                   Registrarse como Voluntario
+                                 </button>
+                                </div>
+
                             </div>
                         </div>
                     ) : (
