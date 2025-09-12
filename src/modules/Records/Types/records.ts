@@ -14,14 +14,18 @@ export interface PersonalData {
   canton?: string;
   district: string;
   phone?: string;
+  email?: string;
   mother_name?: string;
   mother_cedula?: string;
+  mother_occupation?: string;
   mother_phone?: string;
   father_name?: string;
   father_cedula?: string;
+  father_occupation?: string;
   father_phone?: string;
   legal_guardian_name?: string;
   legal_guardian_cedula?: string;
+  legal_guardian_occupation?: string;
   legal_guardian_phone?: string;
   created_at?: string;
   updated_at?: string;
@@ -40,12 +44,12 @@ export interface CompletePersonalData {
   birth_date: string;
   age?: number; // Calculado automáticamente
   birth_place: string;
-  nationality: string;
   exact_address: string;
   province: string;
+  canton?: string; // Added canton field
   district: string;
   primary_phone: string;
-  secondary_phone: string;
+  secondary_phone?: string;
   email: string;
   created_at?: string;
   updated_at?: string;
@@ -65,6 +69,8 @@ export interface FamilyInformation {
   father_phone: string;
   responsible_person?: string;
   responsible_address?: string;
+  responsible_cedula?: string;
+  responsible_occupation?: string;
   responsible_phone?: string;
   family_members: FamilyMember[];
   created_at?: string;
@@ -88,11 +94,9 @@ export interface DisabilityInformation {
   disability_type: 'fisica' | 'visual' | 'auditiva' | 'psicosocial' | 'cognitiva' | 'intelectual' | 'multiple';
   medical_diagnosis: string;
   insurance_type: 'rnc' | 'independiente' | 'privado' | 'otro';
-  biomechanical_benefit: BiomechanicalBenefit[];
   disability_origin: 'nacimiento' | 'accidente' | 'enfermedad';
   disability_certificate: 'si' | 'no' | 'en_tramite';
   conapdis_registration: 'si' | 'no' | 'en_tramite';
-  permanent_limitations: PermanentLimitation[];
   medical_additional: MedicalAdditionalInfo;
   created_at?: string;
   updated_at?: string;
@@ -117,8 +121,10 @@ export interface MedicalAdditionalInfo {
   id?: number;
   disability_info_id?: number;
   diseases: string;
-  blood_type: string;
-  medical_observations: string;
+  blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  biomechanical_benefit: BiomechanicalBenefit[];
+  permanent_limitations: PermanentLimitation[];
+  medical_observations?: string;
 }
 
 // Información socioeconómica actualizada
@@ -127,7 +133,7 @@ export interface SocioeconomicInformation {
   record_id?: number;
   housing_type: 'casa_propia' | 'alquilada' | 'prestada';
   available_services: AvailableService[];
-  family_income: 'menos_200k' | '200k_400k' | '400k_600k' | '600k_800k' | '800k_1m' | '1m_1.3m' | 'mas_1.3m';
+  family_income: 'menos_200k' | '200k_400k' | '400k_600k' | '600k_800k' | '800k_1000k' | '1000k_1300k' | 'mas_1300k';
   working_family_members: WorkingFamilyMember[];
   created_at?: string;
   updated_at?: string;

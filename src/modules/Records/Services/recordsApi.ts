@@ -107,6 +107,11 @@ export const completeRecord = async (recordId: number, phase3Data: Phase3Data): 
     console.log('=== COMPLETANDO EXPEDIENTE ===');
     console.log('Record ID:', recordId);
     console.log('Phase3Data:', phase3Data);
+    console.log('Disability Information:', phase3Data.disability_information);
+    console.log('Medical Additional:', phase3Data.disability_information?.medical_additional);
+    console.log('Biomechanical Benefits:', phase3Data.disability_information?.medical_additional?.biomechanical_benefit);
+    console.log('Permanent Limitations:', phase3Data.disability_information?.medical_additional?.permanent_limitations);
+    console.log('Socioeconomic Information:', phase3Data.socioeconomic_information);
     
     const formData = new FormData();
     
@@ -121,50 +126,57 @@ export const completeRecord = async (recordId: number, phase3Data: Phase3Data): 
     }));
     
     // Agregar documentos con nombres de campo específicos
-    phase3Data.documents.forEach((file, index) => {
-      // Determinar el tipo de documento basado en el nombre del archivo
+    phase3Data.documents.forEach((file) => {
+      // Usar el tipo de documento proporcionado por el formulario
       let documentType = 'other';
       
-      // Mapeo inteligente basado en el nombre del archivo
-      const fileName = file.name.toLowerCase();
-      
-      // Patrones para identificar tipos de documentos
-      if (fileName.includes('dictamen') || fileName.includes('medico') || fileName.includes('diagnostico') || fileName.includes('diagnóstico')) {
-        documentType = 'dictamen_medico';
-      } else if (fileName.includes('nacimiento') || fileName.includes('birth') || fileName.includes('partida')) {
-        documentType = 'constancia_nacimiento';
-      } else if (fileName.includes('cedula') || fileName.includes('identificacion') || fileName.includes('identificación') || fileName.includes('dni') || fileName.includes('carnet')) {
-        documentType = 'copia_cedula';
-      } else if (fileName.includes('foto') || fileName.includes('photo') || fileName.includes('imagen') || fileName.includes('retrato')) {
-        documentType = 'foto_pasaporte';
-      } else if (fileName.includes('pension') || fileName.includes('ccss') || fileName.includes('pensión')) {
-        documentType = 'constancia_pension_ccss';
-      } else if (fileName.includes('estudio') || fileName.includes('study') || fileName.includes('academico') || fileName.includes('académico')) {
-        documentType = 'constancia_estudio';
-      } else if (fileName.includes('socioeconomica') || fileName.includes('socioeconómica') || fileName.includes('beca') || fileName.includes('solicitud')) {
-        documentType = 'cuenta_banco_nacional'; // O crear un nuevo tipo específico
-      }
-      
-      // Si no se pudo mapear, intentar con el formato anterior
-      if (documentType === 'other') {
-        const fileNameParts = file.name.split('_');
-        if (fileNameParts.length > 0) {
-          const extractedType = fileNameParts[0];
-          const typeMapping: { [key: string]: string } = {
-            'dictamen_medico': 'dictamen_medico',
-            'constancia_nacimiento': 'constancia_nacimiento',
-            'copia_cedula': 'copia_cedula',
-            'foto_pasaporte': 'foto_pasaporte',
-            'constancia_pension_ccss': 'constancia_pension_ccss',
-            'constancia_estudio': 'constancia_estudio',
-            'medical_diagnosis': 'dictamen_medico',
-            'birth_certificate': 'constancia_nacimiento',
-            'cedula': 'copia_cedula',
-            'photo': 'foto_pasaporte',
-            'pension_certificate': 'constancia_pension_ccss',
-            'study_certificate': 'constancia_estudio'
-          };
-          documentType = typeMapping[extractedType] || 'other';
+      // Si tenemos información de tipos de documentos del formulario, usarla
+      if ((phase3Data as any).documentTypes && (phase3Data as any).documentTypes[file.name]) {
+        documentType = (phase3Data as any).documentTypes[file.name];
+      } else {
+        // Fallback: mapeo inteligente basado en el nombre del archivo
+        const fileName = file.name.toLowerCase();
+        
+        // Patrones para identificar tipos de documentos
+        if (fileName.includes('dictamen') || fileName.includes('medico') || fileName.includes('diagnostico') || fileName.includes('diagnóstico')) {
+          documentType = 'dictamen_medico';
+        } else if (fileName.includes('nacimiento') || fileName.includes('birth') || fileName.includes('partida')) {
+          documentType = 'constancia_nacimiento';
+        } else if (fileName.includes('cedula') || fileName.includes('identificacion') || fileName.includes('identificación') || fileName.includes('dni') || fileName.includes('carnet')) {
+          documentType = 'copia_cedula';
+        } else if (fileName.includes('foto') || fileName.includes('photo') || fileName.includes('imagen') || fileName.includes('retrato')) {
+          documentType = 'foto_pasaporte';
+        } else if (fileName.includes('pension') || fileName.includes('ccss') || fileName.includes('pensión')) {
+          documentType = 'constancia_pension_ccss';
+        } else if (fileName.includes('pension_alimentaria') || fileName.includes('alimentaria') || fileName.includes('alimentario')) {
+          documentType = 'constancia_pension_alimentaria';
+        } else if (fileName.includes('estudio') || fileName.includes('study') || fileName.includes('academico') || fileName.includes('académico')) {
+          documentType = 'constancia_estudio';
+        } else if (fileName.includes('banco') || fileName.includes('cuenta') || fileName.includes('socioeconomica') || fileName.includes('socioeconómica') || fileName.includes('beca') || fileName.includes('solicitud')) {
+          documentType = 'cuenta_banco_nacional';
+        }
+        
+        // Si no se pudo mapear, intentar con el formato anterior
+        if (documentType === 'other') {
+          const fileNameParts = file.name.split('_');
+          if (fileNameParts.length > 0) {
+            const extractedType = fileNameParts[0];
+            const typeMapping: { [key: string]: string } = {
+              'dictamen_medico': 'dictamen_medico',
+              'constancia_nacimiento': 'constancia_nacimiento',
+              'copia_cedula': 'copia_cedula',
+              'foto_pasaporte': 'foto_pasaporte',
+              'constancia_pension_ccss': 'constancia_pension_ccss',
+              'constancia_estudio': 'constancia_estudio',
+              'medical_diagnosis': 'dictamen_medico',
+              'birth_certificate': 'constancia_nacimiento',
+              'cedula': 'copia_cedula',
+              'photo': 'foto_pasaporte',
+              'pension_certificate': 'constancia_pension_ccss',
+              'study_certificate': 'constancia_estudio'
+            };
+            documentType = typeMapping[extractedType] || 'other';
+          }
         }
       }
       

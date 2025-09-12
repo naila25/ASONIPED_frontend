@@ -402,7 +402,7 @@ const ExpedientesAdminPage: React.FC = () => {
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">Lugar de Nacimiento</label>
+                          <label className="block text-sm font-medium text-gray-700">Nacionalidad</label>
                           <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.birth_place}</p>
                         </div>
                         <div>
@@ -442,7 +442,7 @@ const ExpedientesAdminPage: React.FC = () => {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Nombre de la PCD</label>
+                        <label className="block text-sm font-medium text-gray-700">Tipo de Discapacidad</label>
                         <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.pcd_name}</p>
                       </div>
                       <div>

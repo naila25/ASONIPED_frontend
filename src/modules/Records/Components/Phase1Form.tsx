@@ -204,7 +204,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
         // Check if the canton exists in the loaded cantons
         const cantonExists = cantons.find(c => c.name === personalData.canton);
         if (cantonExists && form.canton !== personalData.canton) {
-          setForm(prev => ({ ...prev, canton: personalData.canton }));
+          setForm(prev => ({ ...prev, canton: personalData.canton || '' }));
         }
       }
       
@@ -216,7 +216,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
         }
       }
     }
-  }, [cantons, currentRecord, isModification]);
+  }, [cantons, currentRecord, isModification, form.canton]);
 
   // Update form values when districts are loaded (for pre-filling)
   useEffect(() => {
@@ -480,7 +480,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lugar de Nacimiento *
+              Nacionalidad
             </label>
             <input
               type="text"
@@ -597,32 +597,34 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
         {/* Parent/Guardian Information */}
         <div className="border-t pt-6">
           <div className="mb-4">
-            <h4 className="text-lg font-medium text-gray-900 mb-2">Información de Padres o Encargado Legal</h4>
+            <h4 className="text-lg font-medium text-gray-900 mb-2">Información de padres o encargado legal, al menos un uno es requerido</h4>
             <p className="text-sm text-gray-600 mb-4">
-              Seleccione si el beneficiario tiene padres o si necesita un encargado legal
+              Seleccione si el beneficiario tiene padres o un encargado legal
             </p>
             
-            <div className="flex gap-4 mb-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="hasParents"
-                  checked={hasParents}
-                  onChange={() => setHasParents(true)}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-700">Tiene padres</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="hasParents"
-                  checked={!hasParents}
-                  onChange={() => setHasParents(false)}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-700">Encargado legal</span>
-              </label>
+            <div className="flex bg-gray-100 rounded-lg p-1 w-fit">
+              <button
+                type="button"
+                onClick={() => setHasParents(true)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  hasParents
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Información de Padres
+              </button>
+              <button
+                type="button"
+                onClick={() => setHasParents(false)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  !hasParents
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Encargado Legal
+              </button>
             </div>
           </div>
 
