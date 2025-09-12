@@ -29,6 +29,7 @@ import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import VolunteerCard from '../../modules/Volunteers/Pages/VolunteerCard';
+import GestionLanding from '../../modules/Dashboards/GestionLanding';
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerOptionsPage'));
@@ -270,6 +271,12 @@ const adminWorkshopFormsRoute = createRoute({
   component: WorkshopForms,
 });
 
+const GestionLandingRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'landing',
+  component: GestionLanding,
+})
+
 // Route tree construction
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -298,7 +305,8 @@ const routeTree = rootRoute.addChildren([
       eventsNewsAdminRoute,
       adminWorkshopFormsRoute,
       userManagementRoute,
-      adminTicketsRoute
+      adminTicketsRoute,
+      GestionLandingRoute
     ]),
     userDashboardRoute.addChildren([
       userHomeRoute,

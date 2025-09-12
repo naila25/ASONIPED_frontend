@@ -11,8 +11,9 @@ import HistoriasdeVida from "../Components/HistoriasdeVida";
 const Home = () => {
   return (
     <>
+         <HeroSection />
       <div className="max-w-7xl mx-auto pt-10 px-6">
-        <HeroSection />
+        
 
         <div className="space-y-8 pt-10">
           <AboutSection />
