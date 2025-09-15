@@ -213,6 +213,12 @@ export const completeRecord = async (recordId: number, phase3Data: Phase3Data): 
     
     const data = await response.json();
     console.log('Expediente completado exitosamente:', data);
+    
+    // Log Google Drive integration info
+    if (data.uploadedFiles) {
+      console.log('Archivos subidos a Google Drive:', data.uploadedFiles);
+    }
+    
     return data;
   } catch (error) {
     console.error('Error completing record:', error);

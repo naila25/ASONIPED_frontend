@@ -13,20 +13,10 @@ export interface PersonalData {
   province: string;
   canton?: string;
   district: string;
-  phone?: string;
-  email?: string;
-  mother_name?: string;
-  mother_cedula?: string;
-  mother_occupation?: string;
-  mother_phone?: string;
-  father_name?: string;
-  father_cedula?: string;
-  father_occupation?: string;
-  father_phone?: string;
-  legal_guardian_name?: string;
-  legal_guardian_cedula?: string;
-  legal_guardian_occupation?: string;
-  legal_guardian_phone?: string;
+  mother_name: string;
+  mother_cedula: string;
+  father_name: string;
+  father_cedula: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -69,8 +59,6 @@ export interface FamilyInformation {
   father_phone: string;
   responsible_person?: string;
   responsible_address?: string;
-  responsible_cedula?: string;
-  responsible_occupation?: string;
   responsible_phone?: string;
   family_members: FamilyMember[];
   created_at?: string;
@@ -203,12 +191,16 @@ export interface RecordDocument {
   id?: number;
   record_id: number;
   document_type: 'medical_diagnosis' | 'birth_certificate' | 'cedula' | 'photo' | 'pension_certificate' | 'study_certificate' | 'other';
-  file_path: string;
-  file_name: string;
+  file_path: string; // Legacy field - now contains Google Drive URL
+  file_name: string; // Legacy field - now contains Google Drive filename
   file_size: number;
   original_name: string;
   uploaded_by?: number;
   uploaded_at?: string;
+  // Google Drive fields
+  google_drive_id?: string;
+  google_drive_url?: string;
+  google_drive_name?: string;
 }
 
 export interface RecordNote {

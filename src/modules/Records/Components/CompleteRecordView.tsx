@@ -1,6 +1,7 @@
 import React from 'react';
-import { FileText, User, Heart, Accessibility, Home, FileCheck, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { FileText, User, Heart, Accessibility, Home, FileCheck, AlertCircle, CheckCircle, Clock, ExternalLink, Download, Eye } from 'lucide-react';
 import type { RecordWithDetails } from '../Types/records';
+import { getFileUrl, getFileName, formatFileSize, getFileIcon, previewFile, downloadFile, canPreviewInBrowser } from '../Utils/fileUtils';
 
 interface CompleteRecordViewProps {
   record: RecordWithDetails;
@@ -883,19 +884,66 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
           </div>
           
           <div className="space-y-2">
-            {record.documents.map((doc, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{doc.original_name || doc.file_name}</p>
-                  <p className="text-xs text-gray-500">
-                    {doc.document_type} • {doc.file_size ? `${(doc.file_size / 1024).toFixed(1)} KB` : 'Tamaño no disponible'}
-                  </p>
+            {record.documents.map((doc, index) => {
+              const fileUrl = getFileUrl(doc);
+              const fileName = getFileName(doc);
+              const fileSize = doc.file_size ? formatFileSize(doc.file_size) : 'Tamaño no disponible';
+              const fileIcon = getFileIcon(fileName);
+              const canPreview = canPreviewInBrowser(fileName);
+              
+              return (
+                <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{fileIcon}</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{fileName}</p>
+                      <p className="text-xs text-gray-500">
+                        {doc.document_type} • {fileSize}
+                        {doc.google_drive_id && (
+                          <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            Google Drive
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {fileUrl && (
+                      <>
+                        {canPreview && (
+                          <button
+                            onClick={() => previewFile(fileUrl)}
+                            className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                            title="Vista previa"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => downloadFile(fileUrl, fileName)}
+                          className="p-1 text-gray-500 hover:text-green-600 transition-colors"
+                          title="Descargar"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <a
+                          href={fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1 text-gray-500 hover:text-blue-600 transition-colors"
+                          title="Abrir en nueva pestaña"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </>
+                    )}
+                    <span className="text-xs text-gray-500">
+                      {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : 'Sin fecha'}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-xs text-gray-500">
-                  {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : 'Sin fecha'}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
