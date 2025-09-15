@@ -13,10 +13,16 @@ export interface PersonalData {
   province: string;
   canton?: string;
   district: string;
+  phone?: string;
   mother_name: string;
   mother_cedula: string;
+  mother_phone?: string;
   father_name: string;
   father_cedula: string;
+  father_phone?: string;
+  legal_guardian_name?: string;
+  legal_guardian_cedula?: string;
+  legal_guardian_phone?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -59,6 +65,7 @@ export interface FamilyInformation {
   father_phone: string;
   responsible_person?: string;
   responsible_address?: string;
+  responsible_occupation?: string;
   responsible_phone?: string;
   family_members: FamilyMember[];
   created_at?: string;

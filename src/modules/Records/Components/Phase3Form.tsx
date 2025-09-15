@@ -8,12 +8,22 @@ interface Phase3FormProps {
   onSubmit: (data: Phase3Data) => void;
   loading: boolean;
   currentRecord: RecordWithDetails;
+  uploadProgress?: number;
+  isModification?: boolean;
+  modificationDetails?: {
+    sections: string[];
+    documents: number[];
+    comment: string;
+  } | null;
 }
 
 const Phase3Form: React.FC<Phase3FormProps> = ({ 
   onSubmit, 
   loading, 
-  currentRecord 
+  currentRecord,
+  uploadProgress = 0,
+  isModification = false,
+  modificationDetails = null
 }) => {
   const { user } = useAuth();
   
@@ -24,6 +34,18 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [loadingProvinces, setLoadingProvinces] = useState(false);
   const [loadingCantons, setLoadingCantons] = useState(false);
   const [loadingDistricts, setLoadingDistricts] = useState(false);
+
+  // Helper function to check if a section needs modification
+  const needsModification = (sectionName: string): boolean => {
+    if (!isModification || !modificationDetails) return false;
+    return modificationDetails.sections.includes(sectionName);
+  };
+
+  // Helper function to check if a document needs replacement
+  // const needsDocumentReplacement = (documentId: number): boolean => {
+  //   if (!isModification || !modificationDetails) return false;
+  //   return modificationDetails.documents.includes(documentId);
+  // };
   
   // Family information display mode
   const [showParents, setShowParents] = useState(true);
@@ -600,15 +622,47 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           <FileText className="w-6 h-6 text-blue-600" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Formulario Completo - Fase 3</h2>
-          <p className="text-gray-600">Complete toda la información requerida para su expediente</p>
+          <h2 className="text-xl font-semibold text-gray-900">
+            {isModification ? 'Actualización de Expediente - Fase 3' : 'Formulario Completo - Fase 3'}
+          </h2>
+          <p className="text-gray-600">
+            {isModification 
+              ? 'Actualice la información según las modificaciones solicitadas por el administrador'
+              : 'Complete toda la información requerida para su expediente'
+            }
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        {loading && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm text-gray-700">Subiendo documentos...</span>
+              <span className="text-sm font-medium text-gray-900">{uploadProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-blue-600 h-2 transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
         {/* Datos Personales Completos */}
-        <div className="border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Datos Personales Completos</h3>
+        <div className={`border rounded-lg p-6 ${
+          needsModification('complete_personal_data') 
+            ? 'border-orange-300 bg-orange-50' 
+            : 'border-gray-200'
+        }`}>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Datos Personales Completos</h3>
+            {needsModification('complete_personal_data') && (
+              <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                Requiere Modificación
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -814,9 +868,20 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         </div>
 
         {/* Información Familiar */}
-        <div className="border border-gray-200 rounded-lg p-6">
+        <div className={`border rounded-lg p-6 ${
+          needsModification('family_information') 
+            ? 'border-orange-300 bg-orange-50' 
+            : 'border-gray-200'
+        }`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Información Familiar, al menos uno es requerido</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-medium text-gray-900">Información Familiar, al menos uno es requerido</h3>
+              {needsModification('family_information') && (
+                <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                  Requiere Modificación
+                </span>
+              )}
+            </div>
             
             {/* Toggle between Parents and Legal Guardian */}
             <div className="flex bg-gray-100 rounded-lg p-1">
@@ -1064,7 +1129,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
-                <option value="rnc">RnC</option>
+                <option value="rnc">RnC (Regimen no contributivo)</option>
                 <option value="independiente">Independiente</option>
                 <option value="privado">Privado</option>
                 <option value="otro">Otro</option>
@@ -1784,7 +1849,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             ) : (
               <>
                 <Upload className="w-4 h-4" />
-                Completar Expediente
+                {isModification ? 'Actualizar Expediente' : 'Completar Expediente'}
               </>
             )}
           </button>

@@ -102,7 +102,11 @@ export const createInitialRecord = async (phase1Data: Phase1Data): Promise<Recor
 };
 
 // Completar expediente (Fase 3)
-export const completeRecord = async (recordId: number, phase3Data: Phase3Data): Promise<Record> => {
+export const completeRecord = async (
+  recordId: number,
+  phase3Data: Phase3Data,
+  onProgress?: (percent: number) => void
+): Promise<Record> => {
   try {
     console.log('=== COMPLETANDO EXPEDIENTE ===');
     console.log('Record ID:', recordId);
@@ -188,30 +192,57 @@ export const completeRecord = async (recordId: number, phase3Data: Phase3Data): 
     
     console.log('FormData preparado, enviando request...');
     
-    const response = await fetch(`${API_URL}/${recordId}/complete`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        // No incluir Content-Type para FormData
-      },
-      body: formData,
-    });
-    
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response error:', errorText);
-      
-      try {
-        const error = JSON.parse(errorText);
-        throw new Error(error.error || 'Error completando expediente');
-      } catch {
-        throw new Error(`Error completando expediente: ${errorText}`);
+    // Usar XMLHttpRequest para poder reportar progreso de subida
+    const authHeader = getAuthHeader();
+    const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
+
+    const xhrResponse: any = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', `${API_URL}/${recordId}/complete`);
+
+      // Agregar encabezados de autenticación si existen
+      if (token) {
+        xhr.setRequestHeader('Authorization', token);
       }
-    }
-    
-    const data = await response.json();
+
+      // Progreso de carga
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (event: ProgressEvent) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent);
+          }
+        };
+      }
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              resolve({});
+            }
+          } else {
+            const errorText = xhr.responseText || `HTTP ${xhr.status}`;
+            try {
+              const error = JSON.parse(errorText);
+              reject(new Error(error.error || 'Error completando expediente'));
+            } catch {
+              reject(new Error(`Error completando expediente: ${errorText}`));
+            }
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Error de red al completar expediente'));
+      };
+
+      xhr.send(formData);
+    });
+
+    const data = xhrResponse;
     console.log('Expediente completado exitosamente:', data);
     
     // Log Google Drive integration info
@@ -219,7 +250,7 @@ export const completeRecord = async (recordId: number, phase3Data: Phase3Data): 
       console.log('Archivos subidos a Google Drive:', data.uploadedFiles);
     }
     
-    return data;
+    return data as Record;
   } catch (error) {
     console.error('Error completing record:', error);
     throw error;
@@ -356,6 +387,37 @@ export const requestPhase1Modification = async (recordId: number, comment?: stri
     }
   } catch (error) {
     console.error('Error requesting modification:', error);
+    throw error;
+  }
+};
+
+// Solicitar modificación de fase 3
+export const requestPhase3Modification = async (
+  recordId: number,
+  comment: string,
+  sectionsToModify: string[] = [],
+  documentsToReplace: number[] = []
+): Promise<void> => {
+  try {
+    const response = await fetch(`${API_URL}/${recordId}/request-phase3-modification`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        comment,
+        sections_to_modify: sectionsToModify,
+        documents_to_replace: documentsToReplace
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error solicitando modificación de Fase 3');
+    }
+  } catch (error) {
+    console.error('Error requesting phase 3 modification:', error);
     throw error;
   }
 };
@@ -583,6 +645,183 @@ export const checkCedulaAvailability = async (cedula: string, excludeRecordId?: 
     throw new Error('Error verificando cédula');
   } catch (error) {
     console.error('Error checking cedula availability:', error);
+    throw error;
+  }
+};
+
+// ===== SERVICIOS DE FASE 3 MODIFICACIONES =====
+
+// Actualizar datos de fase 3 (para modificaciones)
+export const updatePhase3Data = async (
+  recordId: number, 
+  phase3Data: Phase3Data,
+  onProgress?: (percent: number) => void
+): Promise<Record> => {
+  try {
+    console.log('=== ACTUALIZANDO DATOS FASE 3 ===');
+    console.log('Record ID:', recordId);
+    console.log('Phase3Data:', phase3Data);
+    
+    const formData = new FormData();
+    
+    // Agregar datos JSON
+    formData.append('data', JSON.stringify({
+      complete_personal_data: phase3Data.complete_personal_data,
+      family_information: phase3Data.family_information,
+      disability_information: phase3Data.disability_information,
+      socioeconomic_information: phase3Data.socioeconomic_information,
+      documentation_requirements: phase3Data.documentation_requirements,
+    }));
+    
+    // Agregar documentos con nombres de campo específicos
+    phase3Data.documents.forEach((file) => {
+      let documentType = 'other';
+      
+      if ((phase3Data as any).documentTypes && (phase3Data as any).documentTypes[file.name]) {
+        documentType = (phase3Data as any).documentTypes[file.name];
+      } else {
+        const fileName = file.name.toLowerCase();
+        
+        if (fileName.includes('dictamen') || fileName.includes('medico')) {
+          documentType = 'dictamen_medico';
+        } else if (fileName.includes('nacimiento') || fileName.includes('birth')) {
+          documentType = 'constancia_nacimiento';
+        } else if (fileName.includes('cedula') || fileName.includes('identificacion')) {
+          documentType = 'copia_cedula';
+        } else if (fileName.includes('foto') || fileName.includes('photo')) {
+          documentType = 'foto_pasaporte';
+        } else if (fileName.includes('pension') || fileName.includes('ccss')) {
+          documentType = 'constancia_pension_ccss';
+        } else if (fileName.includes('estudio') || fileName.includes('study')) {
+          documentType = 'constancia_estudio';
+        } else if (fileName.includes('banco') || fileName.includes('cuenta')) {
+          documentType = 'cuenta_banco_nacional';
+        }
+      }
+      
+      formData.append(documentType, file);
+    });
+    
+    // Usar XMLHttpRequest para progreso
+    const authHeader = getAuthHeader();
+    const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
+
+    const xhrResponse: any = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', `${API_URL}/${recordId}/update-phase3`);
+
+      if (token) {
+        xhr.setRequestHeader('Authorization', token);
+      }
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (event: ProgressEvent) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent);
+          }
+        };
+      }
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              resolve({});
+            }
+          } else {
+            const errorText = xhr.responseText || `HTTP ${xhr.status}`;
+            try {
+              const error = JSON.parse(errorText);
+              reject(new Error(error.error || 'Error actualizando datos de fase 3'));
+            } catch {
+              reject(new Error(`Error actualizando datos de fase 3: ${errorText}`));
+            }
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Error de red al actualizar datos de fase 3'));
+      };
+
+      xhr.send(formData);
+    });
+
+    const data = xhrResponse;
+    console.log('Datos de fase 3 actualizados exitosamente:', data);
+    
+    return data as Record;
+  } catch (error) {
+    console.error('Error updating Phase 3 data:', error);
+    throw error;
+  }
+};
+
+// Reemplazar documento específico
+export const replaceDocument = async (
+  recordId: number, 
+  documentId: number, 
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<any> => {
+  try {
+    const formData = new FormData();
+    formData.append('document', file);
+    
+    // Usar XMLHttpRequest para progreso
+    const authHeader = getAuthHeader();
+    const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
+
+    const xhrResponse: any = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', `${API_URL.replace('/records', '/documents')}/${recordId}/documents/${documentId}/replace`);
+
+      if (token) {
+        xhr.setRequestHeader('Authorization', token);
+      }
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (event: ProgressEvent) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent);
+          }
+        };
+      }
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              resolve({});
+            }
+          } else {
+            const errorText = xhr.responseText || `HTTP ${xhr.status}`;
+            try {
+              const error = JSON.parse(errorText);
+              reject(new Error(error.error || 'Error reemplazando documento'));
+            } catch {
+              reject(new Error(`Error reemplazando documento: ${errorText}`));
+            }
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Error de red al reemplazar documento'));
+      };
+
+      xhr.send(formData);
+    });
+
+    return xhrResponse;
+  } catch (error) {
+    console.error('Error replacing document:', error);
     throw error;
   }
 };

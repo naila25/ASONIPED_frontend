@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash } from 'lucide-react';
-import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote } from '../Services/recordsApi';
+import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, requestPhase3Modification, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote } from '../Services/recordsApi';
 import type { Record, RecordStats, RecordWithDetails } from '../Types/records';
 import Phase3Details from './Phase3Details';
 import Phase4Details from './Phase4Details';
+import Phase3ModificationModal from '../Components/Phase3ModificationModal';
 
 const ExpedientesAdminPage: React.FC = () => {
   // State Management
@@ -26,6 +27,8 @@ const ExpedientesAdminPage: React.FC = () => {
   const [editingNoteText, setEditingNoteText] = useState('');
   const [noteLoading, setNoteLoading] = useState<number | null>(null);
   const [deletingRecordId, setDeletingRecordId] = useState<number | null>(null);
+  const [showPhase3ModModal, setShowPhase3ModModal] = useState(false);
+  const [phase3ModLoading, setPhase3ModLoading] = useState(false);
 
   // ===== DATA LOADING =====
   const loadData = useCallback(async () => {
@@ -100,6 +103,9 @@ const ExpedientesAdminPage: React.FC = () => {
             await addNote(selectedRecord.id, comment.trim(), 'activity');
           }
           break;
+        case 'request-phase3-modification':
+          // This will be handled by the modal
+          break;
       }
 
       // Reload data and reset UI
@@ -133,6 +139,34 @@ const ExpedientesAdminPage: React.FC = () => {
       records.find(r => r.id === targetRecordId);
     }
     setShowModal(true);
+  };
+
+  const handlePhase3Modification = async (data: {
+    comment: string;
+    sectionsToModify: string[];
+    documentsToReplace: number[];
+  }) => {
+    if (!selectedRecord) return;
+
+    try {
+      setPhase3ModLoading(true);
+      await requestPhase3Modification(
+        selectedRecord.id,
+        data.comment,
+        data.sectionsToModify,
+        data.documentsToReplace
+      );
+
+      // Reload data and close modal
+      await loadData();
+      setSelectedRecord(null);
+      setExpandedRows(new Set());
+      setShowPhase3ModModal(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error solicitando modificación de Fase 3');
+    } finally {
+      setPhase3ModLoading(false);
+    }
   };
 
   // ===== NOTE MANAGEMENT =====
@@ -337,6 +371,17 @@ const ExpedientesAdminPage: React.FC = () => {
               title="Aprobar Expediente Completo"
             >
               <CheckCircle className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                setSelectedRecord(records.find(r => r.id === record.id) as RecordWithDetails);
+                setShowPhase3ModModal(true);
+              }}
+              disabled={phase3ModLoading}
+              className="text-orange-600 hover:text-orange-900 transition-colors p-1 rounded hover:bg-orange-50 disabled:opacity-50"
+              title="Solicitar Modificación Fase 3"
+            >
+              <Edit3 className="w-4 h-4" />
             </button>
             <button
               onClick={() => initiateAction('reject-record', record.id)}
@@ -951,6 +996,17 @@ const ExpedientesAdminPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Phase 3 Modification Modal */}
+      {selectedRecord && (
+        <Phase3ModificationModal
+          isOpen={showPhase3ModModal}
+          onClose={() => setShowPhase3ModModal(false)}
+          onSubmit={handlePhase3Modification}
+          loading={phase3ModLoading}
+          record={selectedRecord}
+        />
       )}
     </div>
   );

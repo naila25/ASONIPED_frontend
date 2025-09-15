@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { getUserRecord, createInitialRecord, completeRecord, updatePhase1Data } from '../Services/recordsApi';
+import { getUserRecord, createInitialRecord, completeRecord, updatePhase1Data, updatePhase3Data, replaceDocument } from '../Services/recordsApi';
 import type { RecordWithDetails, Phase1Data, Phase3Data } from '../Types/records';
 import {
   ProgressIndicator,
@@ -18,9 +18,16 @@ const ExpedientesPage: React.FC = () => {
   const [record, setRecord] = useState<RecordWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showPhase3Form, setShowPhase3Form] = useState(false);
   const [showIntroduction, setShowIntroduction] = useState(true);
+  const [isPhase3Modification, setIsPhase3Modification] = useState(false);
+  const [modificationDetails, setModificationDetails] = useState<{
+    sections: string[];
+    documents: number[];
+    comment: string;
+  } | null>(null);
 
   useEffect(() => {
     loadUserRecord();
@@ -31,11 +38,52 @@ const ExpedientesPage: React.FC = () => {
       setLoading(true);
       const userRecord = await getUserRecord();
       setRecord(userRecord);
+      
+      // Check if this is a Phase 3 modification request
+      if (userRecord && userRecord.phase === 'phase3' && userRecord.status === 'needs_modification') {
+        setIsPhase3Modification(true);
+        parseModificationDetails(userRecord);
+      } else {
+        setIsPhase3Modification(false);
+        setModificationDetails(null);
+      }
+      
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando expediente');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const parseModificationDetails = (record: RecordWithDetails) => {
+    if (!record.notes) return;
+    
+    // Find the most recent Phase 3 modification request
+    const modificationNote = record.notes
+      .filter(note => note.note?.includes('Phase 3 modification requested by admin'))
+      .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())[0];
+    
+    if (modificationNote) {
+      try {
+        // Extract details from the note
+        const detailsMatch = modificationNote.note?.match(/Details: ({.*})/);
+        if (detailsMatch) {
+          const details = JSON.parse(detailsMatch[1]);
+          setModificationDetails({
+            sections: details.sections || [],
+            documents: details.documents || [],
+            comment: modificationNote.note?.replace(/Phase 3 modification requested by admin: (.*?)\. Details:.*/, '$1') || ''
+          });
+        }
+      } catch (err) {
+        console.error('Error parsing modification details:', err);
+        setModificationDetails({
+          sections: [],
+          documents: [],
+          comment: modificationNote.note || ''
+        });
+      }
     }
   };
 
@@ -62,31 +110,45 @@ const ExpedientesPage: React.FC = () => {
 
   const handlePhase3Submit = async (data: Phase3Data) => {
     try {
+      if (submitting) return; // Guardar contra envíos duplicados
       setSubmitting(true);
+      setUploadProgress(0);
       if (!record) {
         throw new Error('No hay expediente para completar');
       }
       
-      // Verificación adicional de seguridad
-      if (record.phase !== 'phase2' || record.status !== 'approved') {
-        throw new Error('No puede completar el expediente. Debe estar en Fase 2 y aprobado.');
-      }
-      
-      console.log('Attempting to complete record:', {
+      console.log('Attempting to submit Phase 3:', {
         recordId: record.id,
         phase: record.phase,
-        status: record.status
+        status: record.status,
+        isModification: isPhase3Modification
       });
       
-      await completeRecord(record.id, data);
-      // Recargar el expediente completo después de completarlo
+      if (isPhase3Modification) {
+        // This is a modification submission
+        if (record.phase !== 'phase3' || record.status !== 'needs_modification') {
+          throw new Error('No puede actualizar el expediente. Debe estar en Fase 3 y requerir modificación.');
+        }
+        
+        await updatePhase3Data(record.id, data, (p) => setUploadProgress(p));
+      } else {
+        // This is a regular completion
+        if (record.phase !== 'phase2' || record.status !== 'approved') {
+          throw new Error('No puede completar el expediente. Debe estar en Fase 2 y aprobado.');
+        }
+        
+        await completeRecord(record.id, data, (p) => setUploadProgress(p));
+      }
+      
+      // Recargar el expediente completo después de completarlo/actualizarlo
       await loadUserRecord();
       setShowPhase3Form(false);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error completando expediente');
+      setError(err instanceof Error ? err.message : 'Error procesando expediente');
     } finally {
       setSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -275,8 +337,98 @@ const ExpedientesPage: React.FC = () => {
           <div className="mt-6">
             <Phase3Form 
               onSubmit={handlePhase3Submit} 
-              submitting={submitting} 
+              loading={submitting}
               currentRecord={record}
+              uploadProgress={uploadProgress}
+            />
+          </div>
+        )}
+
+        {record.phase === 'phase3' && record.status === 'needs_modification' && !showPhase3Form && (
+          <div className="mt-6">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle className="w-6 h-6 text-orange-600" />
+                <div>
+                  <h3 className="text-lg font-medium text-orange-900">Modificación Requerida - Fase 3</h3>
+                  <p className="text-orange-800 text-sm">El administrador ha solicitado modificaciones en su expediente completo. Por favor, revise y actualice la información según se solicite.</p>
+                </div>
+              </div>
+              
+              {/* Show admin's comment and modification details */}
+              <div className="mt-4 mb-6">
+                <h4 className="text-sm font-medium text-orange-900 mb-2">Comentario del Administrador:</h4>
+                <div className="bg-white border border-orange-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-700">{modificationDetails?.comment || 'Sin comentario específico'}</p>
+                </div>
+                
+                {/* Show sections that need modification */}
+                {modificationDetails?.sections && modificationDetails.sections.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-orange-900 mb-2">Secciones a Modificar:</h4>
+                    <div className="bg-white border border-orange-200 rounded-lg p-4">
+                      <ul className="text-sm text-gray-700 space-y-1">
+                        {modificationDetails.sections.map((section, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                            {section}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Show documents that need replacement */}
+                {modificationDetails?.documents && modificationDetails.documents.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-orange-900 mb-2">Documentos a Reemplazar:</h4>
+                    <div className="bg-white border border-orange-200 rounded-lg p-4">
+                      <ul className="text-sm text-gray-700 space-y-1">
+                        {modificationDetails.documents.map((docId, index) => {
+                          const doc = record.documents?.find(d => d.id === docId);
+                          return (
+                            <li key={index} className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                              {doc ? `${doc.document_type} - ${doc.original_name}` : `Documento ID: ${docId}`}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={() => setShowPhase3Form(true)}
+                className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                Actualizar Expediente
+              </button>
+            </div>
+          </div>
+        )}
+
+        {record.phase === 'phase3' && record.status === 'needs_modification' && showPhase3Form && (
+          <div className="mt-6">
+            <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-5 h-5 text-orange-600" />
+                <h3 className="font-medium text-orange-900">Modificación de Expediente</h3>
+              </div>
+              <p className="text-sm text-orange-800">
+                Está actualizando su expediente según las modificaciones solicitadas por el administrador.
+              </p>
+            </div>
+            <Phase3Form 
+              onSubmit={handlePhase3Submit} 
+              loading={submitting}
+              currentRecord={record}
+              uploadProgress={uploadProgress}
+              isModification={true}
+              modificationDetails={modificationDetails}
             />
           </div>
         )}
