@@ -1,6 +1,5 @@
 import quienessomos from "../../../assets/quienessomos.png";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import VolunteerModal from "../Components/VolunteerModal";
 import { fetchVolunteerOptions } from "../Services/fetchVolunteers";
 import type { VolunteerOption } from "../Types/volunteer";
@@ -161,24 +160,23 @@ const Voluntariados = () => {
           </div>
         )}
       </div>
-      {/* Bloque final con formulario */}
-      <motion.div
-        className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16 mx-auto"
-        initial={{ opacity: 0, y: 100 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        viewport={{ once: true, amount: 0.2 }}
-      >
-        <h2 className="text-center text-3xl font-extrabold text-orange-600 mb-6">
+
+      <h2 className="text-center text-3xl font-extrabold text-orange-600 mb-6 mt-20">
           ¿No encontraste un voluntariado para ti?
         </h2>
 
         {/* Texto introductorio */}
-        <p className="max-w-2xl mx-auto text-center text-neutral-700 mb-20">
+        <p className="max-w-2xl mx-auto text-center text-neutral-700">
           En ASONIPED también recibimos propuestas nuevas. Completa este
           formulario para contarnos tu idea o área de interés, y nuestro equipo
           se pondrá en contacto contigo para valorar cómo integrarla.
         </p>
+
+      {/* Bloque final con formulario */}
+      <div
+        className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16 mx-auto"
+      >
+        
 
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
           {/* Preguntas frecuentes */}
@@ -200,7 +198,6 @@ const Voluntariados = () => {
                   formulario y nuestro equipo la revisará.
                 </p>
               </details>
-
 
               <details className="group rounded-lg px-4 py-3">
                 <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
@@ -237,7 +234,7 @@ const Voluntariados = () => {
             </h3>
             <input
               type="text"
-              placeholder="Nombre completo"
+              placeholder="Nombre del voluntariado"
               className="w-full border border-gray-300 rounded px-4 py-2"
             />
 
@@ -256,10 +253,15 @@ const Voluntariados = () => {
               className="w-full border border-gray-300 rounded px-4 py-2"
             />
 
+            <textarea
+              placeholder="Herramientas o materiales necesarios"
+              className="w-full border border-gray-300 rounded px-4 py-2"
+            ></textarea>
+
             {/* Texto explicativo antes de adjuntar */}
             <p className="text-sm text-gray-600">
               Adjunta un documento que nos ayude a conocerte mejor, como tu
-              currículum, título académico o una referencia profesional.
+              currículum, título académico o una referencia profesional. (Opcional)
             </p>
 
             <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition">
@@ -290,15 +292,16 @@ const Voluntariados = () => {
           </form>
         </div>
 
-        {/* Texto motivador abajo */}
-        <div className="max-w-3xl mx-auto mt-8 text-center text-gray-700">
+       
+      </div>
+       {/* Texto motivador abajo */}
+        <div className="max-w-3xl mx-auto mt-8 text-center text-neutral-700 mb-20 ">
           <p>
             👉 Ser voluntario en ASONIPED significa aportar tu tiempo y energía
             para transformar vidas, pero también crecer en experiencia, empatía
             y liderazgo.
           </p>
         </div>
-      </motion.div>
     </div>
   );
 };
