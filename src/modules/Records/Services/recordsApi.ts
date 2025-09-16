@@ -399,7 +399,26 @@ export const requestPhase3Modification = async (
   documentsToReplace: number[] = []
 ): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/${recordId}/request-phase3-modification`, {
+    console.log('=== API: REQUESTING PHASE 3 MODIFICATION ===');
+    console.log('Record ID:', recordId);
+    console.log('Comment:', comment);
+    console.log('Sections to modify:', sectionsToModify);
+    console.log('Documents to replace:', documentsToReplace);
+    
+    const requestUrl = `${API_URL}/${recordId}/request-phase3-modification`;
+    console.log('Request URL:', requestUrl);
+    console.log('API_URL:', API_URL);
+    console.log('API_BASE_URL:', API_BASE_URL);
+    const authHeader = getAuthHeader();
+    console.log('Auth header:', authHeader);
+    console.log('Full request details:', {
+      url: requestUrl,
+      method: 'PUT',
+      headers: authHeader
+    });
+    
+    console.log('Making fetch request...');
+    const response = await fetch(requestUrl, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -411,13 +430,27 @@ export const requestPhase3Modification = async (
         documents_to_replace: documentsToReplace
       }),
     });
+    console.log('Fetch request completed');
+    
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
     
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Error response:', errorData);
       throw new Error(errorData.error || 'Error solicitando modificación de Fase 3');
     }
+    
+    const responseData = await response.json();
+    console.log('Response data:', responseData);
+    console.log('Phase 3 modification request successful');
   } catch (error) {
     console.error('Error requesting phase 3 modification:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
     throw error;
   }
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Upload, X, Plus, Trash2 } from 'lucide-react';
+import { FileText, Upload, X, Plus, Trash2, CheckCircle } from 'lucide-react';
 import type { Phase3Data, RecordWithDetails, RequiredDocument, AvailableService } from '../Types/records';
 import { useAuth } from '../../Login/Hooks/useAuth';
 import { getProvinces, getCantonsByProvince, getDistrictsByCanton, type Province, type Canton, type District } from '../Services/geographicApi';
@@ -75,6 +75,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       father_occupation: '',
       father_phone: '',
       responsible_person: '',
+      responsible_cedula: '',
       responsible_address: '',
       responsible_occupation: '',
       responsible_phone: '',
@@ -104,7 +105,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     documentation_requirements: {
       documents: [],
       affiliation_fee_paid: false,
-      bank_account_info: '',
+      bank_account_info: '', // Keep for backward compatibility, but not used in UI
       general_observations: '',
       signatures: {
         applicant_signature: '',
@@ -127,7 +128,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     constancia_pension_ccss: null,
     constancia_pension_alimentaria: null,
     constancia_estudio: null,
-    cuenta_banco_nacional: null
+    cuenta_banco_nacional: null,
+    informacion_pago: null
   });
 
   // Estado para documentos genéricos que necesitan asignación manual
@@ -150,9 +152,74 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     }
   };
 
-  // Pre-fill data from Phase 1 when component mounts
+  // Pre-fill data from existing Phase 3 data when it's a modification
   useEffect(() => {
-    if (currentRecord?.personal_data) {
+    if (isModification && currentRecord) {
+      console.log('=== PRE-FILLING PHASE 3 FORM FOR MODIFICATION ===');
+      console.log('Current record:', currentRecord);
+      
+      setForm(prev => {
+        const newForm = { ...prev };
+        
+        // Pre-fill complete personal data
+        if (currentRecord.complete_personal_data) {
+          console.log('Pre-filling complete personal data:', currentRecord.complete_personal_data);
+          newForm.complete_personal_data = {
+            ...prev.complete_personal_data,
+            ...currentRecord.complete_personal_data,
+            registration_date: formatDateForInput(currentRecord.complete_personal_data.registration_date) || new Date().toISOString().split('T')[0],
+            birth_date: formatDateForInput(currentRecord.complete_personal_data.birth_date) || ''
+          };
+        }
+        
+        // Pre-fill family information
+        if (currentRecord.family_information) {
+          console.log('Pre-filling family information:', currentRecord.family_information);
+          newForm.family_information = {
+            ...prev.family_information,
+            ...currentRecord.family_information
+          };
+        }
+        
+        // Pre-fill disability information
+        if (currentRecord.disability_information) {
+          console.log('Pre-filling disability information:', currentRecord.disability_information);
+          newForm.disability_information = {
+            ...prev.disability_information,
+            ...currentRecord.disability_information
+          };
+        }
+        
+        // Pre-fill socioeconomic information
+        if (currentRecord.socioeconomic_information) {
+          console.log('Pre-filling socioeconomic information:', currentRecord.socioeconomic_information);
+          newForm.socioeconomic_information = {
+            ...prev.socioeconomic_information,
+            ...currentRecord.socioeconomic_information
+          };
+        }
+        
+        // Pre-fill documentation requirements
+        if (currentRecord.documentation_requirements) {
+          console.log('Pre-filling documentation requirements:', currentRecord.documentation_requirements);
+          console.log('affiliation_fee_paid value:', currentRecord.documentation_requirements.affiliation_fee_paid);
+          console.log('affiliation_fee_paid type:', typeof currentRecord.documentation_requirements.affiliation_fee_paid);
+          newForm.documentation_requirements = {
+            ...prev.documentation_requirements,
+            ...currentRecord.documentation_requirements,
+            // Ensure affiliation_fee_paid is properly handled
+            affiliation_fee_paid: currentRecord.documentation_requirements.affiliation_fee_paid || false
+          };
+        }
+        
+        return newForm;
+      });
+    }
+  }, [isModification, currentRecord]);
+
+  // Pre-fill data from Phase 1 when component mounts (for new records)
+  useEffect(() => {
+    if (!isModification && currentRecord?.personal_data) {
       const phase1Data = currentRecord.personal_data;
       
       console.log('Pre-filling Phase 3 form with Phase 1 data:', phase1Data);
@@ -187,6 +254,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           father_phone: phase1Data.father_phone || '',
           // Pre-fill legal guardian info if available
           responsible_person: phase1Data.legal_guardian_name || '',
+          responsible_cedula: phase1Data.legal_guardian_cedula || '',
           responsible_phone: phase1Data.legal_guardian_phone || ''
         },
         disability_information: {
@@ -205,7 +273,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         setShowLegalGuardian(false);
       }
     }
-  }, [currentRecord, user]);
+  }, [currentRecord, user, isModification]);
 
   // Pre-load cantons and districts when form is pre-filled with Phase 1 data
   useEffect(() => {
@@ -332,7 +400,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     { key: 'constancia_pension_ccss', label: 'Constancia de Pensión CCSS', required: false },
     { key: 'constancia_pension_alimentaria', label: 'Constancia de Pensión Alimentaria', required: false },
     { key: 'constancia_estudio', label: 'Constancia de Estudio (En caso de solicitante este en estudio)', required: false },
-    { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
+    { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false },
+    { key: 'informacion_pago', label: 'Información de Pago', required: true }
   ], []);
 
   // Initialize document status based on existing documents
@@ -353,16 +422,29 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     // If there are existing documents, update their status
     if (currentRecord?.documents && currentRecord.documents.length > 0) {
       const existingDocuments = currentRecord.documents;
+      console.log('=== LOADING EXISTING DOCUMENTS ===');
+      console.log('Existing documents:', existingDocuments);
       
       // Create a mapping of document types to their status
       const documentStatusMap = new Map();
       existingDocuments.forEach(doc => {
         // Map backend document types to form document types
-        const formDocumentType = mapBackendDocumentType(doc.document_type);
+        const formDocumentType = mapBackendDocumentType(doc.document_type, doc.file_name);
         if (formDocumentType) {
           documentStatusMap.set(formDocumentType, 'entregado');
+          console.log(`Document ${doc.document_type} (${doc.file_name}) mapped to ${formDocumentType} with status entregado`);
+        } else {
+          console.log(`Document ${doc.document_type} (${doc.file_name}) could not be mapped to form document type`);
+        }
+        
+        // Special handling for payment_info documents
+        if (doc.document_type === 'payment_info') {
+          documentStatusMap.set('informacion_pago', 'entregado');
+          console.log(`Payment info document mapped to informacion_pago with status entregado`);
         }
       });
+
+      console.log('Document status map:', documentStatusMap);
 
       // Update form with existing document statuses
       setForm(prev => ({
@@ -376,18 +458,48 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           }))
         }
       }));
+      
+      console.log('Updated form documents:', documentTypes.map(doc => ({
+        document_type: doc.key,
+        status: documentStatusMap.get(doc.key) || 'pendiente'
+      })));
     }
   }, [currentRecord, documentTypes]);
 
   // Helper function to map backend document types to form document types
-  const mapBackendDocumentType = (backendType: string): string | null => {
+  const mapBackendDocumentType = (backendType: string, fileName?: string): string | null => {
+    // First try to map based on file name for more specific matching
+    if (fileName) {
+      const fileNameLower = fileName.toLowerCase();
+      
+      // Check for specific document types based on file name
+      if (fileNameLower.includes('familia') || fileNameLower.includes('family')) {
+        if (backendType === 'cedula') return 'copias_cedulas_familia';
+      }
+      if (fileNameLower.includes('alimentaria') || fileNameLower.includes('alimentaria')) {
+        if (backendType === 'pension_certificate') return 'constancia_pension_alimentaria';
+      }
+      if (fileNameLower.includes('banco') || fileNameLower.includes('nacional')) {
+        if (backendType === 'other') return 'cuenta_banco_nacional';
+      }
+      if (fileNameLower.includes('pago') || fileNameLower.includes('payment') || fileNameLower.includes('sinpe')) {
+        if (backendType === 'other') return 'informacion_pago';
+      }
+      if (fileNameLower.includes('ccss') || fileNameLower.includes('pension')) {
+        if (backendType === 'pension_certificate') return 'constancia_pension_ccss';
+      }
+    }
+    
+    // Fallback to basic mapping
     const mapping: { [key: string]: string } = {
       'medical_diagnosis': 'dictamen_medico',
       'birth_certificate': 'constancia_nacimiento',
       'cedula': 'copia_cedula',
       'photo': 'foto_pasaporte',
       'pension_certificate': 'constancia_pension_ccss',
-      'study_certificate': 'constancia_estudio'
+      'study_certificate': 'constancia_estudio',
+      'payment_info': 'informacion_pago',
+      'other': 'cuenta_banco_nacional' // Default for 'other' type
     };
     return mapping[backendType] || null;
   };
@@ -544,39 +656,28 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     if (mode === 'parents') {
       setShowParents(true);
       setShowLegalGuardian(false);
-      // Clear legal guardian data when switching to parents
-      setForm(prev => ({
-        ...prev,
-        family_information: {
-          ...prev.family_information,
-          responsible_person: '',
-          responsible_address: '',
-          responsible_phone: ''
-        }
-      }));
+      // Don't clear data - preserve it for when user switches back
     } else {
       setShowParents(false);
       setShowLegalGuardian(true);
-      // Clear parent data when switching to legal guardian
-      setForm(prev => ({
-        ...prev,
-        family_information: {
-          ...prev.family_information,
-          mother_name: '',
-          mother_cedula: '',
-          mother_occupation: '',
-          mother_phone: '',
-          father_name: '',
-          father_cedula: '',
-          father_occupation: '',
-          father_phone: ''
-        }
-      }));
+      // Don't clear data - preserve it for when user switches back
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
+    console.log('=== FORM SUBMISSION HANDLER CALLED ===');
+    console.log('Event:', e);
+    console.log('Event type:', e.type);
+    console.log('Event target:', e.target);
+    console.log('Event currentTarget:', e.currentTarget);
+    
     e.preventDefault();
+    console.log('Event:', e);
+    console.log('Is modification:', isModification);
+    console.log('Document files:', documentFiles);
+    console.log('Form documents:', form.documentation_requirements.documents);
+    console.log('Loading state:', loading);
+    console.log('Form state:', form);
     
     // Convertir archivos específicos a array con sus tipos
     const specificDocuments = Object.entries(documentFiles)
@@ -601,6 +702,27 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     // Combinar todos los documentos
     const allDocuments = [...specificDocuments, ...assignedGenericDocuments];
     
+    console.log('All documents to upload:', allDocuments);
+    
+    // In modification mode, if no new documents are uploaded but existing documents are marked as 'entregado',
+    // we should still allow the form submission
+    if (isModification && allDocuments.length === 0) {
+      const hasExistingDocuments = form.documentation_requirements.documents.some(doc => doc.status === 'entregado');
+      console.log('Has existing documents:', hasExistingDocuments);
+      console.log('Document statuses:', form.documentation_requirements.documents.map(doc => ({
+        type: doc.document_type,
+        status: doc.status
+      })));
+      
+      if (hasExistingDocuments) {
+        console.log('Modification mode with existing documents - allowing submission without new files');
+      } else {
+        console.log('No existing documents and no new files - this might be an issue');
+        // Don't prevent submission in modification mode - let the backend handle it
+        console.log('Allowing submission anyway in modification mode');
+      }
+    }
+    
     const formData: Phase3Data = {
       ...form,
       documents: allDocuments.map(doc => doc.file) // Keep the original format for now
@@ -612,7 +734,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       return acc;
     }, {} as { [key: string]: string });
     
+    console.log('Final form data:', formData);
+    console.log('Calling onSubmit with form data...');
     onSubmit(formData);
+    console.log('onSubmit called successfully');
   };
 
   return (
@@ -634,7 +759,11 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={(e) => {
+        console.log('=== FORM ONSUBMIT EVENT TRIGGERED ===');
+        console.log('Event:', e);
+        handleSubmit(e);
+      }} className="space-y-8">
         {loading && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1">
@@ -875,7 +1004,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         }`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium text-gray-900">Información Familiar, al menos uno es requerido</h3>
+            <h3 className="text-lg font-medium text-gray-900">Información Familiar, al menos uno es requerido</h3>
               {needsModification('family_information') && (
                 <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
                   Requiere Modificación
@@ -1050,8 +1179,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={form.family_information.responsible_address}
-                  onChange={(e) => handleChange('family_information', 'responsible_address', e.target.value)}
+                  value={form.family_information.responsible_cedula}
+                  onChange={(e) => handleChange('family_information', 'responsible_cedula', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1590,6 +1719,13 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                    documentStatus === 'en_tramite' ? 'border-yellow-200 bg-yellow-50' : 
                    'border-gray-200'
                  }`}>
+                   {/* Show if document is already uploaded */}
+                   {documentStatus === 'entregado' && !hasFile && (
+                     <div className="mb-2 p-2 bg-green-100 border border-green-300 rounded text-sm text-green-800 flex items-center gap-2">
+                       <CheckCircle className="w-4 h-4" />
+                       <span>Documento ya subido anteriormente</span>
+                     </div>
+                   )}
                    <div className="flex items-center justify-between mb-2">
                      <div className="flex items-center gap-2">
                        <label className="text-sm font-medium text-gray-700">
@@ -1622,7 +1758,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                      onChange={(e) => handleDocumentChange(doc.key, e.target.files?.[0] || null)}
                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                     required={doc.required}
+                     required={doc.required && documentStatus !== 'entregado'}
                    />
                    {hasFile && (
                      <div className="mt-2 flex items-center gap-2">
@@ -1729,13 +1865,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 <label className="block text-sm font-medium text-blue-900 mb-2">
                   Información de Sinpe Movil
                 </label>
-                <input
-                  type="text"
-                  value={form.documentation_requirements.bank_account_info || ''}
-                  onChange={(e) => handleChange('documentation_requirements', 'bank_account_info', e.target.value)}
-                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Número de cuenta, referencia, etc."
-                />
+                <p className="text-sm text-blue-700 bg-blue-100 p-3 rounded-md">
+                  <strong>Nota:</strong> La información de pago se sube como un documento. 
+                  Por favor, suba una captura de pantalla o comprobante del pago realizado en la sección de documentos requeridos.
+                </p>
               </div>
             </div>
           </div>
@@ -1752,7 +1885,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               { key: 'constancia_pension_ccss', label: 'Constancia de Pensión CCSS', required: false },
               { key: 'constancia_pension_alimentaria', label: 'Constancia de Pensión Alimentaria', required: false },
               { key: 'constancia_estudio', label: 'Constancia de Estudio (En caso de solicitante este en estudio)', required: false },
-              { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
+              { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false },
+              { key: 'informacion_pago', label: 'Información de Pago', required: true }
             ].map((req) => (
               <div key={req.key} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                 <div className="flex items-center space-x-3">
@@ -1839,6 +1973,25 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           <button
             type="submit"
             disabled={loading}
+            onClick={(e) => {
+              console.log('=== SUBMIT BUTTON CLICKED ===');
+              console.log('Button disabled:', loading);
+              console.log('Is modification:', isModification);
+              console.log('Form state:', form);
+              console.log('Document files:', documentFiles);
+              console.log('Generic documents:', genericDocuments);
+              console.log('Document assignments:', documentAssignments);
+              console.log('Form documents status:', form.documentation_requirements.documents);
+              
+              if (loading) {
+                console.log('Button is disabled due to loading state');
+                e.preventDefault();
+                return;
+              }
+              
+              console.log('Proceeding with form submission...');
+              // Let the form's onSubmit handler handle the submission
+            }}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (

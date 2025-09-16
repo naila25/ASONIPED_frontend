@@ -318,18 +318,10 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
     }
     
     // Clean up form data before submission
+    // Allow sending BOTH parents and legal guardian info simultaneously when provided
     const cleanedForm: Phase1Data = {
       ...form,
-      pcd_name: form.pcd_name as Phase1Data['pcd_name'], // Cast to correct type
-      mother_name: hasParents ? form.mother_name : undefined,
-      mother_cedula: hasParents ? form.mother_cedula : undefined,
-      mother_phone: hasParents ? form.mother_phone : undefined,
-      father_name: hasParents ? form.father_name : undefined,
-      father_cedula: hasParents ? form.father_cedula : undefined,
-      father_phone: hasParents ? form.father_phone : undefined,
-      legal_guardian_name: !hasParents ? form.legal_guardian_name : undefined,
-      legal_guardian_cedula: !hasParents ? form.legal_guardian_cedula : undefined,
-      legal_guardian_phone: !hasParents ? form.legal_guardian_phone : undefined,
+      pcd_name: form.pcd_name as Phase1Data['pcd_name']
     };
     
     onSubmit(cleanedForm);

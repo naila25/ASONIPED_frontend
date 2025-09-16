@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { FileText, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { getUserRecord, createInitialRecord, completeRecord, updatePhase1Data, updatePhase3Data, replaceDocument } from '../Services/recordsApi';
 import type { RecordWithDetails, Phase1Data, Phase3Data } from '../Types/records';
 import {
@@ -29,21 +29,51 @@ const ExpedientesPage: React.FC = () => {
     comment: string;
   } | null>(null);
 
+  // Map backend section ids to Spanish labels for user display
+  const getSectionLabel = (sectionId: string): string => {
+    const labels: Record<string, string> = {
+      'complete_personal_data': 'Datos Personales Completos',
+      'family_information': 'Información Familiar',
+      'disability_information': 'Información de Discapacidad',
+      'socioeconomic_information': 'Información Socioeconómica',
+      'documentation_requirements': 'Documentación Requerida'
+    };
+    return labels[sectionId] || sectionId;
+  };
+
   useEffect(() => {
     loadUserRecord();
   }, []);
+
+  // No auto-refresh - users can manually refresh if needed using the refresh button
 
   const loadUserRecord = async () => {
     try {
       setLoading(true);
       const userRecord = await getUserRecord();
+      console.log('=== USER RECORD LOADED ===');
+      console.log('User record:', userRecord);
+      console.log('User record notes:', userRecord?.notes);
+      console.log('Number of notes:', userRecord?.notes?.length || 0);
+      if (userRecord?.notes) {
+        userRecord.notes.forEach((note, index) => {
+          console.log(`Note ${index}:`, {
+            id: note.id,
+            note: note.note,
+            type: note.type,
+            created_at: note.created_at
+          });
+        });
+      }
       setRecord(userRecord);
       
       // Check if this is a Phase 3 modification request
       if (userRecord && userRecord.phase === 'phase3' && userRecord.status === 'needs_modification') {
+        console.log('This is a Phase 3 modification request');
         setIsPhase3Modification(true);
         parseModificationDetails(userRecord);
       } else {
+        console.log('This is not a Phase 3 modification request');
         setIsPhase3Modification(false);
         setModificationDetails(null);
       }
@@ -57,31 +87,155 @@ const ExpedientesPage: React.FC = () => {
   };
 
   const parseModificationDetails = (record: RecordWithDetails) => {
-    if (!record.notes) return;
+    console.log('=== PARSING MODIFICATION DETAILS ===');
+    console.log('Record:', record);
+    console.log('Record notes:', record.notes);
+    console.log('Record status:', record.status);
+    console.log('Record phase:', record.phase);
+    
+    // Debug: Log each note's structure
+    if (record.notes) {
+      record.notes.forEach((note, index) => {
+        console.log(`Note ${index}:`, {
+          id: note.id,
+          note: note.note,
+          type: note.type,
+          modification_type: (note as any).modification_type,
+          admin_comment: (note as any).admin_comment,
+          sections_to_modify: (note as any).sections_to_modify,
+          documents_to_replace: (note as any).documents_to_replace,
+          created_at: note.created_at
+        });
+      });
+    }
+    
+    if (!record.notes || record.notes.length === 0) {
+      console.log('No notes found in record');
+      return;
+    }
     
     // Find the most recent Phase 3 modification request
     const modificationNote = record.notes
-      .filter(note => note.note?.includes('Phase 3 modification requested by admin'))
+      .filter(note => {
+        const noteText = note.note || '';
+        const isPhase3Mod = noteText.includes('Phase 3 modification requested by admin') ||
+                           noteText.includes('Modificación de Fase 3 solicitada por el administrador') ||
+                           noteText.includes('phase 3 modification') ||
+                           noteText.includes('fase 3 modification') ||
+                           noteText.includes('Phase 3 modification') ||
+                           (note as any).modification_type === 'phase3_modification';
+        console.log(`Note "${noteText}" - isPhase3Mod: ${isPhase3Mod}`);
+        return isPhase3Mod;
+      })
       .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())[0];
     
-    if (modificationNote) {
+    // Also try to find any note that mentions modification (but not Phase 1)
+    const anyModificationNote = record.notes
+      .filter(note => 
+        (note.note?.toLowerCase().includes('modification') || note.note?.toLowerCase().includes('modificación')) &&
+        !note.note?.toLowerCase().includes('phase 1') &&
+        !note.note?.toLowerCase().includes('fase 1')
+      )
+      .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())[0];
+    
+    console.log('Modification note found:', modificationNote);
+    console.log('Any modification note found:', anyModificationNote);
+    
+    // Debug: Show all notes that might be relevant
+    const allRelevantNotes = record.notes.filter(note => 
+      note.note?.toLowerCase().includes('modification') || 
+      note.note?.toLowerCase().includes('modificación') ||
+      note.note?.toLowerCase().includes('phase 3') ||
+      note.note?.toLowerCase().includes('fase 3')
+    );
+    console.log('All potentially relevant notes:', allRelevantNotes);
+    
+    // Use the specific Phase 3 note if available, otherwise use any modification note
+    const noteToUse = modificationNote || anyModificationNote;
+    
+    if (noteToUse) {
       try {
-        // Extract details from the note
-        const detailsMatch = modificationNote.note?.match(/Details: ({.*})/);
+        // Check if it's the new structured format
+        if ((noteToUse as any).admin_comment) {
+          console.log('Using new structured format');
+          const finalDetails = {
+            sections: (noteToUse as any).sections_to_modify || [],
+            documents: (noteToUse as any).documents_to_replace || [],
+            comment: (noteToUse as any).admin_comment || ''
+          };
+          console.log('Setting modification details (new format):', finalDetails);
+          setModificationDetails(finalDetails);
+          return;
+        }
+        
+        // Fallback to old format parsing
+        console.log('Using old format parsing');
+        const detailsMatch = noteToUse.note?.match(/Details: ({.*})/);
+        console.log('Details match:', detailsMatch);
+        
         if (detailsMatch) {
           const details = JSON.parse(detailsMatch[1]);
-          setModificationDetails({
+          console.log('Parsed details:', details);
+          const finalDetails = {
             sections: details.sections || [],
             documents: details.documents || [],
-            comment: modificationNote.note?.replace(/Phase 3 modification requested by admin: (.*?)\. Details:.*/, '$1') || ''
-          });
+            comment: noteToUse.note?.replace(/Phase 3 modification requested by admin: (.*?)\. Details:.*/, '$1')
+                      .replace(/Modificación de Fase 3 solicitada por el administrador: (.*?)\. Details:.*/, '$1') || ''
+          };
+          console.log('Setting modification details (old format with details):', finalDetails);
+          setModificationDetails(finalDetails);
+        } else {
+          // Fallback: try to extract comment without details
+          const commentMatch = noteToUse.note?.match(/Phase 3 modification requested by admin: (.*?)(?:\.|$)/) ||
+                              noteToUse.note?.match(/Modificación de Fase 3 solicitada por el administrador: (.*?)(?:\.|$)/);
+          console.log('Comment match:', commentMatch);
+          
+          const comment = commentMatch ? commentMatch[1] : noteToUse.note || '';
+          console.log('Final comment:', comment);
+          
+          const finalDetails = {
+            sections: [],
+            documents: [],
+            comment: comment
+          };
+          console.log('Setting modification details (old format fallback):', finalDetails);
+          setModificationDetails(finalDetails);
         }
       } catch (err) {
         console.error('Error parsing modification details:', err);
         setModificationDetails({
           sections: [],
           documents: [],
-          comment: modificationNote.note || ''
+          comment: noteToUse.note || ''
+        });
+      }
+    } else {
+      console.log('No modification note found');
+      // Fallback: show any admin note as a general comment (but not Phase 1)
+      const adminNote = record.notes
+        .filter(note => 
+          note.type === 'activity' && 
+          note.note?.toLowerCase().includes('admin') &&
+          !note.note?.toLowerCase().includes('phase 1') &&
+          !note.note?.toLowerCase().includes('fase 1') &&
+          !note.note?.toLowerCase().includes('approved')
+        )
+        .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())[0];
+      
+      if (adminNote) {
+        console.log('Using admin note as fallback:', adminNote);
+        setModificationDetails({
+          sections: [],
+          documents: [],
+          comment: adminNote.note || ''
+        });
+      } else {
+        console.log('No suitable admin note found for fallback');
+        // Set empty modification details if no suitable note is found
+        setModificationDetails({
+          sections: [],
+          documents: [],
+          comment: ''
         });
       }
     }
@@ -250,11 +404,29 @@ const ExpedientesPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Indicador de progreso */}
-        <ProgressIndicator currentPhase={record.phase} status={record.status} />
+        {(() => {
+          // Cuando el usuario está completando el formulario de Fase 3
+          // (fase2 aprobado pero con el formulario abierto), mostramos la fase3 en el indicador
+          const currentPhaseForDisplay =
+            record.phase === 'phase2' && record.status === 'approved' && showPhase3Form
+              ? 'phase3'
+              : record.phase;
+          return (
+            <ProgressIndicator currentPhase={currentPhaseForDisplay} />
+          );
+        })()}
         
         {/* Estado del expediente */}
         <div className="mt-6">
-          <RecordStatus record={record} />
+          {(() => {
+            // Igualmente, sobreescribimos la fase mostrada en el componente de estado
+            const phaseOverride =
+              record.phase === 'phase2' && record.status === 'approved' && showPhase3Form
+                ? 'phase3'
+                : record.phase;
+            const recordForStatus = { ...record, phase: phaseOverride } as typeof record;
+            return <RecordStatus record={recordForStatus} />;
+          })()}
         </div>
 
         {/* Contenido específico según la fase */}
@@ -282,32 +454,6 @@ const ExpedientesPage: React.FC = () => {
               </div>
               
               {/* Show admin's comment if available */}
-              <div className="mt-4 mb-6">
-                <h4 className="text-sm font-medium text-orange-900 mb-2">Comentario del Administrador:</h4>
-                <div className="bg-white border border-orange-200 rounded-lg p-4">
-                  {record.notes && record.notes.length > 0 ? (
-                    record.notes
-                      .filter(note => note.type === 'activity' && note.note?.includes('Modification requested'))
-                      .map((note, index) => (
-                        <div key={index} className="text-sm text-gray-700">
-                          <p className="font-medium text-gray-900 mb-1">
-                            {note.note?.includes('Modification requested by admin: ') 
-                              ? note.note.replace('Modification requested by admin: ', '')
-                              : note.note?.includes('Modification requested by admin')
-                              ? 'El administrador ha solicitado modificaciones en su expediente.'
-                              : note.note || 'Sin comentario específico'}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {note.created_at ? new Date(note.created_at).toLocaleDateString() : 'Sin fecha'}
-                          </p>
-                        </div>
-                      ))
-                  ) : (
-                    <p className="text-sm text-gray-500 italic">No hay comentarios del administrador disponibles.</p>
-                  )}
-                  
-                </div>
-              </div>
               
               <div className="mt-4">
                 <Phase1Form 
@@ -349,17 +495,28 @@ const ExpedientesPage: React.FC = () => {
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
               <div className="flex items-center gap-3 mb-4">
                 <AlertCircle className="w-6 h-6 text-orange-600" />
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-medium text-orange-900">Modificación Requerida - Fase 3</h3>
                   <p className="text-orange-800 text-sm">El administrador ha solicitado modificaciones en su expediente completo. Por favor, revise y actualice la información según se solicite.</p>
                 </div>
+                <button
+                  onClick={loadUserRecord}
+                  className="text-orange-600 hover:text-orange-800 transition-colors p-2 rounded hover:bg-orange-100"
+                  title="Verificar nuevas modificaciones"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </button>
               </div>
               
               {/* Show admin's comment and modification details */}
               <div className="mt-4 mb-6">
                 <h4 className="text-sm font-medium text-orange-900 mb-2">Comentario del Administrador:</h4>
                 <div className="bg-white border border-orange-200 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-gray-700">{modificationDetails?.comment || 'Sin comentario específico'}</p>
+                  <p className="text-sm text-gray-700">
+                    {modificationDetails?.comment && modificationDetails.comment.trim() 
+                      ? modificationDetails.comment 
+                      : 'El administrador no proporcionó comentarios específicos sobre las modificaciones requeridas.'}
+                  </p>
                 </div>
                 
                 {/* Show sections that need modification */}
@@ -371,7 +528,7 @@ const ExpedientesPage: React.FC = () => {
                         {modificationDetails.sections.map((section, index) => (
                           <li key={index} className="flex items-center gap-2">
                             <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                            {section}
+                            {getSectionLabel(section)}
                           </li>
                         ))}
                       </ul>

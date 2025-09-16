@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash } from 'lucide-react';
 import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, requestPhase3Modification, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote } from '../Services/recordsApi';
 import type { Record, RecordStats, RecordWithDetails } from '../Types/records';
 import Phase3Details from './Phase3Details';
 import Phase4Details from './Phase4Details';
 import Phase3ModificationModal from '../Components/Phase3ModificationModal';
+import AdminActionModal from '../Components/AdminActionModal';
 
 const ExpedientesAdminPage: React.FC = () => {
   // State Management
@@ -56,7 +57,7 @@ const ExpedientesAdminPage: React.FC = () => {
   }, [loadData]);
 
   // ===== ROW EXPANSION =====
-  const toggleRowExpansion = async (recordId: number) => {
+  const toggleRowExpansion = useCallback(async (recordId: number) => {
     const newExpandedRows = new Set(expandedRows);
 
     if (newExpandedRows.has(recordId)) {
@@ -74,7 +75,7 @@ const ExpedientesAdminPage: React.FC = () => {
     }
 
     setExpandedRows(newExpandedRows);
-  };
+  }, [expandedRows]);
 
   // ===== ACTION HANDLERS =====
   const handleAction = async (recordId: number, action: string) => {
@@ -131,7 +132,7 @@ const ExpedientesAdminPage: React.FC = () => {
     }
   };
 
-  const initiateAction = (action: string, recordId?: number) => {
+  const initiateAction = useCallback((action: string, recordId?: number) => {
     setPendingAction(action);
     const targetRecordId = recordId || selectedRecord?.id;
     if (targetRecordId) {
@@ -139,9 +140,9 @@ const ExpedientesAdminPage: React.FC = () => {
       records.find(r => r.id === targetRecordId);
     }
     setShowModal(true);
-  };
+  }, [selectedRecord?.id, records]);
 
-  const handlePhase3Modification = async (data: {
+  const handlePhase3Modification = useCallback(async (data: {
     comment: string;
     sectionsToModify: string[];
     documentsToReplace: number[];
@@ -149,6 +150,10 @@ const ExpedientesAdminPage: React.FC = () => {
     if (!selectedRecord) return;
 
     try {
+      console.log('=== ADMIN: REQUESTING PHASE 3 MODIFICATION ===');
+      console.log('Record ID:', selectedRecord.id);
+      console.log('Data:', data);
+      
       setPhase3ModLoading(true);
       await requestPhase3Modification(
         selectedRecord.id,
@@ -157,17 +162,18 @@ const ExpedientesAdminPage: React.FC = () => {
         data.documentsToReplace
       );
 
+      console.log('Phase 3 modification requested successfully');
       // Reload data and close modal
       await loadData();
-      setSelectedRecord(null);
-      setExpandedRows(new Set());
       setShowPhase3ModModal(false);
+      // Don't clear selectedRecord here - keep it for the form
     } catch (err) {
+      console.error('Error requesting Phase 3 modification:', err);
       setError(err instanceof Error ? err.message : 'Error solicitando modificación de Fase 3');
     } finally {
       setPhase3ModLoading(false);
     }
-  };
+  }, [selectedRecord, loadData]);
 
   // ===== NOTE MANAGEMENT =====
   const startEditNote = (noteId: number, currentText: string) => {
@@ -245,7 +251,7 @@ const ExpedientesAdminPage: React.FC = () => {
   };
 
   // ===== UTILITY FUNCTIONS =====
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = useCallback((status: string) => {
     switch (status) {
       case 'draft':
         return { color: 'gray', icon: Clock, text: 'Borrador' };
@@ -264,9 +270,9 @@ const ExpedientesAdminPage: React.FC = () => {
       default:
         return { color: 'gray', icon: Clock, text: 'Desconocido' };
     }
-  };
+  }, []);
 
-  const getPhaseInfo = (phase: string) => {
+  const getPhaseInfo = useCallback((phase: string) => {
     switch (phase) {
       case 'phase1':
         return { color: 'blue', text: 'Fase 1 - Registro Inicial' };
@@ -281,10 +287,10 @@ const ExpedientesAdminPage: React.FC = () => {
       default:
         return { color: 'gray', text: 'Desconocido' };
     }
-  };
+  }, []);
 
   // ===== RENDER HELPERS =====
-  const renderStatusBadge = (status: string) => {
+  const renderStatusBadge = useCallback((status: string) => {
     const statusInfo = getStatusInfo(status);
     const StatusIcon = statusInfo.icon;
 
@@ -294,9 +300,9 @@ const ExpedientesAdminPage: React.FC = () => {
         {statusInfo.text}
       </span>
     );
-  };
+  }, [getStatusInfo]);
 
-  const renderPhaseBadge = (phase: string) => {
+  const renderPhaseBadge = useCallback((phase: string) => {
     const phaseInfo = getPhaseInfo(phase);
 
     return (
@@ -304,9 +310,20 @@ const ExpedientesAdminPage: React.FC = () => {
         {phaseInfo.text}
       </span>
     );
-  };
+  }, [getPhaseInfo]);
 
-  const renderActionButtons = (record: Record) => {
+  // Handle Phase 3 modification click - moved outside to avoid hooks rule violation
+  const handlePhase3ModClick = useCallback(async (recordId: number) => {
+    try {
+      const recordDetails = await getRecordById(recordId);
+      setSelectedRecord(recordDetails);
+      setShowPhase3ModModal(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
+    }
+  }, []);
+
+  const renderActionButtons = useCallback((record: Record) => {
     const isPhase1Pending = record.phase === 'phase1' && record.status === 'pending';
     const isPhase3Pending = record.phase === 'phase3' && record.status === 'pending';
 
@@ -332,70 +349,9 @@ const ExpedientesAdminPage: React.FC = () => {
         >
           <Trash2 className="w-4 h-4" />
         </button>
-
-        {isPhase1Pending && (
-          <>
-            <button
-              onClick={() => initiateAction('approve-phase1', record.id)}
-              disabled={actionLoading === 'approve-phase1'}
-              className="text-green-600 hover:text-green-900 transition-colors p-1 rounded hover:bg-green-50 disabled:opacity-50"
-              title="Aprobar Fase 1"
-            >
-              <CheckCircle className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => initiateAction('request-modification', record.id)}
-              disabled={actionLoading === 'request-modification'}
-              className="text-yellow-600 hover:text-yellow-900 transition-colors p-1 rounded hover:bg-yellow-50 disabled:opacity-50"
-              title="Solicitar Modificación"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => initiateAction('reject-phase1', record.id)}
-              disabled={actionLoading === 'reject-phase1'}
-              className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50 disabled:opacity-50"
-              title="Rechazar Fase 1"
-            >
-              <XCircle className="w-4 h-4" />
-            </button>
-          </>
-        )}
-
-        {isPhase3Pending && (
-          <>
-            <button
-              onClick={() => initiateAction('approve-record', record.id)}
-              disabled={actionLoading === 'approve-record'}
-              className="text-green-600 hover:text-green-900 transition-colors p-1 rounded hover:bg-green-50 disabled:opacity-50"
-              title="Aprobar Expediente Completo"
-            >
-              <CheckCircle className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                setSelectedRecord(records.find(r => r.id === record.id) as RecordWithDetails);
-                setShowPhase3ModModal(true);
-              }}
-              disabled={phase3ModLoading}
-              className="text-orange-600 hover:text-orange-900 transition-colors p-1 rounded hover:bg-orange-50 disabled:opacity-50"
-              title="Solicitar Modificación Fase 3"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => initiateAction('reject-record', record.id)}
-              disabled={actionLoading === 'reject-record'}
-              className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50 disabled:opacity-50"
-              title="Rechazar Expediente Completo"
-            >
-              <XCircle className="w-4 h-4" />
-            </button>
-          </>
-        )}
       </div>
     );
-  };
+  }, [expandedRows, deletingRecordId, actionLoading, phase3ModLoading, toggleRowExpansion, handleDeleteRecord, initiateAction, handlePhase3ModClick]);
 
   const renderExpandedRow = (record: Record) => {
     if (!expandedRows.has(record.id) || !selectedRecord || selectedRecord.id !== record.id) {
@@ -445,6 +401,7 @@ const ExpedientesAdminPage: React.FC = () => {
                           </p>
                         </div>
                       </div>
+                      
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Nacionalidad</label>
@@ -637,7 +594,7 @@ const ExpedientesAdminPage: React.FC = () => {
             {(selectedRecord.phase === 'phase1' && selectedRecord.status === 'pending') && (
               <div className="border-t border-gray-200 pt-6">
                 <h4 className="text-lg font-medium text-gray-900 mb-4">Acciones</h4>
-                <div className="flex space-x-4">
+                <div className="flex space-x-4 justify-center">
                   <button
                     onClick={() => initiateAction('approve-phase1', selectedRecord.id)}
                     className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
@@ -666,7 +623,7 @@ const ExpedientesAdminPage: React.FC = () => {
             {((selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4') && selectedRecord.status === 'pending') && (
               <div className="border-t border-gray-200 pt-6">
                 <h4 className="text-lg font-medium text-gray-900 mb-4">Acciones</h4>
-                <div className="flex space-x-4">
+                <div className="flex space-x-4 justify-center">
                   <button
                     onClick={() => initiateAction('approve-record', selectedRecord.id)}
                     className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
@@ -675,12 +632,28 @@ const ExpedientesAdminPage: React.FC = () => {
                     Aprobar Expediente Completo
                   </button>
                   <button
+                    onClick={async () => {
+                      try {
+                        const recordDetails = await getRecordById(selectedRecord.id);
+                        setSelectedRecord(recordDetails);
+                        setShowPhase3ModModal(true);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
+                      }
+                    }}
+                    disabled={phase3ModLoading}
+                    className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50"
+                  >
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Solicitar Modificación Fase 3
+                  </button>
+                  <button
                     onClick={() => initiateAction('reject-record', selectedRecord.id)}
                     className="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
                     Rechazar Expediente Completo
-                  </button>
+                  </button>   
                 </div>
               </div>
             )}
@@ -942,67 +915,52 @@ const ExpedientesAdminPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal para comentarios */}
+      {/* Modal unificado para acciones de Fase 1 y expediente */}
       {showModal && selectedRecord && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {pendingAction === 'approve-phase1' ? 'Aprobar Fase 1' :
-               pendingAction === 'reject-phase1' ? 'Rechazar Fase 1' :
-               pendingAction === 'request-modification' ? 'Solicitar Modificación' :
-               pendingAction === 'approve-record' ? 'Aprobar Expediente Completo' :
-               'Rechazar Expediente Completo'}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {pendingAction.includes('approve') ?
-                '¿Está seguro de que desea aprobar este expediente?' :
-                pendingAction === 'request-modification' ?
-                '¿Está seguro de que desea solicitar modificación de este expediente?' :
-                '¿Está seguro de que desea rechazar este expediente?'}
-            </p>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
-              placeholder="Agregue un comentario sobre la decisión (opcional)..."
-            />
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setShowModal(false);
-                  setComment('');
-                  setSelectedRecord(null);
-                  setPendingAction('');
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleAction(selectedRecord.id, pendingAction)}
-                disabled={actionLoading === pendingAction}
-                className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
-                  pendingAction.includes('approve') ? 'bg-green-500 hover:bg-green-600' :
-                  pendingAction === 'request-modification' ? 'bg-yellow-500 hover:bg-yellow-600' :
-                  'bg-red-500 hover:bg-red-600'
-                }`}
-              >
-                {actionLoading === pendingAction ? 'Procesando...' :
-                 pendingAction.includes('approve') ? 'Aprobar' :
-                 pendingAction === 'request-modification' ? 'Solicitar Modificación' :
-                 'Rechazar'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <AdminActionModal
+          isOpen={showModal}
+          title={
+            pendingAction === 'approve-phase1' ? 'Aprobar Fase 1' :
+            pendingAction === 'reject-phase1' ? 'Rechazar Fase 1' :
+            pendingAction === 'request-modification' ? 'Solicitar Modificación' :
+            pendingAction === 'approve-record' ? 'Aprobar Expediente Completo' :
+            'Rechazar Expediente Completo'
+          }
+          message={
+            pendingAction.includes('approve') ?
+              '¿Está seguro de que desea aprobar este expediente?' :
+              pendingAction === 'request-modification' ?
+              '¿Está seguro de que desea solicitar modificación de este expediente?' :
+              '¿Está seguro de que desea rechazar este expediente?'
+          }
+          comment={comment}
+          setComment={setComment}
+          requireComment={pendingAction === 'request-modification' || pendingAction === 'reject-phase1' || pendingAction === 'reject-record'}
+          confirmLabel={
+            pendingAction.includes('approve') ? 'Aprobar' :
+            pendingAction === 'request-modification' ? 'Solicitar Modificación' :
+            'Rechazar'
+          }
+          loading={actionLoading === pendingAction}
+          onConfirm={() => handleAction(selectedRecord.id, pendingAction)}
+          onCancel={() => {
+            setShowModal(false);
+            setComment('');
+            setPendingAction('');
+          }}
+          recordNumber={selectedRecord.record_number}
+          recordName={selectedRecord.personal_data?.full_name}
+        />
       )}
 
       {/* Phase 3 Modification Modal */}
       {selectedRecord && (
         <Phase3ModificationModal
           isOpen={showPhase3ModModal}
-          onClose={() => setShowPhase3ModModal(false)}
+          onClose={() => {
+            setShowPhase3ModModal(false);
+            // Don't clear selectedRecord here - keep it for the form
+          }}
           onSubmit={handlePhase3Modification}
           loading={phase3ModLoading}
           record={selectedRecord}

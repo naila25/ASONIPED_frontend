@@ -347,8 +347,8 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
 
                 {/* Show legal guardian information only if they have meaningful data */}
                 {record.family_information.responsible_person && record.family_information.responsible_person.trim() !== '' && (
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="text-md font-medium text-blue-900 mb-3">Información del Encargado Legal</h4>
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium text-gray-800 mb-3">Información del Encargado Legal</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Nombre del Encargado Legal</label>
@@ -948,29 +948,6 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
         </div>
       )}
 
-      {/* Notas del Administrador (solo para admin) */}
-      {isAdmin && record.notes && record.notes.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900">Notas Administrativas</h3>
-          </div>
-          
-          <div className="space-y-3">
-            {record.notes.map((note, index) => (
-              <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-700">{note.note}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {note.created_at ? new Date(note.created_at).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Resumen del Expediente (solo para admin) */}
       {isAdmin && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -1023,7 +1000,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
               <div>
                 <span className="text-gray-600">Email:</span>
                 <span className="ml-2 text-gray-900">
-                  {record.personal_data?.email || 'No disponible'}
+                  {record.complete_personal_data?.email || record.personal_data?.email || 'No disponible'}
                 </span>
               </div>
               <div>
