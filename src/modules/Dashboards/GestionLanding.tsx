@@ -7,6 +7,11 @@ interface SectionData {
   title: string;
   image: string | File | null;
   buttonColor: string;
+  buttonText: string;
+  buttonUrl: string;
+  textColor: string;
+  backgroundColor: string;
+  alignment: "left" | "center" | "right";
 }
 
 const landingSections: { key: SectionKey; label: string; icon: React.ReactNode }[] = [
@@ -24,12 +29,12 @@ export default function GestionLanding() {
   const [modalOpen, setModalOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState<SectionKey | null>(null);
   const [sectionData, setSectionData] = useState<Record<SectionKey, SectionData>>({
-    hero: { title: "", image: null, buttonColor: "#1976d2" },
-    about: { title: "", image: null, buttonColor: "#1976d2" },
-    volunteering: { title: "", image: null, buttonColor: "#1976d2" },
-    footer: { title: "", image: null, buttonColor: "#1976d2" },
-    location: { title: "", image: null, buttonColor: "#1976d2" },
-    testimonials: { title: "", image: null, buttonColor: "#1976d2" },
+    hero: { title: "", image: null, buttonColor: "#1976d2", buttonText: "", buttonUrl: "", textColor: "#000000", backgroundColor: "#ffffff", alignment: "center" },
+    about: { title: "", image: null, buttonColor: "#1976d2", buttonText: "", buttonUrl: "", textColor: "#000000", backgroundColor: "#ffffff", alignment: "center" },
+    volunteering: { title: "", image: null, buttonColor: "#1976d2", buttonText: "", buttonUrl: "", textColor: "#000000", backgroundColor: "#ffffff", alignment: "center" },
+    footer: { title: "", image: null, buttonColor: "#1976d2", buttonText: "", buttonUrl: "", textColor: "#000000", backgroundColor: "#ffffff", alignment: "center" },
+    location: { title: "", image: null, buttonColor: "#1976d2", buttonText: "", buttonUrl: "", textColor: "#000000", backgroundColor: "#ffffff", alignment: "center" },
+    testimonials: { title: "", image: null, buttonColor: "#1976d2", buttonText: "", buttonUrl: "", textColor: "#000000", backgroundColor: "#ffffff", alignment: "center" },
   });
 
   if (user.role !== "admin") {
@@ -68,6 +73,7 @@ export default function GestionLanding() {
             <div
               key={sec.key}
               className="bg-white rounded-lg shadow-md p-6 flex flex-col justify-between hover:shadow-lg transition"
+              style={{ backgroundColor: current.backgroundColor, textAlign: current.alignment, color: current.textColor }}
             >
               <div className="flex items-center gap-4 mb-4">
                 <div className={`flex items-center justify-center w-12 h-12 rounded-lg text-white ${color}`}>
@@ -80,8 +86,19 @@ export default function GestionLanding() {
                   </p>
                 </div>
               </div>
+              {current.buttonText && (
+                <a
+                  href={current.buttonUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 rounded text-white text-sm"
+                  style={{ backgroundColor: current.buttonColor }}
+                >
+                  {current.buttonText}
+                </a>
+              )}
               <button
-                className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md self-end"
+                className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md self-end mt-4"
                 onClick={() => handlePersonalize(sec.key)}
               >
                 Personalizar
@@ -144,21 +161,50 @@ function LandingSectionEditor({
   const [title, setTitle] = useState(initialData?.title || "");
   const [image, setImage] = useState<File | string | null>(initialData?.image || null);
   const [buttonColor, setButtonColor] = useState(initialData?.buttonColor || "#1976d2");
+  const [buttonText, setButtonText] = useState(initialData?.buttonText || "");
+  const [buttonUrl, setButtonUrl] = useState(initialData?.buttonUrl || "");
+  const [textColor, setTextColor] = useState(initialData?.textColor || "#000000");
+  const [backgroundColor, setBackgroundColor] = useState(initialData?.backgroundColor || "#ffffff");
+  const [alignment, setAlignment] = useState<"left" | "center" | "right">(initialData?.alignment || "center");
+  const [error, setError] = useState<string | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setImage(e.target.files[0]);
+      const file = e.target.files[0];
+      if (!["image/png", "image/jpeg"].includes(file.type)) {
+        setError("Solo se permiten imágenes PNG o JPG.");
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        setError("La imagen no debe superar los 2MB.");
+        return;
+      }
+      setError(null);
+      setImage(file);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ title, image, buttonColor });
+
+    if (!title.trim()) {
+      setError("El título no puede estar vacío.");
+      return;
+    }
+    if (buttonText && !/^https?:\/\/.+\..+/.test(buttonUrl)) {
+      setError("La URL del botón no es válida.");
+      return;
+    }
+
+    setError(null);
+    onSave({ title, image, buttonColor, buttonText, buttonUrl, textColor, backgroundColor, alignment });
   };
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
       <h2 className="text-xl font-bold mb-2">Personalizar {section}</h2>
+
+      {error && <p className="text-red-500">{error}</p>}
 
       <label className="block">Título:</label>
       <input
@@ -171,13 +217,36 @@ function LandingSectionEditor({
       <label className="block">Foto:</label>
       <input type="file" onChange={handleImageChange} className="border rounded px-2 py-1 w-full" />
 
-      <label className="block">Color de Botón:</label>
+      <label className="block">Texto del Botón:</label>
       <input
-        type="color"
-        value={buttonColor}
-        onChange={(e) => setButtonColor(e.target.value)}
-        className="w-16 h-8"
+        value={buttonText}
+        onChange={(e) => setButtonText(e.target.value)}
+        className="border rounded px-2 py-1 w-full"
       />
+
+      <label className="block">URL del Botón:</label>
+      <input
+        value={buttonUrl}
+        onChange={(e) => setButtonUrl(e.target.value)}
+        className="border rounded px-2 py-1 w-full"
+        type="url"
+      />
+
+      <label className="block">Color de Botón:</label>
+      <input type="color" value={buttonColor} onChange={(e) => setButtonColor(e.target.value)} className="w-16 h-8" />
+
+      <label className="block">Color del Texto:</label>
+      <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="w-16 h-8" />
+
+      <label className="block">Color de Fondo:</label>
+      <input type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-16 h-8" />
+
+      <label className="block">Alineación:</label>
+      <select value={alignment} onChange={(e) => setAlignment(e.target.value as "left" | "center" | "right")} className="border rounded px-2 py-1 w-full">
+        <option value="left">Izquierda</option>
+        <option value="center">Centro</option>
+        <option value="right">Derecha</option>
+      </select>
 
       <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
         Guardar
