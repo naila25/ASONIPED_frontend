@@ -53,6 +53,8 @@ const ExpedientesPage: React.FC = () => {
       const userRecord = await getUserRecord();
       console.log('=== USER RECORD LOADED ===');
       console.log('User record:', userRecord);
+      console.log('User record documents:', userRecord?.documents);
+      console.log('Number of documents:', userRecord?.documents?.length || 0);
       console.log('User record notes:', userRecord?.notes);
       console.log('Number of notes:', userRecord?.notes?.length || 0);
       if (userRecord?.notes) {
@@ -158,9 +160,36 @@ const ExpedientesPage: React.FC = () => {
         // Check if it's the new structured format
         if ((noteToUse as any).admin_comment) {
           console.log('Using new structured format');
+          
+          // Parse JSON strings for sections and documents
+          let sections = [];
+          let documents = [];
+          
+          try {
+            if ((noteToUse as any).sections_to_modify) {
+              sections = typeof (noteToUse as any).sections_to_modify === 'string' 
+                ? JSON.parse((noteToUse as any).sections_to_modify)
+                : (noteToUse as any).sections_to_modify || [];
+            }
+          } catch (e) {
+            console.error('Error parsing sections_to_modify:', e);
+            sections = [];
+          }
+          
+          try {
+            if ((noteToUse as any).documents_to_replace) {
+              documents = typeof (noteToUse as any).documents_to_replace === 'string'
+                ? JSON.parse((noteToUse as any).documents_to_replace)
+                : (noteToUse as any).documents_to_replace || [];
+            }
+          } catch (e) {
+            console.error('Error parsing documents_to_replace:', e);
+            documents = [];
+          }
+          
           const finalDetails = {
-            sections: (noteToUse as any).sections_to_modify || [],
-            documents: (noteToUse as any).documents_to_replace || [],
+            sections: sections,
+            documents: documents,
             comment: (noteToUse as any).admin_comment || ''
           };
           console.log('Setting modification details (new format):', finalDetails);
@@ -287,10 +316,10 @@ const ExpedientesPage: React.FC = () => {
         await updatePhase3Data(record.id, data, (p) => setUploadProgress(p));
       } else {
         // This is a regular completion
-        if (record.phase !== 'phase2' || record.status !== 'approved') {
-          throw new Error('No puede completar el expediente. Debe estar en Fase 2 y aprobado.');
-        }
-        
+      if (record.phase !== 'phase2' || record.status !== 'approved') {
+        throw new Error('No puede completar el expediente. Debe estar en Fase 2 y aprobado.');
+      }
+      
         await completeRecord(record.id, data, (p) => setUploadProgress(p));
       }
       

@@ -153,6 +153,10 @@ const ExpedientesAdminPage: React.FC = () => {
       console.log('=== ADMIN: REQUESTING PHASE 3 MODIFICATION ===');
       console.log('Record ID:', selectedRecord.id);
       console.log('Data:', data);
+      console.log('Sections to modify:', data.sectionsToModify);
+      console.log('Sections to modify length:', data.sectionsToModify?.length);
+      console.log('Documents to replace:', data.documentsToReplace);
+      console.log('Documents to replace length:', data.documentsToReplace?.length);
       
       setPhase3ModLoading(true);
       await requestPhase3Modification(

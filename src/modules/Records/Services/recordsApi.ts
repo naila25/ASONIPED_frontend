@@ -403,7 +403,11 @@ export const requestPhase3Modification = async (
     console.log('Record ID:', recordId);
     console.log('Comment:', comment);
     console.log('Sections to modify:', sectionsToModify);
+    console.log('Sections to modify type:', typeof sectionsToModify);
+    console.log('Sections to modify length:', sectionsToModify?.length);
     console.log('Documents to replace:', documentsToReplace);
+    console.log('Documents to replace type:', typeof documentsToReplace);
+    console.log('Documents to replace length:', documentsToReplace?.length);
     
     const requestUrl = `${API_URL}/${recordId}/request-phase3-modification`;
     console.log('Request URL:', requestUrl);

@@ -420,6 +420,11 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     }));
 
     // If there are existing documents, update their status
+    console.log('=== CHECKING FOR EXISTING DOCUMENTS ===');
+    console.log('Current record:', currentRecord);
+    console.log('Current record documents:', currentRecord?.documents);
+    console.log('Documents length:', currentRecord?.documents?.length || 0);
+    
     if (currentRecord?.documents && currentRecord.documents.length > 0) {
       const existingDocuments = currentRecord.documents;
       console.log('=== LOADING EXISTING DOCUMENTS ===');
@@ -447,50 +452,31 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       console.log('Document status map:', documentStatusMap);
 
       // Update form with existing document statuses
+      const updatedDocuments = documentTypes.map(doc => ({
+        document_type: doc.key as RequiredDocument['document_type'],
+        status: documentStatusMap.get(doc.key) || 'pendiente',
+        observations: ''
+      }));
+      
+      console.log('Updated form documents before setForm:', updatedDocuments);
+      
       setForm(prev => ({
         ...prev,
         documentation_requirements: {
           ...prev.documentation_requirements,
-          documents: documentTypes.map(doc => ({
-            document_type: doc.key as RequiredDocument['document_type'],
-            status: documentStatusMap.get(doc.key) || 'pendiente',
-            observations: ''
-          }))
+          documents: updatedDocuments
         }
       }));
       
-      console.log('Updated form documents:', documentTypes.map(doc => ({
-        document_type: doc.key,
-        status: documentStatusMap.get(doc.key) || 'pendiente'
-      })));
+      console.log('Updated form documents after setForm:', updatedDocuments);
     }
   }, [currentRecord, documentTypes]);
 
   // Helper function to map backend document types to form document types
   const mapBackendDocumentType = (backendType: string, fileName?: string): string | null => {
-    // First try to map based on file name for more specific matching
-    if (fileName) {
-      const fileNameLower = fileName.toLowerCase();
-      
-      // Check for specific document types based on file name
-      if (fileNameLower.includes('familia') || fileNameLower.includes('family')) {
-        if (backendType === 'cedula') return 'copias_cedulas_familia';
-      }
-      if (fileNameLower.includes('alimentaria') || fileNameLower.includes('alimentaria')) {
-        if (backendType === 'pension_certificate') return 'constancia_pension_alimentaria';
-      }
-      if (fileNameLower.includes('banco') || fileNameLower.includes('nacional')) {
-        if (backendType === 'other') return 'cuenta_banco_nacional';
-      }
-      if (fileNameLower.includes('pago') || fileNameLower.includes('payment') || fileNameLower.includes('sinpe')) {
-        if (backendType === 'other') return 'informacion_pago';
-      }
-      if (fileNameLower.includes('ccss') || fileNameLower.includes('pension')) {
-        if (backendType === 'pension_certificate') return 'constancia_pension_ccss';
-      }
-    }
+    console.log(`Mapping backend type: ${backendType}, fileName: ${fileName}`);
     
-    // Fallback to basic mapping
+    // Direct mapping based on backend document types
     const mapping: { [key: string]: string } = {
       'medical_diagnosis': 'dictamen_medico',
       'birth_certificate': 'constancia_nacimiento',
@@ -499,9 +485,15 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       'pension_certificate': 'constancia_pension_ccss',
       'study_certificate': 'constancia_estudio',
       'payment_info': 'informacion_pago',
+      'copias_cedulas_familia': 'copias_cedulas_familia',
+      'pension_alimentaria': 'constancia_pension_alimentaria',
+      'cuenta_banco_nacional': 'cuenta_banco_nacional',
       'other': 'cuenta_banco_nacional' // Default for 'other' type
     };
-    return mapping[backendType] || null;
+    
+    const result = mapping[backendType] || null;
+    console.log(`Mapped ${backendType} to ${result}`);
+    return result;
   };
 
   // Debug: Log form state changes
@@ -510,6 +502,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       documents: form.documentation_requirements.documents,
       documentFiles: Object.keys(documentFiles).filter(key => documentFiles[key] !== null)
     });
+    
+    // Specifically log document statuses
+    console.log('Document statuses in form:', form.documentation_requirements.documents.map(doc => ({
+      type: doc.document_type,
+      status: doc.status
+    })));
   }, [form.documentation_requirements.documents, documentFiles]);
 
   const handleChange = (section: keyof Phase3Data, field: string, value: string | number | boolean | string[] | RequiredDocument[] | AvailableService[]) => {
