@@ -35,16 +35,16 @@ const VolunteerCard = ({
         />
         <div className="p-4">
           <h3 className="text-lg font-semibold mb-2">{title}</h3>
-          <p className="text-gray-700 text-sm mb-4 line-clamp-2">
+          <p className="text-neutral-700 text-sm mb-4 line-clamp-2">
             {description}
           </p>
-          <div className="flex flex-col text-sm text-gray-500 mb-4">
+          <div className="flex flex-col text-sm text-neutral-700 mb-4">
             <span className=" flex items-center mb-2">
-              <FaRegCalendarAlt className="w-4 h-4 mr-1 text-gray-700" />
+              <FaRegCalendarAlt className="w-4 h-4 mr-1 text-gray-800" />
               {date}
             </span>
             <span className="flex items-center">
-              <MdLocationOn className="w-4 h-4 mr-1 text-gray-700" />
+              <MdLocationOn className="w-4 h-4 mr-1 text-gray-800" />
               {location}
             </span>
           </div>
