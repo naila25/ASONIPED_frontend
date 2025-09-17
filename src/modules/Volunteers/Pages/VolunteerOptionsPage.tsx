@@ -312,6 +312,9 @@ const VolunteerOptionsPage = () => {
                   />
                 </div>
               </div>
+              {/* Descripción, Habilidades y Herramientas en paralelo */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Descripción */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Descripción
@@ -325,7 +328,37 @@ const VolunteerOptionsPage = () => {
                   required
                 />
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+              <div>
+      <label className=" text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+        
+        Habilidades necesarias
+      </label>
+      <textarea
+        name="skills"
+        value={(form as any).skills || ""}
+        onChange={handleChange}
+        rows={3}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+      />
+    </div>
+
+     <div>
+      <label className=" text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+        
+        Herramientas necesarias
+      </label>
+      <textarea
+        name="tools"
+        value={(form as any).tools || ""}
+        onChange={handleChange}
+        rows={3}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+      />
+    </div>
+    </div>
+
+              <div className="grid grid-cols-3  gap-4 items-center">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     URL de la Imagen
@@ -338,6 +371,16 @@ const VolunteerOptionsPage = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     required
                   />
+                </div>
+                <div>
+                <label className="block text-sm font-medium text-gray-700">Subir Imagen</label>
+                <input
+                 type="file"
+                 accept="image/*"
+                 className="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-2 
+                    file:rounded-md file:border-0 file:text-sm file:font-medium
+                   file:bg-orange-500 file:text-white hover:file:bg-orange-600"
+                />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -353,7 +396,7 @@ const VolunteerOptionsPage = () => {
                     required
                   />
                 </div>
-              </div>
+                </div>
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   type="button"
