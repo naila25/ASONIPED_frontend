@@ -5,6 +5,7 @@ import { fetchVolunteerOptions } from "../Services/fetchVolunteers";
 import type { VolunteerOption } from "../Types/volunteer";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { MdLocationOn } from "react-icons/md";
+import { submitVolunteerProposal } from "../Services/fetchVolunteers";
 
 interface VolunteerCardProps {
   id: string;
@@ -80,6 +81,16 @@ const Voluntariados = () => {
   const [volunteers, setVolunteers] = useState<VolunteerOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // proposal form state
+  const [pTitle, setPTitle] = useState("");
+  const [pProposal, setPProposal] = useState("");
+  const [pLocation, setPLocation] = useState("");
+  const [pDate, setPDate] = useState("");
+  const [pTools, setPTools] = useState("");
+  const [pFile, setPFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string>("");
 
   // Fetch volunteer options from backend
   useEffect(() => {
@@ -99,6 +110,35 @@ const Voluntariados = () => {
 
     loadVolunteers();
   }, []);
+
+  const handleProposalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+    try {
+      setSubmitting(true);
+      const formData = new FormData();
+      formData.append("title", pTitle);
+      formData.append("proposal", pProposal);
+      formData.append("location", pLocation);
+      formData.append("date", pDate);
+      formData.append("tools", pTools);
+      if (pFile) formData.append("document", pFile);
+
+      await submitVolunteerProposal(formData);
+      setPTitle("");
+      setPProposal("");
+      setPLocation("");
+      setPDate("");
+      setPTools("");
+      setPFile(null);
+      setFileName("");
+      alert("¡Propuesta enviada! Nos comunicaremos contigo pronto.");
+    } catch (err) {
+      alert("No se pudo enviar la propuesta. Inténtalo nuevamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -176,15 +216,12 @@ const Voluntariados = () => {
       <div
         className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16 mx-auto"
       >
-        
-
         <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
           {/* Preguntas frecuentes */}
           <div>
             <h3 className="text-xl font-bold text-black mb-6">
               Preguntas frecuentes
             </h3>
-
             <div className="space-y-4">
               <details className="group rounded-lg px-4 py-3">
                 <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
@@ -228,7 +265,7 @@ const Voluntariados = () => {
           </div>
 
           {/* Formulario lado derecho */}
-          <form className="text-black grid grid-cols-1 gap-4 bg-white">
+          <form onSubmit={handleProposalSubmit} className="text-black grid grid-cols-1 gap-4 bg-white">
             <h3 className="text-xl font-bold text-orange-600 mb-2">
               Deja tu voluntariado
             </h3>
@@ -236,26 +273,36 @@ const Voluntariados = () => {
               type="text"
               placeholder="Nombre del voluntariado"
               className="w-full border border-gray-300 rounded px-4 py-2"
+              value={pTitle}
+              onChange={(e) => setPTitle(e.target.value)}
             />
 
             <textarea
               placeholder="¿Qué propones?"
               className="w-full border border-gray-300 rounded px-4 py-2"
+              value={pProposal}
+              onChange={(e) => setPProposal(e.target.value)}
             ></textarea>
 
             <input
               type="text"
               placeholder="¿Dónde será?"
               className="w-full border border-gray-300 rounded px-4 py-2"
+              value={pLocation}
+              onChange={(e) => setPLocation(e.target.value)}
             />
             <input
               type="date"
               className="w-full border border-gray-300 rounded px-4 py-2"
+              value={pDate}
+              onChange={(e) => setPDate(e.target.value)}
             />
 
             <textarea
               placeholder="Herramientas o materiales necesarios"
               className="w-full border border-gray-300 rounded px-4 py-2"
+              value={pTools}
+              onChange={(e) => setPTools(e.target.value)}
             ></textarea>
 
             {/* Texto explicativo antes de adjuntar */}
@@ -264,35 +311,53 @@ const Voluntariados = () => {
               currículum, título académico o una referencia profesional. (Opcional)
             </p>
 
-            <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6 text-gray-500 mr-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-4-4l-4 4m0 0l-4-4m4 4V10"
+            <div>
+              <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-6 h-6 text-gray-500 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-4-4l-4 4m0 0l-4-4m4 4V10"
+                  />
+                </svg>
+                <span className="text-gray-600">Adjuntar archivo</span>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setPFile(file);
+                    setFileName(file ? file.name : "");
+                  }} 
                 />
-              </svg>
-              <span className="text-gray-600">Adjuntar archivo</span>
-              <input type="file" className="hidden" />
-            </label>
+              </label>
+              {fileName && (
+                <div className="mt-2 text-sm text-green-600 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  {fileName}
+                </div>
+              )}
+            </div>
 
             <button
               type="submit"
-              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition self-start"
+              disabled={submitting}
+              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition self-start disabled:opacity-60"
             >
-              Enviar solicitud
+              {submitting ? 'Enviando...' : 'Enviar solicitud'}
             </button>
           </form>
         </div>
-
-       
       </div>
        {/* Texto motivador abajo */}
         <div className="max-w-3xl mx-auto mt-8 text-center text-neutral-700 mb-20 ">

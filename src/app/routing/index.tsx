@@ -5,6 +5,7 @@ import Volunteers from '../../modules/Volunteers/Pages/Volunteers';
 import Home from '../../modules/Landing/Pages/HomePage';
 import AdminLogin from '../../modules/Login/Pages/AdminLogin';
 import VolunteersSubDashboard from '../../modules/Volunteers/Pages/VolunteersSubDashboard';
+import VolunteerProposalsAdmin from '../../modules/Volunteers/Pages/VolunteerProposalsAdmin';
 import DonacionesPage from '../../modules/Donation/Pages/Donaciones.page';
 import FormularioDonacion from '../../modules/Donation/Components/FormularioDonacion';
 import ConocenosSection from '../../modules/Landing/Components/Conocenos';
@@ -253,6 +254,12 @@ const volunteerFormsRoute = createRoute({
   ),
 });
 
+const volunteerProposalsAdminRoute = createRoute({
+  getParentRoute: () => volunteersAdminRoute,
+  path: 'proposals',
+  component: VolunteerProposalsAdmin,
+});
+
 const eventsNewsAdminRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'events-news',
@@ -298,7 +305,8 @@ const routeTree = rootRoute.addChildren([
       expedientesAdminRoute,
       volunteersAdminRoute.addChildren([
         volunteerOptionsRoute,
-        volunteerFormsRoute
+        volunteerFormsRoute,
+        volunteerProposalsAdminRoute
       ]),
       donationsAdminRoute,
       attendanceAdminRoute,
