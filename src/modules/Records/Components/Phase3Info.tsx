@@ -7,7 +7,7 @@ interface Phase3InfoProps {
   onContinue: () => void;
 }
 
-const Phase3Info: React.FC<Phase3InfoProps> = ({ record, onContinue }) => {
+const Phase3Info: React.FC<Phase3InfoProps> = ({onContinue }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="text-center mb-6">
@@ -32,23 +32,6 @@ const Phase3Info: React.FC<Phase3InfoProps> = ({ record, onContinue }) => {
           </ul>
         </div>
       </div>
-
-      {/* Comentario del administrador si existe */}
-      {record.notes && Array.isArray(record.notes) && record.notes.length > 0 && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-          <h4 className="font-medium text-gray-900 mb-2">Comentario del Administrador</h4>
-          <div className="space-y-2">
-            {record.notes.map((note, index) => (
-              <div key={index} className="bg-white p-3 rounded border">
-                <p className="text-sm text-gray-700">{note.note}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {note.created_at ? new Date(note.created_at).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Botón para continuar */}
       <div className="text-center">

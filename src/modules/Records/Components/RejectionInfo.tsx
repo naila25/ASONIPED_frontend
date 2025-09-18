@@ -23,14 +23,27 @@ const RejectionInfo: React.FC<RejectionInfoProps> = ({ record, onRestart }) => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <h4 className="font-medium text-red-900 mb-2">Motivo del Rechazo</h4>
           <div className="space-y-2">
-            {record.notes.map((note, index) => (
-              <div key={index} className="bg-white p-3 rounded border border-red-100">
-                <p className="text-sm text-red-800">{note.note}</p>
-                <p className="text-xs text-red-600 mt-1">
-                  {note.created_at ? new Date(note.created_at).toLocaleDateString() : 'N/A'}
-                </p>
+            {record.notes
+              .filter(note => note.type === 'activity' && note.note?.includes('Record rejected'))
+              .map((note, index) => (
+                <div key={index} className="bg-white p-3 rounded border border-red-100">
+                  <p className="text-sm text-red-800">
+                    {note.note?.includes('Record rejected by admin: ') 
+                      ? note.note.replace('Record rejected by admin: ', '')
+                      : note.note?.includes('Record rejected by admin')
+                      ? 'El administrador ha rechazado su expediente.'
+                      : note.note || 'Sin comentario específico'}
+                  </p>
+                  <p className="text-xs text-red-600 mt-1">
+                    {note.created_at ? new Date(note.created_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              ))}
+            {record.notes.filter(note => note.type === 'activity' && note.note?.includes('Record rejected')).length === 0 && (
+              <div className="bg-white p-3 rounded border border-red-100">
+                <p className="text-sm text-red-800 italic">No hay comentarios específicos del administrador sobre el rechazo.</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
@@ -42,17 +55,6 @@ const RejectionInfo: React.FC<RejectionInfoProps> = ({ record, onRestart }) => {
           Puede revisar la información proporcionada y corregir los datos según las observaciones del administrador. 
           Luego podrá enviar una nueva solicitud.
         </p>
-      </div>
-
-      {/* Botón para reiniciar */}
-      <div className="text-center">
-        <button
-          onClick={onRestart}
-          className="bg-yellow-600 text-white px-8 py-3 rounded-lg hover:bg-yellow-700 transition-colors flex items-center gap-2 mx-auto"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Reiniciar Proceso
-        </button>
       </div>
     </div>
   );

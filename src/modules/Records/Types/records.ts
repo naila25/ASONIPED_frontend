@@ -11,11 +11,18 @@ export interface PersonalData {
   birth_place: string;
   address: string;
   province: string;
+  canton?: string;
   district: string;
+  phone?: string;
   mother_name: string;
   mother_cedula: string;
+  mother_phone?: string;
   father_name: string;
   father_cedula: string;
+  father_phone?: string;
+  legal_guardian_name?: string;
+  legal_guardian_cedula?: string;
+  legal_guardian_phone?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -33,12 +40,12 @@ export interface CompletePersonalData {
   birth_date: string;
   age?: number; // Calculado automáticamente
   birth_place: string;
-  nationality: string;
   exact_address: string;
   province: string;
+  canton?: string; // Added canton field
   district: string;
   primary_phone: string;
-  secondary_phone: string;
+  secondary_phone?: string;
   email: string;
   created_at?: string;
   updated_at?: string;
@@ -58,6 +65,7 @@ export interface FamilyInformation {
   father_phone: string;
   responsible_person?: string;
   responsible_address?: string;
+  responsible_occupation?: string;
   responsible_phone?: string;
   family_members: FamilyMember[];
   created_at?: string;
@@ -81,11 +89,9 @@ export interface DisabilityInformation {
   disability_type: 'fisica' | 'visual' | 'auditiva' | 'psicosocial' | 'cognitiva' | 'intelectual' | 'multiple';
   medical_diagnosis: string;
   insurance_type: 'rnc' | 'independiente' | 'privado' | 'otro';
-  biomechanical_benefit: BiomechanicalBenefit[];
   disability_origin: 'nacimiento' | 'accidente' | 'enfermedad';
   disability_certificate: 'si' | 'no' | 'en_tramite';
   conapdis_registration: 'si' | 'no' | 'en_tramite';
-  permanent_limitations: PermanentLimitation[];
   medical_additional: MedicalAdditionalInfo;
   created_at?: string;
   updated_at?: string;
@@ -110,8 +116,10 @@ export interface MedicalAdditionalInfo {
   id?: number;
   disability_info_id?: number;
   diseases: string;
-  blood_type: string;
-  medical_observations: string;
+  blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  biomechanical_benefit: BiomechanicalBenefit[];
+  permanent_limitations: PermanentLimitation[];
+  medical_observations?: string;
 }
 
 // Información socioeconómica actualizada
@@ -120,7 +128,7 @@ export interface SocioeconomicInformation {
   record_id?: number;
   housing_type: 'casa_propia' | 'alquilada' | 'prestada';
   available_services: AvailableService[];
-  family_income: 'menos_200k' | '200k_400k' | '400k_600k' | '600k_800k' | '800k_1m' | '1m_1.3m' | 'mas_1.3m';
+  family_income: 'menos_200k' | '200k_400k' | '400k_600k' | '600k_800k' | '800k_1000k' | '1000k_1300k' | 'mas_1300k';
   working_family_members: WorkingFamilyMember[];
   created_at?: string;
   updated_at?: string;
@@ -190,12 +198,16 @@ export interface RecordDocument {
   id?: number;
   record_id: number;
   document_type: 'medical_diagnosis' | 'birth_certificate' | 'cedula' | 'photo' | 'pension_certificate' | 'study_certificate' | 'other';
-  file_path: string;
-  file_name: string;
+  file_path: string; // Legacy field - now contains Google Drive URL
+  file_name: string; // Legacy field - now contains Google Drive filename
   file_size: number;
   original_name: string;
   uploaded_by?: number;
   uploaded_at?: string;
+  // Google Drive fields
+  google_drive_id?: string;
+  google_drive_url?: string;
+  google_drive_name?: string;
 }
 
 export interface RecordNote {
@@ -210,7 +222,7 @@ export interface RecordNote {
 export interface Record {
   id: number;
   record_number: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
+  status: 'draft' | 'pending' | 'needs_modification' | 'approved' | 'rejected' | 'active' | 'inactive';
   phase: 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'completed';
   created_at: string;
   updated_at: string;
@@ -228,13 +240,17 @@ export interface Record {
 }
 
 export interface RecordWithDetails extends Record {
-  personal_data: PersonalData | null;
-  complete_personal_data: CompletePersonalData | null;
-  family_information: FamilyInformation | null;
-  disability_information: DisabilityInformation | null;
-  socioeconomic_information: SocioeconomicInformation | null;
-  documentation_requirements: DocumentationRequirements | null;
-  administrative_control: AdministrativeControl | null;
+  personal_data?: PersonalData;
+  complete_personal_data?: CompletePersonalData;
+  family_information?: FamilyInformation;
+  disability_information?: DisabilityInformation;
+  disability_data?: any; // Add this line
+  socioeconomic_information?: SocioeconomicInformation;
+  socioeconomic_data?: any; // Add this line
+  documentation_requirements?: DocumentationRequirements;
+  registration_requirements?: any;
+  administrative_control?: AdministrativeControl;
+  enrollment_form?: any;
   documents: RecordDocument[];
   notes: RecordNote[];
 }
@@ -242,18 +258,25 @@ export interface RecordWithDetails extends Record {
 // Tipos para las fases del proceso
 export interface Phase1Data {
   full_name: string;
-  pcd_name: string;
+  pcd_name: 'fisica' | 'visual' | 'auditiva' | 'psicosocial' | 'cognitiva' | 'intelectual' | 'multiple';
   cedula: string;
   gender: 'male' | 'female' | 'other';
   birth_date: string;
   birth_place: string;
   address: string;
   province: string;
+  canton: string;
   district: string;
-  mother_name: string;
-  mother_cedula: string;
-  father_name: string;
-  father_cedula: string;
+  phone?: string;
+  mother_name?: string;
+  mother_cedula?: string;
+  mother_phone?: string;
+  father_name?: string;
+  father_cedula?: string;
+  father_phone?: string;
+  legal_guardian_name?: string;
+  legal_guardian_cedula?: string;
+  legal_guardian_phone?: string;
 }
 
 export interface Phase3Data {
