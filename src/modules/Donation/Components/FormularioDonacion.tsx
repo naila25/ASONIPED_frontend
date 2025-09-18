@@ -121,7 +121,7 @@ const DonacionesVisual = () => {
       </motion.h2>
 
       <motion.p
-        className="text-gray-800 max-w-3xl text-center mb-6 text-lg"
+        className="text-neutral-700 max-w-3xl text-center mb-6 text-lg"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}

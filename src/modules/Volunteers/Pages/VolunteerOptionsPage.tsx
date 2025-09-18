@@ -312,6 +312,9 @@ const VolunteerOptionsPage = () => {
                   />
                 </div>
               </div>
+              {/* Descripción, Habilidades y Herramientas en paralelo */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Descripción */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Descripción
@@ -325,7 +328,37 @@ const VolunteerOptionsPage = () => {
                   required
                 />
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+              <div>
+      <label className=" text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+        
+        Habilidades necesarias
+      </label>
+      <textarea
+        name="skills"
+        value={(form as any).skills || ""}
+        onChange={handleChange}
+        rows={3}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+      />
+    </div>
+
+     <div>
+      <label className=" text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+        
+        Herramientas necesarias
+      </label>
+      <textarea
+        name="tools"
+        value={(form as any).tools || ""}
+        onChange={handleChange}
+        rows={3}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+      />
+    </div>
+    </div>
+
+              <div className="grid grid-cols-3  gap-4 items-center">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     URL de la Imagen
@@ -338,6 +371,16 @@ const VolunteerOptionsPage = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     required
                   />
+                </div>
+                <div>
+                <label className="block text-sm font-medium text-gray-700">Subir Imagen</label>
+                <input
+                 type="file"
+                 accept="image/*"
+                 className="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-2 
+                    file:rounded-md file:border-0 file:text-sm file:font-medium
+                   file:bg-orange-500 file:text-white hover:file:bg-orange-600"
+                />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -353,7 +396,7 @@ const VolunteerOptionsPage = () => {
                     required
                   />
                 </div>
-              </div>
+                </div>
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   type="button"
@@ -376,13 +419,16 @@ const VolunteerOptionsPage = () => {
         {/* Options Table */}
         <div className="overflow-x-auto -mx-4 sm:mx-0">
           <div className="inline-block min-w-full align-middle">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
+
+            <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
-                  <tr>
+                  <tr className="divide-x divide-gray-200"> 
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">Img</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Título</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Descripción</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Habilidades</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Herramientas</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Fecha</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Ubicación</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Acciones</th>
@@ -391,16 +437,16 @@ const VolunteerOptionsPage = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredOptions.map((option) => (
                     <tr key={option.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-2 py-3 whitespace-nowrap w-12">
+                      <td className="px-2 py-7 whitespace-nowrap w-30">
                         <img
                           src={option.imageUrl}
                           alt={option.title}
-                          className="h-6 w-6 object-cover rounded border border-gray-200 flex-shrink-0"
+                          className="h-10 w-10 object-cover rounded border border-gray-200 flex-shrink-0"
                         />
                       </td>
-                      <td className="px-2 py-3 whitespace-nowrap w-32">
-                        <div className="text-sm font-medium text-gray-900 truncate" title={option.title}>
-                          {truncateText(option.title, 12)}
+                      <td className="px-2 py-3  w-32">
+                        <div className="text-sm font-medium text-gray-900 line-clamp-2" title={option.title}>
+                          {(option.title)}
                         </div>
                       </td>
                       <td className="px-2 py-3 w-48">
@@ -408,6 +454,17 @@ const VolunteerOptionsPage = () => {
                           {option.description}
                         </div>
                       </td>
+
+                       <td className="px-2 py-3 w-48">
+                        <div className="text-sm text-gray-900 line-clamp-2" >
+                        </div>
+                      </td>
+
+                       <td className="px-2 py-3 w-48">
+                        <div className="text-sm text-gray-900 line-clamp-2">
+                        </div>
+                      </td>
+
                       <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-900 w-20">
                         <div className="truncate" title={option.date}>
                           {truncateText(option.date, 12)}
@@ -419,20 +476,20 @@ const VolunteerOptionsPage = () => {
                         </div>
                       </td>
                       <td className="px-2 py-3 whitespace-nowrap w-20">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-3">
                           <button
                             onClick={() => handleEdit(option)}
                             className="flex items-center justify-center gap-1 px-1 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
                           >
                             <Edit className="w-2.5 h-2.5" />
-                            <span>E</span>
+                            <span>Editar</span>
                           </button>
                           <button
                             onClick={() => handleDelete(option.id)}
                             className="flex items-center justify-center gap-1 px-1 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
                           >
                             <Trash2 className="w-2.5 h-2.5" />
-                            <span>D</span>
+                            <span>Eliminar</span>
                           </button>
                         </div>
                       </td>

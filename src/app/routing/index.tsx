@@ -28,6 +28,8 @@ import MensajesPage from '../../modules/Tickets/Pages/MensajesPage';
 import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
+import VolunteerCard from '../../modules/Volunteers/Pages/VolunteerCard';
+import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerOptionsPage'));
@@ -65,6 +67,12 @@ const emailVerificationRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'verify-email',
   component: lazy(() => import('../../modules/Login/Pages/EmailVerification')),
+});
+
+const VolunteerCard = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'VolunteerCard',
+  component: lazy(() => import('../../modules/Volunteers/Pages/VolunteerCard')),
 });
 
 const forgotPasswordRoute = createRoute({
@@ -263,6 +271,12 @@ const adminWorkshopFormsRoute = createRoute({
   component: WorkshopForms,
 });
 
+const GestionLandingRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'landing',
+  component: GestionLanding,
+})
+
 // Route tree construction
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -276,6 +290,7 @@ const routeTree = rootRoute.addChildren([
   soporteRoute,
   formularioDonacionRoute,
   publicWorkshopsRoute,
+  VolunteerCard,
   formularioMatriculaRoute,
   protectedRoute.addChildren([
     adminDashboardRoute.addChildren([
@@ -290,7 +305,8 @@ const routeTree = rootRoute.addChildren([
       eventsNewsAdminRoute,
       adminWorkshopFormsRoute,
       userManagementRoute,
-      adminTicketsRoute
+      adminTicketsRoute,
+      GestionLandingRoute
     ]),
     userDashboardRoute.addChildren([
       userHomeRoute,

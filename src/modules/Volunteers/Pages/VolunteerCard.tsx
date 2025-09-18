@@ -1,0 +1,309 @@
+import quienessomos from "../../../assets/quienessomos.png";
+import { useState, useEffect } from "react";
+import VolunteerModal from "../Components/VolunteerModal";
+import { fetchVolunteerOptions } from "../Services/fetchVolunteers";
+import type { VolunteerOption } from "../Types/volunteer";
+import { FaRegCalendarAlt } from "react-icons/fa";
+import { MdLocationOn } from "react-icons/md";
+
+interface VolunteerCardProps {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  date: string;
+  location: string;
+}
+
+const VolunteerCard = ({
+  id,
+  title,
+  description,
+  imageUrl,
+  date,
+  location,
+}: VolunteerCardProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <>
+      <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <img
+          src={imageUrl}
+          alt={title}
+          className="w-full h-48 object-cover rounded-t-lg"
+        />
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-2">{title}</h3>
+          <p className="text-neutral-700 text-sm mb-4 line-clamp-2">
+            {description}
+          </p>
+          <div className="flex flex-col text-sm text-neutral-700 mb-4">
+            <span className=" flex items-center mb-2">
+              <FaRegCalendarAlt className="w-4 h-4 mr-1 text-gray-800" />
+              {date}
+            </span>
+            <span className="flex items-center">
+              <MdLocationOn className="w-4 h-4 mr-1 text-gray-800" />
+              {location}
+            </span>
+          </div>
+
+          <div className="flex justify-center items-center">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
+            >
+              Ver más
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <VolunteerModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        volunteer={{
+          id,
+          title,
+          description,
+          imageUrl,
+          date,
+          location,
+        }}
+      />
+    </>
+  );
+};
+
+const Voluntariados = () => {
+  const [volunteers, setVolunteers] = useState<VolunteerOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch volunteer options from backend
+  useEffect(() => {
+    const loadVolunteers = async () => {
+      try {
+        setLoading(true);
+        const options = await fetchVolunteerOptions();
+        setVolunteers(Array.isArray(options) ? options : []);
+        setError(null);
+      } catch (err) {
+        setError("Error al cargar las oportunidades de voluntariado");
+        setVolunteers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadVolunteers();
+  }, []);
+
+  return (
+    <div className="w-full">
+      {/* Hero con imagen de fondo */}
+      <div
+        className="relative h-72 flex items-center justify-center"
+        style={{
+          backgroundImage: `url(${quienessomos})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/50"></div>
+        <h1 className="relative text-4xl sm:text-5xl lg:text-6xl font-semibold text-white z-10 tracking-wide">
+          Voluntariados Disponibles
+        </h1>
+      </div>
+
+      {/* Descripción centrada */}
+      <div className="max-w-3xl mx-auto py-12 px-4 text-center">
+        <p className="text-lg text-neutral-700">
+          En ASONIPED creemos que el voluntariado es una forma poderosa de
+          construir comunidad, solidaridad y oportunidades para todos.
+          <br />
+          Aquí podrás conocer los programas y áreas en las que actualmente
+          necesitamos apoyo, así como enviar tu solicitud para ser parte del
+          equipo de voluntariado.
+        </p>
+      </div>
+
+      {/* Áreas de voluntariado */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <h2 className="text-orange-600 text-4xl text-center font-semibold mb-15">
+          Áreas de voluntariado en ASONIPED
+        </h2>
+
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">
+              Cargando oportunidades de voluntariado...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 text-lg">{error}</p>
+          </div>
+        ) : volunteers.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">
+              No hay oportunidades de voluntariado disponibles en este momento.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {volunteers.map((volunteer) => (
+              <VolunteerCard key={volunteer.id} {...volunteer} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <h2 className="text-center text-3xl font-extrabold text-orange-600 mb-6 mt-20">
+          ¿No encontraste un voluntariado para ti?
+        </h2>
+
+        {/* Texto introductorio */}
+        <p className="max-w-2xl mx-auto text-center text-neutral-700">
+          En ASONIPED también recibimos propuestas nuevas. Completa este
+          formulario para contarnos tu idea o área de interés, y nuestro equipo
+          se pondrá en contacto contigo para valorar cómo integrarla.
+        </p>
+
+      {/* Bloque final con formulario */}
+      <div
+        className="w-full max-w-6xl bg-white border border-gray-200 rounded-xl shadow-xl p-10 mb-12 mt-16 mx-auto"
+      >
+        
+
+        <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 items-start">
+          {/* Preguntas frecuentes */}
+          <div>
+            <h3 className="text-xl font-bold text-black mb-6">
+              Preguntas frecuentes
+            </h3>
+
+            <div className="space-y-4">
+              <details className="group rounded-lg px-4 py-3">
+                <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
+                  ¿Qué pasa si no encuentro un voluntariado que se ajuste a mí?
+                  <span className="transition-transform group-open:rotate-180">
+                    ⌄
+                  </span>
+                </summary>
+                <p className="mt-2 text-gray-700">
+                  Puedes proponernos una nueva iniciativa a través de este
+                  formulario y nuestro equipo la revisará.
+                </p>
+              </details>
+
+              <details className="group rounded-lg px-4 py-3">
+                <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
+                  ¿Qué tipo de propuestas aceptan?
+                  <span className="transition-transform group-open:rotate-180">
+                    ⌄
+                  </span>
+                </summary>
+                <p className="mt-2 text-gray-700">
+                  Aceptamos propuestas relacionadas con educación, apoyo
+                  comunitario, inclusión, formación y más.
+                </p>
+              </details>
+
+              <details className="group rounded-lg px-4 py-3">
+                <summary className="flex justify-between items-center cursor-pointer font-semibold text-gray-800">
+                  ¿Mi propuesta será aprobada automáticamente?
+                  <span className="transition-transform group-open:rotate-180">
+                    ⌄
+                  </span>
+                </summary>
+                <p className="mt-2 text-gray-700">
+                  No. Nuestro equipo revisará tu solicitud y te dará respuesta
+                  sobre su viabilidad y próximos pasos.
+                </p>
+              </details>
+            </div>
+          </div>
+
+          {/* Formulario lado derecho */}
+          <form className="text-black grid grid-cols-1 gap-4 bg-white">
+            <h3 className="text-xl font-bold text-orange-600 mb-2">
+              Deja tu voluntariado
+            </h3>
+            <input
+              type="text"
+              placeholder="Nombre del voluntariado"
+              className="w-full border border-gray-300 rounded px-4 py-2"
+            />
+
+            <textarea
+              placeholder="¿Qué propones?"
+              className="w-full border border-gray-300 rounded px-4 py-2"
+            ></textarea>
+
+            <input
+              type="text"
+              placeholder="¿Dónde será?"
+              className="w-full border border-gray-300 rounded px-4 py-2"
+            />
+            <input
+              type="date"
+              className="w-full border border-gray-300 rounded px-4 py-2"
+            />
+
+            <textarea
+              placeholder="Herramientas o materiales necesarios"
+              className="w-full border border-gray-300 rounded px-4 py-2"
+            ></textarea>
+
+            {/* Texto explicativo antes de adjuntar */}
+            <p className="text-sm text-gray-600">
+              Adjunta un documento que nos ayude a conocerte mejor, como tu
+              currículum, título académico o una referencia profesional. (Opcional)
+            </p>
+
+            <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-6 h-6 text-gray-500 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-4-4l-4 4m0 0l-4-4m4 4V10"
+                />
+              </svg>
+              <span className="text-gray-600">Adjuntar archivo</span>
+              <input type="file" className="hidden" />
+            </label>
+
+            <button
+              type="submit"
+              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition self-start"
+            >
+              Enviar solicitud
+            </button>
+          </form>
+        </div>
+
+       
+      </div>
+       {/* Texto motivador abajo */}
+        <div className="max-w-3xl mx-auto mt-8 text-center text-neutral-700 mb-20 ">
+          <p>
+            👉 Ser voluntario en ASONIPED significa aportar tu tiempo y energía
+            para transformar vidas, pero también crecer en experiencia, empatía
+            y liderazgo.
+          </p>
+        </div>
+    </div>
+  );
+};
+
+export default Voluntariados;
