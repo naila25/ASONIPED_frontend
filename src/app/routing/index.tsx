@@ -29,7 +29,7 @@ import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import VolunteerCard from '../../modules/Volunteers/Pages/VolunteerCard';
-import GestionLanding from '../../modules/Dashboards/GestionLanding';
+import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerOptionsPage'));
