@@ -13,6 +13,8 @@ const RecordStatus: React.FC<RecordStatusProps> = ({ record }) => {
         return { color: 'gray', icon: Clock, text: 'Borrador' };
       case 'pending':
         return { color: 'yellow', icon: Clock, text: 'Pendiente de Revisión' };
+      case 'needs_modification':
+        return { color: 'orange', icon: AlertCircle, text: 'Modificación requerida' };
       case 'approved':
         return { color: 'green', icon: CheckCircle, text: 'Aprobado' };
       case 'rejected':

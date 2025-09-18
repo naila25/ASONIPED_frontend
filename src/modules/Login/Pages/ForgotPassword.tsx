@@ -22,7 +22,7 @@ const ForgotPassword = () => {
     setSuccess("");
 
     try {
-      const base = await import("../../Utils/config").then(m => m.getAPIBaseURL());
+      const base = await import("../../../shared/Services/config").then(m => m.getAPIBaseURL());
       const response = await fetch(`${base}/users/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
