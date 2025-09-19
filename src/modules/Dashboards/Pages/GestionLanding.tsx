@@ -16,9 +16,9 @@ const landingSections: {
   { key: "hero", label: "Hero Section", icon: <FaRocket size={20} /> },
   { key: "about", label: "Sobre Nosotros", icon: <FaInfoCircle size={20} /> },
   { key: "volunteering", label: "Voluntariado", icon: <FaHandsHelping size={20} /> },
-  { key: "footer", label: "Footer", icon: <FaRegSave size={20} /> },
-  { key: "location", label: "Ubicación", icon: <FaMapMarked size={20} /> },
-  { key: "testimonials", label: "Testimonios", icon: <FaCommentDots size={20} /> },
+ // { key: "footer", label: "Footer", icon: <FaRegSave size={20} /> },
+ // { key: "location", label: "Ubicación", icon: <FaMapMarked size={20} /> },
+ //{ key: "testimonials", label: "Testimonios", icon: <FaCommentDots size={20} /> },
 ];
 
 export default function GestionLanding() {
@@ -217,9 +217,6 @@ export default function GestionLanding() {
                     {stats.title}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs text-gray-500">
-                      <span className={cardColor.colorText}>{stats.count}</span> configurado{stats.count !== 1 ? 's' : ''}
-                    </p>
                     {stats.hasImage && (
                       <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
                         Con imagen

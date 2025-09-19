@@ -169,7 +169,10 @@ const ExpedientesAdminPage: React.FC = () => {
       console.log('Phase 3 modification requested successfully');
       // Reload data and close modal
       await loadData();
-      setShowPhase3ModModal(false);
+      // Small delay to ensure data is fully loaded and UI updates
+      setTimeout(() => {
+        setShowPhase3ModModal(false);
+      }, 500);
       // Don't clear selectedRecord here - keep it for the form
     } catch (err) {
       console.error('Error requesting Phase 3 modification:', err);

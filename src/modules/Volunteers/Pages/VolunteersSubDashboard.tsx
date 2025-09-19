@@ -1,5 +1,5 @@
 import { Link, Outlet } from '@tanstack/react-router';
-import { Users, Settings, FileText, ArrowRight } from 'lucide-react';
+import { Users, Settings, FileText, ArrowRight, MessageSquare } from 'lucide-react';
 
 const VolunteersSubDashboard = () => (
   <div className="space-y-6">
@@ -17,7 +17,7 @@ const VolunteersSubDashboard = () => (
     </div>
 
     {/* Navigation Cards */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Link 
         to="/admin/volunteers/options" 
         className="group bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all duration-200"
@@ -59,6 +59,28 @@ const VolunteersSubDashboard = () => (
             </div>
           </div>
           <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
+        </div>
+      </Link>
+
+      <Link 
+        to="/admin/volunteers/proposals" 
+        className="group bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all duration-200"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+              <MessageSquare className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                Propuestas de Voluntariado
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Revisa y aprueba nuevas propuestas
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
         </div>
       </Link>
     </div>
