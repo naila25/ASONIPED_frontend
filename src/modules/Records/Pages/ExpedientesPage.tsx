@@ -396,7 +396,7 @@ const ExpedientesPage: React.FC = () => {
   if (!record) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="text-center mb-6">
               <FileText className="w-12 h-12 text-blue-600 mx-auto mb-4" />
@@ -431,7 +431,7 @@ const ExpedientesPage: React.FC = () => {
   // Mostrar progreso y estado actual
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Indicador de progreso */}
         {(() => {
           // Cuando el usuario está completando el formulario de Fase 3

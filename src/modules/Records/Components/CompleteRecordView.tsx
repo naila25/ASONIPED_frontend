@@ -799,16 +799,6 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                     </span>
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                  <span className="text-sm text-gray-700">Información Bancaria</span>
-                  <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(record.registration_requirements.bank_account_info ? 'entregado' : 'pendiente')}`}>
-                    {getStatusIcon(record.registration_requirements.bank_account_info ? 'entregado' : 'pendiente')}
-                    <span className="text-xs font-medium">
-                      {record.registration_requirements.bank_account_info ? 'Disponible' : 'No disponible'}
-                    </span>
-                  </div>
-                </div>
               </div>
               
               {record.registration_requirements.bank_account_info && (
@@ -828,9 +818,10 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                   { key: 'medical_diagnosis', label: 'Dictamen Médico', backendKey: 'medical_diagnosis' },
                   { key: 'birth_certificate', label: 'Constancia de Nacimiento', backendKey: 'birth_certificate' },
                   { key: 'cedula', label: 'Copia de Cédula (solicitante)', backendKey: 'cedula' },
+                  { key: 'copias_cedulas_familia', label: 'Copias de Cédulas (familia)', backendKey: 'copias_cedulas_familia' },
                   { key: 'photo', label: 'Foto Tamaño Pasaporte', backendKey: 'photo' },
                   { key: 'pension_certificate', label: 'Constancia de Pensión CCSS', backendKey: 'pension_certificate' },
-                  { key: 'pension_alimentaria', label: 'Constancia de Pensión Alimentaria', backendKey: 'constancia_pension_alimentaria' },
+                  { key: 'pension_alimentaria', label: 'Constancia de Pensión Alimentaria', backendKey: 'pension_alimentaria' },
                   { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', backendKey: 'cuenta_banco_nacional' },
                   { key: 'study_certificate', label: 'Constancia de Estudio', backendKey: 'study_certificate' }
                 ].map((doc) => {

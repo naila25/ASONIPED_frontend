@@ -191,12 +191,12 @@ const VolunteerFormsPage = () => {
 
   // Main render
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-8xl mx-auto px-8 py-8">
       {/* Header */}
       <div className="mb-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900 mb-2">Gestión de Voluntarios</h1>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Voluntarios</h2>
             <p className="text-gray-600 text-base">Administra y revisa todos los formularios de voluntariado</p>
           </div>
           <div className="flex items-center gap-3">
@@ -213,7 +213,7 @@ const VolunteerFormsPage = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 mb-2">Total Voluntarios</p>
@@ -225,7 +225,7 @@ const VolunteerFormsPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 mb-2">Pendientes</p>
@@ -237,7 +237,7 @@ const VolunteerFormsPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 mb-2">Aprobados</p>
@@ -249,7 +249,7 @@ const VolunteerFormsPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 mb-2">Rechazados</p>

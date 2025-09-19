@@ -25,6 +25,8 @@ interface VolunteerProposal {
   status: string;
   admin_note?: string;
   created_at: string;
+  full_name?: string;
+  email?: string;
 }
 
 export default function VoluntariadoPage() {
@@ -133,7 +135,7 @@ export default function VoluntariadoPage() {
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Aún no estás inscrito</h3>
           <p className="text-gray-600 mb-4">No tienes voluntariados registrados en este momento.</p>
           <a 
-            href="/volunteers" 
+            href="/volunteerCard" 
             className="inline-block bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
           >
             Ver Voluntariados Disponibles
