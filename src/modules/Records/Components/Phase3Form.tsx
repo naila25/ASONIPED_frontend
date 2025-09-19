@@ -460,11 +460,19 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       
       console.log('Updated form documents before setForm:', updatedDocuments);
       
+      // Check if payment information document is entregado and set payment status accordingly
+      const paymentDocStatus = documentStatusMap.get('informacion_pago');
+      const isPaymentPaid = paymentDocStatus === 'entregado';
+      
+      console.log('Payment document status:', paymentDocStatus);
+      console.log('Setting affiliation_fee_paid to:', isPaymentPaid);
+      
       setForm(prev => ({
         ...prev,
         documentation_requirements: {
           ...prev.documentation_requirements,
-          documents: updatedDocuments
+          documents: updatedDocuments,
+          affiliation_fee_paid: isPaymentPaid
         }
       }));
       
@@ -542,13 +550,22 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             doc.document_type === documentType ? { ...doc, status: 'entregado' as const } : doc
           );
           console.log('Updated docs:', updatedDocs);
-          return {
+          
+          const updatedForm = {
             ...prev,
             documentation_requirements: {
               ...prev.documentation_requirements,
               documents: updatedDocs
             }
           };
+          
+          // Si es el documento de información de pago, marcar el pago como pagado
+          if (documentType === 'informacion_pago') {
+            updatedForm.documentation_requirements.affiliation_fee_paid = true;
+            console.log('Payment information document uploaded, setting affiliation_fee_paid to true');
+          }
+          
+          return updatedForm;
         } else {
           // Add new document with 'entregado' status
           const newDoc: RequiredDocument = {
@@ -558,13 +575,22 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           };
           const updatedDocs = [...prev.documentation_requirements.documents, newDoc];
           console.log('Added new doc:', updatedDocs);
-          return {
+          
+          const updatedForm = {
             ...prev,
             documentation_requirements: {
               ...prev.documentation_requirements,
               documents: updatedDocs
             }
           };
+          
+          // Si es el documento de información de pago, marcar el pago como pagado
+          if (documentType === 'informacion_pago') {
+            updatedForm.documentation_requirements.affiliation_fee_paid = true;
+            console.log('Payment information document uploaded, setting affiliation_fee_paid to true');
+          }
+          
+          return updatedForm;
         }
       });
     } else {
@@ -577,13 +603,22 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           const updatedDocs = prev.documentation_requirements.documents.map(doc => 
             doc.document_type === documentType ? { ...doc, status: 'pendiente' as const } : doc
           );
-          return {
+          
+          const updatedForm = {
             ...prev,
             documentation_requirements: {
               ...prev.documentation_requirements,
               documents: updatedDocs
             }
           };
+          
+          // Si se elimina el documento de información de pago, marcar el pago como pendiente
+          if (documentType === 'informacion_pago') {
+            updatedForm.documentation_requirements.affiliation_fee_paid = false;
+            console.log('Payment information document removed, setting affiliation_fee_paid to false');
+          }
+          
+          return updatedForm;
         }
         return prev;
       });
@@ -1843,7 +1878,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               <h4 className="font-medium text-blue-900">Información de Pago</h4>
             </div>
             <p className="text-sm text-blue-800 mb-3">
-              Para completar su expediente, debe realizar el pago de la cuota de afiliación de <strong>500 colones</strong> en la siguiente cuenta de sinpe movil: 0000-0000.
+              Para completar su expediente, debe realizar el pago de la cuota de afiliación de <strong>500 colones</strong> en la siguiente cuenta de sinpe movil: 8888-8888.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -1883,8 +1918,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               { key: 'constancia_pension_ccss', label: 'Constancia de Pensión CCSS', required: false },
               { key: 'constancia_pension_alimentaria', label: 'Constancia de Pensión Alimentaria', required: false },
               { key: 'constancia_estudio', label: 'Constancia de Estudio (En caso de solicitante este en estudio)', required: false },
-              { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false },
-              { key: 'informacion_pago', label: 'Información de Pago', required: true }
+              { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
             ].map((req) => (
               <div key={req.key} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                 <div className="flex items-center space-x-3">

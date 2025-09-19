@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import VolunteerRegistrationForm from './VolunteerRegistrationForm';
+import { enrollIntoVolunteerOption } from '../Services/fetchVolunteers';
 import type { VolunteerOption } from '../Types/volunteer';
 import { FaTools, FaRegLightbulb, FaRegCalendarAlt } from "react-icons/fa";   
 import { MdLocationOn, MdDescription } from "react-icons/md";  
@@ -12,8 +12,7 @@ interface VolunteerModalProps {
 }
 
 const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => {
-  // State for showing registration form
-  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Handle ESC key press to close modal
   useEffect(() => {
@@ -32,11 +31,18 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
     };
   }, [isOpen, onClose]);
 
-  // Handle successful registration form submission
-  const handleFormSubmit = () => {
-    setShowRegistrationForm(false);
-    onClose();
-    alert('¡Registro exitoso! Nos pondremos en contacto contigo pronto.');
+  const handleEnroll = async () => {
+    if (submitting) return;
+    try {
+      setSubmitting(true);
+      await enrollIntoVolunteerOption(volunteer.id);
+      onClose();
+      alert('¡Inscripción realizada! Pronto nos pondremos en contacto.');
+    } catch (e) {
+      alert('No se pudo completar la inscripción. Inténtalo nuevamente.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Do not render if modal is not open
@@ -47,7 +53,7 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          {!showRegistrationForm ? (
+          {(
             <div>
               <div className="flex justify-between items-start mb-4">
                 <h2 className="text-lg font-semibold mb-2">{volunteer.title}</h2>
@@ -97,31 +103,14 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
 
                 <div className="flex justify-center items-center">
                   <button
-                    onClick={() => setShowRegistrationForm(true)}
-                    className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
+                    onClick={handleEnroll}
+                    disabled={submitting}
+                    className="bg-orange-600 disabled:opacity-60 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
                   >
-                    Inscribirse como Voluntario
+                    {submitting ? 'Inscribiendo...' : 'Inscribirse como Voluntario'}
                   </button>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div>
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Registro de Voluntario</h2>
-                <button
-                  onClick={() => setShowRegistrationForm(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <VolunteerRegistrationForm
-                volunteerOptionId={volunteer.id}
-                onSubmit={handleFormSubmit}
-                onCancel={onClose}
-              />
             </div>
           )}
         </div>

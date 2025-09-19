@@ -175,11 +175,9 @@ const VolunteerOptionsPage = () => {
   return (
     <div className="space-y-6 min-w-0">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+      <div className="bg-white  p-4 sm:p-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
-            <Settings className="w-6 h-6 text-orange-600" />
-          </div>
+
           <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Opciones de Voluntariado</h1>
             <p className="text-gray-600 text-sm sm:text-base">Administra y configura las opciones de voluntariado disponibles</p>
@@ -188,7 +186,7 @@ const VolunteerOptionsPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 p-6">
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">

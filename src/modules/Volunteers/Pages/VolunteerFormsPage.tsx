@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react';
 import { fetchVolunteerForms, updateVolunteerFormStatus, fetchVolunteerOptions } from '../Services/fetchVolunteers';
 import type { VolunteerForm, VolunteerOption } from '../Types/volunteer';
-import { Users, Search, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { 
+  Users, 
+  Search, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  Filter,
+  Eye,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 
 // Type for backend volunteer data
 type BackendVolunteer = {
@@ -32,6 +46,8 @@ const VolunteerFormsPage = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOption, setSelectedOption] = useState<string>('all');
+  const [expandedForms, setExpandedForms] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   // Load forms and options on mount or page change
   useEffect(() => {
@@ -106,6 +122,40 @@ const VolunteerFormsPage = () => {
     rejected: forms.filter(f => f.status === 'rejected').length,
   };
 
+  // Toggle form expansion
+  const toggleFormExpansion = (formId: string) => {
+    const newExpanded = new Set(expandedForms);
+    if (newExpanded.has(formId)) {
+      newExpanded.delete(formId);
+    } else {
+      newExpanded.add(formId);
+    }
+    setExpandedForms(newExpanded);
+  };
+
+  // Get status color and text
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return { color: 'bg-green-100 text-green-800 border-green-200', text: 'Aprobado', icon: CheckCircle };
+      case 'rejected':
+        return { color: 'bg-red-100 text-red-800 border-red-200', text: 'Rechazado', icon: XCircle };
+      default:
+        return { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', text: 'Pendiente', icon: Clock };
+    }
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -141,65 +191,71 @@ const VolunteerFormsPage = () => {
 
   // Main render
   return (
-    <div className="space-y-6 min-w-0">
+    <div className="max-w-8xl mx-auto px-8 py-8">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
-            <Users className="w-6 h-6 text-orange-600" />
+      <div className="mb-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Voluntarios</h2>
+            <p className="text-gray-600 text-base">Administra y revisa todos los formularios de voluntariado</p>
           </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Voluntarios</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Administra y revisa todos los formularios de voluntariado</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
+            >
+              {viewMode === 'cards' ? <Users className="w-4 h-4" /> : <Filter className="w-4 h-4" />}
+              {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Total Voluntarios</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-2">Total Voluntarios</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
-              <Users className="w-6 h-6 text-blue-600" />
+            <div className="p-2.5 bg-slate-100 rounded-lg">
+              <Users className="w-6 h-6 text-slate-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-yellow-500">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Pendientes</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.pending}</p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-2">Pendientes</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.pending}</p>
             </div>
-            <div className="p-3 bg-yellow-100 rounded-lg flex-shrink-0">
-              <Clock className="w-6 h-6 text-yellow-600" />
+            <div className="p-2.5 bg-amber-50 rounded-lg">
+              <Clock className="w-6 h-6 text-amber-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Aprobados</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.approved}</p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-2">Aprobados</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.approved}</p>
             </div>
-            <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+            <div className="p-2.5 bg-emerald-50 rounded-lg">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-red-500">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Rechazados</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.rejected}</p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-2">Rechazados</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.rejected}</p>
             </div>
-            <div className="p-3 bg-red-100 rounded-lg flex-shrink-0">
+            <div className="p-2.5 bg-red-50 rounded-lg">
               <XCircle className="w-6 h-6 text-red-600" />
             </div>
           </div>
@@ -207,180 +263,301 @@ const VolunteerFormsPage = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
-          <h2 className="text-lg font-semibold text-gray-900">Filtros y Búsqueda</h2>
-          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar voluntarios..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            <select
-              value={selectedOption}
-              onChange={(e) => setSelectedOption(e.target.value)}
-              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            >
-              <option value="all">Todos los voluntariados</option>
-              {options.map(option => (
-                <option key={option.id} value={option.id}>{option.title}</option>
-              ))}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="pending">Pendiente</option>
-              <option value="approved">Aprobado</option>
-              <option value="rejected">Rechazado</option>
-            </select>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div className="flex items-center gap-2 mb-6">
+          <Filter className="w-5 h-5 text-gray-600" />
+          <h2 className="text-lg font-medium text-gray-900">Filtros y Búsqueda</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Buscar voluntarios..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            />
+          </div>
+          
+          <select
+            value={selectedOption}
+            onChange={(e) => setSelectedOption(e.target.value)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+          >
+            <option value="all">Todos los voluntariados</option>
+            {options.map(option => (
+              <option key={option.id} value={option.id}>{option.title}</option>
+            ))}
+          </select>
+          
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="pending">Pendiente</option>
+            <option value="approved">Aprobado</option>
+            <option value="rejected">Rechazado</option>
+          </select>
+          
+          <div className="text-sm text-gray-500 flex items-center">
+            <span className="font-medium text-gray-700">{filteredForms.length}</span>
+            <span className="ml-1">voluntarios encontrados</span>
           </div>
         </div>
+      </div>
 
-        {/* Forms by Category */}
-        <div className="space-y-6">
+      {/* Volunteer Forms */}
+      {viewMode === 'cards' ? (
+        <div className="space-y-8">
           {options.map(option => {
             const optionForms = filteredForms.filter(form => String(form.volunteerOptionId) === String(option.id));
             if (optionForms.length === 0) return null;
 
             return (
-              <div key={option.id} className="bg-gray-50 rounded-lg p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">{option.title}</h3>
-                  <span className="bg-orange-100 text-orange-800 text-sm font-medium px-3 py-1 rounded-full flex-shrink-0">
-                    {optionForms.length} voluntarios
-                  </span>
+              <div key={option.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">{option.title}</h3>
+                    <span className="bg-gray-200 text-gray-700 text-sm font-medium px-3 py-1 rounded-full">
+                      {optionForms.length} voluntarios
+                    </span>
+                  </div>
                 </div>
-                <div className="overflow-x-auto -mx-4 sm:mx-0">
-                  <div className="inline-block min-w-full align-middle">
-                    <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                      <table className="min-w-full divide-y divide-gray-300">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Nombre</th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Email</th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Teléfono</th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[60px]">Edad</th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Disponibilidad</th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Habilidades</th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Estado</th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {optionForms.map(form => (
-                            <tr key={form.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-3 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900 min-w-[120px]" title={`${form.personalInfo.firstName} ${form.personalInfo.lastName}`}>
-                                  {form.personalInfo.firstName} {form.personalInfo.lastName}
+                
+                <div className="p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {optionForms.map(form => {
+                      const statusInfo = getStatusInfo(form.status);
+                      const StatusIcon = statusInfo.icon;
+                      const isExpanded = expandedForms.has(form.id);
+                      
+                      return (
+                        <div key={form.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-sm transition-shadow">
+                          {/* Card Header */}
+                          <div className="p-5">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                                  <User className="w-5 h-5 text-slate-600" />
                                 </div>
-                              </td>
-                              <td className="px-3 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900 min-w-[180px]" title={form.personalInfo.email}>
-                                  {form.personalInfo.email}
+                                <div>
+                                  <h4 className="font-medium text-gray-900 text-base">
+                                    {form.personalInfo.firstName} {form.personalInfo.lastName}
+                                  </h4>
+                                  <p className="text-xs text-gray-500">{formatDate(form.submissionDate)}</p>
                                 </div>
-                              </td>
-                              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px]">
-                                {form.personalInfo.phone}
-                              </td>
-                              <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[60px]">
-                                {form.personalInfo.age}
-                              </td>
-                              <td className="px-3 py-4">
-                                <div className="text-sm text-gray-900 min-w-[150px]">
-                                  <div className="font-medium" title={form.availability.days.join(', ')}>
-                                    {form.availability.days.join(', ')}
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.color}`}>
+                                <StatusIcon className="w-3 h-3 inline mr-1" />
+                                {statusInfo.text}
+                              </span>
+                            </div>
+
+                            {/* Basic Info */}
+                            <div className="space-y-2 mb-4">
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Mail className="w-4 h-4 text-gray-400" />
+                                <span className="truncate">{form.personalInfo.email}</span>
+                              </div>
+                              {form.personalInfo.phone && (
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <Phone className="w-4 h-4 text-gray-400" />
+                                  <span>{form.personalInfo.phone}</span>
+                                </div>
+                              )}
+                              {form.personalInfo.age && (
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <Calendar className="w-4 h-4 text-gray-400" />
+                                  <span>{form.personalInfo.age} años</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Expandable Details */}
+                            {isExpanded && (
+                              <div className="border-t border-gray-200 pt-4 space-y-3">
+                                {form.availability.days.length > 0 && (
+                                  <div>
+                                    <h5 className="text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">Disponibilidad</h5>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {form.availability.days.map((day, index) => (
+                                        <span key={index} className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-md">
+                                          {day}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    {form.availability.timeSlots.length > 0 && (
+                                      <div className="mt-2 text-xs text-gray-500">
+                                        Horarios: {form.availability.timeSlots.join(', ')}
+                                      </div>
+                                    )}
                                   </div>
-                                  <div className="text-gray-600" title={form.availability.timeSlots.join(', ')}>
-                                    {form.availability.timeSlots.join(', ')}
+                                )}
+                                
+                                {form.skills && (
+                                  <div>
+                                    <h5 className="text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">Habilidades</h5>
+                                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md border border-gray-200">
+                                      {form.skills}
+                                    </p>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-4">
-                                <div className="min-w-[120px] text-sm text-gray-900" title={form.skills}>
-                                  {form.skills}
-                                </div>
-                              </td>
-                              <td className="px-3 py-4 whitespace-nowrap">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium min-w-[100px] inline-block text-center ${
-                                  form.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                  form.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                  'bg-yellow-100 text-yellow-800'
-                                }`}>
-                                  {form.status === 'approved' ? 'Aprobado' :
-                                   form.status === 'rejected' ? 'Rechazado' :
-                                   'Pendiente'}
-                                </span>
-                              </td>
-                              <td className="px-3 py-4 whitespace-nowrap">
-                                <select
-                                  value={form.status}
-                                  onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected')}
-                                  className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 min-w-[100px]"
-                                >
-                                  <option value="pending">Pendiente</option>
-                                  <option value="approved">Aprobar</option>
-                                  <option value="rejected">Rechazar</option>
-                                </select>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                                )}
+                                
+                                {form.motivation && (
+                                  <div>
+                                    <h5 className="text-xs font-medium text-gray-700 mb-2 uppercase tracking-wide">Motivación</h5>
+                                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md border border-gray-200">
+                                      {form.motivation}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                              <button
+                                onClick={() => toggleFormExpansion(form.id)}
+                                className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-800 font-medium"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                {isExpanded ? 'Ver menos' : 'Ver detalles'}
+                                {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                              </button>
+                              
+                              <select
+                                value={form.status}
+                                onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected')}
+                                className="px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                              >
+                                <option value="pending">Pendiente</option>
+                                <option value="approved">Aprobar</option>
+                                <option value="rejected">Rechazar</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-8">
-            <nav className="flex items-center space-x-2">
-              <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors"
-              >
-                {'<<'}
-              </button>
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors"
-              >
-                {'<'}
-              </button>
-              <span className="px-4 py-2 text-gray-700">
-                Página {currentPage} de {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors"
-              >
-                {'>'}
-              </button>
-              <button
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors"
-              >
-                {'>>'}
-              </button>
-            </nav>
+      ) : (
+        /* Table View */
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voluntario</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voluntariado</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredForms.map(form => {
+                  const statusInfo = getStatusInfo(form.status);
+                  const StatusIcon = statusInfo.icon;
+                  const option = options.find(opt => String(opt.id) === String(form.volunteerOptionId));
+                  
+                  return (
+                    <tr key={form.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
+                            <User className="w-4 h-4 text-slate-600" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {form.personalInfo.firstName} {form.personalInfo.lastName}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {form.personalInfo.age && `${form.personalInfo.age} años`}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{form.personalInfo.email}</div>
+                        <div className="text-xs text-gray-500">{form.personalInfo.phone}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{option?.title || 'N/A'}</div>
+                        <div className="text-xs text-gray-500">{formatDate(form.submissionDate)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.color}`}>
+                          <StatusIcon className="w-3 h-3 inline mr-1" />
+                          {statusInfo.text}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select
+                          value={form.status}
+                          onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected')}
+                          className="px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        >
+                          <option value="pending">Pendiente</option>
+                          <option value="approved">Aprobar</option>
+                          <option value="rejected">Rechazar</option>
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-8">
+          <nav className="flex items-center space-x-1">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+            >
+              Primera
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+            >
+              Anterior
+            </button>
+            <span className="px-4 py-2 text-gray-700 bg-gray-50 rounded-md text-sm font-medium border border-gray-200">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+            >
+              Siguiente
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+            >
+              Última
+            </button>
+          </nav>
+        </div>
+      )}
     </div>
   );
 };

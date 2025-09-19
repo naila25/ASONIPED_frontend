@@ -59,6 +59,78 @@ export const deleteVolunteer = async (id: number): Promise<{ message: string }> 
   return res.json();
 };
 
+// Enroll the current user into a volunteer option using account data
+export const enrollIntoVolunteerOption = async (optionId: string | number): Promise<{ message: string; volunteerId: number }> => {
+  const res = await fetch(`${API_URL}/enroll/${optionId}`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!res.ok) throw new Error('Failed to enroll into volunteer option');
+  return res.json();
+};
+
+// Get current user's volunteer enrollments
+export const fetchMyVolunteerEnrollments = async (): Promise<{ enrollments: any[] }> => {
+  const res = await fetch(`${API_URL}/me`, {
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!res.ok) throw new Error('Failed to fetch my enrollments');
+  return res.json();
+};
+
+// ----- Proposals API -----
+export const submitVolunteerProposal = async (formData: FormData): Promise<{ message: string }> => {
+  const res = await fetch(`${OPTIONS_API_URL}/proposals`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeader(),
+      // Let browser set multipart boundary
+    } as any,
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Failed to submit proposal');
+  return res.json();
+};
+
+export const fetchMyVolunteerProposals = async (): Promise<{ proposals: any[] }> => {
+  const res = await fetch(`${OPTIONS_API_URL}/proposals/mine`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+  if (!res.ok) throw new Error('Failed to fetch my proposals');
+  return res.json();
+};
+
+export const adminFetchAllProposals = async (): Promise<{ proposals: any[] }> => {
+  const res = await fetch(`${OPTIONS_API_URL}/proposals`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+  if (!res.ok) throw new Error('Failed to fetch proposals');
+  return res.json();
+};
+
+export const adminSetProposalStatus = async (id: number, status: 'approved' | 'rejected', note?: string): Promise<{ message: string }> => {
+  const res = await fetch(`${OPTIONS_API_URL}/proposals/${id}/status`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status, note }),
+  });
+  if (!res.ok) throw new Error('Failed to update proposal');
+  return res.json();
+};
+
 // Fetch all available volunteer options
 export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
   const res = await fetch(OPTIONS_API_URL, {

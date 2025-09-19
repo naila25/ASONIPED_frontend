@@ -101,9 +101,6 @@ export function PreviewModal({
               <span className="text-white text-sm font-bold">1</span>
             </div>
             <h3 className="text-lg font-bold text-gray-900">Sección Principal</h3>
-            <div className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              ID: {hero.id || 'N/A'}
-            </div>
           </div>
           
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -170,7 +167,6 @@ export function PreviewModal({
             </div>
             <h3 className="text-lg font-bold text-gray-900">Sobre Nosotros</h3>
             <div className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              ID: {about.id || 'N/A'}
             </div>
           </div>
           
@@ -230,7 +226,6 @@ export function PreviewModal({
             </div>
             <h3 className="text-lg font-bold text-gray-900">Voluntariado</h3>
             <div className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              ID: {volunteering.id || 'N/A'}
             </div>
           </div>
           
