@@ -118,7 +118,7 @@ export const adminFetchAllProposals = async (): Promise<{ proposals: any[] }> =>
   return res.json();
 };
 
-export const adminSetProposalStatus = async (id: number, status: 'approved' | 'rejected', note?: string): Promise<{ message: string }> => {
+export const adminSetProposalStatus = async (id: number, status: 'approved' | 'rejected' | 'filed', note?: string): Promise<{ message: string }> => {
   const res = await fetch(`${OPTIONS_API_URL}/proposals/${id}/status`, {
     method: 'POST',
     headers: {
@@ -128,6 +128,30 @@ export const adminSetProposalStatus = async (id: number, status: 'approved' | 'r
     body: JSON.stringify({ status, note }),
   });
   if (!res.ok) throw new Error('Failed to update proposal');
+  return res.json();
+};
+
+// User: unenroll from a volunteer option
+export const unenrollFromVolunteerOption = async (volunteerId: number): Promise<{ message: string }> => {
+  const res = await fetch(`${API_URL}/unenroll/${volunteerId}`, {
+    method: 'DELETE',
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+  if (!res.ok) throw new Error('Failed to unenroll from volunteer option');
+  return res.json();
+};
+
+// User: delete own proposal
+export const deleteMyProposal = async (proposalId: number): Promise<{ message: string }> => {
+  const res = await fetch(`${OPTIONS_API_URL}/proposals/${proposalId}`, {
+    method: 'DELETE',
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+  if (!res.ok) throw new Error('Failed to delete proposal');
   return res.json();
 };
 
@@ -143,28 +167,64 @@ export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
 };
 
 // Add a new volunteer option (admin only)
-export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'>): Promise<{ message: string }> => {
+export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'> & { imageFile?: File | null }): Promise<{ message: string }> => {
+  const formData = new FormData();
+  // Format date as DD/MM/YYYY if we received YYYY-MM-DD
+  const date = (() => {
+    const d = option.date;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    }
+    return d;
+  })();
+  formData.append('title', option.title);
+  formData.append('description', option.description);
+  formData.append('date', date);
+  formData.append('location', option.location);
+  if (option.skills) formData.append('skills', option.skills);
+  if (option.tools) formData.append('tools', option.tools);
+  if ((option as any).imageUrl) formData.append('imageUrl', (option as any).imageUrl);
+  if (option.imageFile) formData.append('image', option.imageFile);
+
   const res = await fetch(OPTIONS_API_URL, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(option),
+    } as any,
+    body: formData,
   });
   if (!res.ok) throw new Error('Failed to add volunteer option');
   return res.json();
 };
 
 // Update a volunteer option (admin only)
-export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOption, 'id'>): Promise<{ message: string }> => {
+export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOption, 'id'> & { imageFile?: File | null }): Promise<{ message: string }> => {
+  const formData = new FormData();
+  // Format date as DD/MM/YYYY if we received YYYY-MM-DD
+  const date = (() => {
+    const d = option.date;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    }
+    return d;
+  })();
+  formData.append('title', option.title);
+  formData.append('description', option.description);
+  formData.append('date', date);
+  formData.append('location', option.location);
+  if (option.skills) formData.append('skills', option.skills);
+  if (option.tools) formData.append('tools', option.tools);
+  if ((option as any).imageUrl) formData.append('imageUrl', (option as any).imageUrl);
+  if (option.imageFile) formData.append('image', option.imageFile);
+
   const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(option),
+    } as any,
+    body: formData,
   });
   if (!res.ok) throw new Error('Failed to update volunteer option');
   return res.json();

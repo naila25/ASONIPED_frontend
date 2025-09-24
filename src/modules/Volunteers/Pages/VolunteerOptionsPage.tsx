@@ -8,12 +8,15 @@ const VolunteerOptionsPage = () => {
   // State for options, form, loading, error, and UI
   const [options, setOptions] = useState<VolunteerOption[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Omit<VolunteerOption, 'id'>>({
+  const [form, setForm] = useState<(Omit<VolunteerOption, 'id'> & { imageFile?: File | null })>({
     title: '',
     description: '',
     imageUrl: '',
     date: '',
     location: '',
+    skills: '',
+    tools: '',
+    imageFile: null,
   });
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,10 +74,19 @@ const VolunteerOptionsPage = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setForm({ ...form, imageFile: file });
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setForm((prev: (Omit<VolunteerOption, 'id'> & { imageFile?: File | null })) => ({ ...prev, imageUrl: url }));
+    }
+  };
+
   // Start adding a new option
   const handleAdd = () => {
     setIsAdding(true);
-    setForm({ title: '', description: '', imageUrl: '', date: '', location: '' });
+    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', imageFile: null });
     setEditingId(null);
   };
 
@@ -87,6 +99,9 @@ const VolunteerOptionsPage = () => {
       imageUrl: option.imageUrl,
       date: option.date,
       location: option.location,
+      skills: (option as unknown as { skills?: string }).skills || '',
+      tools: (option as unknown as { tools?: string }).tools || '',
+      imageFile: null,
     });
     setIsAdding(false);
   };
@@ -108,13 +123,25 @@ const VolunteerOptionsPage = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      // Validations
+      if (form.title.length > 100) throw new Error('El título no puede exceder 100 caracteres');
+      if (form.description.length > 500) throw new Error('La descripción no puede exceder 500 caracteres');
+      if ((form.skills || '').length > 500) throw new Error('Las habilidades no pueden exceder 500 caracteres');
+      if ((form.tools || '').length > 500) throw new Error('Las herramientas no pueden exceder 500 caracteres');
+      if (!form.date) throw new Error('La fecha es requerida');
+      // Prevent past dates
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const inputDate = new Date(form.date);
+      if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
+
       if (editingId) {
         await updateVolunteerOption(Number(editingId), form);
       } else {
         await addVolunteerOption(form);
       }
       await loadOptions();
-      setForm({ title: '', description: '', imageUrl: '', date: '', location: '' });
+      setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', imageFile: null });
       setIsAdding(false);
       setEditingId(null);
     } catch (err) {
@@ -292,9 +319,11 @@ const VolunteerOptionsPage = () => {
                     name="title"
                     value={form.title}
                     onChange={handleChange}
+                    maxLength={100}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     required
                   />
+                  <div className="text-xs text-gray-500 mt-1">{form.title.length}/100</div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -305,9 +334,11 @@ const VolunteerOptionsPage = () => {
                     name="location"
                     value={form.location}
                     onChange={handleChange}
+                    maxLength={100}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     required
                   />
+                  <div className="text-xs text-gray-500 mt-1">{form.location.length}/100</div>
                 </div>
               </div>
               {/* Descripción, Habilidades y Herramientas en paralelo */}
@@ -322,9 +353,11 @@ const VolunteerOptionsPage = () => {
                   value={form.description}
                   onChange={handleChange}
                   rows={3}
+                    maxLength={500}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   required
                 />
+                  <div className="text-xs text-gray-500 mt-1">{form.description.length}/500</div>
               </div>
 
               <div>
@@ -334,11 +367,13 @@ const VolunteerOptionsPage = () => {
       </label>
       <textarea
         name="skills"
-        value={(form as any).skills || ""}
+        value={(form as { skills?: string }).skills || ""}
         onChange={handleChange}
         rows={3}
+        maxLength={500}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
       />
+      <div className="text-xs text-gray-500 mt-1">{(form as { skills?: string }).skills?.length || 0}/500</div>
     </div>
 
      <div>
@@ -348,48 +383,53 @@ const VolunteerOptionsPage = () => {
       </label>
       <textarea
         name="tools"
-        value={(form as any).tools || ""}
+        value={(form as { tools?: string }).tools || ""}
         onChange={handleChange}
         rows={3}
+        maxLength={500}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
       />
+      <div className="text-xs text-gray-500 mt-1">{(form as { tools?: string }).tools?.length || 0}/500</div>
     </div>
     </div>
 
               <div className="grid grid-cols-3  gap-4 items-center">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL de la Imagen
+                    Imagen
                   </label>
-                  <input
-                    type="url"
-                    name="imageUrl"
-                    value={form.imageUrl}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    required
-                  />
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-2 
+                        file:rounded-md file:border-0 file:text-sm file:font-medium
+                        file:bg-orange-500 file:text-white hover:file:bg-orange-600"
+                    />
+                    {form.imageUrl && (
+                      <img
+                        src={form.imageUrl.startsWith('http') || form.imageUrl.startsWith('blob:') ? form.imageUrl : `http://localhost:3000${form.imageUrl}`}
+                        alt="preview"
+                        className="h-12 w-12 object-cover rounded border"
+                      />
+                    )}
+                  </div>
                 </div>
                 <div>
                 <label className="block text-sm font-medium text-gray-700">Subir Imagen</label>
-                <input
-                 type="file"
-                 accept="image/*"
-                 className="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-2 
-                    file:rounded-md file:border-0 file:text-sm file:font-medium
-                   file:bg-orange-500 file:text-white hover:file:bg-orange-600"
-                />
+                <p className="text-xs text-gray-500">Formatos: JPG, PNG. Máx 5MB.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Fecha
                   </label>
                   <input
-                    type="text"
+                    type="date"
                     name="date"
                     value={form.date}
                     onChange={handleChange}
-                    placeholder="Ej: 15 de Marzo, 2024"
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     required
                   />
@@ -414,80 +454,78 @@ const VolunteerOptionsPage = () => {
           </div>
         )}
 
-        {/* Options Table */}
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
+        {/* Options Table - refined layout */}
+        <div className="-mx-4 sm:mx-0 overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
-
-            <div className="bg-white border border-gray-200 rounded-lg shadow-md overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr className="divide-x divide-gray-200"> 
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">Img</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Título</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Descripción</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Habilidades</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Herramientas</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Fecha</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Ubicación</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Acciones</th>
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+              <table className="min-w-full table-auto text-sm">
+                <thead className="bg-white sticky top-0 z-10 border-b">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-16">IMG</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-56">TÍTULO</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-[34rem]">DESCRIPCIÓN</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-56">HABILIDADES</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-56">HERRAMIENTAS</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">FECHA</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-40">UBICACIÓN</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">ACCIONES</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredOptions.map((option) => (
-                    <tr key={option.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-2 py-7 whitespace-nowrap w-30">
+                <tbody>
+                  {filteredOptions.map((option, idx) => (
+                    <tr key={option.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
+                      <td className="px-4 py-3 align-top">
                         <img
-                          src={option.imageUrl}
+                          src={option.imageUrl?.startsWith('http') ? option.imageUrl : `http://localhost:3000${option.imageUrl}`}
                           alt={option.title}
-                          className="h-10 w-10 object-cover rounded border border-gray-200 flex-shrink-0"
+                          className="h-11 w-11 object-cover rounded-md border border-gray-200"
                         />
                       </td>
-                      <td className="px-2 py-3  w-32">
-                        <div className="text-sm font-medium text-gray-900 line-clamp-2" title={option.title}>
-                          {(option.title)}
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-semibold text-gray-900 leading-snug line-clamp-2" title={option.title}>
+                          {option.title}
                         </div>
                       </td>
-                      <td className="px-2 py-3 w-48">
-                        <div className="text-sm text-gray-900 line-clamp-2" title={option.description}>
+                      <td className="px-4 py-3 align-top">
+                        <div className="text-gray-700 leading-relaxed line-clamp-2" title={option.description}>
                           {option.description}
                         </div>
                       </td>
-
-                       <td className="px-2 py-3 w-48">
-                        <div className="text-sm text-gray-900 line-clamp-2" >
+                      <td className="px-4 py-3 align-top">
+                        <div className="text-gray-700 leading-relaxed line-clamp-2" title={(option as unknown as { skills?: string }).skills || ''}>
+                          {(option as unknown as { skills?: string }).skills || '—'}
                         </div>
                       </td>
-
-                       <td className="px-2 py-3 w-48">
-                        <div className="text-sm text-gray-900 line-clamp-2">
+                      <td className="px-4 py-3 align-top">
+                        <div className="text-gray-700 leading-relaxed line-clamp-2" title={(option as unknown as { tools?: string }).tools || ''}>
+                          {(option as unknown as { tools?: string }).tools || '—'}
                         </div>
                       </td>
-
-                      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-900 w-20">
-                        <div className="truncate" title={option.date}>
-                          {truncateText(option.date, 12)}
-                        </div>
+                      <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={option.date}>
+                          {truncateText(option.date, 18)}
+                        </span>
                       </td>
-                      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-900 w-24">
-                        <div className="truncate" title={option.location}>
-                          {option.location}
-                        </div>
+                      <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={option.location}>
+                          {truncateText(option.location, 18)}
+                        </span>
                       </td>
-                      <td className="px-2 py-3 whitespace-nowrap w-20">
-                        <div className="flex flex-col gap-3">
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex flex-col gap-2">
                           <button
                             onClick={() => handleEdit(option)}
-                            className="flex items-center justify-center gap-1 px-1 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                            className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700"
                           >
-                            <Edit className="w-2.5 h-2.5" />
-                            <span>Editar</span>
+                            <Edit className="w-3.5 h-3.5" />
+                            Editar
                           </button>
                           <button
                             onClick={() => handleDelete(option.id)}
-                            className="flex items-center justify-center gap-1 px-1 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
+                            className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-red-600 text-white rounded-md text-xs hover:bg-red-700"
                           >
-                            <Trash2 className="w-2.5 h-2.5" />
-                            <span>Eliminar</span>
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Eliminar
                           </button>
                         </div>
                       </td>

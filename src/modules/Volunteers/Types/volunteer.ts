@@ -27,6 +27,8 @@ export interface VolunteerOption {
   imageUrl: string;
   date: string;
   location: string;
+  skills?: string;
+  tools?: string;
 }
 
 // Standard API error structure

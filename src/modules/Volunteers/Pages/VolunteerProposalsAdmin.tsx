@@ -36,6 +36,7 @@ export default function VolunteerProposalsAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [proposals, setProposals] = useState<VolunteerProposal[]>([]);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const load = async () => {
     try {
@@ -54,7 +55,7 @@ export default function VolunteerProposalsAdmin() {
     load();
   }, []);
 
-  const onSetStatus = async (id: number, status: 'approved' | 'rejected') => {
+  const onSetStatus = async (id: number, status: 'approved' | 'rejected' | 'filed') => {
     try {
       setUpdatingId(id);
       await adminSetProposalStatus(id, status);
@@ -72,6 +73,8 @@ export default function VolunteerProposalsAdmin() {
         return <CheckCircle className="w-4 h-4 text-green-600" />;
       case 'rejected':
         return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'filed':
+        return <Eye className="w-4 h-4 text-gray-600" />;
       default:
         return <Clock className="w-4 h-4 text-yellow-600" />;
     }
@@ -83,6 +86,8 @@ export default function VolunteerProposalsAdmin() {
         return 'Aprobada';
       case 'rejected':
         return 'Rechazada';
+      case 'filed':
+        return 'Archivada';
       default:
         return 'Pendiente';
     }
@@ -95,6 +100,8 @@ export default function VolunteerProposalsAdmin() {
         return `${baseClasses} bg-green-100 text-green-800 border border-green-200`;
       case 'rejected':
         return `${baseClasses} bg-red-100 text-red-800 border border-red-200`;
+      case 'filed':
+        return `${baseClasses} bg-gray-100 text-gray-800 border border-gray-200`;
       default:
         return `${baseClasses} bg-yellow-100 text-yellow-800 border border-yellow-200`;
     }
@@ -113,6 +120,12 @@ export default function VolunteerProposalsAdmin() {
     }
   };
 
+  // Filtered list (hide archived unless toggled on)
+  const filteredProposals = proposals.filter((p) => {
+    const archived = p.status === 'filed' || (p.admin_note?.includes('[ARCHIVED]') ?? false);
+    return showArchived ? true : !archived;
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Header */}
@@ -126,6 +139,17 @@ export default function VolunteerProposalsAdmin() {
             <p className="text-gray-600 mt-1">Revisa y gestiona las propuestas de voluntariado enviadas</p>
           </div>
         </div>
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {showArchived ? 'Mostrando archivadas' : 'Archivadas ocultas'}
+          </div>
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+          >
+            {showArchived ? 'Ocultar archivadas' : 'Mostrar archivadas'}
+          </button>
+        </div>
         
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -136,7 +160,7 @@ export default function VolunteerProposalsAdmin() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{proposals.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{filteredProposals.length}</p>
               </div>
             </div>
           </div>
@@ -148,7 +172,7 @@ export default function VolunteerProposalsAdmin() {
               <div>
                 <p className="text-sm text-gray-600">Pendientes</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {proposals.filter(p => p.status === 'pending' || !p.status).length}
+                  {filteredProposals.filter(p => p.status === 'pending' || !p.status).length}
                 </p>
               </div>
             </div>
@@ -161,7 +185,7 @@ export default function VolunteerProposalsAdmin() {
               <div>
                 <p className="text-sm text-gray-600">Aprobadas</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {proposals.filter(p => p.status === 'approved').length}
+                  {filteredProposals.filter(p => p.status === 'approved').length}
                 </p>
               </div>
             </div>
@@ -174,7 +198,7 @@ export default function VolunteerProposalsAdmin() {
               <div>
                 <p className="text-sm text-gray-600">Rechazadas</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {proposals.filter(p => p.status === 'rejected').length}
+                  {filteredProposals.filter(p => p.status === 'rejected').length}
                 </p>
               </div>
             </div>
@@ -195,7 +219,7 @@ export default function VolunteerProposalsAdmin() {
           <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
           <p className="text-red-600 text-lg font-medium">{error}</p>
         </div>
-      ) : proposals.length === 0 ? (
+      ) : filteredProposals.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-gray-400" />
@@ -205,7 +229,10 @@ export default function VolunteerProposalsAdmin() {
         </div>
       ) : (
         <div className="space-y-4">
-          {proposals.map((proposal) => (
+          {filteredProposals.map((proposal) => {
+            const isArchived = proposal.status === 'filed' || (proposal.admin_note?.includes('[ARCHIVED]') ?? false);
+            const displayStatus = isArchived ? 'filed' : proposal.status;
+            return (
             <div key={proposal.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="p-6">
                 {/* Header */}
@@ -213,9 +240,9 @@ export default function VolunteerProposalsAdmin() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-xl font-bold text-gray-900">{proposal.title}</h3>
-                      <span className={getStatusBadge(proposal.status)}>
-                        {getStatusIcon(proposal.status)}
-                        {getStatusText(proposal.status)}
+                      <span className={getStatusBadge(displayStatus)}>
+                        {getStatusIcon(displayStatus)}
+                        {getStatusText(displayStatus)}
                       </span>
                     </div>
                     <p className="text-gray-600 leading-relaxed line-clamp-3">
@@ -326,10 +353,24 @@ export default function VolunteerProposalsAdmin() {
                     )}
                     Rechazar
                   </button>
+                  {proposal.status === 'rejected' && !isArchived && (
+                    <button
+                      onClick={() => onSetStatus(proposal.id, 'filed')}
+                      disabled={updatingId === proposal.id}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {updatingId === proposal.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                      Archivar
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
-          ))}
+          );})}
         </div>
       )}
     </div>

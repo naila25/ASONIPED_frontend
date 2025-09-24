@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { fetchMyVolunteerEnrollments, fetchMyVolunteerProposals } from "../Services/fetchVolunteers";
-import { FaRegCalendarAlt, FaMapMarkerAlt, FaUserCheck, FaClock, FaFileAlt, FaDownload } from "react-icons/fa";
+import { fetchMyVolunteerEnrollments, fetchMyVolunteerProposals, unenrollFromVolunteerOption, deleteMyProposal } from "../Services/fetchVolunteers";
+import { FaRegCalendarAlt, FaMapMarkerAlt, FaUserCheck, FaClock, FaFileAlt, FaDownload, FaTimes } from "react-icons/fa";
 
 interface VolunteerEnrollment {
   volunteer_id: number;
@@ -34,24 +34,27 @@ export default function VoluntariadoPage() {
   const [error, setError] = useState<string | null>(null);
   const [enrollments, setEnrollments] = useState<VolunteerEnrollment[]>([]);
   const [proposals, setProposals] = useState<VolunteerProposal[]>([]);
+  const [deletingEnrollment, setDeletingEnrollment] = useState<number | null>(null);
+  const [deletingProposal, setDeletingProposal] = useState<number | null>(null);
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      const [enrollRes, proposalsRes] = await Promise.all([
+        fetchMyVolunteerEnrollments(),
+        fetchMyVolunteerProposals()
+      ]);
+      setEnrollments(enrollRes.enrollments || []);
+      setProposals(proposalsRes.proposals || []);
+      setError(null);
+    } catch {
+      setError("No se pudieron cargar tus voluntariados");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const [enrollRes, proposalsRes] = await Promise.all([
-          fetchMyVolunteerEnrollments(),
-          fetchMyVolunteerProposals()
-        ]);
-        setEnrollments(enrollRes.enrollments || []);
-        setProposals(proposalsRes.proposals || []);
-        setError(null);
-      } catch {
-        setError("No se pudieron cargar tus voluntariados");
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
@@ -70,6 +73,40 @@ export default function VoluntariadoPage() {
       case 'rejected': return 'Rechazado';
       case 'pending': return 'Pendiente';
       default: return status;
+    }
+  };
+
+  const handleUnenroll = async (volunteerId: number) => {
+    if (!confirm('¿Estás seguro de que quieres cancelar tu inscripción en este voluntariado?')) {
+      return;
+    }
+
+    try {
+      setDeletingEnrollment(volunteerId);
+      await unenrollFromVolunteerOption(volunteerId);
+      await load(); // Reload data
+      alert('Te has desinscrito del voluntariado exitosamente');
+    } catch {
+      alert('Error al cancelar la inscripción. Inténtalo nuevamente.');
+    } finally {
+      setDeletingEnrollment(null);
+    }
+  };
+
+  const handleDeleteProposal = async (proposalId: number) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta propuesta? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      setDeletingProposal(proposalId);
+      await deleteMyProposal(proposalId);
+      await load(); // Reload data
+      alert('Propuesta eliminada exitosamente');
+    } catch {
+      alert('Error al eliminar la propuesta. Inténtalo nuevamente.');
+    } finally {
+      setDeletingProposal(null);
     }
   };
 
@@ -127,7 +164,7 @@ export default function VoluntariadoPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <p className="text-red-600 text-lg">{error}</p>
         </div>
-      ) : enrollments.length === 0 ? (
+      ) : enrollments.length === 0 && proposals.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
           <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
             <FaUserCheck className="w-8 h-8 text-gray-400" />
@@ -143,15 +180,18 @@ export default function VoluntariadoPage() {
         </div>
       ) : (
         <>
-        <div className="space-y-6 mb-10">
-          {enrollments.map((enrollment) => (
+        {/* My Enrollments - Only show if there are enrollments */}
+        {enrollments.length > 0 && (
+          <div className="space-y-6 mb-10">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Mis Inscripciones</h2>
+            {enrollments.map((enrollment) => (
             <div key={enrollment.volunteer_id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="flex flex-col lg:flex-row">
                 {/* Image Section */}
                 {enrollment.option_imageUrl && (
                   <div className="lg:w-80 h-64 lg:h-auto">
                     <img 
-                      src={enrollment.option_imageUrl} 
+                      src={enrollment.option_imageUrl?.startsWith('http') ? enrollment.option_imageUrl : `http://localhost:3000${enrollment.option_imageUrl}`} 
                       alt={enrollment.option_title} 
                       className="w-full h-full object-cover" 
                     />
@@ -210,13 +250,48 @@ export default function VoluntariadoPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Extra details: skills/tools */}
+                  {(enrollment as unknown as { option_skills?: string; option_tools?: string }).option_skills || (enrollment as unknown as { option_skills?: string; option_tools?: string }).option_tools ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                      {(enrollment as unknown as { option_skills?: string }).option_skills && (
+                        <div>
+                          <div className="text-sm font-medium text-gray-500 mb-1">Habilidades necesarias</div>
+                          <div className="text-sm text-gray-700 whitespace-pre-line">{(enrollment as unknown as { option_skills?: string }).option_skills}</div>
+                        </div>
+                      )}
+                      {(enrollment as unknown as { option_tools?: string }).option_tools && (
+                        <div>
+                          <div className="text-sm font-medium text-gray-500 mb-1">Herramientas necesarias</div>
+                          <div className="text-sm text-gray-700 whitespace-pre-line">{(enrollment as unknown as { option_tools?: string }).option_tools}</div>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {/* Action Button */}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => handleUnenroll(enrollment.volunteer_id)}
+                      disabled={deletingEnrollment === enrollment.volunteer_id}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {deletingEnrollment === enrollment.volunteer_id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      ) : (
+                        <FaTimes className="w-4 h-4" />
+                      )}
+                      {deletingEnrollment === enrollment.volunteer_id ? 'Cancelando...' : 'Cancelar Inscripción'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
 
-        {/* My Proposals */}
+        {/* My Proposals - Always show */}
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold text-gray-800">Mis Propuestas</h2>
@@ -233,10 +308,10 @@ export default function VoluntariadoPage() {
               <h3 className="text-lg font-medium text-gray-800 mb-2">No has enviado propuestas aún</h3>
               <p className="text-gray-600 mb-6">Crea tu primera propuesta de voluntariado para contribuir a la comunidad</p>
               <a 
-                href="/voluntariado" 
+                href="/volunteerCard" 
                 className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
               >
-                Crear Propuesta
+                Ver voluntariados disponibles
               </a>
             </div>
           ) : (
@@ -338,6 +413,22 @@ export default function VoluntariadoPage() {
                         )}
                       </div>
                     )}
+
+                    {/* Action Button */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <button
+                        onClick={() => handleDeleteProposal(proposal.id)}
+                        disabled={deletingProposal === proposal.id}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deletingProposal === proposal.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        ) : (
+                          <FaTimes className="w-4 h-4" />
+                        )}
+                        {deletingProposal === proposal.id ? 'Eliminando...' : 'Cancelar Propuesta'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
