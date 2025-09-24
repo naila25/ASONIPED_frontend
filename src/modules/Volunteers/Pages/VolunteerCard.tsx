@@ -15,6 +15,8 @@ interface VolunteerCardProps {
   imageUrl: string;
   date: string;
   location: string;
+  skills?: string;
+  tools?: string;
 }
 
 const VolunteerCard = ({
@@ -24,14 +26,17 @@ const VolunteerCard = ({
   imageUrl,
   date,
   location,
+  skills,
+  tools,
 }: VolunteerCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const displayImageUrl = imageUrl?.startsWith('http') ? imageUrl : `http://localhost:3000${imageUrl}`;
 
   return (
     <>
       <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
         <img
-          src={imageUrl}
+          src={displayImageUrl}
           alt={title}
           className="w-full h-48 object-cover rounded-t-lg"
         />
@@ -69,9 +74,11 @@ const VolunteerCard = ({
           id,
           title,
           description,
-          imageUrl,
+          imageUrl: displayImageUrl,
           date,
           location,
+          skills,
+          tools,
         }}
       />
     </>
@@ -117,7 +124,29 @@ const Voluntariados = () => {
     e.preventDefault();
     if (submitting) return;
     
-    // Validation
+    // Validation - Check required fields
+    if (!pTitle.trim()) {
+      alert("El título del voluntariado es requerido");
+      return;
+    }
+    if (!pProposal.trim()) {
+      alert("La descripción de la propuesta es requerida");
+      return;
+    }
+    if (!pLocation.trim()) {
+      alert("La ubicación es requerida");
+      return;
+    }
+    if (!pDate.trim()) {
+      alert("La fecha del voluntariado es requerida");
+      return;
+    }
+    if (!pTools.trim()) {
+      alert("Las herramientas necesarias son requeridas");
+      return;
+    }
+    
+    // Character limit validation
     if (pTitle.length > 100) {
       alert("El título no puede exceder 100 caracteres");
       return;
@@ -329,7 +358,7 @@ const Voluntariados = () => {
               </p>
               <div className="space-y-3">
                 <Link
-                  to="/voluntariado"
+                  to="/user/voluntariado"
                   className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium"
                 >
                   <FaRegCalendarAlt className="w-4 h-4" />
@@ -352,6 +381,9 @@ const Voluntariados = () => {
                 Deja tu voluntariado
               </h3>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del voluntariado *
+              </label>
               <input
                 type="text"
                 placeholder="Nombre del voluntariado"
@@ -369,6 +401,9 @@ const Voluntariados = () => {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ¿Qué propones? *
+              </label>
               <textarea
                 placeholder="¿Qué propones?"
                 className="w-full border border-gray-300 rounded px-4 py-2"
@@ -386,6 +421,9 @@ const Voluntariados = () => {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ¿Dónde será? *
+              </label>
               <input
                 type="text"
                 placeholder="¿Dónde será?"
@@ -403,7 +441,7 @@ const Voluntariados = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha del voluntariado (DD/MM/YYYY)
+                Fecha del voluntariado (DD/MM/YYYY) *
               </label>
               <input
                 type="text"
@@ -453,12 +491,12 @@ const Voluntariados = () => {
                   }
                 }}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Formato: DD/MM/YYYY (ejemplo: 25/12/2025)
-              </p>
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Herramientas o materiales necesarios *
+              </label>
               <textarea
                 placeholder="Herramientas o materiales necesarios"
                 className="w-full border border-gray-300 rounded px-4 py-2"
@@ -476,12 +514,16 @@ const Voluntariados = () => {
             </div>
 
             {/* Texto explicativo antes de adjuntar */}
-            <p className="text-sm text-gray-600">
-              Adjunta un documento que nos ayude a conocerte mejor, como tu
-              currículum, título académico o una referencia profesional. (Opcional)
-            </p>
-
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Documento adjunto (Opcional)
+              </label>
+              <p className="text-sm text-gray-600 mb-2">
+                Adjunta un documento que nos ayude a conocerte mejor, como tu
+                currículum, título académico o una referencia profesional.
+              </p>
+
+              <div>
               <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -517,6 +559,7 @@ const Voluntariados = () => {
                   {fileName}
                 </div>
               )}
+              </div>
             </div>
 
             <button
