@@ -17,7 +17,7 @@ export function ModalSimple({ onClose, children }: ModalSimpleProps) {
             ×
           </button>
         </div>
-        <div className="overflow-auto max-h-[calc(90vh-80px)]">
+        <div className="h-auto overflow-visible">
           {children}
         </div>
       </div>
