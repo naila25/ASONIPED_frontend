@@ -13,7 +13,7 @@ import EventsNewsList from '../../modules/EventsNews/Pages/EventsNewsList';
 import EventsNewsAdmin from '../../modules/EventsNews/Pages/EventsNewsAdmin';
 import ProtectedRoute from "./ProtectedRoute"; 
 import {FormularioMatricula} from '../../modules/Workshops/Pages/FormularioMatricula';
-import PublicWorkshopsPage from '../../modules/Workshops/Pages/PublicWorkshopsPage';
+import PublicWorkshopsPage from '../../modules/Workshops/Components/PublicWorkshopsPage';
 import WorkshopForms from '../../modules/Workshops/Components/WorkshopForm';
 import AdminDashboard from '../../modules/Dashboards/Pages/AdminDashboard';
 import AdminDashboardHome from '../../modules/Dashboards/Pages/AdminDashboardHome';
