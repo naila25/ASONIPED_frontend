@@ -12,9 +12,7 @@ import ConocenosSection from '../../modules/Landing/Components/Conocenos';
 import EventsNewsList from '../../modules/EventsNews/Pages/EventsNewsList';
 import EventsNewsAdmin from '../../modules/EventsNews/Pages/EventsNewsAdmin';
 import ProtectedRoute from "./ProtectedRoute"; 
-import {FormularioMatricula} from '../../modules/Workshops/Pages/FormularioMatricula';
 import PublicWorkshopsPage from '../../modules/Workshops/Components/PublicWorkshopsPage';
-import WorkshopForms from '../../modules/Workshops/Components/WorkshopForm';
 import AdminDashboard from '../../modules/Dashboards/Pages/AdminDashboard';
 import AdminDashboardHome from '../../modules/Dashboards/Pages/AdminDashboardHome';
 import ExpedientesAdminPage from '../../modules/Records/Pages/ExpedientesAdminPage';
@@ -23,7 +21,6 @@ import AdminTicketsPage from '../../modules/Tickets/Pages/AdminTicketsPage';
 import UserDashboard from '../../modules/Dashboards/Pages/UserDashboard';
 import DashboardHome from '../../modules/Dashboards/Pages/DashboardHome';
 import ExpedientesPage from '../../modules/Records/Pages/ExpedientesPage';
-import TalleresPage from '../../modules/Workshops/Pages/Tallerespage';
 import VoluntariadoPage from '../../modules/Volunteers/Pages/VoluntariadoPage';
 import MensajesPage from '../../modules/Tickets/Pages/MensajesPage';
 import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
@@ -122,11 +119,6 @@ const publicWorkshopsRoute = createRoute({
   component: PublicWorkshopsPage,
 });
 
-const formularioMatriculaRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'formulario-matricula',
-  component: () => <FormularioMatricula workshopId="" onSuccess={() => {}} onCancel={() => {}} />,
-});
 
 // Admin routes with lazy loading and authentication check
 const protectedRoute = createRoute({
@@ -171,11 +163,6 @@ const expedientesRoute = createRoute({
   component: ExpedientesPage,
 });
 
-const talleresRoute = createRoute({
-  getParentRoute: () => userDashboardRoute,
-  path: 'talleres',
-  component: TalleresPage,
-});
 
 const voluntariadoRoute = createRoute({
   getParentRoute: () => userDashboardRoute,
@@ -272,11 +259,6 @@ const eventsNewsRoute = createRoute({
   component: EventsNewsList,
 });
 
-const adminWorkshopFormsRoute = createRoute({
-  getParentRoute: () => adminDashboardRoute,
-  path: 'workshop-forms',
-  component: WorkshopForms,
-});
 
 const GestionLandingRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
@@ -298,7 +280,7 @@ const routeTree = rootRoute.addChildren([
   formularioDonacionRoute,
   publicWorkshopsRoute,
   VolunteerCard,
-  formularioMatriculaRoute,
+ 
   protectedRoute.addChildren([
     adminDashboardRoute.addChildren([
       adminHomeRoute,
@@ -311,7 +293,7 @@ const routeTree = rootRoute.addChildren([
       donationsAdminRoute,
       attendanceAdminRoute,
       eventsNewsAdminRoute,
-      adminWorkshopFormsRoute,
+      
       userManagementRoute,
       adminTicketsRoute,
       GestionLandingRoute
@@ -319,7 +301,7 @@ const routeTree = rootRoute.addChildren([
     userDashboardRoute.addChildren([
       userHomeRoute,
       expedientesRoute,
-      talleresRoute,
+     
       voluntariadoRoute,
       mensajesRoute,
       calendarioRoute,
