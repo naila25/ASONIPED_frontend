@@ -4,19 +4,14 @@ import { volunteerLandingService, type LandingVolunteer } from "../../Dashboards
 
 const VoluntariadoSection = () => {
   const [data, setData] = useState<LandingVolunteer | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        setLoading(true);
         const list = await volunteerLandingService.getAll();
         setData(list[0] || null);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Error loading volunteers');
-      } finally {
-        setLoading(false);
+      } catch {
+        // Silently handle error - component will use fallback values
       }
     })();
   }, []);

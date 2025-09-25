@@ -51,7 +51,7 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
       setSubmitting(true);
       await enrollIntoVolunteerOption(volunteer.id);
       setEnrolled(true);
-    } catch (e) {
+    } catch {
       alert('No se pudo completar la inscripción. Inténtalo nuevamente.');
     } finally {
       setSubmitting(false);
@@ -95,13 +95,13 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                   <FaRegLightbulb className="text-orange-500" />
                   Habilidades necesarias:
                 </span>
-                <p className="text-neutral-700">{(volunteer as any).skills || '—'}</p>
+                <p className="text-neutral-700">{(volunteer as VolunteerOption & { skills?: string }).skills || '—'}</p>
 
                 <span className="font-medium text-gray-900 flex items-center gap-2">
                   <FaTools className="text-orange-500" />
                   Herramientas necesarias:
                 </span>
-                <p className="text-neutral-700">{(volunteer as any).tools || '—'}</p>
+                <p className="text-neutral-700">{(volunteer as VolunteerOption & { tools?: string }).tools || '—'}</p>
 
                 <div className="flex gap-4 text-neutral-700">
                   <div className="flex items-center gap-2">

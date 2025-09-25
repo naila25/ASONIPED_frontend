@@ -1,4 +1,4 @@
-import type { Volunteer, VolunteerOption } from '../Types/volunteer';
+import type { Volunteer, VolunteerOption, VolunteerEnrollment, VolunteerProposal } from '../Types/volunteer';
 import { getAuthHeader } from '../../Login/Services/auth';
 import { API_BASE_URL } from '../../../shared/Services/config';
 
@@ -73,7 +73,7 @@ export const enrollIntoVolunteerOption = async (optionId: string | number): Prom
 };
 
 // Get current user's volunteer enrollments
-export const fetchMyVolunteerEnrollments = async (): Promise<{ enrollments: any[] }> => {
+export const fetchMyVolunteerEnrollments = async (): Promise<{ enrollments: VolunteerEnrollment[] }> => {
   const res = await fetch(`${API_URL}/me`, {
     headers: {
       ...getAuthHeader(),
@@ -91,14 +91,14 @@ export const submitVolunteerProposal = async (formData: FormData): Promise<{ mes
     headers: {
       ...getAuthHeader(),
       // Let browser set multipart boundary
-    } as any,
+    },
     body: formData,
   });
   if (!res.ok) throw new Error('Failed to submit proposal');
   return res.json();
 };
 
-export const fetchMyVolunteerProposals = async (): Promise<{ proposals: any[] }> => {
+export const fetchMyVolunteerProposals = async (): Promise<{ proposals: VolunteerProposal[] }> => {
   const res = await fetch(`${OPTIONS_API_URL}/proposals/mine`, {
     headers: {
       ...getAuthHeader(),
@@ -108,7 +108,7 @@ export const fetchMyVolunteerProposals = async (): Promise<{ proposals: any[] }>
   return res.json();
 };
 
-export const adminFetchAllProposals = async (): Promise<{ proposals: any[] }> => {
+export const adminFetchAllProposals = async (): Promise<{ proposals: VolunteerProposal[] }> => {
   const res = await fetch(`${OPTIONS_API_URL}/proposals`, {
     headers: {
       ...getAuthHeader(),
@@ -184,14 +184,14 @@ export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'> & {
   formData.append('location', option.location);
   if (option.skills) formData.append('skills', option.skills);
   if (option.tools) formData.append('tools', option.tools);
-  if ((option as any).imageUrl) formData.append('imageUrl', (option as any).imageUrl);
+  if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
 
   const res = await fetch(OPTIONS_API_URL, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
-    } as any,
+    },
     body: formData,
   });
   if (!res.ok) throw new Error('Failed to add volunteer option');
@@ -216,14 +216,14 @@ export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOp
   formData.append('location', option.location);
   if (option.skills) formData.append('skills', option.skills);
   if (option.tools) formData.append('tools', option.tools);
-  if ((option as any).imageUrl) formData.append('imageUrl', (option as any).imageUrl);
+  if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
 
   const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
-    } as any,
+    },
     body: formData,
   });
   if (!res.ok) throw new Error('Failed to update volunteer option');
