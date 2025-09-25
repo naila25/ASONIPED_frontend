@@ -6,6 +6,9 @@ export interface Workshop {
   objectives: string[];
   materials: string[];
   learnText: string;
+   location: string; // Nuevo
+  date: string;     // Nuevo
+  time: string;  
 }
 
 export interface WorkshopEnrollment {
