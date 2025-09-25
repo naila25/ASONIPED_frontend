@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaRocket, FaInfoCircle, FaHandsHelping, FaMapMarked, FaCommentDots, FaRegSave } from "react-icons/fa";
+import { FaRocket, FaInfoCircle, FaHandsHelping} from "react-icons/fa";
 
 import { LandingSectionEditor } from "./LandingSectionEditor";
 import { PreviewModal } from "./PreviewModal";

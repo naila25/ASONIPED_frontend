@@ -3,8 +3,8 @@ import React, { useState, useEffect } from "react";
 import type { SectionData, SectionKey, ValueItem } from "../Types/types";
 import { ModalSimple } from "./ModalSimple.tsx";
 import { heroService, type HeroSection } from "../Services/heroService.ts";
-import { aboutService, type AboutSection as AboutPayload } from "../Services/aboutService";
-import { volunteerLandingService, type LandingVolunteer } from "../Services/volunteerLandingService";
+import { aboutService } from "../Services/aboutService";
+import { volunteerLandingService } from "../Services/volunteerLandingService";
 
 // Extiendo ValueItem para incluir id, que es necesario para edición y eliminación
 type ValueItemWithId = ValueItem & { id: string };
@@ -151,7 +151,7 @@ export function LandingSectionEditor({
           if (first) {
             setData(prev => ({ ...prev, 
               // map backend fields into local data for the form binding
-              ...(first as Record<string, unknown>)
+              ...(first as unknown as Record<string, unknown>)
             }));
           }
         } catch (e) {
@@ -170,7 +170,7 @@ export function LandingSectionEditor({
           if (first) {
             setData(prev => ({ ...prev, 
               // map backend fields into local data for the form binding
-              ...(first as Record<string, unknown>)
+              ...(first as unknown as Record<string, unknown>)
             }));
           }
         } catch (e) {
@@ -442,7 +442,7 @@ export function LandingSectionEditor({
                     Título: (máximo 100 caracteres)
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).titulo as string || ""}
+                    value={String((data as Record<string, unknown>).titulo || "")}
                     onChange={(e) => handleChange("titulo" as unknown as keyof SectionData, e.target.value)}
                     maxLength={100}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -458,7 +458,7 @@ export function LandingSectionEditor({
                     Texto botón: (máximo 50 caracteres)
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).texto_boton || ""}
+                    value={String((data as Record<string, unknown>).texto_boton || "")}
                     onChange={(e) => handleChange("texto_boton" as unknown as keyof SectionData, e.target.value)}
                     maxLength={50}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -495,10 +495,10 @@ export function LandingSectionEditor({
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
               />
             </div>
-                {(data as Record<string, unknown>).URL_imagen && (
+                {((data as Record<string, unknown>).URL_imagen as string) && (
                   <div className="mt-3">
                     <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
-                    <img src={(data as Record<string, unknown>).URL_imagen} alt="About preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
+                    <img src={(data as Record<string, unknown>).URL_imagen as string} alt="About preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
                   </div>
                 )}
               </div>
@@ -508,7 +508,7 @@ export function LandingSectionEditor({
                   Descripción: (máximo 250 caracteres)
                 </label>
                 <textarea
-                  value={(data as Record<string, unknown>).descripcion || ""}
+                  value={String((data as Record<string, unknown>).descripcion || "")}
                   onChange={(e) => handleChange("descripcion" as unknown as keyof SectionData, e.target.value)}
                   maxLength={250}
                   className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -523,7 +523,7 @@ export function LandingSectionEditor({
                 <label className="block text-sm font-medium text-gray-700">Color botón:</label>
                 <input
                   type="color"
-                  value={(data as Record<string, unknown>).color_boton || "#1976d2"}
+                  value={String((data as Record<string, unknown>).color_boton || "#1976d2")}
                   onChange={(e) => handleChange("color_boton" as unknown as keyof SectionData, e.target.value)}
                   className="w-20 h-10 rounded-lg border border-gray-300"
                 />
@@ -541,11 +541,11 @@ export function LandingSectionEditor({
                   type="button"
                   onClick={async () => {
                     const payload = {
-                      titulo: (data as Record<string, unknown>).titulo || "",
-                      URL_imagen: (data as Record<string, unknown>).URL_imagen || "",
-                      descripcion: (data as Record<string, unknown>).descripcion || "",
-                      texto_boton: (data as Record<string, unknown>).texto_boton || "",
-                      color_boton: (data as Record<string, unknown>).color_boton || "#1976d2",
+                      titulo: String((data as Record<string, unknown>).titulo || ""),
+                      URL_imagen: String((data as Record<string, unknown>).URL_imagen || ""),
+                      descripcion: String((data as Record<string, unknown>).descripcion || ""),
+                      texto_boton: String((data as Record<string, unknown>).texto_boton || ""),
+                      color_boton: String((data as Record<string, unknown>).color_boton || "#1976d2"),
                     };
                     
                     // Validate about data
@@ -600,7 +600,7 @@ export function LandingSectionEditor({
                     Título: (máximo 100 caracteres)
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).titulo as string || ""}
+                    value={String((data as Record<string, unknown>).titulo || "")}
                     onChange={(e) => handleChange("titulo" as unknown as keyof SectionData, e.target.value)}
                     maxLength={100}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -616,7 +616,7 @@ export function LandingSectionEditor({
                     Subtítulo: (máximo 100 caracteres)
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).subtitulo || ""}
+                    value={String((data as Record<string, unknown>).subtitulo || "")}
                     onChange={(e) => handleChange("subtitulo" as unknown as keyof SectionData, e.target.value)}
                     maxLength={100}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -632,7 +632,7 @@ export function LandingSectionEditor({
                   Descripción: (máximo 250 caracteres)
                 </label>
               <textarea
-                  value={(data as Record<string, unknown>).descripcion || ""}
+                  value={String((data as Record<string, unknown>).descripcion || "")}
                   onChange={(e) => handleChange("descripcion" as unknown as keyof SectionData, e.target.value)}
                   maxLength={250}
                   className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -669,10 +669,10 @@ export function LandingSectionEditor({
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
                   />
                 </div>
-                {(data as Record<string, unknown>).URL_imagen && (
+                {((data as Record<string, unknown>).URL_imagen as string) && (
                   <div className="mt-3">
                     <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
-                    <img src={(data as Record<string, unknown>).URL_imagen} alt="Volunteer preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
+                    <img src={(data as Record<string, unknown>).URL_imagen as string} alt="Volunteer preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
                   </div>
                 )}
               </div>
@@ -683,7 +683,7 @@ export function LandingSectionEditor({
                     Texto botón: (máximo 50 caracteres)
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).texto_boton || ""}
+                    value={String((data as Record<string, unknown>).texto_boton || "")}
                     onChange={(e) => handleChange("texto_boton" as unknown as keyof SectionData, e.target.value)}
                     maxLength={50}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -697,7 +697,7 @@ export function LandingSectionEditor({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color botón:</label>
                   <input
                     type="color"
-                    value={(data as Record<string, unknown>).color_boton || "#1976d2"}
+                    value={String((data as Record<string, unknown>).color_boton || "#1976d2")}
                     onChange={(e) => handleChange("color_boton" as unknown as keyof SectionData, e.target.value)}
                     className="w-20 h-10 rounded-lg border border-gray-300"
               />
@@ -716,12 +716,12 @@ export function LandingSectionEditor({
                   type="button"
                   onClick={async () => {
                     const payload = {
-                      titulo: (data as Record<string, unknown>).titulo || "",
-                      subtitulo: (data as Record<string, unknown>).subtitulo || "",
-                      descripcion: (data as Record<string, unknown>).descripcion || "",
-                      URL_imagen: (data as Record<string, unknown>).URL_imagen || "",
-                      texto_boton: (data as Record<string, unknown>).texto_boton || "",
-                      color_boton: (data as Record<string, unknown>).color_boton || "#1976d2",
+                      titulo: String((data as Record<string, unknown>).titulo || ""),
+                      subtitulo: String((data as Record<string, unknown>).subtitulo || ""),
+                      descripcion: String((data as Record<string, unknown>).descripcion || ""),
+                      URL_imagen: String((data as Record<string, unknown>).URL_imagen || ""),
+                      texto_boton: String((data as Record<string, unknown>).texto_boton || ""),
+                      color_boton: String((data as Record<string, unknown>).color_boton || "#1976d2"),
                     };
                     
                     // Validate volunteer data
