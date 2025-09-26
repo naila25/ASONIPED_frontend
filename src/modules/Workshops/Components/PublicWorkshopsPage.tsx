@@ -74,7 +74,7 @@ export default function PublicWorkshopsPage() {
       className="relative py-10 bg-cover bg-center bg-no-repeat min-h-screen"
       style={{ backgroundImage: `url(${asofondo})` }}
     >
-      <div className="absolute inset-0 bg-blue-900/70"></div>
+      <div className="absolute inset-0 bg-black/70"></div>
 
       <div className="relative z-10">
         <h2 className="text-white text-4xl font-bold sm:text-5xl lg:text-6xl text-center tracking-wide mt-10 mb-12">
@@ -106,7 +106,7 @@ export default function PublicWorkshopsPage() {
                     </p>
                     <button
                       onClick={() => setSelectedWorkshop(workshop)}
-                      className="bg-orange-500 text-white px-5 py-2 rounded-lg hover:bg-orange-600"
+                      className="bg-orange-500 text-white px-5 py-2  rounded-full border hover:bg-orange-600"
                     >
                       Ver más
                     </button>
@@ -123,7 +123,7 @@ export default function PublicWorkshopsPage() {
                     </p>
                     <button
                       onClick={() => setSelectedWorkshop(workshop)}
-                      className="bg-orange-500 text-white px-5 py-2 rounded-lg hover:bg-orange-600"
+                      className="bg-orange-500 text-white px-5 py-2  rounded-full border hover:bg-orange-600"
                     >
                       Ver más
                     </button>

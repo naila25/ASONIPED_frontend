@@ -67,7 +67,7 @@ const AboutSection = () => {
           <div className="flex justify-center lg:justify-start gap-4 mt-6">
             <a
               href="/conocenos"
-              className="text-white py-3 px-6 rounded-md text-sm hover:opacity-90 transition"
+              className="text-white py-3 px-6  rounded-full border text-sm hover:opacity-90 transition"
               style={{ backgroundColor: buttonColor }}
             >
               {buttonText}
