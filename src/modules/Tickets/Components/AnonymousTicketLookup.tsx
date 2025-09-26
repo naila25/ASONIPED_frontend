@@ -24,7 +24,7 @@ const AnonymousTicketLookup: React.FC = () => {
       
       const ticketData = await getAnonymousTicketByTicketId(ticketId.trim());
       setTicket(ticketData);
-    } catch (err) {
+    } catch {
       setError('Ticket no encontrado. Verifica el ID e intenta de nuevo.');
       setTicket(null);
     } finally {
@@ -41,7 +41,7 @@ const AnonymousTicketLookup: React.FC = () => {
   if (ticket) {
     return (
       <AnonymousTicketConversation 
-        ticket={ticket} 
+        ticket={ticket as { id: number; ticket_id: string; asunto: string; mensaje?: string | undefined; status: "open" | "closed" | "archived"; }} 
         onClose={handleCloseConversation}
         onTicketUpdate={() => {}} // No need to update anything in lookup mode
       />
