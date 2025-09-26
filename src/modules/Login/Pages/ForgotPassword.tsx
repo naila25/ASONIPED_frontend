@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, ArrowLeft } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
 
 const ForgotPassword = () => {
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +33,7 @@ const ForgotPassword = () => {
         const data = await response.json();
         setError(data.error || "Error al procesar la solicitud.");
       }
-    } catch (err) {
+    } catch {
       setError("Error de conexión. Verifique su conexión a internet.");
     } finally {
       setLoading(false);
@@ -53,7 +51,7 @@ const ForgotPassword = () => {
         {/* Header */}
         <div className="text-center mb-6">
           <button
-            onClick={() => navigate({ to: "/" })}
+            onClick={() => window.location.href = "/"}
             className="absolute top-6 left-6 text-gray-400 hover:text-white transition-colors"
           >
             <ArrowLeft size={20} />
@@ -126,7 +124,7 @@ const ForgotPassword = () => {
         {/* Footer */}
         <div className="text-center mt-6">
           <button
-            onClick={() => navigate({ to: "/admin/login" })}
+            onClick={() => window.location.href = "/admin/login"}
             className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
           >
             ¿Recordó su contraseña? Iniciar sesión

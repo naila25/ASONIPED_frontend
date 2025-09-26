@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getTicketMessages, sendMessage } from '../Services/ticketService';
 import type { DonationTicket, TicketMessage } from '../Services/ticketService';
 import { useAuth } from '../../Login/Hooks/useAuth';
@@ -27,7 +27,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       setLoading(true);
       const ticketMessages = await getTicketMessages(ticket.id);
@@ -39,7 +39,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [ticket.id]);
 
   const scrollToBottom = () => {
     // Scroll within the messages container, not the whole page
@@ -49,7 +49,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     }
   };
 
-  const setupSocketConnection = async () => {
+  const setupSocketConnection = useCallback(async () => {
     try {
       await socketService.connect();
       setIsConnected(true);
@@ -66,14 +66,14 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
       console.error('Failed to connect to Socket.io:', error);
       setIsConnected(false);
     }
-  };
+  }, [ticket.id]);
 
-  const cleanupSocketConnection = () => {
+  const cleanupSocketConnection = useCallback(() => {
     socketService.leaveTicketRoom(ticket.id);
     socketService.removeAllListeners();
     socketService.disconnect();
     setIsConnected(false);
-  };
+  }, [ticket.id]);
 
 
 
@@ -84,7 +84,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     return () => {
       cleanupSocketConnection();
     };
-  }, [ticket.id]);
+  }, [ticket.id, loadMessages, setupSocketConnection, cleanupSocketConnection]);
 
   useEffect(() => {
     scrollToBottom();

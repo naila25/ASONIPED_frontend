@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { getAPIBaseURL } from '../../../shared/Services/config';
 
 const EmailVerification = () => {
-  const navigate = useNavigate();
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -58,7 +56,7 @@ const EmailVerification = () => {
   }, []);
 
   const handleGoToLogin = () => {
-    navigate({ to: '/admin/login' });
+    window.location.href = '/admin/login';
   };
 
   if (loading) {

@@ -1,7 +1,6 @@
 import { createRouter, createRootRoute, createRoute, Router } from '@tanstack/react-router';
 import { lazy } from 'react';
 import App from '../../App';
-import Volunteers from '../../modules/Volunteers/Pages/Volunteers';
 import Home from '../../modules/Landing/Pages/HomePage';
 import AdminLogin from '../../modules/Login/Pages/AdminLogin';
 import VolunteersSubDashboard from '../../modules/Volunteers/Pages/VolunteersSubDashboard';
@@ -26,7 +25,6 @@ import MensajesPage from '../../modules/Tickets/Pages/MensajesPage';
 import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
-import VolunteerCard from '../../modules/Volunteers/Pages/VolunteerCard';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
 
 // Lazy-loaded admin Pages with Suspense boundaries
@@ -48,12 +46,6 @@ const indexRoute = createRoute({
   component: Home,
 });
 
-// Public routes
-const volunteersRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'volunteers',
-  component: Volunteers,
-});
 
 const adminLoginRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -269,7 +261,6 @@ const GestionLandingRoute = createRoute({
 // Route tree construction
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  volunteersRoute,
   adminLoginRoute,
   emailVerificationRoute,
   forgotPasswordRoute,

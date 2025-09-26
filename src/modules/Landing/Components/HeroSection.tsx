@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import heroImage from '../../../assets/fondoasoniped.jpg';
 import { heroService, type HeroSection } from '../../Dashboards/Services/heroService';
 
 const HeroSection = () => {
   const [heroData, setHeroData] = useState<HeroSection | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadHeroData();
@@ -18,8 +17,8 @@ const HeroSection = () => {
       if (heroSections.length > 0) {
         setHeroData(heroSections[0]); // Use the first hero section
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error loading hero data');
+    } catch {
+      // Silently handle error - component will use fallback data
     } finally {
       setLoading(false);
     }

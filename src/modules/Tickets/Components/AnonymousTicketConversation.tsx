@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaPaperPlane, FaArrowLeft, FaUserShield, FaSmile, FaImage, FaCheck } from 'react-icons/fa';
+import { FaPaperPlane, FaArrowLeft, FaUserShield, FaCheck } from 'react-icons/fa';
 import { getAnonymousTicketMessages, sendAnonymousTicketMessage } from '../Services/anonymousTicketService';
 import type { AnonymousTicketMessage } from '../Services/anonymousTicketService';
 import { socketService } from '../../../shared/Services/socketService';

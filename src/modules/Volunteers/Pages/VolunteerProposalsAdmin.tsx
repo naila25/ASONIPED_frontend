@@ -44,7 +44,7 @@ export default function VolunteerProposalsAdmin() {
       const res = await adminFetchAllProposals();
       setProposals(res.proposals || []);
       setError(null);
-    } catch (e) {
+    } catch {
       setError('No se pudieron cargar las propuestas');
     } finally {
       setLoading(false);
@@ -60,7 +60,7 @@ export default function VolunteerProposalsAdmin() {
       setUpdatingId(id);
       await adminSetProposalStatus(id, status);
       await load();
-    } catch (e) {
+    } catch {
       alert('No se pudo actualizar el estado');
     } finally {
       setUpdatingId(null);

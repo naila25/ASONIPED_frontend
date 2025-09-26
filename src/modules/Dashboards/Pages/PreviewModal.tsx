@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import type { SectionData, SectionKey } from "../Types/types";
 import { ModalSimple } from "./ModalSimple.tsx";
-import { heroService } from "../Services/heroService";
-import { aboutService } from "../Services/aboutService";
-import { volunteerLandingService } from "../Services/volunteerLandingService";
+import { heroService, type HeroSection } from "../Services/heroService";
+import { aboutService, type AboutSection } from "../Services/aboutService";
+import { volunteerLandingService, type LandingVolunteer } from "../Services/volunteerLandingService";
 
 export function PreviewModal({
   sectionData,
@@ -12,9 +12,9 @@ export function PreviewModal({
   sectionData: Record<SectionKey, SectionData>;
   onClose: () => void;
 }) {
-  const [heroData, setHeroData] = useState<any>(null);
-  const [aboutData, setAboutData] = useState<any>(null);
-  const [volunteerData, setVolunteerData] = useState<any>(null);
+  const [heroData, setHeroData] = useState<HeroSection | null>(null);
+  const [aboutData, setAboutData] = useState<AboutSection | null>(null);
+  const [volunteerData, setVolunteerData] = useState<LandingVolunteer | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,12 +40,10 @@ export function PreviewModal({
     loadPreviewData();
   }, []);
 
-  const hero = heroData || sectionData.hero || {};
-  const about = aboutData || sectionData.about || {};
-  const volunteering = volunteerData || sectionData.volunteering || {};
-  const location = sectionData.location || {};
-  const testimonials = sectionData.testimonials || {};
-  const footer = sectionData.footer || {};
+  const hero = heroData || (sectionData.hero as HeroSection) || {};
+  const about = aboutData || (sectionData.about as AboutSection) || {};
+  const volunteering = volunteerData || (sectionData.volunteering as LandingVolunteer) || {};
+
 
   if (loading) {
     return (

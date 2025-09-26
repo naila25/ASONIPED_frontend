@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import quienesSomosImg from "../../../assets/quienessomos.png";
 import { aboutService, type AboutSection as AboutData } from "../../Dashboards/Services/aboutService";
 
