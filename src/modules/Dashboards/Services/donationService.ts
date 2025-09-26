@@ -1,13 +1,17 @@
-const API_BASE_URL = 'http://localhost:3000/api/landing-donaciones';
+// donationService.ts actualizado con rutas correctas según tu backend
 
-// Tipos principales
-export interface LandingDonationComponent {
+const API_BASE_URL_HEADER = 'http://localhost:3000/api/landing-donaciones-component';
+const API_BASE_URL_CARDS = 'http://localhost:3000/api/landing-donaciones-card';
+
+// Header (landing_donaciones_component)
+export interface DonationHeader {
   id?: number;
   titulo: string;
   descripcion: string;
 }
 
-export interface LandingDonationCard {
+// Card (landing_donaciones_card)
+export interface DonationsCard {
   id?: number;
   titulo_card: string;
   descripcion_card: string;
@@ -16,134 +20,145 @@ export interface LandingDonationCard {
   color_boton: string;
 }
 
-// Servicio para Donaciones
+// Combinado para la sección completa (opcional si usas ambos endpoints)
+export interface DonationSection {
+  header: DonationHeader;
+  cards: DonationsCard[];
+}
+
 export const donationService = {
-  // ===== COMPONENTE PRINCIPAL =====
-  async getComponents(): Promise<LandingDonationComponent[]> {
-    const response = await fetch(`${API_BASE_URL}/component`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch donation components');
-    }
-    return response.json();
+  // Obtener header + cards juntos (opcional: si deseas obtener ambos a la vez)
+  async getSection(): Promise<DonationSection> {
+    const [header, cards] = await Promise.all([
+      donationService.getHeader(),
+      donationService.getCards()
+    ]);
+    return { header, cards };
   },
 
-  async getComponentById(id: number): Promise<LandingDonationComponent> {
-    const response = await fetch(`${API_BASE_URL}/component/${id}`);
+  // HEADER: Obtener el header actual (el primero de la lista)
+  async getHeader(): Promise<DonationHeader> {
+    const response = await fetch(`${API_BASE_URL_HEADER}`);
     if (!response.ok) {
-      throw new Error('Failed to fetch donation component');
+      throw new Error('Failed to fetch Donation header');
     }
-    return response.json();
+    const data = await response.json();
+    // Si hay varios, retornamos el primero
+    return Array.isArray(data) ? data[0] : data;
   },
 
-  async createComponent(component: Omit<LandingDonationComponent, 'id'>): Promise<{ message: string; id: number }> {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/component`, {
+  // HEADER: Crear un nuevo header
+  async createHeader(header: Omit<DonationHeader, 'id'>): Promise<{ message: string; id: number }> {
+    const payload = {
+      titulo: header.titulo,
+      descripcion: header.descripcion
+    };
+    const response = await fetch(`${API_BASE_URL_HEADER}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(component)
+      body: JSON.stringify(payload)
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || 'Failed to create donation component');
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create Donation header');
     }
     return response.json();
   },
 
-  async updateComponent(id: number, component: Partial<LandingDonationComponent>): Promise<{ message: string }> {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/component/${id}`, {
+  // HEADER: Editar header por id
+  async updateHeader(header: DonationHeader): Promise<{ message: string }> {
+    if (!header.id) throw new Error('Se requiere el id del header para actualizar');
+    const payload = {
+      titulo: header.titulo,
+      descripcion: header.descripcion
+    };
+    const response = await fetch(`${API_BASE_URL_HEADER}/${header.id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(component)
+      body: JSON.stringify(payload)
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || 'Failed to update donation component');
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update Donation header');
     }
     return response.json();
   },
 
-  async deleteComponent(id: number): Promise<{ message: string }> {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/component/${id}`, {
-      method: 'DELETE',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      }
-    });
+  // CARDS: Obtener todas las cards
+  async getCards(): Promise<DonationsCard[]> {
+    const response = await fetch(`${API_BASE_URL_CARDS}`);
     if (!response.ok) {
-      throw new Error('Failed to delete donation component');
+      throw new Error('Failed to fetch Donation cards');
     }
     return response.json();
   },
 
-  // ===== CARDS =====
-  async getCards(): Promise<LandingDonationCard[]> {
-    const response = await fetch(`${API_BASE_URL}/cards`);
+  // CARDS: Obtener una card por id
+  async getCardById(id: number): Promise<DonationsCard> {
+    const response = await fetch(`${API_BASE_URL_CARDS}/${id}`);
     if (!response.ok) {
-      throw new Error('Failed to fetch donation cards');
+      throw new Error('Failed to fetch Donation card');
     }
     return response.json();
   },
 
-  async getCardById(id: number): Promise<LandingDonationCard> {
-    const response = await fetch(`${API_BASE_URL}/cards/${id}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch donation card');
-    }
-    return response.json();
-  },
-
-  async createCard(card: Omit<LandingDonationCard, 'id'>): Promise<{ message: string; id: number }> {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/cards`, {
+  // CARDS: Crear una nueva card
+  async createCard(card: Omit<DonationsCard, 'id'>): Promise<{ message: string; id: number }> {
+    const payload = {
+      titulo_card: card.titulo_card,
+      descripcion_card: card.descripcion_card,
+      URL_imagen: card.URL_imagen,
+      texto_boton: card.texto_boton,
+      color_boton: card.color_boton
+    };
+    const response = await fetch(`${API_BASE_URL_CARDS}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(card)
+      body: JSON.stringify(payload)
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || 'Failed to create donation card');
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create Donation card');
     }
     return response.json();
   },
 
-  async updateCard(id: number, card: Partial<LandingDonationCard>): Promise<{ message: string }> {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/cards/${id}`, {
+  // CARDS: Editar una card
+  async updateCard(id: number, card: Partial<DonationsCard>): Promise<{ message: string }> {
+    const payload = {
+      titulo_card: card.titulo_card || '',
+      descripcion_card: card.descripcion_card || '',
+      URL_imagen: card.URL_imagen || '',
+      texto_boton: card.texto_boton || '',
+      color_boton: card.color_boton || ''
+    };
+    const response = await fetch(`${API_BASE_URL_CARDS}/${id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(card)
+      body: JSON.stringify(payload)
     });
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || 'Failed to update donation card');
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update Donation card');
     }
     return response.json();
   },
 
+  // CARDS: Eliminar una card
   async deleteCard(id: number): Promise<{ message: string }> {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/cards/${id}`, {
-      method: 'DELETE',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      }
+    const response = await fetch(`${API_BASE_URL_CARDS}/${id}`, {
+      method: 'DELETE'
     });
     if (!response.ok) {
-      throw new Error('Failed to delete donation card');
+      throw new Error('Failed to delete Donation card');
     }
     return response.json();
   }

@@ -46,7 +46,6 @@ export function LandingSectionEditor({
   // Validation functions
   const validateHero = (data: HeroSection): Record<string, string> => {
     const errors: Record<string, string> = {};
-    
     if (!data.titulo || data.titulo.length < 3 || data.titulo.length > 255) {
       errors.titulo = "Título es requerido y debe tener entre 3 y 255 caracteres";
     }
@@ -68,13 +67,11 @@ export function LandingSectionEditor({
     if (!data.color_boton_derecho || data.color_boton_derecho.length > 20) {
       errors.color_boton_derecho = "Color botón derecho es requerido y máximo 20 caracteres";
     }
-    
     return errors;
   };
 
   const validateAbout = (data: Record<string, unknown>): Record<string, string> => {
     const errors: Record<string, string> = {};
-    
     if (!data.titulo || typeof data.titulo !== "string" || data.titulo.length < 3 || data.titulo.length > 255) {
       errors.titulo = "Título es requerido y debe tener entre 3 y 255 caracteres";
     }
@@ -90,13 +87,11 @@ export function LandingSectionEditor({
     if (!data.color_boton || typeof data.color_boton !== "string" || data.color_boton.length > 20) {
       errors.color_boton = "Color botón es requerido y máximo 20 caracteres";
     }
-    
     return errors;
   };
 
   const validateVolunteer = (data: Record<string, unknown>): Record<string, string> => {
     const errors: Record<string, string> = {};
-    
     if (!data.titulo || typeof data.titulo !== "string" || data.titulo.length < 3 || data.titulo.length > 255) {
       errors.titulo = "Título es requerido y debe tener entre 3 y 255 caracteres";
     }
@@ -115,7 +110,6 @@ export function LandingSectionEditor({
     if (!data.color_boton || typeof data.color_boton !== "string" || data.color_boton.length > 20) {
       errors.color_boton = "Color botón es requerido y máximo 20 caracteres";
     }
-    
     return errors;
   };
 
@@ -149,10 +143,7 @@ export function LandingSectionEditor({
           const list = await aboutService.getAll();
           const first = list[0];
           if (first) {
-            setData(prev => ({ ...prev, 
-              // map backend fields into local data for the form binding
-              ...(first as Record<string, unknown>)
-            }));
+            setData(prev => ({ ...prev, ...(first as Record<string, unknown>) }));
           }
         } catch (e) {
           setError(e instanceof Error ? e.message : 'Error loading about data');
@@ -168,10 +159,7 @@ export function LandingSectionEditor({
           const list = await volunteerLandingService.getAll();
           const first = list[0];
           if (first) {
-            setData(prev => ({ ...prev, 
-              // map backend fields into local data for the form binding
-              ...(first as Record<string, unknown>)
-            }));
+            setData(prev => ({ ...prev, ...(first as Record<string, unknown>) }));
           }
         } catch (e) {
           setError(e instanceof Error ? e.message : 'Error loading volunteer data');
@@ -187,7 +175,7 @@ export function LandingSectionEditor({
       setLoading(true);
       const heroSections = await heroService.getAll();
       if (heroSections.length > 0) {
-        setHeroData(heroSections[0]); // Usar el primer hero section
+        setHeroData(heroSections[0]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading hero data');
@@ -232,10 +220,8 @@ export function LandingSectionEditor({
     try {
       setLoading(true);
       if (heroData.id) {
-        // Update existing hero section
         await heroService.update(heroData.id, heroData);
       } else {
-        // Create new hero section
         const result = await heroService.create(heroData);
         setHeroData(prev => prev ? { ...prev, id: result.id } : null);
       }
@@ -252,7 +238,7 @@ export function LandingSectionEditor({
     if (section === "hero") {
       handleHeroSubmit(e);
     } else {
-    onSave(data);
+      onSave(data);
     }
   };
 
@@ -260,13 +246,10 @@ export function LandingSectionEditor({
     <ModalSimple onClose={onCancel}>
       <div className="p-6 space-y-6 max-w-6xl w-full overflow-auto">
         <form onSubmit={handleSubmit}>
-          {/* Campos específicos para cada sección */}
-
           {/* Hero Section */}
           {section === "hero" && (
             <div className="mt-4 space-y-6">
               <h2 className="text-2xl font-bold mb-4">Personalizar {section}</h2>
-              
               {loading && <div className="text-blue-600">Cargando datos...</div>}
               {error && <div className="text-red-600">Error: {error}</div>}
               {Object.keys(validationErrors).length > 0 && (
@@ -279,7 +262,6 @@ export function LandingSectionEditor({
                   </ul>
                 </div>
               )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -296,7 +278,6 @@ export function LandingSectionEditor({
                     {(heroData?.titulo || "").length}/100 caracteres
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Descripción: (máximo 250 caracteres)
@@ -313,7 +294,6 @@ export function LandingSectionEditor({
                   </div>
                 </div>
               </div>
-
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
                 <div className="relative">
@@ -347,33 +327,30 @@ export function LandingSectionEditor({
                   </div>
                 )}
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Texto Botón Izquierdo: (máximo 50 caracteres)
                   </label>
-              <input
+                  <input
                     value={heroData?.texto_boton_izquierdo || ""}
                     onChange={(e) => handleHeroChange("texto_boton_izquierdo", e.target.value)}
                     maxLength={50}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                {(heroData?.texto_boton_izquierdo || "").length}/50 caracteres
-              </div>
-            </div>
-
-            <div>
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(heroData?.texto_boton_izquierdo || "").length}/50 caracteres
+                  </div>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color Botón Izquierdo:</label>
-              <input
-                type="color"
+                  <input
+                    type="color"
                     value={heroData?.color_boton_izquierdo || "#1976d2"}
                     onChange={(e) => handleHeroChange("color_boton_izquierdo", e.target.value)}
                     className="w-20 h-10 rounded-lg border border-gray-300"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Texto Botón Derecho: (máximo 50 caracteres)
@@ -383,48 +360,40 @@ export function LandingSectionEditor({
                     onChange={(e) => handleHeroChange("texto_boton_derecho", e.target.value)}
                     maxLength={50}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                {(heroData?.texto_boton_derecho || "").length}/50 caracteres
-              </div>
-            </div>
-
-            <div>
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(heroData?.texto_boton_derecho || "").length}/50 caracteres
+                  </div>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color Botón Derecho:</label>
-              <input
-                type="color"
+                  <input
+                    type="color"
                     value={heroData?.color_boton_derecho || "#1976d2"}
                     onChange={(e) => handleHeroChange("color_boton_derecho", e.target.value)}
                     className="w-20 h-10 rounded-lg border border-gray-300"
                   />
                 </div>
               </div>
-
               <div className="flex justify-end space-x-2 mt-6">
                 <button
                   type="button"
                   onClick={onCancel}
                   className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  Cancelar
-                </button>
+                >Cancelar</button>
                 <button
                   type="submit"
                   disabled={loading}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? "Guardando..." : "Guardar"}
-                </button>
+                >{loading ? "Guardando..." : "Guardar"}</button>
               </div>
             </div>
           )}
-
 
           {/* About Section */}
           {section === "about" && (
             <div className="mt-4 space-y-6">
               <h2 className="text-2xl font-bold mb-4">Personalizar about</h2>
-              
               {Object.keys(validationErrors).length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                   <h3 className="text-red-800 font-medium mb-2">Errores de validación:</h3>
@@ -435,7 +404,6 @@ export function LandingSectionEditor({
                   </ul>
                 </div>
               )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -452,7 +420,6 @@ export function LandingSectionEditor({
                     {((data as Record<string, unknown>).titulo as string || "").length}/100 caracteres
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Texto botón: (máximo 50 caracteres)
@@ -468,7 +435,6 @@ export function LandingSectionEditor({
                   </div>
                 </div>
               </div>
-
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
                 <div className="relative">
@@ -493,8 +459,8 @@ export function LandingSectionEditor({
                       }
                     }}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
-              />
-            </div>
+                  />
+                </div>
                 {(data as Record<string, unknown>).URL_imagen && (
                   <div className="mt-3">
                     <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
@@ -502,8 +468,7 @@ export function LandingSectionEditor({
                   </div>
                 )}
               </div>
-
-            <div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Descripción: (máximo 250 caracteres)
                 </label>
@@ -518,7 +483,6 @@ export function LandingSectionEditor({
                   {((data as Record<string, unknown>).descripcion as string || "").length}/250 caracteres
                 </div>
               </div>
-
               <div className="flex items-center gap-4">
                 <label className="block text-sm font-medium text-gray-700">Color botón:</label>
                 <input
@@ -528,15 +492,12 @@ export function LandingSectionEditor({
                   className="w-20 h-10 rounded-lg border border-gray-300"
                 />
               </div>
-
               <div className="flex justify-end space-x-2 mt-6">
                 <button
                   type="button"
                   onClick={onCancel}
                   className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  Cancelar
-                </button>
+                >Cancelar</button>
                 <button
                   type="button"
                   onClick={async () => {
@@ -547,22 +508,18 @@ export function LandingSectionEditor({
                       texto_boton: (data as Record<string, unknown>).texto_boton || "",
                       color_boton: (data as Record<string, unknown>).color_boton || "#1976d2",
                     };
-                    
-                    // Validate about data
                     const errors = validateAbout(payload);
                     if (Object.keys(errors).length > 0) {
                       setValidationErrors(errors);
                       return;
                     }
-                    
                     setValidationErrors({});
                     try {
-                      // Try to get one existing item
                       const existing = await aboutService.getAll().then(list => list[0]).catch(() => undefined);
                       if (existing && existing.id) {
-                        await aboutService.update(existing.id, payload);
+                        await aboutService.update(existing.id, payload as AboutPayload);
                       } else {
-                        await aboutService.create(payload);
+                        await aboutService.create(payload as AboutPayload);
                       }
                       onSave(data);
                     } catch (err) {
@@ -570,17 +527,15 @@ export function LandingSectionEditor({
                     }
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Guardar
-                </button>
+                >Guardar</button>
               </div>
             </div>
           )}
 
+          {/* Volunteering Section */}
           {section === "volunteering" && (
             <div className="mt-4 space-y-6">
               <h2 className="text-2xl font-bold mb-4">Personalizar voluntariado</h2>
-              
               {loading && <div className="text-blue-600">Cargando datos...</div>}
               {error && <div className="text-red-600">Error: {error}</div>}
               {Object.keys(validationErrors).length > 0 && (
@@ -593,7 +548,6 @@ export function LandingSectionEditor({
                   </ul>
                 </div>
               )}
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -610,7 +564,6 @@ export function LandingSectionEditor({
                     {((data as Record<string, unknown>).titulo as string || "").length}/100 caracteres
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Subtítulo: (máximo 100 caracteres)
@@ -625,13 +578,12 @@ export function LandingSectionEditor({
                     {((data as Record<string, unknown>).subtitulo as string || "").length}/100 caracteres
                   </div>
                 </div>
-            </div>
-
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Descripción: (máximo 250 caracteres)
                 </label>
-              <textarea
+                <textarea
                   value={(data as Record<string, unknown>).descripcion || ""}
                   onChange={(e) => handleChange("descripcion" as unknown as keyof SectionData, e.target.value)}
                   maxLength={250}
@@ -642,7 +594,6 @@ export function LandingSectionEditor({
                   {((data as Record<string, unknown>).descripcion as string || "").length}/250 caracteres
                 </div>
               </div>
-
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
                 <div className="relative">
@@ -676,7 +627,6 @@ export function LandingSectionEditor({
                   </div>
                 )}
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -689,10 +639,9 @@ export function LandingSectionEditor({
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                      {((data as Record<string, unknown>).texto_boton as string || "").length}/50 caracteres
+                    {((data as Record<string, unknown>).texto_boton as string || "").length}/50 caracteres
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color botón:</label>
                   <input
@@ -700,18 +649,15 @@ export function LandingSectionEditor({
                     value={(data as Record<string, unknown>).color_boton || "#1976d2"}
                     onChange={(e) => handleChange("color_boton" as unknown as keyof SectionData, e.target.value)}
                     className="w-20 h-10 rounded-lg border border-gray-300"
-              />
-            </div>
-          </div>
-
+                  />
+                </div>
+              </div>
               <div className="flex justify-end space-x-2 mt-6">
                 <button
                   type="button"
                   onClick={onCancel}
                   className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  Cancelar
-                </button>
+                >Cancelar</button>
                 <button
                   type="button"
                   onClick={async () => {
@@ -723,21 +669,18 @@ export function LandingSectionEditor({
                       texto_boton: (data as Record<string, unknown>).texto_boton || "",
                       color_boton: (data as Record<string, unknown>).color_boton || "#1976d2",
                     };
-                    
-                    // Validate volunteer data
                     const errors = validateVolunteer(payload);
                     if (Object.keys(errors).length > 0) {
                       setValidationErrors(errors);
                       return;
                     }
-                    
                     setValidationErrors({});
                     try {
                       const existing = await volunteerLandingService.getAll().then(list => list[0]).catch(() => undefined);
                       if (existing && existing.id) {
-                        await volunteerLandingService.update(existing.id, payload);
+                        await volunteerLandingService.update(existing.id, payload as LandingVolunteer);
                       } else {
-                        await volunteerLandingService.create(payload);
+                        await volunteerLandingService.create(payload as LandingVolunteer);
                       }
                       onSave(data);
                     } catch (err) {
@@ -745,13 +688,12 @@ export function LandingSectionEditor({
                     }
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Guardar
-                </button>
+                >Guardar</button>
               </div>
             </div>
           )}
 
+          {/* Location Section */}
           {section === "location" && (
             <div className="mt-4 space-y-4">
               <div>
@@ -775,6 +717,7 @@ export function LandingSectionEditor({
             </div>
           )}
 
+          {/* Testimonials Section */}
           {section === "testimonials" && (
             <div className="mt-4 space-y-4">
               <div>
@@ -797,6 +740,7 @@ export function LandingSectionEditor({
             </div>
           )}
 
+          {/* Footer Section */}
           {section === "footer" && (
             <div className="mt-4 space-y-4">
               <div>

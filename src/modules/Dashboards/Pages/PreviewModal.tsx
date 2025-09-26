@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { SectionData, SectionKey } from "../Types/types";
+import type { AllSectionData } from "../Types/types";
 import { ModalSimple } from "./ModalSimple.tsx";
 import { heroService } from "../Services/heroService";
 import { aboutService } from "../Services/aboutService";
@@ -9,7 +9,7 @@ export function PreviewModal({
   sectionData,
   onClose,
 }: {
-  sectionData: Record<SectionKey, SectionData>;
+  sectionData: AllSectionData; // Datos actuales de todas las secciones
   onClose: () => void;
 }) {
   const [heroData, setHeroData] = useState<any>(null);
