@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { FileText, Upload, X, Plus, Trash2, CheckCircle } from 'lucide-react';
-import type { Phase3Data, RecordWithDetails, RequiredDocument, AvailableService } from '../Types/records';
+import type { Phase3Data, RecordWithDetails, RequiredDocument, AvailableService, FamilyInformation } from '../Types/records';
 import { useAuth } from '../../Login/Hooks/useAuth';
 import { getProvinces, getCantonsByProvince, getDistrictsByCanton, type Province, type Canton, type District } from '../Services/geographicApi';
 
@@ -75,12 +75,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       father_occupation: '',
       father_phone: '',
       responsible_person: '',
-      responsible_cedula: '',
       responsible_address: '',
       responsible_occupation: '',
       responsible_phone: '',
-      family_members: []
-    },
+      family_members: [],
+      responsible_cedula: ''
+    } as FamilyInformation & { responsible_cedula: string },
     disability_information: {
       disability_type: 'fisica',
       medical_diagnosis: '',
@@ -443,7 +443,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         }
         
         // Special handling for payment_info documents
-        if (doc.document_type === 'payment_info') {
+        if ((doc.document_type as string) === 'payment_info') {
           documentStatusMap.set('informacion_pago', 'entregado');
           console.log(`Payment info document mapped to informacion_pago with status entregado`);
         }
@@ -1212,7 +1212,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={form.family_information.responsible_cedula}
+                  value={(form.family_information as unknown as Record<string, unknown>).responsible_cedula as string || ''}
                   onChange={(e) => handleChange('family_information', 'responsible_cedula', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />

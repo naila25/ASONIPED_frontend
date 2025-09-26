@@ -195,7 +195,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
-              <p className="text-sm text-gray-900">{record.personal_data.email || 'No disponible'}</p>
+              <p className="text-sm text-gray-900">{(record.personal_data as unknown as Record<string, unknown>).email as string || 'No disponible'}</p>
             </div>
           </div>
         ) : (
@@ -356,7 +356,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Cédula del Encargado Legal</label>
-                        <p className="text-sm text-gray-900 font-mono">{record.family_information.responsible_cedula || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900 font-mono">{(record.family_information as unknown as Record<string, unknown>).responsible_cedula as string || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Teléfono del Encargado Legal</label>
@@ -397,7 +397,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Ocupación de la Madre</label>
-                        <p className="text-sm text-gray-900">{record.personal_data.mother_occupation || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900">{(record.personal_data as unknown as Record<string, unknown>).mother_occupation as string || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Teléfono de la Madre</label>
@@ -422,7 +422,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Ocupación del Padre</label>
-                        <p className="text-sm text-gray-900">{record.personal_data.father_occupation || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900">{(record.personal_data as unknown as Record<string, unknown>).father_occupation as string || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Teléfono del Padre</label>
@@ -447,7 +447,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Ocupación del Encargado Legal</label>
-                        <p className="text-sm text-gray-900">{record.personal_data?.legal_guardian_occupation || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900">{(record.personal_data as unknown as Record<string, unknown>).legal_guardian_occupation as string || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Teléfono del Encargado Legal</label>
@@ -991,7 +991,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
               <div>
                 <span className="text-gray-600">Email:</span>
                 <span className="ml-2 text-gray-900">
-                  {record.complete_personal_data?.email || record.personal_data?.email || 'No disponible'}
+                  {record.complete_personal_data?.email || (record.personal_data as unknown as Record<string, unknown>).email as string || 'No disponible'}
                 </span>
               </div>
               <div>

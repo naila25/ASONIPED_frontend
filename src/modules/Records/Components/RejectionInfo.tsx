@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import type { RecordWithDetails } from '../Types/records';
 
 interface RejectionInfoProps {
@@ -7,7 +7,7 @@ interface RejectionInfoProps {
   onRestart: () => void;
 }
 
-const RejectionInfo: React.FC<RejectionInfoProps> = ({ record, onRestart }) => {
+const RejectionInfo: React.FC<RejectionInfoProps> = ({ record }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="text-center mb-6">

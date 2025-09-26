@@ -29,8 +29,6 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
   recordNumber,
   recordName
 }) => {
-  if (!isOpen) return null;
-
   const isConfirmDisabled = useMemo(() => 
     loading || (requireComment && !comment.trim()), 
     [loading, requireComment, comment]
@@ -47,6 +45,17 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [loading, onCancel]);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = original;
+      };
+    }
+  }, [isOpen]);
+
   const handleOverlayClick = useCallback((e: React.MouseEvent) => {
     if (e.target === overlayRef.current && !loading) {
       onCancel();
@@ -60,16 +69,7 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
     }
   }, []);
 
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      const original = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = original;
-      };
-    }
-  }, [isOpen]);
+  if (!isOpen) return null;
 
   return (
     <div
