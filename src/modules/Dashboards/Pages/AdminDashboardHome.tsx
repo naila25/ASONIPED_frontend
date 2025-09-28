@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Users,
   DollarSign,
@@ -6,8 +5,6 @@ import {
   FileText,
   GraduationCap,
   TrendingUp,
-  Clock,
-  Award,
   Settings,
 } from "lucide-react";
 
@@ -37,8 +34,6 @@ const mockQuickActions = [
 ];
 
 export default function AdminDashboardHome() {
-  const [selectedPeriod, setSelectedPeriod] = useState("mes");
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -180,7 +175,6 @@ export default function AdminDashboardHome() {
                   <p className="font-medium text-gray-900">{activity.title}</p>
                   <p className="text-sm text-gray-500">
                     {activity.user && `${activity.user} • `}
-                    {activity.amount && `${activity.amount} • `}
                     {activity.workshop && `${activity.workshop} • `}
                     {activity.event && `${activity.event} • `}
                     {activity.time}

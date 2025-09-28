@@ -11,6 +11,17 @@ export interface HeroSection {
   color_boton_derecho?: string;
 }
 
+interface HeroSectionBackend {
+  id?: number;
+  titulo: string;
+  URL_imagen?: string;
+  descripcion: string;
+  texto_boton_izquierdo: string;
+  color_boton_izquierdo?: string;
+  texto_boton_derecho: string;
+  color_boton_derecho?: string;
+}
+
 export const heroService = {
   // Get all hero sections
   async getAll(): Promise<HeroSection[]> {
@@ -20,7 +31,7 @@ export const heroService = {
     }
     const data = await response.json();
     // Transform URL_imagen to url_imagen to match our interface
-    return data.map((item: any) => ({
+    return data.map((item: HeroSectionBackend) => ({
       ...item,
       url_imagen: item.URL_imagen
     }));

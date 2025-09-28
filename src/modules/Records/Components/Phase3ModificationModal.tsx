@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, AlertCircle, FileText, CheckSquare, Square } from 'lucide-react';
+import type { RecordWithDetails } from '../Types/records';
 
 interface Phase3ModificationModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface Phase3ModificationModalProps {
     documentsToReplace: number[];
   }) => void;
   loading: boolean;
-  record: any; // RecordWithDetails
+  record: RecordWithDetails;
 }
 
 const Phase3ModificationModal: React.FC<Phase3ModificationModalProps> = ({
@@ -184,19 +185,19 @@ const Phase3ModificationModal: React.FC<Phase3ModificationModalProps> = ({
                   Documentos que Requieren Reemplazo
                 </label>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {record.documents.map((doc: any) => (
+                  {record.documents.map((doc) => (
                     <label
                       key={doc.id}
                       className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
                     >
                       <input
                         type="checkbox"
-                        checked={selectedDocuments.includes(doc.id)}
-                        onChange={() => handleDocumentToggle(doc.id)}
+                        checked={doc.id ? selectedDocuments.includes(doc.id) : false}
+                        onChange={() => doc.id && handleDocumentToggle(doc.id)}
                         className="hidden"
                       />
                       <div className="flex items-center">
-                        {selectedDocuments.includes(doc.id) ? (
+                        {doc.id && selectedDocuments.includes(doc.id) ? (
                           <CheckSquare className="w-5 h-5 text-orange-600" />
                         ) : (
                           <Square className="w-5 h-5 text-gray-400" />

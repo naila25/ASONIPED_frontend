@@ -1,15 +1,9 @@
-import { useState } from "react";
 import { 
   FileText, 
   GraduationCap, 
   Heart, 
-  DollarSign, 
   Plus,
-  Calendar,
-  TrendingUp,
-  Users,
-  Clock,
-  Award
+  Calendar
 } from "lucide-react";
 
 // Mock data - esto se reemplazará con datos reales de la API
@@ -26,7 +20,6 @@ const mockActivities = [
 ];
 
 export default function DashboardHome() {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 
   return (
     <div className="space-y-6">

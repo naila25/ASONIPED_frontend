@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { DonationTicket, getTicketsByUserId } from '../Services/ticketService';
+import { getTicketsByUserId } from '../Services/ticketService';
+import type { DonationTicket } from '../Services/ticketService';
 import { FaTicketAlt, FaClock, FaCheckCircle, FaTimesCircle, FaEye } from 'react-icons/fa';
 import TicketConversation from './TicketConversation';
 import TicketPreview from './TicketPreview';

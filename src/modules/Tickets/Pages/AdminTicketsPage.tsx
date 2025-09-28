@@ -1,4 +1,3 @@
-import React from 'react';
 import { FaTicketAlt } from "react-icons/fa";
 import AdminTicketsDashboard from "../Components/AdminTicketsDashboard";
 

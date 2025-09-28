@@ -1,17 +1,23 @@
 import logo from "../../../assets/logoasoniped.png";
 import { navItems } from "../../../shared/Utils/constants";
-import { Menu, X, User, LogOut, Settings, FileText, ChevronDown } from "lucide-react";
+import { Menu, X, User, LogOut, FileText, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 import { isAuthenticated, logout, getToken } from "../../Login/Services/auth";
+
+interface UserData {
+  username?: string;
+  full_name?: string;
+  email?: string;
+  roles?: Array<{ name: string } | string>;
+}
 
 const NavBar = () => {
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-    const [userData, setUserData] = useState<any>(null);
+    const [userData, setUserData] = useState<UserData | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    const navigate = useNavigate();
     const location = useLocation();
 
     // Verificar si estamos en un dashboard
@@ -65,11 +71,7 @@ const NavBar = () => {
     };
 
     const handleLoginClick = () => {
-        navigate({ 
-            to: "/admin/login",
-            search: (prev) => prev,
-            params: (prev) => prev
-        });
+        window.location.href = "/admin/login";
     };
 
     const handleLogout = () => {
@@ -77,31 +79,19 @@ const NavBar = () => {
         setIsLoggedIn(false);
         setUserData(null);
         setUserDropdownOpen(false);
-        navigate({ 
-            to: "/",
-            search: (prev) => prev,
-            params: (prev) => prev
-        });
+        window.location.href = "/";
     };
 
     const handleDashboardClick = () => {
-        const isAdmin = userData?.roles?.some((role: any) => role === 'admin' || role.name === 'admin');
+        const isAdmin = userData?.roles?.some((role) => role === 'admin' || (typeof role === 'object' && role.name === 'admin'));
         const destination = isAdmin ? "/admin" : "/user";
         
-        navigate({ 
-            to: destination,
-            search: (prev) => prev,
-            params: (prev) => prev
-        });
+        window.location.href = destination;
         setUserDropdownOpen(false);
     };
-
+//We are going to use this function later
     const handleProfileClick = () => {
-        navigate({ 
-            to: "/profile",
-            search: (prev) => prev,
-            params: (prev) => prev
-        });
+        window.location.href = "/profile";
         setUserDropdownOpen(false);
     };
 
@@ -160,7 +150,7 @@ const NavBar = () => {
                                             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                                         >
                                             <FileText className="w-4 h-4 mr-3 text-gray-500" />
-                                            {userData?.roles?.some((role: any) => role === 'admin' || role.name === 'admin') ? 'Panel Admin' : 'Dashboard'}
+                                            {userData?.roles?.some((role) => role === 'admin' || (typeof role === 'object' && role.name === 'admin')) ? 'Panel Admin' : 'Dashboard'}
                                         </button>
                                         
                                         {/*<button
@@ -231,7 +221,7 @@ const NavBar = () => {
                                             className="flex items-center w-full p-3 bg-white/10 rounded-lg border border-white/20 hover:bg-white/20 transition-colors"
                                         >
                                             <FileText className="w-4 h-4 mr-3 text-white/70" />
-                                             <span className="text-sm text-white">{userData?.roles?.some((role: any) => role === 'admin' || role.name === 'admin') ? 'Panel Admin' : 'Dashboard'}</span>
+                                             <span className="text-sm text-white">{userData?.roles?.some((role) => role === 'admin' || (typeof role === 'object' && role.name === 'admin')) ? 'Panel Admin' : 'Dashboard'}</span>
                                         </button>
                         
                                         <button
