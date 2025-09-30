@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash } from 'lucide-react';
-import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, requestPhase3Modification, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote } from '../Services/recordsApi';
+import { Link } from '@tanstack/react-router';
+import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash, Plus, Users } from 'lucide-react';
+import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, requestPhase3Modification, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote, handoverRecordToUser } from '../Services/recordsApi';
 import type { Record, RecordStats, RecordWithDetails } from '../Types/records';
 import Phase3Details from './Phase3Details';
 import Phase4Details from './Phase4Details';
 import Phase3ModificationModal from '../Components/Phase3ModificationModal';
 import AdminActionModal from '../Components/AdminActionModal';
+import HandoverModal from '../Components/HandoverModal';
+import AnalyticsCharts from '../../Dashboards/Components/AnalyticsCharts';
 
 const ExpedientesAdminPage: React.FC = () => {
   // State Management
@@ -18,6 +21,7 @@ const ExpedientesAdminPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [phaseFilter, setPhaseFilter] = useState<string>('');
+  const [creatorFilter, setCreatorFilter] = useState<string>('');
   const [selectedRecord, setSelectedRecord] = useState<RecordWithDetails | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -30,13 +34,17 @@ const ExpedientesAdminPage: React.FC = () => {
   const [deletingRecordId, setDeletingRecordId] = useState<number | null>(null);
   const [showPhase3ModModal, setShowPhase3ModModal] = useState(false);
   const [phase3ModLoading, setPhase3ModLoading] = useState(false);
+  const [showHandoverModal, setShowHandoverModal] = useState(false);
+  const [handoverRecordId, setHandoverRecordId] = useState<number | null>(null);
+  const [handoverLoading, setHandoverLoading] = useState(false);
+  const [showEnhancedView, setShowEnhancedView] = useState(false);
 
   // ===== DATA LOADING =====
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [recordsResponse, statsResponse] = await Promise.all([
-        getRecords(currentPage, 10, statusFilter, phaseFilter, searchTerm),
+        getRecords(currentPage, 10, statusFilter, phaseFilter, searchTerm, creatorFilter),
         getRecordStats()
       ]);
 
@@ -49,7 +57,7 @@ const ExpedientesAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, phaseFilter, searchTerm]);
+  }, [currentPage, statusFilter, phaseFilter, searchTerm, creatorFilter]);
 
   // ===== EFFECTS =====
   useEffect(() => {
@@ -257,6 +265,27 @@ const ExpedientesAdminPage: React.FC = () => {
     }
   };
 
+  const handleHandoverRecord = async (userId: number) => {
+    if (!handoverRecordId) return;
+    
+    try {
+      setHandoverLoading(true);
+      await handoverRecordToUser(handoverRecordId, userId);
+      await loadData(); // Refresh the records list
+      setShowHandoverModal(false);
+      setHandoverRecordId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error entregando expediente');
+    } finally {
+      setHandoverLoading(false);
+    }
+  };
+
+  const initiateHandover = (recordId: number) => {
+    setHandoverRecordId(recordId);
+    setShowHandoverModal(true);
+  };
+
   // ===== UTILITY FUNCTIONS =====
   const getStatusInfo = useCallback((status: string) => {
     switch (status) {
@@ -349,6 +378,24 @@ const ExpedientesAdminPage: React.FC = () => {
         </button>
 
         <button
+          onClick={() => window.location.href = `/admin/expedientes/editar/${record.id}`}
+          className="text-orange-600 hover:text-orange-900 transition-colors p-1 rounded hover:bg-orange-50"
+          title="Editar expediente (Admin)"
+        >
+          <Edit3 className="w-4 h-4" />
+        </button>
+
+        {record.admin_created && !record.handed_over_to_user && (
+          <button
+            onClick={() => initiateHandover(record.id)}
+            className="text-green-600 hover:text-green-900 transition-colors p-1 rounded hover:bg-green-50"
+            title="Entregar expediente a usuario"
+          >
+            <Users className="w-4 h-4" />
+          </button>
+        )}
+
+        <button
           onClick={() => handleDeleteRecord(record.id)}
           disabled={deletingRecordId === record.id}
           className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50 disabled:opacity-50"
@@ -358,7 +405,7 @@ const ExpedientesAdminPage: React.FC = () => {
         </button>
       </div>
     );
-  }, [expandedRows, deletingRecordId, actionLoading, phase3ModLoading, toggleRowExpansion, handleDeleteRecord, initiateAction, handlePhase3ModClick]);
+  }, [expandedRows, deletingRecordId, actionLoading, phase3ModLoading, toggleRowExpansion, handleDeleteRecord, initiateAction, handlePhase3ModClick, initiateHandover]);
 
   const renderExpandedRow = (record: Record) => {
     if (!expandedRows.has(record.id) || !selectedRecord || selectedRecord.id !== record.id) {
@@ -367,15 +414,15 @@ const ExpedientesAdminPage: React.FC = () => {
 
     return (
       <tr className="bg-gray-50">
-        <td colSpan={6} className="px-6 py-4">
+        <td colSpan={8} className="px-6 py-4">
           <div className="space-y-6">
             {/* Información del Expediente - Mostrar detalles completos para Phase 3, Phase 4 y Completed */}
             {selectedRecord.phase === 'phase3' ? (
               <Phase3Details record={selectedRecord} />
             ) : selectedRecord.phase === 'phase4' ? (
-              <Phase4Details record={selectedRecord} />
+              <Phase4Details record={selectedRecord} hideHeader={true} />
             ) : selectedRecord.phase === 'completed' ? (
-              <Phase4Details record={selectedRecord} />
+              <Phase4Details record={selectedRecord} hideHeader={true} />
             ) : (
               <>
                 {/* Información Personal */}
@@ -707,20 +754,122 @@ const ExpedientesAdminPage: React.FC = () => {
     <div className="space-y-6 min-w-0">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
-            <FileText className="w-6 h-6 text-blue-600" />
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
+              <FileText className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Expedientes</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Administra y revisa todos los expedientes de beneficiarios de ASONIPED</p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Expedientes</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Administra y revisa todos los expedientes de beneficiarios de ASONIPED</p>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            {/* View Toggle Button */}
+            <button
+              onClick={() => setShowEnhancedView(!showEnhancedView)}
+              className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-lg transition-colors ${
+                showEnhancedView
+                  ? 'border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                  : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              {showEnhancedView ? 'Vista Tabla' : 'Vista Analytics'}
+            </button>
+            
+            {/* Crear Expediente Button */}
+            <Link
+              to="/admin/expedientes/crear-directo"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Crear Expediente
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Enhanced Analytics View */}
+      {showEnhancedView ? (
+        <div className="space-y-6">
+          {/* Advanced Filters */}
+
+          {/* Analytics Charts */}
+          <AnalyticsCharts
+            records={records}
+            stats={stats}
+          />
+
+          {/* Recent Records Summary */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Expedientes Recientes</h3>
+              <button 
+                onClick={() => setShowEnhancedView(false)}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Ver vista detallada
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {records
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 6)
+                .map((record) => (
+                <div key={record.id} className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {record.record_number}
+                    </span>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      record.status === 'active' ? 'bg-green-100 text-green-800' :
+                      record.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      record.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                      record.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {record.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {record.complete_personal_data?.full_name || record.personal_data?.full_name || 'Sin nombre'}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">
+                      {new Date(record.created_at).toLocaleDateString()}
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={() => toggleRowExpansion(record.id)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Ver detalles"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => window.location.href = `/admin/expedientes/editar/${record.id}`}
+                        className="text-orange-600 hover:text-orange-900"
+                        title="Editar"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Original Table View */}
+          {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
@@ -753,18 +902,6 @@ const ExpedientesAdminPage: React.FC = () => {
               </div>
               <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
                 <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-purple-500">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600">Este Mes</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.thisMonth}</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-lg flex-shrink-0">
-                <BarChart3 className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </div>
@@ -812,6 +949,15 @@ const ExpedientesAdminPage: React.FC = () => {
                 <option value="phase4">Fase 4</option>
                 <option value="completed">Completado</option>
               </select>
+              <select
+                value={creatorFilter}
+                onChange={(e) => setCreatorFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Todos los creadores</option>
+                <option value="user">Creados por usuarios</option>
+                <option value="admin">Creados por administradores</option>
+              </select>
             </div>
           </div>
         </div>
@@ -836,6 +982,9 @@ const ExpedientesAdminPage: React.FC = () => {
                       Fase
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      Creador
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                       Fecha
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
@@ -847,7 +996,7 @@ const ExpedientesAdminPage: React.FC = () => {
                   {records.map((record) => (
                     <React.Fragment key={record.id}>
                       <tr className="hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                           {record.record_number}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -857,10 +1006,10 @@ const ExpedientesAdminPage: React.FC = () => {
                             </div>
                             <div>
                               <div className="font-medium text-gray-900">
-                                {record.personal_data?.full_name || 'Sin nombre'}
+                                {record.complete_personal_data?.full_name || record.personal_data?.full_name || 'Sin nombre'}
                               </div>
                               <div className="text-gray-500">
-                                {record.personal_data?.cedula || 'Sin cédula'}
+                                {record.complete_personal_data?.cedula || record.personal_data?.cedula || 'Sin cédula'}
                               </div>
                             </div>
                           </div>
@@ -870,6 +1019,25 @@ const ExpedientesAdminPage: React.FC = () => {
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap">
                           {renderPhaseBadge(record.phase)}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex items-center">
+                            {record.admin_created ? (
+                              <>
+                                <div className="h-6 w-6 rounded-full bg-orange-100 flex items-center justify-center mr-2">
+                                  <User className="w-3 h-3 text-orange-600" />
+                                </div>
+                                <span className="text-orange-700 font-medium">Admin</span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                                  <User className="w-3 h-3 text-blue-600" />
+                                </div>
+                                <span className="text-blue-700 font-medium">Usuario</span>
+                              </>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                           {new Date(record.created_at).toLocaleDateString()}
@@ -956,7 +1124,7 @@ const ExpedientesAdminPage: React.FC = () => {
             setPendingAction('');
           }}
           recordNumber={selectedRecord.record_number}
-          recordName={selectedRecord.personal_data?.full_name}
+          recordName={selectedRecord.complete_personal_data?.full_name || selectedRecord.personal_data?.full_name}
         />
       )}
 
@@ -972,6 +1140,23 @@ const ExpedientesAdminPage: React.FC = () => {
           loading={phase3ModLoading}
           record={selectedRecord}
         />
+      )}
+
+      {/* Handover Modal */}
+      {handoverRecordId && (
+        <HandoverModal
+          isOpen={showHandoverModal}
+          onClose={() => {
+            setShowHandoverModal(false);
+            setHandoverRecordId(null);
+          }}
+          onHandover={handleHandoverRecord}
+          recordId={handoverRecordId}
+          recordNumber={records.find(r => r.id === handoverRecordId)?.record_number || ''}
+          loading={handoverLoading}
+        />
+      )}
+        </>
       )}
     </div>
   );
