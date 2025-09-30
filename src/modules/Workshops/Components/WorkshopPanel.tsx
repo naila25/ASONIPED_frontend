@@ -4,7 +4,7 @@ import { FaChalkboardTeacher, FaClipboardList, FaArrowRight } from "react-icons/
 
 export default function WorkshopPanel() {
   return (
-    <main className="flex-1 p-6">
+    <main >
       <div className="space-y-6">
         {/* Card principal */}
         <div className="bg-white rounded-lg shadow-sm p-6">
