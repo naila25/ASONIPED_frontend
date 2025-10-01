@@ -118,9 +118,9 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ records, stats }) => 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'geographic':
-        return <GeographicAnalytics records={records} />;
+        return <GeographicAnalytics />;
       case 'disability':
-        return <DisabilityAnalytics records={records} />;
+        return <DisabilityAnalytics />;
       case 'family':
         return <FamilyAnalytics records={records} />;
       case 'demographic':

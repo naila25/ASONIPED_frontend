@@ -391,6 +391,86 @@ export const createAdminDirectRecord = async (
 // ===== SERVICIOS DE ADMIN =====
 
 // Obtener todos los expedientes (admin)
+// Get geographic analytics data only (lightweight)
+export const getGeographicAnalytics = async (): Promise<Array<{
+  id: number;
+  record_number: string;
+  province: string | null;
+  canton: string | null;
+  district: string | null;
+  created_at: string;
+}>> => {
+  try {
+    const response = await fetch(`${API_URL}/geographic-analytics`, {
+      method: 'GET',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching geographic analytics:', error);
+    throw error;
+  }
+};
+
+// Get disability analytics data only (lightweight)
+export const getDisabilityAnalytics = async (): Promise<Array<{
+  id: number;
+  record_number: string;
+  created_at: string;
+  disability_information: {
+    disability_type: string | null;
+    insurance_type: string | null;
+    disability_origin: string | null;
+    disability_certificate: string | null;
+    conapdis_registration: string | null;
+    medical_diagnosis: string | null;
+    medical_additional: {
+      blood_type: string | null;
+      diseases: string | null;
+      permanent_limitations: Array<{
+        limitation: string;
+        degree: string;
+        observations?: string;
+      }> | null;
+      biomechanical_benefits: Array<{
+        type: string;
+        other_description?: string;
+      }> | null;
+    } | null;
+  } | null;
+  complete_personal_data: {
+    blood_type: string | null;
+    diseases: string | null;
+  } | null;
+}>> => {
+  try {
+    const response = await fetch(`${API_URL}/disability-analytics`, {
+      method: 'GET',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching disability analytics:', error);
+    throw error;
+  }
+};
+
 export const getRecords = async (
   page = 1, 
   limit = 10, 

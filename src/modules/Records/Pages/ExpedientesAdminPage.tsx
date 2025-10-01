@@ -13,6 +13,7 @@ import AnalyticsCharts from '../../Dashboards/Components/AnalyticsCharts';
 const ExpedientesAdminPage: React.FC = () => {
   // State Management
   const [records, setRecords] = useState<Record[]>([]);
+  const [allRecords, setAllRecords] = useState<Record[]>([]); // For analytics
   const [stats, setStats] = useState<RecordStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,16 @@ const ExpedientesAdminPage: React.FC = () => {
   const [showEnhancedView, setShowEnhancedView] = useState(false);
 
   // ===== DATA LOADING =====
+  const loadAllRecordsForAnalytics = useCallback(async () => {
+    try {
+      // Load all records for analytics (no pagination, no filters)
+      const allRecordsResponse = await getRecords(1, 1000, '', '', '', '');
+      setAllRecords(allRecordsResponse.records);
+    } catch (err) {
+      console.error('Error loading all records for analytics:', err);
+    }
+  }, []);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -63,6 +74,10 @@ const ExpedientesAdminPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    loadAllRecordsForAnalytics();
+  }, [loadAllRecordsForAnalytics]);
 
   // ===== ROW EXPANSION =====
   const toggleRowExpansion = useCallback(async (recordId: number) => {

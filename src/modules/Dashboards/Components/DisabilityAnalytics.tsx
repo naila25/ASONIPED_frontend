@@ -1,40 +1,84 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, User, Eye, Ear, Brain, Activity, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { getDisabilityAnalytics } from '../../Records/Services/recordsApi';
 
-interface Record {
+interface DisabilityRecord {
   id: number;
-  disability_information?: {
-    disability_type?: string;
-    insurance_type?: string;
-    disability_origin?: string;
-    disability_certificate?: string;
-    conapdis_registration?: string;
-    medical_diagnosis?: string;
-    medical_additional?: {
-      blood_type?: string;
-      diseases?: string;
-      permanent_limitations?: Array<{
+  record_number: string;
+  created_at: string;
+  disability_information: {
+    disability_type: string | null;
+    insurance_type: string | null;
+    disability_origin: string | null;
+    disability_certificate: string | null;
+    conapdis_registration: string | null;
+    medical_diagnosis: string | null;
+    medical_additional: {
+      blood_type: string | null;
+      diseases: string | null;
+      permanent_limitations: Array<{
         limitation: string;
         degree: string;
         observations?: string;
-      }>;
-      biomechanical_benefits?: Array<{
+      }> | null;
+      biomechanical_benefits: Array<{
         type: string;
         other_description?: string;
-      }>;
+      }> | null;
+    } | null;
+  } | null;
+  complete_personal_data: {
+    blood_type: string | null;
+    diseases: string | null;
+  } | null;
+}
+
+interface DisabilityAnalyticsProps {}
+
+const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = () => {
+  const [records, setRecords] = useState<DisabilityRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDisabilityData = async () => {
+      try {
+        setLoading(true);
+        const data = await getDisabilityAnalytics();
+        setRecords(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error loading disability data');
+        console.error('Error loading disability analytics:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-  };
-  complete_personal_data?: {
-    blood_type?: string;
-    diseases?: string;
-  };
-}
 
-interface DisabilityAnalyticsProps {
-  records: Record[];
-}
+    fetchDisabilityData();
+  }, []);
 
-const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = ({ records }) => {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando datos de discapacidad...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <AlertTriangle className="w-5 h-5 text-red-600" />
+          <h3 className="text-lg font-semibold text-red-800">Error</h3>
+        </div>
+        <p className="text-red-700">{error}</p>
+      </div>
+    );
+  }
   // Get disability type distribution
   const getDisabilityTypeDistribution = () => {
     const disabilityMap = new Map<string, number>();
@@ -86,24 +130,10 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = ({ records }) =>
       .sort((a, b) => b.count - a.count);
   };
 
-  // Get equipment needs
+  // Get equipment needs (currently not available in database schema)
   const getEquipmentNeeds = () => {
-    const equipmentMap = new Map<string, number>();
-    
-    records.forEach(record => {
-      const disabilityInfo = record.disability_information;
-      if (disabilityInfo?.medical_additional?.biomechanical_benefits) {
-        disabilityInfo.medical_additional.biomechanical_benefits.forEach(benefit => {
-          const equipment = benefit.type;
-          const count = equipmentMap.get(equipment) || 0;
-          equipmentMap.set(equipment, count + 1);
-        });
-      }
-    });
-    
-    return Array.from(equipmentMap.entries())
-      .map(([equipment, count]) => ({ equipment, count }))
-      .sort((a, b) => b.count - a.count);
+    // Note: biomechanical_benefits not available in current database schema
+    return [];
   };
 
   // Get blood type distribution
@@ -123,44 +153,32 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = ({ records }) =>
       .sort((a, b) => b.count - a.count);
   };
 
-  // Get limitations analysis
+  // Get limitations analysis (currently not available in database schema)
   const getLimitationsAnalysis = () => {
-    const limitationsMap = new Map<string, number>();
-    
-    records.forEach(record => {
-      const disabilityInfo = record.disability_information;
-      if (disabilityInfo?.medical_additional?.permanent_limitations) {
-        disabilityInfo.medical_additional.permanent_limitations.forEach(limitation => {
-          const limitationType = limitation.limitation;
-          const count = limitationsMap.get(limitationType) || 0;
-          limitationsMap.set(limitationType, count + 1);
-        });
-      }
-    });
-    
-    return Array.from(limitationsMap.entries())
-      .map(([limitation, count]) => ({ limitation, count }))
-      .sort((a, b) => b.count - a.count);
+    // Note: permanent_limitations not available in current database schema
+    return [];
   };
 
   // Get certificate status
   const getCertificateStatus = () => {
     let withCertificate = 0;
     let withoutCertificate = 0;
+    let inProcess = 0;
     
     records.forEach(record => {
       const disabilityInfo = record.disability_information;
       if (disabilityInfo?.disability_certificate) {
-        if (disabilityInfo.disability_certificate.toLowerCase() === 'sí' || 
-            disabilityInfo.disability_certificate.toLowerCase() === 'si') {
+        if (disabilityInfo.disability_certificate === 'si') {
           withCertificate++;
-        } else {
+        } else if (disabilityInfo.disability_certificate === 'no') {
           withoutCertificate++;
+        } else if (disabilityInfo.disability_certificate === 'en_tramite') {
+          inProcess++;
         }
       }
     });
     
-    return { withCertificate, withoutCertificate };
+    return { withCertificate, withoutCertificate, inProcess };
   };
 
   // Get disability icon
@@ -267,14 +285,22 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = ({ records }) =>
           <h3 className="text-lg font-semibold text-gray-900">Necesidades de Equipamiento</h3>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {equipmentNeeds.map(({ equipment, count }) => (
-            <div key={equipment} className="p-4 border border-gray-200 rounded-lg text-center">
-              <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
-              <div className="text-sm text-gray-600">{equipment}</div>
-            </div>
-          ))}
-        </div>
+        {equipmentNeeds.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {equipmentNeeds.map(({ equipment, count }) => (
+              <div key={equipment} className="p-4 border border-gray-200 rounded-lg text-center">
+                <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
+                <div className="text-sm text-gray-600">{equipment}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Activity className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-sm">No hay datos de equipamiento disponibles.</p>
+            <p className="text-xs text-gray-400 mt-2">Esta información se recopila durante el proceso de registro.</p>
+          </div>
+        )}
       </div>
 
       {/* Medical Information */}
@@ -286,16 +312,24 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = ({ records }) =>
             <h3 className="text-lg font-semibold text-gray-900">Distribución de Tipos de Sangre</h3>
           </div>
           
-          <div className="space-y-3">
-            {bloodTypes.map(({ bloodType, count }) => (
-              <div key={bloodType} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">{bloodType}</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                  {count}
-                </span>
-              </div>
-            ))}
-          </div>
+          {bloodTypes.length > 0 ? (
+            <div className="space-y-3">
+              {bloodTypes.map(({ bloodType, count }) => (
+                <div key={bloodType} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                  <span className="text-sm font-medium text-gray-700">{bloodType}</span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    {count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Heart className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-sm">No hay datos de tipos de sangre disponibles.</p>
+              <p className="text-xs text-gray-400 mt-2">Esta información se recopila durante el proceso de registro.</p>
+            </div>
+          )}
         </div>
 
         {/* Certificate Status */}
@@ -314,6 +348,14 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = ({ records }) =>
               <span className="text-lg font-bold text-green-600">{certificateStatus.withCertificate}</span>
             </div>
             
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Activity className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium text-gray-700">En Trámite</span>
+              </div>
+              <span className="text-lg font-bold text-blue-600">{certificateStatus.inProcess}</span>
+            </div>
+            
             <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="w-5 h-5 text-orange-600" />
@@ -323,19 +365,19 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = ({ records }) =>
             </div>
           </div>
           
-          {certificateStatus.withCertificate + certificateStatus.withoutCertificate > 0 && (
+          {certificateStatus.withCertificate + certificateStatus.withoutCertificate + certificateStatus.inProcess > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600">Progreso de Certificación</span>
                 <span className="text-sm font-medium text-gray-900">
-                  {Math.round((certificateStatus.withCertificate / (certificateStatus.withCertificate + certificateStatus.withoutCertificate)) * 100)}%
+                  {Math.round((certificateStatus.withCertificate / (certificateStatus.withCertificate + certificateStatus.withoutCertificate + certificateStatus.inProcess)) * 100)}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
                   className="bg-green-500 h-2 rounded-full transition-all duration-300"
                   style={{ 
-                    width: `${(certificateStatus.withCertificate / (certificateStatus.withCertificate + certificateStatus.withoutCertificate)) * 100}%`
+                    width: `${(certificateStatus.withCertificate / (certificateStatus.withCertificate + certificateStatus.withoutCertificate + certificateStatus.inProcess)) * 100}%`
                   }}
                 ></div>
               </div>
@@ -351,16 +393,24 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = ({ records }) =>
           <h3 className="text-lg font-semibold text-gray-900">Limitaciones Permanentes</h3>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {limitations.map(({ limitation, count }) => (
-            <div key={limitation} className="p-4 border border-gray-200 rounded-lg">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
-                <div className="text-sm text-gray-600">{limitation}</div>
+        {limitations.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {limitations.map(({ limitation, count }) => (
+              <div key={limitation} className="p-4 border border-gray-200 rounded-lg">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
+                  <div className="text-sm text-gray-600">{limitation}</div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-sm">No hay datos de limitaciones permanentes disponibles.</p>
+            <p className="text-xs text-gray-400 mt-2">Esta información se recopila durante el proceso de registro.</p>
+          </div>
+        )}
       </div>
     </div>
   );
