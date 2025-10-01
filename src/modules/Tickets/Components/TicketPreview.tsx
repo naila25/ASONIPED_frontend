@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { TicketMessage, getTicketMessages } from '../Services/ticketService';
+import React, { useState, useEffect, useCallback } from 'react';
+import { getTicketMessages } from '../Services/ticketService';
+import type { TicketMessage } from '../Services/ticketService';
 import { FaComments, FaUser, FaUserShield } from 'react-icons/fa';
 
 interface TicketPreviewProps {
@@ -14,11 +15,7 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadMessages();
-  }, [ticketId]);
-
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       setLoading(true);
       const ticketMessages = await getTicketMessages(ticketId);
@@ -30,7 +27,11 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [ticketId, maxMessages]);
+
+  useEffect(() => {
+    loadMessages();
+  }, [loadMessages]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {

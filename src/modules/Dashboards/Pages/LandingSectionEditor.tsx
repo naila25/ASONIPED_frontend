@@ -3,8 +3,8 @@ import React, { useState, useEffect } from "react";
 import type { SectionData, SectionKey, ValueItem } from "../Types/types";
 import { ModalSimple } from "./ModalSimple.tsx";
 import { heroService, type HeroSection } from "../Services/heroService.ts";
-import { aboutService, type AboutSection as AboutPayload } from "../Services/aboutService";
-import { volunteerLandingService, type LandingVolunteer } from "../Services/volunteerLandingService";
+import { aboutService } from "../Services/aboutService";
+import { volunteerLandingService } from "../Services/volunteerLandingService";
 
 // Extiendo ValueItem para incluir id, que es necesario para edición y eliminación
 type ValueItemWithId = ValueItem & { id: string };
@@ -46,69 +46,74 @@ export function LandingSectionEditor({
   // Validation functions
   const validateHero = (data: HeroSection): Record<string, string> => {
     const errors: Record<string, string> = {};
+
     if (!data.titulo || data.titulo.length < 3 || data.titulo.length > 255) {
       errors.titulo = "Título es requerido y debe tener entre 3 y 255 caracteres";
     }
-    if (data.url_imagen && (data.url_imagen.length > 255 || !isValidUrl(data.url_imagen))) {
-      errors.url_imagen = "URL de imagen debe ser válida y máximo 255 caracteres";
+    if (data.url_imagen && (data.url_imagen.length || !isValidUrl(data.url_imagen))) {
+      errors.url_imagen = "URL de imagen debe ser válida";
     }
-    if (!data.descripcion || data.descripcion.length > 2000) {
-      errors.descripcion = "Descripción es requerida y máximo 2000 caracteres";
+    if (!data.descripcion || data.descripcion.length  ) {
+      errors.descripcion = "Descripción es requerida";
     }
-    if (!data.texto_boton_izquierdo || data.texto_boton_izquierdo.length < 1 || data.texto_boton_izquierdo.length > 100) {
-      errors.texto_boton_izquierdo = "Texto botón izquierdo es requerido y debe tener entre 1 y 100 caracteres";
+    if (!data.texto_boton_izquierdo || data.texto_boton_izquierdo.length  || data.texto_boton_izquierdo.length ) {
+      errors.texto_boton_izquierdo = "Texto botón izquierdo es requerido";
     }
-    if (!data.color_boton_izquierdo || data.color_boton_izquierdo.length > 20) {
-      errors.color_boton_izquierdo = "Color botón izquierdo es requerido y máximo 20 caracteres";
+    if (!data.color_boton_izquierdo || data.color_boton_izquierdo.length ) {
+      errors.color_boton_izquierdo = "Color botón izquierdo es requerido";
     }
-    if (!data.texto_boton_derecho || data.texto_boton_derecho.length < 1 || data.texto_boton_derecho.length > 100) {
-      errors.texto_boton_derecho = "Texto botón derecho es requerido y debe tener entre 1 y 100 caracteres";
+    if (!data.texto_boton_derecho || data.texto_boton_derecho.length  || data.texto_boton_derecho.length ) {
+      errors.texto_boton_derecho = "Texto botón derecho es requerido";
     }
-    if (!data.color_boton_derecho || data.color_boton_derecho.length > 20) {
-      errors.color_boton_derecho = "Color botón derecho es requerido y máximo 20 caracteres";
+    if (!data.color_boton_derecho || data.color_boton_derecho.length ) {
+      errors.color_boton_derecho = "Color botón derecho es requerido";
     }
     return errors;
   };
 
   const validateAbout = (data: Record<string, unknown>): Record<string, string> => {
     const errors: Record<string, string> = {};
+
     if (!data.titulo || typeof data.titulo !== "string" || data.titulo.length < 3 || data.titulo.length > 255) {
       errors.titulo = "Título es requerido y debe tener entre 3 y 255 caracteres";
+
     }
-    if (!data.URL_imagen || typeof data.URL_imagen !== "string" || data.URL_imagen.length > 255 || !isValidUrl(data.URL_imagen as string)) {
-      errors.URL_imagen = "URL de imagen es requerida, válida y máximo 255 caracteres";
+    if (!data.URL_imagen || typeof data.URL_imagen !== "string" || data.URL_imagen.length  || !isValidUrl(data.URL_imagen as string)) {
+      errors.URL_imagen = "URL de imagen es requerida";
     }
-    if (!data.descripcion || typeof data.descripcion !== "string" || data.descripcion.length > 2000) {
-      errors.descripcion = "Descripción es requerida y máximo 2000 caracteres";
+    if (!data.descripcion || typeof data.descripcion !== "string" || data.descripcion.length ) {
+      errors.descripcion = "Descripción es requerida";
     }
-    if (!data.texto_boton || typeof data.texto_boton !== "string" || data.texto_boton.length < 1 || data.texto_boton.length > 100) {
-      errors.texto_boton = "Texto botón es requerido y debe tener entre 1 y 100 caracteres";
+    if (!data.texto_boton || typeof data.texto_boton !== "string" || data.texto_boton.length  || data.texto_boton.length > 100) {
+      errors.texto_boton = "Texto botón es requerido";
     }
-    if (!data.color_boton || typeof data.color_boton !== "string" || data.color_boton.length > 20) {
-      errors.color_boton = "Color botón es requerido y máximo 20 caracteres";
+    if (!data.color_boton || typeof data.color_boton !== "string" || data.color_boton.length ) {
+      errors.color_boton = "Color botón es requerido";
     }
     return errors;
   };
 
   const validateVolunteer = (data: Record<string, unknown>): Record<string, string> => {
     const errors: Record<string, string> = {};
+
     if (!data.titulo || typeof data.titulo !== "string" || data.titulo.length < 3 || data.titulo.length > 255) {
       errors.titulo = "Título es requerido y debe tener entre 3 y 255 caracteres";
+
     }
-    if (!data.descripcion || typeof data.descripcion !== "string" || data.descripcion.length > 255) {
-      errors.descripcion = "Descripción es requerida y máximo 255 caracteres";
+    if (!data.descripcion || typeof data.descripcion !== "string" || data.descripcion.length ) {
+      errors.descripcion = "Descripción es requerida";
     }
-    if (!data.URL_imagen || typeof data.URL_imagen !== "string" || data.URL_imagen.length > 255 || !isValidUrl(data.URL_imagen as string)) {
-      errors.URL_imagen = "URL de imagen es requerida, válida y máximo 255 caracteres";
+    if (!data.URL_imagen || typeof data.URL_imagen !== "string" || data.URL_imagen.length  || !isValidUrl(data.URL_imagen as string)) {
+      errors.URL_imagen = "URL de imagen es requerida, válida";
     }
-    if (!data.subtitulo || typeof data.subtitulo !== "string" || data.subtitulo.length < 3 || data.subtitulo.length > 255) {
-      errors.subtitulo = "Subtítulo es requerido y debe tener entre 3 y 255 caracteres";
+    if (!data.subtitulo || typeof data.subtitulo !== "string" || data.subtitulo.length || data.subtitulo.length > 255) {
+      errors.subtitulo = "Subtítulo es requerido";
     }
-    if (!data.texto_boton || typeof data.texto_boton !== "string" || data.texto_boton.length < 1 || data.texto_boton.length > 100) {
-      errors.texto_boton = "Texto botón es requerido y debe tener entre 1 y 100 caracteres";
+    if (!data.texto_boton || typeof data.texto_boton !== "string" || data.texto_boton.length || data.texto_boton.length > 100) {
+      errors.texto_boton = "Texto botón es requerido";
     }
-    if (!data.color_boton || typeof data.color_boton !== "string" || data.color_boton.length > 20) {
-      errors.color_boton = "Color botón es requerido y máximo 20 caracteres";
+    if (!data.color_boton || typeof data.color_boton !== "string" || data.color_boton.length ) {
+      errors.color_boton = "Color botón es requerido";
     }
     return errors;
   };
@@ -143,7 +148,11 @@ export function LandingSectionEditor({
           const list = await aboutService.getAll();
           const first = list[0];
           if (first) {
-            setData(prev => ({ ...prev, ...(first as Record<string, unknown>) }));
+            setData(prev => ({ ...prev, 
+              // map backend fields into local data for the form binding
+              ...(first as unknown as Record<string, unknown>)
+            }));
+
           }
         } catch (e) {
           setError(e instanceof Error ? e.message : 'Error loading about data');
@@ -159,7 +168,11 @@ export function LandingSectionEditor({
           const list = await volunteerLandingService.getAll();
           const first = list[0];
           if (first) {
-            setData(prev => ({ ...prev, ...(first as Record<string, unknown>) }));
+            setData(prev => ({ ...prev, 
+              // map backend fields into local data for the form binding
+              ...(first as unknown as Record<string, unknown>)
+            }));
+
           }
         } catch (e) {
           setError(e instanceof Error ? e.message : 'Error loading volunteer data');
@@ -265,7 +278,7 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Título: (máximo 100 caracteres)
+                    Título: 
                   </label>
                   <input
                     value={heroData?.titulo || ""}
@@ -275,12 +288,12 @@ export function LandingSectionEditor({
                     required
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {(heroData?.titulo || "").length}/100 caracteres
+                    {(heroData?.titulo || "").length}
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descripción: (máximo 250 caracteres)
+                    Descripción: 
                   </label>
                   <textarea
                     value={heroData?.descripcion || ""}
@@ -290,12 +303,12 @@ export function LandingSectionEditor({
                     rows={3}
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {(heroData?.descripcion || "").length}/250 caracteres
+                    {(heroData?.descripcion || "").length}
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
+                <label className="block text-sm font-medium text-gray-700">Subir imagen:</label>
                 <div className="relative">
                   <input
                     type="file"
@@ -330,19 +343,21 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto Botón Izquierdo: (máximo 50 caracteres)
+                    Texto Botón Izquierdo: 
                   </label>
                   <input
                     value={heroData?.texto_boton_izquierdo || ""}
                     onChange={(e) => handleHeroChange("texto_boton_izquierdo", e.target.value)}
                     maxLength={50}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+
                   />
                   <div className="text-xs text-gray-500 mt-1">
                     {(heroData?.texto_boton_izquierdo || "").length}/50 caracteres
                   </div>
                 </div>
                 <div>
+
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color Botón Izquierdo:</label>
                   <input
                     type="color"
@@ -353,19 +368,21 @@ export function LandingSectionEditor({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto Botón Derecho: (máximo 50 caracteres)
+                    Texto Botón Derecho: 
                   </label>
                   <input
                     value={heroData?.texto_boton_derecho || ""}
                     onChange={(e) => handleHeroChange("texto_boton_derecho", e.target.value)}
                     maxLength={50}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+
                   />
                   <div className="text-xs text-gray-500 mt-1">
                     {(heroData?.texto_boton_derecho || "").length}/50 caracteres
                   </div>
                 </div>
                 <div>
+
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color Botón Derecho:</label>
                   <input
                     type="color"
@@ -407,36 +424,36 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Título: (máximo 100 caracteres)
+                    Título: 
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).titulo as string || ""}
+                    value={String((data as Record<string, unknown>).titulo || "")}
                     onChange={(e) => handleChange("titulo" as unknown as keyof SectionData, e.target.value)}
                     maxLength={100}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {((data as Record<string, unknown>).titulo as string || "").length}/100 caracteres
+                    {((data as Record<string, unknown>).titulo as string || "").length}
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto botón: (máximo 50 caracteres)
+                    Texto botón: 
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).texto_boton || ""}
+                    value={String((data as Record<string, unknown>).texto_boton || "")}
                     onChange={(e) => handleChange("texto_boton" as unknown as keyof SectionData, e.target.value)}
                     maxLength={50}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {((data as Record<string, unknown>).texto_boton as string || "").length}/50 caracteres
+                    {((data as Record<string, unknown>).texto_boton as string || "").length}
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
+                <label className="block text-sm font-medium text-gray-700">Subir imagen:</label>
                 <div className="relative">
                   <input
                     type="file"
@@ -459,35 +476,37 @@ export function LandingSectionEditor({
                       }
                     }}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
-                  />
-                </div>
-                {(data as Record<string, unknown>).URL_imagen && (
+
+              />
+            </div>
+                {((data as Record<string, unknown>).URL_imagen as string) && (
+
                   <div className="mt-3">
                     <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
-                    <img src={(data as Record<string, unknown>).URL_imagen} alt="About preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
+                    <img src={(data as Record<string, unknown>).URL_imagen as string} alt="About preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
                   </div>
                 )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción: (máximo 250 caracteres)
+                  Descripción: 
                 </label>
                 <textarea
-                  value={(data as Record<string, unknown>).descripcion || ""}
+                  value={String((data as Record<string, unknown>).descripcion || "")}
                   onChange={(e) => handleChange("descripcion" as unknown as keyof SectionData, e.target.value)}
                   maxLength={250}
                   className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                 />
                 <div className="text-xs text-gray-500 mt-1">
-                  {((data as Record<string, unknown>).descripcion as string || "").length}/250 caracteres
+                  {((data as Record<string, unknown>).descripcion as string || "").length}
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <label className="block text-sm font-medium text-gray-700">Color botón:</label>
                 <input
                   type="color"
-                  value={(data as Record<string, unknown>).color_boton || "#1976d2"}
+                  value={String((data as Record<string, unknown>).color_boton || "#1976d2")}
                   onChange={(e) => handleChange("color_boton" as unknown as keyof SectionData, e.target.value)}
                   className="w-20 h-10 rounded-lg border border-gray-300"
                 />
@@ -502,11 +521,11 @@ export function LandingSectionEditor({
                   type="button"
                   onClick={async () => {
                     const payload = {
-                      titulo: (data as Record<string, unknown>).titulo || "",
-                      URL_imagen: (data as Record<string, unknown>).URL_imagen || "",
-                      descripcion: (data as Record<string, unknown>).descripcion || "",
-                      texto_boton: (data as Record<string, unknown>).texto_boton || "",
-                      color_boton: (data as Record<string, unknown>).color_boton || "#1976d2",
+                      titulo: String((data as Record<string, unknown>).titulo || ""),
+                      URL_imagen: String((data as Record<string, unknown>).URL_imagen || ""),
+                      descripcion: String((data as Record<string, unknown>).descripcion || ""),
+                      texto_boton: String((data as Record<string, unknown>).texto_boton || ""),
+                      color_boton: String((data as Record<string, unknown>).color_boton || "#1976d2"),
                     };
                     const errors = validateAbout(payload);
                     if (Object.keys(errors).length > 0) {
@@ -551,51 +570,52 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Título: (máximo 100 caracteres)
+                    Título: 
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).titulo as string || ""}
+                    value={String((data as Record<string, unknown>).titulo || "")}
                     onChange={(e) => handleChange("titulo" as unknown as keyof SectionData, e.target.value)}
                     maxLength={100}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {((data as Record<string, unknown>).titulo as string || "").length}/100 caracteres
+                    {((data as Record<string, unknown>).titulo as string || "").length}
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subtítulo: (máximo 100 caracteres)
+                    Subtítulo: 
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).subtitulo || ""}
+                    value={String((data as Record<string, unknown>).subtitulo || "")}
                     onChange={(e) => handleChange("subtitulo" as unknown as keyof SectionData, e.target.value)}
                     maxLength={100}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {((data as Record<string, unknown>).subtitulo as string || "").length}/100 caracteres
+                    {((data as Record<string, unknown>).subtitulo as string || "").length}
                   </div>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción: (máximo 250 caracteres)
+                  Descripción: 
                 </label>
-                <textarea
-                  value={(data as Record<string, unknown>).descripcion || ""}
+              <textarea
+                  value={String((data as Record<string, unknown>).descripcion || "")}
+
                   onChange={(e) => handleChange("descripcion" as unknown as keyof SectionData, e.target.value)}
                   maxLength={250}
                   className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                 />
                 <div className="text-xs text-gray-500 mt-1">
-                  {((data as Record<string, unknown>).descripcion as string || "").length}/250 caracteres
+                  {((data as Record<string, unknown>).descripcion as string || "").length}
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
+                <label className="block text-sm font-medium text-gray-700">Subir imagen:</label>
                 <div className="relative">
                   <input
                     type="file"
@@ -620,33 +640,35 @@ export function LandingSectionEditor({
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
                   />
                 </div>
-                {(data as Record<string, unknown>).URL_imagen && (
+                {((data as Record<string, unknown>).URL_imagen as string) && (
                   <div className="mt-3">
                     <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
-                    <img src={(data as Record<string, unknown>).URL_imagen} alt="Volunteer preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
+                    <img src={(data as Record<string, unknown>).URL_imagen as string} alt="Volunteer preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
                   </div>
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto botón: (máximo 50 caracteres)
+                    Texto botón: 
                   </label>
                   <input
-                    value={(data as Record<string, unknown>).texto_boton || ""}
+                    value={String((data as Record<string, unknown>).texto_boton || "")}
                     onChange={(e) => handleChange("texto_boton" as unknown as keyof SectionData, e.target.value)}
                     maxLength={50}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {((data as Record<string, unknown>).texto_boton as string || "").length}/50 caracteres
+
+                      {((data as Record<string, unknown>).texto_boton as string || "").length}
+
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color botón:</label>
                   <input
                     type="color"
-                    value={(data as Record<string, unknown>).color_boton || "#1976d2"}
+                    value={String((data as Record<string, unknown>).color_boton || "#1976d2")}
                     onChange={(e) => handleChange("color_boton" as unknown as keyof SectionData, e.target.value)}
                     className="w-20 h-10 rounded-lg border border-gray-300"
                   />
@@ -662,12 +684,12 @@ export function LandingSectionEditor({
                   type="button"
                   onClick={async () => {
                     const payload = {
-                      titulo: (data as Record<string, unknown>).titulo || "",
-                      subtitulo: (data as Record<string, unknown>).subtitulo || "",
-                      descripcion: (data as Record<string, unknown>).descripcion || "",
-                      URL_imagen: (data as Record<string, unknown>).URL_imagen || "",
-                      texto_boton: (data as Record<string, unknown>).texto_boton || "",
-                      color_boton: (data as Record<string, unknown>).color_boton || "#1976d2",
+                      titulo: String((data as Record<string, unknown>).titulo || ""),
+                      subtitulo: String((data as Record<string, unknown>).subtitulo || ""),
+                      descripcion: String((data as Record<string, unknown>).descripcion || ""),
+                      URL_imagen: String((data as Record<string, unknown>).URL_imagen || ""),
+                      texto_boton: String((data as Record<string, unknown>).texto_boton || ""),
+                      color_boton: String((data as Record<string, unknown>).color_boton || "#1976d2"),
                     };
                     const errors = validateVolunteer(payload);
                     if (Object.keys(errors).length > 0) {

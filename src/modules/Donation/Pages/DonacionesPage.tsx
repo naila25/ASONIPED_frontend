@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAuth } from "../../Login/Hooks/useAuth";
 import UserTicketsList from "../../Tickets/Components/UserTicketsList";
 

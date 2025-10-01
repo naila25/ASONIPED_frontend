@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Link } from '@tanstack/react-router';
 import { enrollIntoVolunteerOption } from '../Services/fetchVolunteers';
 import type { VolunteerOption } from '../Types/volunteer';
 import { FaTools, FaRegLightbulb, FaRegCalendarAlt } from "react-icons/fa";   
 import { MdLocationOn, MdDescription } from "react-icons/md";  
+import { getToken } from '../../Login/Services/auth';
 
 // Modal for displaying volunteer opportunity details and registration form
 interface VolunteerModalProps {
@@ -13,6 +15,8 @@ interface VolunteerModalProps {
 
 const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => {
   const [submitting, setSubmitting] = useState(false);
+  const [enrolled, setEnrolled] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Handle ESC key press to close modal
   useEffect(() => {
@@ -31,14 +35,23 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
     };
   }, [isOpen, onClose]);
 
+  // Detect auth
+  useEffect(() => {
+    const token = getToken();
+    setIsAuthenticated(Boolean(token));
+  }, [isOpen]);
+
   const handleEnroll = async () => {
     if (submitting) return;
+    if (!isAuthenticated) {
+      alert('Debes iniciar sesión para inscribirte en un voluntariado.');
+      return;
+    }
     try {
       setSubmitting(true);
       await enrollIntoVolunteerOption(volunteer.id);
-      onClose();
-      alert('¡Inscripción realizada! Pronto nos pondremos en contacto.');
-    } catch (e) {
+      setEnrolled(true);
+    } catch {
       alert('No se pudo completar la inscripción. Inténtalo nuevamente.');
     } finally {
       setSubmitting(false);
@@ -67,7 +80,7 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
 
               <div className="space-y-4">
                 <img
-                  src={volunteer.imageUrl}
+                  src={volunteer.imageUrl?.startsWith('http') ? volunteer.imageUrl : `http://localhost:3000${volunteer.imageUrl}`}
                   alt={volunteer.title}
                   className="w-full h-48 object-cover rounded"
                 />
@@ -82,13 +95,13 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                   <FaRegLightbulb className="text-orange-500" />
                   Habilidades necesarias:
                 </span>
-                <p className="text-neutral-700"></p>
+                <p className="text-neutral-700">{(volunteer as VolunteerOption & { skills?: string }).skills || '—'}</p>
 
                 <span className="font-medium text-gray-900 flex items-center gap-2">
                   <FaTools className="text-orange-500" />
                   Herramientas necesarias:
                 </span>
-                <p className="text-neutral-700"></p>
+                <p className="text-neutral-700">{(volunteer as VolunteerOption & { tools?: string }).tools || '—'}</p>
 
                 <div className="flex gap-4 text-neutral-700">
                   <div className="flex items-center gap-2">
@@ -101,14 +114,37 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                   </div>
                 </div>
 
-                <div className="flex justify-center items-center">
-                  <button
-                    onClick={handleEnroll}
-                    disabled={submitting}
-                    className="bg-orange-600 disabled:opacity-60 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
-                  >
-                    {submitting ? 'Inscribiendo...' : 'Inscribirse como Voluntario'}
-                  </button>
+                {/* Auth notice */}
+                {!isAuthenticated && !enrolled && (
+                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md p-3 text-sm">
+                    Debes iniciar sesión para inscribirte. 
+                    <a href="/admin/login" className="font-medium underline ml-1">Iniciar sesión</a>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                  {!enrolled ? (
+                    <button
+                      onClick={handleEnroll}
+                      disabled={submitting || !isAuthenticated}
+                      className="bg-orange-600 disabled:opacity-60 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
+                    >
+                      {submitting ? 'Inscribiendo...' : 'Inscribirse como Voluntario'}
+                    </button>
+                  ) : (
+                    <>
+                      <div className="text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md text-sm">
+                        ¡Inscripción realizada! Puedes revisar tu estado en "Mi Voluntariado".
+                      </div>
+                      <Link
+                        to="/user/voluntariado"
+                        className="inline-flex items-center justify-center bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
+                      >
+                        Ir a Mi Voluntariado
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

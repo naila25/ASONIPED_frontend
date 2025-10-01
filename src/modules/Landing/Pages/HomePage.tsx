@@ -3,8 +3,8 @@ import AboutSection from "../Components/AboutSection";
 import DonationSection from "../Components/donationSection";
 //import Testimonials from "../Components/Testimonials";
 import VolunteersSection from "../../Volunteers/Components/VolunteersSection";
-//import Donaciones from "../../Donation/Components/Donaciones";
-//import PublicWorkshopsPage from "./Pages/Workshops/PublicWorkshopsPage";
+import Donaciones from "../../Donation/Components/Donaciones";
+import PublicWorkshopsPage from "../../Workshops/Components/PublicWorkshopsPage";
 //import EventsNews from "../../EventsNews/Components/EventsNews";
 import LocationMap from "../Components/LocationMap";
 import HistoriasdeVida from "../Components/HistoriasdeVida"; 
@@ -14,8 +14,6 @@ const Home = () => {
     <>
          <HeroSection />
       <div className="max-w-7xl mx-auto pt-10 px-6">
-        
-
         <div className="space-y-8 pt-10">
           <AboutSection />
           <DonationSection /> {/*Prioridad a Donaciones por el Sprint 0 */}
@@ -24,6 +22,7 @@ const Home = () => {
           {/*<Testimonials />*/}
         </div>
       </div>
+      <PublicWorkshopsPage /> 
 
       {/* Voluntariado fuera para que sea full width */}
       <VolunteersSection />

@@ -40,7 +40,7 @@ const Donaciones: React.FC = () => {
               </div>
               <a
                 href="/donaciones/formulario"
-                className=" mt-auto bg-orange-500 text-white py-2 px-4 rounded-2xl hover:bg-orange-600 transition">
+                className=" mt-auto bg-orange-500 text-white py-2 px-4  rounded-full border hover:bg-orange-600 transition">
                 Quiero donar
               </a>
             </div>

@@ -28,7 +28,7 @@ export const submitDonation = async (donationData: DonationFormData, isAnonymous
     const token = getToken();
     
     // Prepare the data to send
-    const dataToSend = {
+    const dataToSend: DonationFormData & { isAnonymous?: boolean } = {
       ...donationData,
       isAnonymous: isAnonymous
     };

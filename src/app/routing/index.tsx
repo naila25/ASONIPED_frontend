@@ -1,7 +1,6 @@
 import { createRouter, createRootRoute, createRoute, Router } from '@tanstack/react-router';
 import { lazy } from 'react';
 import App from '../../App';
-import Volunteers from '../../modules/Volunteers/Pages/Volunteers';
 import Home from '../../modules/Landing/Pages/HomePage';
 import AdminLogin from '../../modules/Login/Pages/AdminLogin';
 import VolunteersSubDashboard from '../../modules/Volunteers/Pages/VolunteersSubDashboard';
@@ -12,9 +11,7 @@ import ConocenosSection from '../../modules/Landing/Components/Conocenos';
 import EventsNewsList from '../../modules/EventsNews/Pages/EventsNewsList';
 import EventsNewsAdmin from '../../modules/EventsNews/Pages/EventsNewsAdmin';
 import ProtectedRoute from "./ProtectedRoute"; 
-import {FormularioMatricula} from '../../modules/Workshops/Pages/FormularioMatricula';
-import PublicWorkshopsPage from '../../modules/Workshops/Pages/PublicWorkshopsPage';
-import WorkshopForms from '../../modules/Workshops/Components/WorkshopForm';
+import PublicWorkshopsPage from '../../modules/Workshops/Components/PublicWorkshopsPage';
 import AdminDashboard from '../../modules/Dashboards/Pages/AdminDashboard';
 import AdminDashboardHome from '../../modules/Dashboards/Pages/AdminDashboardHome';
 import ExpedientesAdminPage from '../../modules/Records/Pages/ExpedientesAdminPage';
@@ -23,21 +20,22 @@ import AdminTicketsPage from '../../modules/Tickets/Pages/AdminTicketsPage';
 import UserDashboard from '../../modules/Dashboards/Pages/UserDashboard';
 import DashboardHome from '../../modules/Dashboards/Pages/DashboardHome';
 import ExpedientesPage from '../../modules/Records/Pages/ExpedientesPage';
-import TalleresPage from '../../modules/Workshops/Pages/Tallerespage';
 import VoluntariadoPage from '../../modules/Volunteers/Pages/VoluntariadoPage';
 import MensajesPage from '../../modules/Tickets/Pages/MensajesPage';
 import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
-import VolunteerCard from '../../modules/Volunteers/Pages/VolunteerCard';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
+import WorkshopPanel from '../../modules/Workshops/Components/WorkshopPanel';
+
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerOptionsPage'));
 const VolunteerFormsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerFormsPage'));
 const DonationForms = lazy(() => import('../../modules/Donation/Pages/DonationForms'));
 const AttendancePage = lazy(() => import('../../modules/Attendance/Pages/AttendancePage'));
-
+const WorkshopFormsTaller = lazy(() => import('../../modules/Workshops/Pages/WorkshopFormsTaller'));
+const WorkshopOptionsPage = lazy(() => import('../../modules/Workshops/Pages/WorkshopOptionsPage'));
 
 // Root route - SINGLE SOURCE OF TRUTH
 const rootRoute = createRootRoute({
@@ -51,12 +49,6 @@ const indexRoute = createRoute({
   component: Home,
 });
 
-// Public routes
-const volunteersRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'volunteers',
-  component: Volunteers,
-});
 
 const adminLoginRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -122,11 +114,6 @@ const publicWorkshopsRoute = createRoute({
   component: PublicWorkshopsPage,
 });
 
-const formularioMatriculaRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'formulario-matricula',
-  component: () => <FormularioMatricula workshopId="" onSuccess={() => {}} onCancel={() => {}} />,
-});
 
 // Admin routes with lazy loading and authentication check
 const protectedRoute = createRoute({
@@ -171,11 +158,6 @@ const expedientesRoute = createRoute({
   component: ExpedientesPage,
 });
 
-const talleresRoute = createRoute({
-  getParentRoute: () => userDashboardRoute,
-  path: 'talleres',
-  component: TalleresPage,
-});
 
 const voluntariadoRoute = createRoute({
   getParentRoute: () => userDashboardRoute,
@@ -183,6 +165,23 @@ const voluntariadoRoute = createRoute({
   component: VoluntariadoPage,
 });
 
+const WorkshopAdminRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'workshops',
+  component: WorkshopPanel,
+});
+
+const WorkshopFormsRoute = createRoute({
+  getParentRoute: () => WorkshopAdminRoute,
+  path: 'forms',
+  component: WorkshopFormsTaller,
+});
+
+const WorkshopOptionsRoute = createRoute({
+  getParentRoute: () => WorkshopAdminRoute,
+  path: 'options',
+  component: WorkshopOptionsPage,
+});
 // Removed user dashboard Donaciones route in favor of /user/mensajes
 
 const mensajesRoute = createRoute({
@@ -272,11 +271,6 @@ const eventsNewsRoute = createRoute({
   component: EventsNewsList,
 });
 
-const adminWorkshopFormsRoute = createRoute({
-  getParentRoute: () => adminDashboardRoute,
-  path: 'workshop-forms',
-  component: WorkshopForms,
-});
 
 const GestionLandingRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
@@ -287,7 +281,6 @@ const GestionLandingRoute = createRoute({
 // Route tree construction
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  volunteersRoute,
   adminLoginRoute,
   emailVerificationRoute,
   forgotPasswordRoute,
@@ -298,7 +291,7 @@ const routeTree = rootRoute.addChildren([
   formularioDonacionRoute,
   publicWorkshopsRoute,
   VolunteerCard,
-  formularioMatriculaRoute,
+ 
   protectedRoute.addChildren([
     adminDashboardRoute.addChildren([
       adminHomeRoute,
@@ -311,7 +304,11 @@ const routeTree = rootRoute.addChildren([
       donationsAdminRoute,
       attendanceAdminRoute,
       eventsNewsAdminRoute,
-      adminWorkshopFormsRoute,
+      WorkshopAdminRoute.addChildren([
+       WorkshopOptionsRoute,
+       WorkshopFormsRoute
+      ]),
+      
       userManagementRoute,
       adminTicketsRoute,
       GestionLandingRoute
@@ -319,7 +316,7 @@ const routeTree = rootRoute.addChildren([
     userDashboardRoute.addChildren([
       userHomeRoute,
       expedientesRoute,
-      talleresRoute,
+     
       voluntariadoRoute,
       mensajesRoute,
       calendarioRoute,

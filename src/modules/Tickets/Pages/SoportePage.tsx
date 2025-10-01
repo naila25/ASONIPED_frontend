@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaHeadset, FaTicketAlt, FaComments, FaClock, FaShieldAlt } from 'react-icons/fa';
+import { FaHeadset, FaTicketAlt } from 'react-icons/fa';
 import AnonymousTicketLookup from '../Components/AnonymousTicketLookup';
 
 const SoportePage: React.FC = () => {
