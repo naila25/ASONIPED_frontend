@@ -3,9 +3,11 @@ import { FaRocket, FaInfoCircle, FaHandsHelping} from "react-icons/fa";
 
 import { LandingSectionEditor } from "./LandingSectionEditor";
 import { PreviewModal } from "./PreviewModal";
-import type { SectionData, SectionKey } from "../Types/types";
+import EditDonationSection from "./EditDonationSection";
+import type { AllSectionData, SectionData, SectionKey, DonationSection } from "../Types/types";
 import { heroService } from "../Services/heroService";
 import { aboutService } from "../Services/aboutService";
+import { donationService } from "../Services/donationService";
 import { volunteerLandingService } from "../Services/volunteerLandingService";
 
 const landingSections: {
@@ -16,9 +18,7 @@ const landingSections: {
   { key: "hero", label: "Hero Section", icon: <FaRocket size={20} /> },
   { key: "about", label: "Sobre Nosotros", icon: <FaInfoCircle size={20} /> },
   { key: "volunteering", label: "Voluntariado", icon: <FaHandsHelping size={20} /> },
- // { key: "footer", label: "Footer", icon: <FaRegSave size={20} /> },
- // { key: "location", label: "Ubicación", icon: <FaMapMarked size={20} /> },
- //{ key: "testimonials", label: "Testimonios", icon: <FaCommentDots size={20} /> },
+  { key: "donation", label: "Donaciones", icon: <FaHandsHelping size={20} /> },
 ];
 
 export default function GestionLanding() {
@@ -28,16 +28,54 @@ export default function GestionLanding() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState<SectionKey | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // ¡Tipo global corregido aquí!
+  const [sectionData, setSectionData] = useState<AllSectionData>({
+    hero: {
+      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff",
+      textAlign: "left", videoUrl: "", description: "", titleColor: "#000000",
+    },
+    about: {
+      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
+      conocenosTitle: "Conócenos", whatIsTitle: "¿Qué es ASONIPED?", whatIsDescription: "", whatTheyDoTitle: "¿Qué hacen?",
+      whatTheyDoDescription: "", whatTheyDoImage: undefined, mission: "", vision: "", values: [],
+      valuesPosition: "grid", aboutTitleColor: "#000000", whatIsTitleColor: "#000000", whatTheyDoTitleColor: "#000000",
+      missionTitleColor: "#000000", visionTitleColor: "#000000", valuesTitleColor: "#000000",
+    },
+    volunteering: {
+      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
+      volunteeringTitle: "Voluntariado", volunteeringDescription: "", volunteeringVisualType: "image",
+      volunteeringVisual: "", volunteerTypes: [], volunteeringTitleColor: "#000000", volunteerTypeTitleColor: "#000000",
+    },
+    donation: {
+      header: { titulo: "", descripcion: "" },
+      cards: [],
+    },
+    footer: {
+      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
+      footer: { companyName: "", logo: undefined, phone: "", email: "", schedule: "", locationText: "", order: ["company", "contacts", "location", "schedule"] },
+      footerTitleColor: "#000000",
+    },
+    location: {
+      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
+      locationTitle: "Ubicación", locationLink: "", locationTitleColor: "#000000",
+    },
+    testimonials: {
+      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
+      testimonialsTitle: "Testimonios", testimonialsDescription: "", testimonials: [], testimonialsTitleColor: "#000000",
+    },
+  });
+
   const [sectionStats, setSectionStats] = useState<Record<SectionKey, { count: number; title: string; hasImage: boolean }>>({
     hero: { count: 0, title: "Sin configurar", hasImage: false },
     about: { count: 0, title: "Sin configurar", hasImage: false },
     volunteering: { count: 0, title: "Sin configurar", hasImage: false },
+    donation: { count: 0, title: "Sin configurar", hasImage: false },
     footer: { count: 0, title: "Sin configurar", hasImage: false },
     location: { count: 0, title: "Sin configurar", hasImage: false },
     testimonials: { count: 0, title: "Sin configurar", hasImage: false },
   });
 
-  // Load section data on component mount
   useEffect(() => {
     const loadSectionData = async () => {
       try {
@@ -82,6 +120,23 @@ export default function GestionLanding() {
             }
           }));
         }
+
+        // Load Donations data
+        const donationData = await donationService.getSection();
+        if (donationData) {
+          setSectionStats(prev => ({
+            ...prev,
+            donation: {
+              count: donationData.cards.length,
+              title: donationData.header.titulo || "Donaciones",
+              hasImage: donationData.cards.some(card => !!card.URL_imagen)
+            }
+          }));
+          setSectionData(prev => ({
+            ...prev,
+            donation: donationData,
+          }));
+        }
       } catch (error) {
         console.error('Error loading section data:', error);
       }
@@ -89,38 +144,6 @@ export default function GestionLanding() {
 
     loadSectionData();
   }, []);
-
-  const [sectionData, setSectionData] = useState<Record<SectionKey, SectionData>>({
-    hero: {
-      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff",
-      textAlign: "left", videoUrl: "", description: "", titleColor: "#000000",
-    },
-    about: {
-      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
-      conocenosTitle: "Conócenos", whatIsTitle: "¿Qué es ASONIPED?", whatIsDescription: "", whatTheyDoTitle: "¿Qué hacen?",
-      whatTheyDoDescription: "", whatTheyDoImage: undefined, mission: "", vision: "", values: [],
-      valuesPosition: "grid", aboutTitleColor: "#000000", whatIsTitleColor: "#000000", whatTheyDoTitleColor: "#000000",
-      missionTitleColor: "#000000", visionTitleColor: "#000000", valuesTitleColor: "#000000",
-    },
-    volunteering: {
-      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
-      volunteeringTitle: "Voluntariado", volunteeringDescription: "", volunteeringVisualType: "image",
-      volunteeringVisual: "", volunteerTypes: [], volunteeringTitleColor: "#000000", volunteerTypeTitleColor: "#000000",
-    },
-    footer: {
-      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
-      footer: { companyName: "", logo: undefined, phone: "", email: "", schedule: "", locationText: "", order: ["company", "contacts", "location", "schedule"] },
-      footerTitleColor: "#000000",
-    },
-    location: {
-      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
-      locationTitle: "Ubicación", locationLink: "", locationTitleColor: "#000000",
-    },
-    testimonials: {
-      title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
-      testimonialsTitle: "Testimonios", testimonialsDescription: "", testimonials: [], testimonialsTitleColor: "#000000",
-    },
-  });
 
   if (user.role !== "admin") {
     return <p className="text-red-500">Acceso denegado. Solo administradores pueden entrar aquí.</p>;
@@ -131,12 +154,20 @@ export default function GestionLanding() {
     setModalOpen(true);
   };
 
-  const handleSave = (data: SectionData) => {
+  // ¡OJO! handleSave debe diferenciar donation
+  const handleSave = (data: SectionData | DonationSection) => {
     if (!currentSection) return;
-    setSectionData((prev) => ({ ...prev, [currentSection]: { ...prev[currentSection], ...data } }));
+    if (currentSection === "donation") {
+      setSectionData(prev => ({ ...prev, donation: data as DonationSection }));
+    } else {
+      setSectionData(prev => ({
+        ...prev,
+        [currentSection]: { ...prev[currentSection], ...(data as SectionData) }
+      }));
+    }
     setModalOpen(false);
     setMessage({ type: "success", text: "Cambios guardados correctamente." });
-    
+
     // Reload section data after save
     const loadSectionData = async () => {
       try {
@@ -179,12 +210,28 @@ export default function GestionLanding() {
               }
             }));
           }
+        } else if (currentSection === "donation") {
+          const donationData = await donationService.getSection();
+          if (donationData) {
+            setSectionStats(prev => ({
+              ...prev,
+              donation: {
+                count: donationData.cards.length,
+                title: donationData.header.titulo || "Donaciones",
+                hasImage: donationData.cards.some(card => !!card.URL_imagen)
+              }
+            }));
+            setSectionData(prev => ({
+              ...prev,
+              donation: donationData,
+            }));
+          }
         }
       } catch (error) {
         console.error('Error reloading section data:', error);
       }
     };
-    
+
     loadSectionData();
   };
 
@@ -247,16 +294,28 @@ export default function GestionLanding() {
         </button>
       </div>
       {modalOpen && currentSection !== null && (
-        <LandingSectionEditor
-          section={currentSection}
-          initialData={sectionData[currentSection]}
-          onSave={handleSave}
-          onCancel={() => setModalOpen(false)}
-          onUpdate={(partial) => {
-            if (!currentSection) return;
-            setSectionData((prev) => ({ ...prev, [currentSection]: { ...prev[currentSection], ...partial } }));
-          }}
-        />
+        currentSection === "donation"
+          ? <EditDonationSection
+              initialData={sectionData.donation}
+              onSave={handleSave}
+              onCancel={() => setModalOpen(false)}
+              onUpdate={(partial) => {
+                setSectionData(prev => ({
+                  ...prev,
+                  donation: { ...prev.donation, ...partial }
+                }));
+              }}
+            />
+          : <LandingSectionEditor
+              section={currentSection}
+              initialData={sectionData[currentSection]}
+              onSave={handleSave}
+              onCancel={() => setModalOpen(false)}
+              onUpdate={(partial) => {
+                if (!currentSection) return;
+                setSectionData((prev) => ({ ...prev, [currentSection]: { ...prev[currentSection], ...partial } }));
+              }}
+            />
       )}
       {previewOpen && (
         <PreviewModal
