@@ -4,7 +4,7 @@ import { FaChalkboardTeacher, FaClipboardList, FaArrowRight } from "react-icons/
 
 export default function WorkshopPanel() {
   return (
-    <main className="flex-1 p-6">
+    <main >
       <div className="space-y-6">
         {/* Card principal */}
         <div className="bg-white rounded-lg shadow-sm p-6">
@@ -22,7 +22,7 @@ export default function WorkshopPanel() {
         </div>
 
         {/* Grid de opciones */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           {/* Opciones de Talleres */}
           <Link
             to="/admin/workshops/options"

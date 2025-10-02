@@ -179,7 +179,7 @@ const WorkshopFormsRoute = createRoute({
 
 const WorkshopOptionsRoute = createRoute({
   getParentRoute: () => WorkshopAdminRoute,
-  path: 'enrollments',
+  path: 'options',
   component: WorkshopOptionsPage,
 });
 // Removed user dashboard Donaciones route in favor of /user/mensajes
