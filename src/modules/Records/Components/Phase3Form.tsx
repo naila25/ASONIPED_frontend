@@ -7,23 +7,29 @@ import { getProvinces, getCantonsByProvince, getDistrictsByCanton, type Province
 interface Phase3FormProps {
   onSubmit: (data: Phase3Data) => void;
   loading: boolean;
-  currentRecord: RecordWithDetails;
+  currentRecord?: RecordWithDetails | null;
   uploadProgress?: number;
   isModification?: boolean;
+  isAdminCreation?: boolean;
+  isAdminEdit?: boolean;
   modificationDetails?: {
     sections: string[];
     documents: number[];
     comment: string;
   } | null;
+  resetTrigger?: number; // Add reset trigger prop
 }
 
 const Phase3Form: React.FC<Phase3FormProps> = ({ 
   onSubmit, 
   loading, 
-  currentRecord,
+  currentRecord = null,
   uploadProgress = 0,
   isModification = false,
-  modificationDetails = null
+  isAdminCreation = false,
+  isAdminEdit = false,
+  modificationDetails = null,
+  resetTrigger = 0
 }) => {
   const { user } = useAuth();
   
@@ -50,7 +56,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // Family information display mode
   const [showParents, setShowParents] = useState(true);
   const [showLegalGuardian, setShowLegalGuardian] = useState(false);
-  const [form, setForm] = useState<Phase3Data>({
+  
+  // Initial form state
+  const getInitialFormState = (): Phase3Data => ({
     complete_personal_data: {
       registration_date: new Date().toISOString().split('T')[0],
       full_name: '',
@@ -118,6 +126,31 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     },
     documents: []
   });
+  
+  const [form, setForm] = useState<Phase3Data>(getInitialFormState());
+
+  // Reset form when resetTrigger changes
+  useEffect(() => {
+    if (resetTrigger > 0) {
+      console.log('🔄 Resetting form due to resetTrigger change');
+      setForm(getInitialFormState());
+      setDocumentFiles({
+        dictamen_medico: null,
+        constancia_nacimiento: null,
+        copia_cedula: null,
+        copias_cedulas_familia: null,
+        foto_pasaporte: null,
+        constancia_pension_ccss: null,
+        constancia_pension_alimentaria: null,
+        constancia_estudio: null,
+        cuenta_banco_nacional: null,
+        informacion_pago: null,
+        otros: null
+      });
+      setShowParents(true);
+      setShowLegalGuardian(false);
+    }
+  }, [resetTrigger]);
 
   const [documentFiles, setDocumentFiles] = useState<{ [key: string]: File | null }>({
     dictamen_medico: null,
@@ -215,7 +248,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         return newForm;
       });
     }
-  }, [isModification, currentRecord]);
+  }, [isModification, currentRecord, isAdminCreation, isAdminEdit]);
 
   // Pre-fill data from Phase 1 when component mounts (for new records)
   useEffect(() => {
@@ -239,8 +272,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           exact_address: phase1Data.address || '',
           // Pre-fill phone from Phase 1
           primary_phone: phase1Data.phone || '',
-          // Pre-fill email from user account
-          email: user?.email || '',
+          // Pre-fill email from user account (only for regular users, not admin creation/edit)
+          email: (!isAdminCreation && !isAdminEdit) ? (user?.email || '') : '',
           // Pre-fill PCD name if available
           pcd_name: phase1Data.pcd_name || phase1Data.full_name || ''
         },
@@ -273,7 +306,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         setShowLegalGuardian(false);
       }
     }
-  }, [currentRecord, user, isModification]);
+  }, [currentRecord, user, isModification, isAdminCreation, isAdminEdit]);
 
   // Pre-load cantons and districts when form is pre-filled with Phase 1 data
   useEffect(() => {
@@ -781,10 +814,17 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         </div>
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            {isModification ? 'Actualización de Expediente - Fase 3' : 'Formulario Completo - Fase 3'}
+            {isAdminEdit ? 'Edición Administrativa de Expediente' :
+             isAdminCreation ? 'Crear Expediente Directo' : 
+             isModification ? 'Actualización de Expediente - Fase 3' : 
+             'Formulario Completo - Fase 3'}
           </h2>
           <p className="text-gray-600">
-            {isModification 
+            {isAdminEdit
+              ? 'Edite cualquier campo del expediente con capacidad de override administrativo'
+              : isAdminCreation 
+              ? 'Complete toda la información para crear un expediente directamente como administrador'
+              : isModification 
               ? 'Actualice la información según las modificaciones solicitadas por el administrador'
               : 'Complete toda la información requerida para su expediente'
             }
@@ -929,16 +969,33 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Correo Electrónico
+                Correo Electrónico *
               </label>
               <input
                 type="email"
                 value={form.complete_personal_data.email}
-                readOnly
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
-                placeholder="Obtenido de su cuenta de usuario"
+                onChange={(e) => setForm(prev => ({
+                  ...prev,
+                  complete_personal_data: {
+                    ...prev.complete_personal_data,
+                    email: e.target.value
+                  }
+                }))}
+                readOnly={!isAdminCreation && !isAdminEdit}
+                required
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md ${
+                  !isAdminCreation && !isAdminEdit 
+                    ? 'bg-gray-50 cursor-not-allowed' 
+                    : 'bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                }`}
+                placeholder={isAdminCreation || isAdminEdit ? "Ingrese el correo electrónico" : "Obtenido de su cuenta de usuario"}
               />
-              <p className="text-xs text-gray-500 mt-1">Obtenido automáticamente de su cuenta</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {isAdminCreation || isAdminEdit 
+                  ? "Correo electrónico de la persona" 
+                  : "Obtenido automáticamente de su cuenta"
+                }
+              </p>
             </div>
           </div>
           <div className="mt-4">
@@ -2034,7 +2091,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             ) : (
               <>
                 <Upload className="w-4 h-4" />
-                {isModification ? 'Actualizar Expediente' : 'Completar Expediente'}
+                {isAdminEdit ? 'Guardar Cambios' :
+                 isAdminCreation ? 'Crear Expediente' : 
+                 isModification ? 'Actualizar Expediente' : 
+                 'Completar Expediente'}
               </>
             )}
           </button>

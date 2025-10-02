@@ -15,6 +15,8 @@ import PublicWorkshopsPage from '../../modules/Workshops/Components/PublicWorksh
 import AdminDashboard from '../../modules/Dashboards/Pages/AdminDashboard';
 import AdminDashboardHome from '../../modules/Dashboards/Pages/AdminDashboardHome';
 import ExpedientesAdminPage from '../../modules/Records/Pages/ExpedientesAdminPage';
+import AdminDirectRecordCreation from '../../modules/Records/Pages/AdminDirectRecordCreation';
+import AdminRecordEdit from '../../modules/Records/Pages/AdminRecordEdit';
 import UserManagement from '../../modules/Dashboards/Pages/UserManagement';
 import AdminTicketsPage from '../../modules/Tickets/Pages/AdminTicketsPage';
 import UserDashboard from '../../modules/Dashboards/Pages/UserDashboard';
@@ -139,6 +141,18 @@ const expedientesAdminRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'expedientes',
   component: ExpedientesAdminPage,
+});
+
+const adminDirectRecordCreationRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'expedientes/crear-directo',
+  component: AdminDirectRecordCreation,
+});
+
+const adminRecordEditRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'expedientes/editar/$recordId',
+  component: AdminRecordEdit,
 });
 
 const userDashboardRoute = createRoute({
@@ -297,6 +311,8 @@ const routeTree = rootRoute.addChildren([
     adminDashboardRoute.addChildren([
       adminHomeRoute,
       expedientesAdminRoute,
+      adminDirectRecordCreationRoute,
+      adminRecordEditRoute,
       volunteersAdminRoute.addChildren([
         volunteerOptionsRoute,
         volunteerFormsRoute,
