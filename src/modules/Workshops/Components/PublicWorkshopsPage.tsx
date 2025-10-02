@@ -1,6 +1,6 @@
 import { useState } from "react";
 import asofondo from "../../../assets/asofondo.jpg";
-import { WorkshopDetailsModal } from "../../Workshops/Pages/WorkshopDetailsModal"; // 👈 importa tu modal
+import { WorkshopDetailsModal } from "../../Workshops/Pages/WorkshopDetailsModal"; // 👈 tu modal
 
 type Workshop = {
   id: number;
@@ -61,13 +61,26 @@ const workshops: Workshop[] = [
 ];
 
 export default function PublicWorkshopsPage() {
-  const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(
-    null
-  );
+  const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleEnroll = (workshop: Workshop) => {
     alert(`Inscrito en: ${workshop.title}`);
   };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) =>
+      prev === 0 ? workshops.length - 1 : prev - 1
+    );
+  };
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) =>
+      prev === workshops.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const workshop = workshops[currentIndex];
 
   return (
     <div
@@ -81,64 +94,50 @@ export default function PublicWorkshopsPage() {
           Nuestros Talleres
         </h2>
 
-        <div className="flex flex-col gap-10 items-center">
-          {workshops.map((workshop, index) => (
-            <div
-              key={workshop.id}
-              className="flex flex-col md:flex-row items-center bg-white rounded-xl shadow-lg overflow-hidden w-[90%] md:w-[650px] min-h-[260px]"
-            >
-              {/* Imagen izquierda o derecha */}
-              {index % 2 === 0 ? (
-                <>
-                  <div className="md:w-1/2 w-full">
-                    <img
-                      src={workshop.imageUrl}
-                      alt={workshop.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-6 md:w-1/2 w-full">
-                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
-                      {workshop.title}
-                    </h3>
-                    <p className="text-gray-700 text-justify mb-4">
-                      {workshop.description}
-                    </p>
-                    <button
-                      onClick={() => setSelectedWorkshop(workshop)}
-                      className="bg-orange-500 text-white px-5 py-2  rounded-full border hover:bg-orange-600"
-                    >
-                      Ver más
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="p-6 md:w-1/2 w-full">
-                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
-                      {workshop.title}
-                    </h3>
-                    <p className="text-gray-700 text-justify mb-4">
-                      {workshop.description}
-                    </p>
-                    <button
-                      onClick={() => setSelectedWorkshop(workshop)}
-                      className="bg-orange-500 text-white px-5 py-2  rounded-full border hover:bg-orange-600"
-                    >
-                      Ver más
-                    </button>
-                  </div>
-                  <div className="md:w-1/2 w-full">
-                    <img
-                      src={workshop.imageUrl}
-                      alt={workshop.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </>
-              )}
+        <div className="relative flex items-center justify-center">
+          {/* Botón Anterior */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-30 bg-white rounded-full shadow p-2 hover:bg-gray-100 z-20"
+          >
+            ◀
+          </button>
+
+          {/* Card con diseño fijo (imagen SIEMPRE a la izquierda) */}
+          <div className="flex flex-col md:flex-row items-center bg-white rounded-xl shadow-2xl overflow-hidden w-[90%] md:w-[850px] min-h-[350px] border border-gray-200">
+            {/* Imagen izquierda */}
+            <div className="md:w-1/2 w-full h-full">
+              <img
+                src={workshop.imageUrl}
+                alt={workshop.title}
+                className="w-full h-full object-cover"
+              />
             </div>
-          ))}
+
+            {/* Contenido derecho */}
+            <div className="p-6 md:w-1/2 w-full flex flex-col justify-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                {workshop.title}
+              </h3>
+              <p className="text-gray-700 text-justify mb-4">
+                {workshop.description}
+              </p>
+              <button
+                onClick={() => setSelectedWorkshop(workshop)}
+                className="bg-orange-500 text-white px-5 py-2 rounded-full border hover:bg-orange-600 self-start"
+              >
+                Ver más
+              </button>
+            </div>
+          </div>
+
+          {/* Botón Siguiente */}
+          <button
+            onClick={nextSlide}
+            className="absolute right-30 bg-white rounded-full shadow p-2 hover:bg-gray-100 z-20"
+          >
+            ▶
+          </button>
         </div>
       </div>
 

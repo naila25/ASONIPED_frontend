@@ -1,4 +1,4 @@
-export type SectionKey = "hero" | "about" | "volunteering" | "location" | "testimonials" | "footer";
+export type SectionKey = "hero" | "about" | "donation" | "volunteering" | "location" | "testimonials" | "footer";
 
 export interface ValueItem {
   label: string;
@@ -39,6 +39,27 @@ export interface FooterData {
   order: string[];
 }
 
+// -------------------------------------------
+// DONATION SECTION TYPES (agregado)
+// -------------------------------------------
+export interface DonationsCard {
+  id?: number;
+  titulo_card: string;
+  descripcion_card: string;
+  URL_imagen: string;
+  texto_boton: string;
+  color_boton: string;
+}
+
+export interface DonationSection {
+  header: {
+    titulo: string;
+    descripcion: string;
+  };
+  cards: DonationsCard[];
+}
+// -------------------------------------------
+
 export interface SectionData {
   // Common properties
   title?: string;
@@ -51,9 +72,6 @@ export interface SectionData {
   buttonText?: string;
   buttonUrl?: string;
   videoUrl?: string;
-
-  // Hero specific
-  // (uses common properties)
 
   // About specific
   conocenosTitle?: string;
@@ -96,4 +114,18 @@ export interface SectionData {
   // Footer specific
   footer?: FooterData;
   footerTitleColor?: string;
+
+  // DONATION SECTION (solo si quieres acceso desde SectionData)
+  donation?: DonationSection;
 }
+
+// ************* EXPORTA EL TIPO GLOBAL ******************
+export type AllSectionData = {
+  hero: SectionData;
+  about: SectionData;
+  volunteering: SectionData;
+  donation: DonationSection;
+  footer: SectionData;
+  location: SectionData;
+  testimonials: SectionData;
+};

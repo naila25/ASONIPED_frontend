@@ -21,7 +21,7 @@ const navLinks = [
   { to: "/admin/tickets", label: "Tickets", icon: MessageSquare },
   { to: "/admin/events-news", label: "Eventos", icon: Calendar },
   { to: "/admin/attendance", label: "Asistencia", icon: TrendingUp },
-  { to: "/admin/workshop-forms", label: "Talleres", icon: GraduationCap },
+  { to: "/admin/workshops", label: "Talleres", icon: GraduationCap },
   { to: "/admin/users", label: "Gestión de Usuarios", icon: Settings },
   { to: "/admin/landing", label: "Gestión del Landing", icon: Settings},
 ];

@@ -28,13 +28,17 @@ import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
+import WorkshopPanel from '../../modules/Workshops/Components/WorkshopPanel';
+import AttendancePanel from '../../modules/Attendance/Components/AttendancePanel';
+
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerOptionsPage'));
 const VolunteerFormsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerFormsPage'));
 const DonationForms = lazy(() => import('../../modules/Donation/Pages/DonationForms'));
-const AttendancePage = lazy(() => import('../../modules/Attendance/Pages/AttendancePage'));
-
+//const AttendancePage = lazy(() => import('../../modules/Attendance/Pages/AttendancePage'));
+const WorkshopFormsTaller = lazy(() => import('../../modules/Workshops/Pages/WorkshopFormsTaller'));
+const WorkshopOptionsPage = lazy(() => import('../../modules/Workshops/Pages/WorkshopOptionsPage'));
 
 // Root route - SINGLE SOURCE OF TRUTH
 const rootRoute = createRootRoute({
@@ -176,6 +180,23 @@ const voluntariadoRoute = createRoute({
   component: VoluntariadoPage,
 });
 
+const WorkshopAdminRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'workshops',
+  component: WorkshopPanel,
+});
+
+const WorkshopFormsRoute = createRoute({
+  getParentRoute: () => WorkshopAdminRoute,
+  path: 'forms',
+  component: WorkshopFormsTaller,
+});
+
+const WorkshopOptionsRoute = createRoute({
+  getParentRoute: () => WorkshopAdminRoute,
+  path: 'options',
+  component: WorkshopOptionsPage,
+});
 // Removed user dashboard Donaciones route in favor of /user/mensajes
 
 const mensajesRoute = createRoute({
@@ -215,7 +236,7 @@ const attendanceAdminRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance',
   component: () => (
-      <AttendancePage />
+      <AttendancePanel />
   ),
 });
 
@@ -300,6 +321,10 @@ const routeTree = rootRoute.addChildren([
       donationsAdminRoute,
       attendanceAdminRoute,
       eventsNewsAdminRoute,
+      WorkshopAdminRoute.addChildren([
+       WorkshopOptionsRoute,
+       WorkshopFormsRoute
+      ]),
       
       userManagementRoute,
       adminTicketsRoute,
