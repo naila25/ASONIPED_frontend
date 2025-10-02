@@ -198,7 +198,7 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
         </div>
         
         <div className="space-y-4">
-          {cantonDistribution.slice(0, 15).map(({ canton, province, count }) => {
+          {cantonDistribution.slice(0, 8).map(({ canton, province, count }) => {
             const maxCount = Math.max(...cantonDistribution.map(c => c.count));
             const percentage = Math.round((count / maxCount) * 100);
             
@@ -222,10 +222,10 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
           })}
         </div>
         
-        {cantonDistribution.length > 15 && (
+        {cantonDistribution.length > 8 && (
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
-              Mostrando 15 de {cantonDistribution.length} cantones
+              Mostrando 8 de {cantonDistribution.length} cantones
             </p>
           </div>
         )}
@@ -239,7 +239,7 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
         </div>
         
         <div className="space-y-4">
-          {geographicData.slice(0, 15).map(({ district, canton, province, count }) => {
+          {geographicData.slice(0, 8).map(({ district, canton, province, count }) => {
             const maxCount = Math.max(...geographicData.map(d => d.count));
             const percentage = Math.round((count / maxCount) * 100);
             
@@ -263,10 +263,10 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
           })}
         </div>
         
-        {geographicData.length > 15 && (
+        {geographicData.length > 8 && (
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
-              Mostrando 15 de {geographicData.length} distritos
+              Mostrando 8 de {geographicData.length} distritos
             </p>
           </div>
         )}
@@ -298,7 +298,7 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {geographicData.slice(0, 20).map((data, index) => (
+              {geographicData.slice(0, 8).map((data, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {data.province}
@@ -320,10 +320,10 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
           </table>
         </div>
         
-        {geographicData.length > 20 && (
+        {geographicData.length > 8 && (
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
-              Mostrando 20 de {geographicData.length} ubicaciones
+              Mostrando 8 de {geographicData.length} ubicaciones
             </p>
           </div>
         )}

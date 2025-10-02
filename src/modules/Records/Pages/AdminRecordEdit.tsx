@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Save, AlertCircle, CheckCircle, User, FileText } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle,  FileText } from 'lucide-react';
 import { getRecordById, updateRecordAdmin } from '../Services/recordsApi';
 import type { RecordWithDetails, Phase3Data } from '../Types/records';
 import Phase3Form from '../Components/Phase3Form';
 
 const AdminRecordEdit: React.FC = () => {
-  const { recordId } = useParams({ from: '/admin/expedientes/editar/$recordId' });
+  const { recordId } = useParams({ strict: false });
   const navigate = useNavigate();
   const [record, setRecord] = useState<RecordWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -264,6 +264,7 @@ const AdminRecordEdit: React.FC = () => {
             loading={saving}
             currentRecord={record}
             uploadProgress={uploadProgress}
+            isModification={true} // Flag to indicate this is editing existing record
             isAdminEdit={true} // Flag to indicate this is admin editing
           />
         </div>

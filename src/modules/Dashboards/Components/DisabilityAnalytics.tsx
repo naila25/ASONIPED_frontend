@@ -33,9 +33,7 @@ interface DisabilityRecord {
   } | null;
 }
 
-interface DisabilityAnalyticsProps {}
-
-const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = () => {
+const DisabilityAnalytics: React.FC = () => {
   const [records, setRecords] = useState<DisabilityRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +54,33 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = () => {
 
     fetchDisabilityData();
   }, []);
+
+  // Helpers to map backend enum codes to human-friendly labels
+  const EQUIPMENT_LABELS: Record<string, string> = {
+    'silla_ruedas': 'Silla de ruedas',
+    'baston': 'Bastón',
+    'andadera': 'Andadera',
+    'audifono': 'Audífono',
+    'baston_guia': 'Bastón guía',
+    'otro': 'Otro'
+  };
+
+  const LIMITATION_LABELS: Record<string, string> = {
+    'moverse_caminar': 'Moverse/Caminar',
+    'ver_lentes': 'Ver (con lentes)',
+    'oir_audifono': 'Oír (con audífono)',
+    'comunicarse_hablar': 'Comunicarse/Hablar',
+    'entender_aprender': 'Entender/Aprender',
+    'relacionarse': 'Relacionarse'
+  };
+
+  const toTitle = (value: string) => value
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+  const formatEquipmentLabel = (type: string) => EQUIPMENT_LABELS[type] || toTitle(type);
+  const formatLimitationLabel = (limitation: string) => LIMITATION_LABELS[limitation] || toTitle(limitation);
 
   if (loading) {
     return (
@@ -130,10 +155,24 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = () => {
       .sort((a, b) => b.count - a.count);
   };
 
-  // Get equipment needs (currently not available in database schema)
+  // Get equipment needs (aggregated from biomechanical_benefits)
   const getEquipmentNeeds = () => {
-    // Note: biomechanical_benefits not available in current database schema
-    return [];
+    const equipmentMap = new Map<string, number>();
+
+    records.forEach(record => {
+      const benefits = record.disability_information?.medical_additional?.biomechanical_benefits;
+      if (Array.isArray(benefits)) {
+        benefits.forEach(b => {
+          if (!b?.type) return;
+          const count = equipmentMap.get(b.type) || 0;
+          equipmentMap.set(b.type, count + 1);
+        });
+      }
+    });
+
+    return Array.from(equipmentMap.entries())
+      .map(([equipment, count]) => ({ equipment: formatEquipmentLabel(equipment), count }))
+      .sort((a, b) => b.count - a.count);
   };
 
   // Get blood type distribution
@@ -153,10 +192,24 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = () => {
       .sort((a, b) => b.count - a.count);
   };
 
-  // Get limitations analysis (currently not available in database schema)
+  // Get limitations analysis (aggregated from permanent_limitations)
   const getLimitationsAnalysis = () => {
-    // Note: permanent_limitations not available in current database schema
-    return [];
+    const limitationMap = new Map<string, number>();
+
+    records.forEach(record => {
+      const limitations = record.disability_information?.medical_additional?.permanent_limitations;
+      if (Array.isArray(limitations)) {
+        limitations.forEach(l => {
+          if (!l?.limitation) return;
+          const count = limitationMap.get(l.limitation) || 0;
+          limitationMap.set(l.limitation, count + 1);
+        });
+      }
+    });
+
+    return Array.from(limitationMap.entries())
+      .map(([limitation, count]) => ({ limitation: formatLimitationLabel(limitation), count }))
+      .sort((a, b) => b.count - a.count);
   };
 
   // Get certificate status
@@ -209,7 +262,7 @@ const DisabilityAnalytics: React.FC<DisabilityAnalyticsProps> = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {disabilityTypes.map(({ type, count }, index) => {
+          {disabilityTypes.map(({ type, count }) => {
             const Icon = getDisabilityIcon(type);
             const maxCount = Math.max(...disabilityTypes.map(d => d.count));
             const percentage = Math.round((count / maxCount) * 100);

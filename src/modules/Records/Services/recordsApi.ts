@@ -471,6 +471,62 @@ export const getDisabilityAnalytics = async (): Promise<Array<{
   }
 };
 
+export const getDemographicRecords = async (limit: number = 1000): Promise<any[]> => {
+  try {
+    // API_URL already points to /records base; do not append /records again
+    const response = await fetch(`${API_URL}?page=1&limit=${limit}`, {
+      method: 'GET',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.records || [];
+  } catch (error) {
+    console.error('Error fetching demographic records:', error);
+    throw error;
+  }
+};
+
+export const getFamilyAnalytics = async (): Promise<Array<{
+  id: number;
+  record_number: string;
+  created_at: string;
+  family_information: {
+    mother_name?: string | null;
+    father_name?: string | null;
+    responsible_person?: string | null;
+    family_members: Array<{
+      name: string;
+      age: number;
+      relationship: string;
+      occupation: string;
+      marital_status: string;
+    }> | [];
+  } | null;
+}>> => {
+  try {
+    const response = await fetch(`${API_URL}/family-analytics`, {
+      method: 'GET',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching family analytics:', error);
+    throw error;
+  }
+};
+
 export const getRecords = async (
   page = 1, 
   limit = 10, 

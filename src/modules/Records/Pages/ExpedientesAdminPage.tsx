@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from '@tanstack/react-router';
-import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash, Plus, Users } from 'lucide-react';
+import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash, Plus, Users, IdCard } from 'lucide-react';
 import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, requestPhase3Modification, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote, handoverRecordToUser } from '../Services/recordsApi';
 import type { Record, RecordStats, RecordWithDetails } from '../Types/records';
 import Phase3Details from './Phase3Details';
@@ -9,6 +9,7 @@ import Phase3ModificationModal from '../Components/Phase3ModificationModal';
 import AdminActionModal from '../Components/AdminActionModal';
 import HandoverModal from '../Components/HandoverModal';
 import AnalyticsCharts from '../../Dashboards/Components/AnalyticsCharts';
+import IDCardModal from '../Components/IDCardModal';
 
 const ExpedientesAdminPage: React.FC = () => {
   // State Management
@@ -39,6 +40,9 @@ const ExpedientesAdminPage: React.FC = () => {
   const [handoverRecordId, setHandoverRecordId] = useState<number | null>(null);
   const [handoverLoading, setHandoverLoading] = useState(false);
   const [showEnhancedView, setShowEnhancedView] = useState(false);
+  const [showIDCardModal, setShowIDCardModal] = useState(false);
+  const [idCardRecordId, setIdCardRecordId] = useState<number | null>(null);
+  const [pendingExpandRecordId, setPendingExpandRecordId] = useState<number | null>(null);
 
   // ===== DATA LOADING =====
   const loadAllRecordsForAnalytics = useCallback(async () => {
@@ -99,6 +103,17 @@ const ExpedientesAdminPage: React.FC = () => {
 
     setExpandedRows(newExpandedRows);
   }, [expandedRows]);
+
+  // After switching from enhanced view to table view, expand the queued record
+  useEffect(() => {
+    if (!showEnhancedView && pendingExpandRecordId) {
+      // Defer to ensure the table is rendered before expanding
+      setTimeout(() => {
+        toggleRowExpansion(pendingExpandRecordId);
+        setPendingExpandRecordId(null);
+      }, 0);
+    }
+  }, [showEnhancedView, pendingExpandRecordId, toggleRowExpansion]);
 
   // ===== ACTION HANDLERS =====
   const handleAction = async (recordId: number, action: string) => {
@@ -398,6 +413,14 @@ const ExpedientesAdminPage: React.FC = () => {
           title="Editar expediente (Admin)"
         >
           <Edit3 className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={() => { setIdCardRecordId(record.id); setShowIDCardModal(true); }}
+          className="text-indigo-600 hover:text-indigo-900 transition-colors p-1 rounded hover:bg-indigo-50"
+          title="Ver carnet"
+        >
+          <IdCard className="w-4 h-4" />
         </button>
 
         {record.admin_created && !record.handed_over_to_user && (
@@ -792,7 +815,7 @@ const ExpedientesAdminPage: React.FC = () => {
               }`}
             >
               <BarChart3 className="w-4 h-4 mr-2" />
-              {showEnhancedView ? 'Vista Tabla' : 'Vista Analytics'}
+              {showEnhancedView ? 'Vista Tabla' : 'Vista Ampliada'}
             </button>
             
             {/* Crear Expediente Button */}
@@ -840,15 +863,7 @@ const ExpedientesAdminPage: React.FC = () => {
                     <span className="text-sm font-medium text-gray-900">
                       {record.record_number}
                     </span>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      record.status === 'active' ? 'bg-green-100 text-green-800' :
-                      record.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      record.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                      record.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {record.status}
-                    </span>
+                    {renderStatusBadge(record.status)}
                   </div>
                   <p className="text-sm text-gray-600 mb-2">
                     {record.complete_personal_data?.full_name || record.personal_data?.full_name || 'Sin nombre'}
@@ -859,7 +874,7 @@ const ExpedientesAdminPage: React.FC = () => {
                     </span>
                     <div className="flex items-center space-x-2">
                       <button 
-                        onClick={() => toggleRowExpansion(record.id)}
+                        onClick={() => { setPendingExpandRecordId(record.id); setShowEnhancedView(false); }}
                         className="text-blue-600 hover:text-blue-900"
                         title="Ver detalles"
                       >
@@ -912,8 +927,8 @@ const ExpedientesAdminPage: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600">Aprobados</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.approved}</p>
+                <p className="text-sm font-medium text-gray-600">Activos</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.active}</p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -1169,6 +1184,15 @@ const ExpedientesAdminPage: React.FC = () => {
           recordId={handoverRecordId}
           recordNumber={records.find(r => r.id === handoverRecordId)?.record_number || ''}
           loading={handoverLoading}
+        />
+      )}
+
+      {/* ID Card Modal */}
+      {showIDCardModal && idCardRecordId !== null && (
+        <IDCardModal
+          isOpen={showIDCardModal}
+          onClose={() => { setShowIDCardModal(false); setIdCardRecordId(null); }}
+          recordId={idCardRecordId}
         />
       )}
         </>

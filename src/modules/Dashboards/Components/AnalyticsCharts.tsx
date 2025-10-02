@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { BarChart3, PieChart, TrendingUp, Users, FileText, Clock, MapPin, Activity, PersonStanding } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BarChart3, PieChart,Users,MapPin, Activity, PersonStanding } from 'lucide-react';
 import GeographicAnalytics from './GeographicAnalytics';
 import DisabilityAnalytics from './DisabilityAnalytics';
 import FamilyAnalytics from './FamilyAnalytics';
 import DemographicAnalytics from './DemographicAnalytics';
-import TemporalAnalytics from './TemporalAnalytics';
+import { getDemographicRecords } from '../../Records/Services/recordsApi';
+
 
 interface ChartData {
   labels: string[];
@@ -19,15 +20,14 @@ interface AnalyticsChartsProps {
 
 const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ records, stats }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [monthlyCarouselIndex, setMonthlyCarouselIndex] = useState(0);
+
 
   const tabs = [
     { id: 'overview', label: 'Resumen', icon: BarChart3 },
     { id: 'geographic', label: 'Geográfico', icon: MapPin },
     { id: 'disability', label: 'Discapacidad', icon: Activity },
     { id: 'family', label: 'Familiar', icon: Users },
-    { id: 'demographic', label: 'Demográfico', icon: PersonStanding },
-    { id: 'temporal', label: 'Temporal', icon: Clock }
+    { id: 'demographic', label: 'Demográfico', icon: PersonStanding }
   ];
   // Calculate chart data
   const getStatusChartData = (): ChartData => {
@@ -61,10 +61,30 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ records, stats }) => 
     };
   };
 
+  const [creatorCounts, setCreatorCounts] = useState<{userCreated: number; adminCreated: number} | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const all = await getDemographicRecords(1000);
+        if (!isMounted) return;
+        const adminCreated = all.filter((r: any) => r.admin_created).length;
+        const userCreated = all.filter((r: any) => !r.admin_created).length;
+        setCreatorCounts({ userCreated, adminCreated });
+      } catch (_e) {
+        // Fallback to current page if fetch fails
+        const adminCreated = records.filter(r => r.admin_created).length;
+        const userCreated = records.filter(r => !r.admin_created).length;
+        setCreatorCounts({ userCreated, adminCreated });
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
+
   const getCreatorChartData = (): ChartData => {
-    const adminCreated = records.filter(r => r.admin_created).length;
-    const userCreated = records.filter(r => !r.admin_created).length;
-    
+    const adminCreated = creatorCounts ? creatorCounts.adminCreated : records.filter(r => r.admin_created).length;
+    const userCreated = creatorCounts ? creatorCounts.userCreated : records.filter(r => !r.admin_created).length;
     return {
       labels: ['Creados por Usuarios', 'Creados por Admins'],
       data: [userCreated, adminCreated],
@@ -72,48 +92,11 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ records, stats }) => 
     };
   };
 
-  const getMonthlyTrendData = (): ChartData => {
-    // Group records by month for the last 12 months
-    const months = [];
-    const data = [];
-    const colors = ['#3B82F6'];
-    
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const monthKey = date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-      months.push(monthKey);
-      
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      const monthRecords = records.filter(record => {
-        const recordDate = new Date(record.created_at);
-        return recordDate >= monthStart && recordDate <= monthEnd;
-      });
-      
-      data.push(monthRecords.length);
-    }
-    
-    return { labels: months, data, colors };
-  };
-
-  const getHandoverStats = () => {
-    const adminCreated = records.filter(r => r.admin_created);
-    const handedOver = adminCreated.filter(r => r.handed_over_to_user);
-    
-    return {
-      total: adminCreated.length,
-      handedOver: handedOver.length,
-      pending: adminCreated.length - handedOver.length
-    };
-  };
 
   const statusData = getStatusChartData();
   const phaseData = getPhaseChartData();
   const creatorData = getCreatorChartData();
-  const trendData = getMonthlyTrendData();
-  const handoverStats = getHandoverStats();
+
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -122,11 +105,9 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ records, stats }) => 
       case 'disability':
         return <DisabilityAnalytics />;
       case 'family':
-        return <FamilyAnalytics records={records} />;
+        return <FamilyAnalytics />;
       case 'demographic':
-        return <DemographicAnalytics records={records} />;
-      case 'temporal':
-        return <TemporalAnalytics records={records} />;
+        return <DemographicAnalytics />;
       default:
         return (
           <div className="space-y-6">
@@ -163,7 +144,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ records, stats }) => 
                     const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
                     
                     return (
-                      <div key={index} className="flex flex-col items-center flex-1 h-full">
+                      <div key={index} className="flex flex-col justify-end items-center flex-1 h-full">
                         <div 
                           className="w-full rounded-t"
                           style={{ 
@@ -251,90 +232,6 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ records, stats }) => 
                     </span>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Monthly Trend */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <TrendingUp className="w-5 h-5 text-gray-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Tendencia Mensual</h3>
-                </div>
-                
-                {/* Carousel Controls */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setMonthlyCarouselIndex(Math.max(0, monthlyCarouselIndex - 1))}
-                    disabled={monthlyCarouselIndex === 0}
-                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <span className="text-sm text-gray-500 px-2">
-                    {monthlyCarouselIndex + 1} - {Math.min(monthlyCarouselIndex + 6, trendData.data.length)} de {trendData.data.length}
-                  </span>
-                  <button
-                    onClick={() => setMonthlyCarouselIndex(Math.min(trendData.data.length - 6, monthlyCarouselIndex + 1))}
-                    disabled={monthlyCarouselIndex >= trendData.data.length - 6}
-                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              
-              {/* Chart Container */}
-              <div className="relative">
-                <div className="flex items-end justify-between h-32 space-x-2">
-                  {trendData.data.slice(monthlyCarouselIndex, monthlyCarouselIndex + 6).map((value, index) => {
-                    const actualIndex = monthlyCarouselIndex + index;
-                    const maxValue = Math.max(...trendData.data);
-                    const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
-                    
-                    return (
-                      <div key={actualIndex} className="flex flex-col items-center flex-1 h-full">
-                        <div 
-                          className="w-full rounded-t bg-blue-500"
-                          style={{ 
-                            height: `${height}%`,
-                            minHeight: value > 0 ? '4px' : '0px'
-                          }}
-                        ></div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Values row aligned uniformly at bottom */}
-                <div className="flex justify-between items-start mt-2 space-x-2">
-                  {trendData.data.slice(monthlyCarouselIndex, monthlyCarouselIndex + 6).map((value, index) => {
-                    const actualIndex = monthlyCarouselIndex + index;
-                    return (
-                      <div key={actualIndex} className="flex-1 text-center">
-                        <span className="text-xs text-gray-500">{value}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Month labels row */}
-                <div className="flex justify-between items-start mt-1 space-x-2">
-                  {trendData.data.slice(monthlyCarouselIndex, monthlyCarouselIndex + 6).map((value, index) => {
-                    const actualIndex = monthlyCarouselIndex + index;
-                    return (
-                      <div key={actualIndex} className="flex-1 text-center">
-                        <span className="text-xs text-gray-400">
-                          {trendData.labels[actualIndex]}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             </div>
           </div>

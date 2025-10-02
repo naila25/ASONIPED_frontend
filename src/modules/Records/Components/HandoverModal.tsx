@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Users, AlertCircle, CheckCircle, Search } from 'lucide-react';
+import { getAPIBaseURL } from '../../../shared/Services/config';
+import { getAuthHeader } from '../../Login/Services/auth';
 
 interface User {
   id: number;
@@ -21,7 +23,6 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
   isOpen,
   onClose,
   onHandover,
-  recordId,
   recordNumber,
   loading
 }) => {
@@ -58,35 +59,26 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
       setLoadingUsers(true);
       setError(null);
       
-      // This would typically call an API to get users
-      // For now, we'll use a mock response
-      const response = await fetch('/api/users', {
+      // Fetch users from backend with shared base URL and auth header
+      const apiBase = await getAPIBaseURL();
+      const response = await fetch(`${apiBase}/users/eligible-for-handover`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          ...getAuthHeader(),
           'Content-Type': 'application/json',
         },
       });
       
-      if (response.ok) {
-        const userData = await response.json();
-        setUsers(userData.users || []);
-      } else {
-        // Mock data for development
-        setUsers([
-          { id: 1, username: 'usuario1', full_name: 'Usuario Uno', email: 'usuario1@example.com' },
-          { id: 2, username: 'usuario2', full_name: 'Usuario Dos', email: 'usuario2@example.com' },
-          { id: 3, username: 'usuario3', full_name: 'Usuario Tres', email: 'usuario3@example.com' },
-        ]);
-      }
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.message || 'Error al cargar usuarios');
+
+      const list = Array.isArray(payload)
+        ? payload
+        : payload?.users || payload?.data || [];
+      setUsers(list);
     } catch (err) {
       console.error('Error loading users:', err);
       setError('Error cargando usuarios');
-      // Mock data for development
-      setUsers([
-        { id: 1, username: 'usuario1', full_name: 'Usuario Uno', email: 'usuario1@example.com' },
-        { id: 2, username: 'usuario2', full_name: 'Usuario Dos', email: 'usuario2@example.com' },
-        { id: 3, username: 'usuario3', full_name: 'Usuario Tres', email: 'usuario3@example.com' },
-      ]);
+      setUsers([]);
     } finally {
       setLoadingUsers(false);
     }
@@ -113,7 +105,7 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import IDCardModal from '../Components/IDCardModal';
 import { FileText, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 import { getUserRecord, createInitialRecord, completeRecord, updatePhase1Data, updatePhase3Data, replaceDocument } from '../Services/recordsApi';
 import type { RecordWithDetails, Phase1Data, Phase3Data } from '../Types/records';
@@ -20,6 +21,8 @@ const ExpedientesPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [showIDCardModal, setShowIDCardModal] = useState(false);
+  const [idCardRecordId, setIdCardRecordId] = useState<number | null>(null);
   const [showPhase3Form, setShowPhase3Form] = useState(false);
   const [showIntroduction, setShowIntroduction] = useState(true);
   const [isPhase3Modification, setIsPhase3Modification] = useState(false);
@@ -339,6 +342,13 @@ const ExpedientesPage: React.FC = () => {
     setShowPhase3Form(true);
   };
 
+  const openMyIdCard = () => {
+    if (record?.id) {
+      setIdCardRecordId(record.id);
+      setShowIDCardModal(true);
+    }
+  };
+
   const handleRestartProcess = async () => {
     try {
       setSubmitting(true);
@@ -420,10 +430,25 @@ const ExpedientesPage: React.FC = () => {
               <CheckCircle className="w-8 h-8 text-green-600" />
               <h1 className="text-2xl font-bold text-gray-900">Expediente Completado</h1>
             </div>
-            <p className="text-gray-600">Su expediente ha sido aprobado y está activo. A continuación puede ver todos los detalles.</p>
+            <div className="flex items-center justify-between">
+              <p className="text-gray-600">Su expediente ha sido aprobado y está activo. A continuación puede ver todos los detalles.</p>
+              <button
+                onClick={openMyIdCard}
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                Mi carnet
+              </button>
+            </div>
           </div>
           <CompleteRecordView record={record} isAdmin={false} />
         </div>
+        {showIDCardModal && idCardRecordId !== null && (
+          <IDCardModal
+            isOpen={showIDCardModal}
+            onClose={() => { setShowIDCardModal(false); setIdCardRecordId(null); }}
+            recordId={idCardRecordId}
+          />
+        )}
       </div>
     );
   }
@@ -432,6 +457,14 @@ const ExpedientesPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-end mb-4">
+          <button
+            onClick={openMyIdCard}
+            className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+          >
+            Mi carnet
+          </button>
+        </div>
         {/* Indicador de progreso */}
         {(() => {
           // Cuando el usuario está completando el formulario de Fase 3

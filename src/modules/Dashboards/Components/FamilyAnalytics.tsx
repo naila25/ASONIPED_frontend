@@ -1,41 +1,49 @@
-import React from 'react';
-import { Users, User, UserCheck, Phone, Heart, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Users, BarChart2 } from 'lucide-react';
+import { getFamilyAnalytics } from '../../Records/Services/recordsApi';
 
-interface Record {
+interface FamilyMember {
+  name: string;
+  age: number;
+  relationship: string;
+  occupation: string;
+  marital_status: string;
+}
+
+interface FamilyInfo {
+  mother_name?: string | null;
+  father_name?: string | null;
+  responsible_person?: string | null;
+  family_members: FamilyMember[] | [];
+}
+
+interface FamilyRecord {
   id: number;
-  family_information?: {
-    mother_name?: string;
-    mother_cedula?: string;
-    mother_occupation?: string;
-    mother_phone?: string;
-    father_name?: string;
-    father_cedula?: string;
-    father_occupation?: string;
-    father_phone?: string;
-    responsible_person?: string;
-    responsible_phone?: string;
-    responsible_occupation?: string;
-    family_members?: Array<{
-      name: string;
-      age: number;
-      relationship: string;
-      occupation: string;
-      marital_status: string;
-    }>;
-  };
-  complete_personal_data?: {
-    primary_phone?: string;
-    secondary_phone?: string;
-    email?: string;
-  };
+  record_number: string;
+  created_at: string;
+  family_information: FamilyInfo | null;
 }
 
-interface FamilyAnalyticsProps {
-  records: Record[];
-}
+const FamilyAnalytics: React.FC = () => {
+  const [records, setRecords] = useState<FamilyRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const FamilyAnalytics: React.FC<FamilyAnalyticsProps> = ({ records }) => {
-  // Analyze family structure
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await getFamilyAnalytics();
+        setRecords(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error loading family analytics');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   const getFamilyStructure = () => {
     let bothParents = 0;
     let onlyMother = 0;
@@ -50,9 +58,9 @@ const FamilyAnalytics: React.FC<FamilyAnalyticsProps> = ({ records }) => {
         return;
       }
       
-      const hasMother = familyInfo.mother_name && familyInfo.mother_name.trim() !== '';
-      const hasFather = familyInfo.father_name && familyInfo.father_name.trim() !== '';
-      const hasGuardian = familyInfo.responsible_person && familyInfo.responsible_person.trim() !== '';
+      const hasMother = !!(familyInfo.mother_name && familyInfo.mother_name.trim() !== '');
+      const hasFather = !!(familyInfo.father_name && familyInfo.father_name.trim() !== '');
+      const hasGuardian = !!(familyInfo.responsible_person && familyInfo.responsible_person.trim() !== '');
       
       if (hasMother && hasFather) {
         bothParents++;
@@ -67,138 +75,72 @@ const FamilyAnalytics: React.FC<FamilyAnalyticsProps> = ({ records }) => {
       }
     });
     
-    return {
-      bothParents,
-      onlyMother,
-      onlyFather,
-      legalGuardian,
-      noFamilyInfo
-    };
+    return { bothParents, onlyMother, onlyFather, legalGuardian, noFamilyInfo };
   };
 
-  // Analyze contact information completeness
-  const getContactCompleteness = () => {
-    let completeContact = 0;
-    let partialContact = 0;
-    let incompleteContact = 0;
-    
+  const getHouseholdSizeHistogram = () => {
+    const bins = { one: 0, twoThree: 0, fourFive: 0, sixPlus: 0 };
     records.forEach(record => {
-      const personalData = record.complete_personal_data;
-      const familyInfo = record.family_information;
-      
-      if (!personalData) {
-        incompleteContact++;
-        return;
-      }
-      
-      const hasPrimaryPhone = personalData.primary_phone && personalData.primary_phone.trim() !== '';
-      const hasEmail = personalData.email && personalData.email.trim() !== '';
-      const hasSecondaryPhone = personalData.secondary_phone && personalData.secondary_phone.trim() !== '';
-      
-      // Check family contact info
-      const hasMotherPhone = familyInfo?.mother_phone && familyInfo.mother_phone.trim() !== '';
-      const hasFatherPhone = familyInfo?.father_phone && familyInfo.father_phone.trim() !== '';
-      const hasGuardianPhone = familyInfo?.responsible_phone && familyInfo.responsible_phone.trim() !== '';
-      
-      const contactCount = [hasPrimaryPhone, hasEmail, hasSecondaryPhone, hasMotherPhone, hasFatherPhone, hasGuardianPhone]
-        .filter(Boolean).length;
-      
-      if (contactCount >= 4) {
-        completeContact++;
-      } else if (contactCount >= 2) {
-        partialContact++;
-      } else {
-        incompleteContact++;
-      }
+      const members = record.family_information?.family_members || [];
+      const baseGuardians = record.family_information ? (
+        (record.family_information.mother_name && record.family_information.mother_name.trim() !== '' ? 1 : 0) +
+        (record.family_information.father_name && record.family_information.father_name.trim() !== '' ? 1 : 0) +
+        (record.family_information.responsible_person && record.family_information.responsible_person.trim() !== '' ? 1 : 0)
+      ) : 0;
+      const memberCount = Array.isArray(members) ? members.length : 0;
+      const inferred = memberCount > 0 ? memberCount : baseGuardians;
+      const size = inferred > 0 ? inferred : 0;
+      if (size <= 1) bins.one++;
+      else if (size <= 3) bins.twoThree++;
+      else if (size <= 5) bins.fourFive++;
+      else bins.sixPlus++;
     });
-    
-    return { completeContact, partialContact, incompleteContact };
+    return bins;
   };
 
-  // Analyze occupation patterns
-  const getOccupationAnalysis = () => {
-    const motherOccupations = new Map<string, number>();
-    const fatherOccupations = new Map<string, number>();
-    const guardianOccupations = new Map<string, number>();
-    
+  const getAverageFamilyMembers = () => {
+    let totalMembers = 0;
+    let counted = 0;
     records.forEach(record => {
-      const familyInfo = record.family_information;
-      if (!familyInfo) return;
-      
-      // Mother occupations
-      if (familyInfo.mother_occupation && familyInfo.mother_occupation.trim() !== '' && familyInfo.mother_occupation !== 'null') {
-        const occupation = familyInfo.mother_occupation;
-        motherOccupations.set(occupation, (motherOccupations.get(occupation) || 0) + 1);
-      }
-      
-      // Father occupations
-      if (familyInfo.father_occupation && familyInfo.father_occupation.trim() !== '' && familyInfo.father_occupation !== 'null') {
-        const occupation = familyInfo.father_occupation;
-        fatherOccupations.set(occupation, (fatherOccupations.get(occupation) || 0) + 1);
-      }
-      
-      // Guardian occupations
-      if (familyInfo.responsible_occupation && familyInfo.responsible_occupation.trim() !== '' && familyInfo.responsible_occupation !== 'null') {
-        const occupation = familyInfo.responsible_occupation;
-        guardianOccupations.set(occupation, (guardianOccupations.get(occupation) || 0) + 1);
+      const members = record.family_information?.family_members || [];
+      const baseGuardians = record.family_information ? (
+        (record.family_information.mother_name && record.family_information.mother_name.trim() !== '' ? 1 : 0) +
+        (record.family_information.father_name && record.family_information.father_name.trim() !== '' ? 1 : 0) +
+        (record.family_information.responsible_person && record.family_information.responsible_person.trim() !== '' ? 1 : 0)
+      ) : 0;
+      const memberCount = Array.isArray(members) ? members.length : 0;
+      const inferred = memberCount > 0 ? memberCount : baseGuardians;
+      if (inferred >= 0) {
+        totalMembers += inferred;
+        counted += 1;
       }
     });
-    
-    return {
-      motherOccupations: Array.from(motherOccupations.entries())
-        .map(([occupation, count]) => ({ occupation, count }))
-        .sort((a, b) => b.count - a.count),
-      fatherOccupations: Array.from(fatherOccupations.entries())
-        .map(([occupation, count]) => ({ occupation, count }))
-        .sort((a, b) => b.count - a.count),
-      guardianOccupations: Array.from(guardianOccupations.entries())
-        .map(([occupation, count]) => ({ occupation, count }))
-        .sort((a, b) => b.count - a.count)
-    };
-  };
-
-  // Analyze phone number patterns
-  const getPhoneAnalysis = () => {
-    let primaryPhoneComplete = 0;
-    let secondaryPhoneComplete = 0;
-    let motherPhoneComplete = 0;
-    let fatherPhoneComplete = 0;
-    let guardianPhoneComplete = 0;
-    
-    records.forEach(record => {
-      const personalData = record.complete_personal_data;
-      const familyInfo = record.family_information;
-      
-      if (personalData?.telefono_principal && personalData.telefono_principal.trim() !== '') {
-        primaryPhoneComplete++;
-      }
-      if (personalData?.telefono_secundario && personalData.telefono_secundario.trim() !== '') {
-        secondaryPhoneComplete++;
-      }
-      if (familyInfo?.telefono_madre && familyInfo.telefono_madre.trim() !== '') {
-        motherPhoneComplete++;
-      }
-      if (familyInfo?.telefono_padre && familyInfo.telefono_padre.trim() !== '') {
-        fatherPhoneComplete++;
-      }
-      if (familyInfo?.telefono_encargado_legal && familyInfo.telefono_encargado_legal.trim() !== '') {
-        guardianPhoneComplete++;
-      }
-    });
-    
-    return {
-      primaryPhoneComplete,
-      secondaryPhoneComplete,
-      motherPhoneComplete,
-      fatherPhoneComplete,
-      guardianPhoneComplete
-    };
+    const average = counted === 0 ? 0 : Number((totalMembers / counted).toFixed(2));
+    return { average, households: counted };
   };
 
   const familyStructure = getFamilyStructure();
-  const contactCompleteness = getContactCompleteness();
-  const occupationAnalysis = getOccupationAnalysis();
-  const phoneAnalysis = getPhoneAnalysis();
+  const householdSize = getHouseholdSizeHistogram();
+  const avgMembers = getAverageFamilyMembers();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando datos familiares...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="text-red-700 text-sm">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -209,7 +151,7 @@ const FamilyAnalytics: React.FC<FamilyAnalyticsProps> = ({ records }) => {
           <h3 className="text-lg font-semibold text-gray-900">Estructura Familiar</h3>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
             <div className="text-2xl font-bold text-blue-600">{familyStructure.bothParents}</div>
             <div className="text-sm text-blue-800">Ambos Padres</div>
@@ -230,187 +172,49 @@ const FamilyAnalytics: React.FC<FamilyAnalyticsProps> = ({ records }) => {
             <div className="text-sm text-purple-800">Encargado Legal</div>
             <div className="text-xs text-purple-600">Responsable</div>
           </div>
-          <div className="text-center p-4 bg-orange-50 rounded-lg">
-            <div className="text-2xl font-bold text-orange-600">{familyStructure.noFamilyInfo}</div>
-            <div className="text-sm text-orange-800">Sin Info</div>
-            <div className="text-xs text-orange-600">Familiar</div>
-          </div>
         </div>
       </div>
 
-      {/* Contact Information Completeness */}
+      {/* Household Size Histogram */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center gap-3 mb-6">
-          <Phone className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Completitud de Información de Contacto</h3>
+          <BarChart2 className="w-5 h-5 text-gray-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Tamaño del Hogar</h3>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{contactCompleteness.completeContact}</div>
-            <div className="text-sm text-green-800">Información Completa</div>
-            <div className="text-xs text-green-600">4+ contactos</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{householdSize.one}</div>
+            <div className="text-sm text-gray-600">1 persona</div>
           </div>
-          <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">{contactCompleteness.partialContact}</div>
-            <div className="text-sm text-yellow-800">Información Parcial</div>
-            <div className="text-xs text-yellow-600">2-3 contactos</div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{householdSize.twoThree}</div>
+            <div className="text-sm text-gray-600">2–3 personas</div>
           </div>
-          <div className="text-center p-4 bg-red-50 rounded-lg">
-            <div className="text-2xl font-bold text-red-600">{contactCompleteness.incompleteContact}</div>
-            <div className="text-sm text-red-800">Información Incompleta</div>
-            <div className="text-xs text-red-600">0-1 contactos</div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{householdSize.fourFive}</div>
+            <div className="text-sm text-gray-600">4–5 personas</div>
           </div>
-        </div>
-        
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Progreso de Completitud</span>
-            <span className="text-sm font-medium text-gray-900">
-              {Math.round((contactCompleteness.completeContact / records.length) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-green-500 h-2 rounded-full transition-all duration-300"
-              style={{ 
-                width: `${(contactCompleteness.completeContact / records.length) * 100}%`
-              }}
-            ></div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{householdSize.sixPlus}</div>
+            <div className="text-sm text-gray-600">6+ personas</div>
           </div>
         </div>
       </div>
 
-      {/* Phone Number Analysis */}
+      {/* Average Family Members */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center gap-3 mb-6">
-          <Phone className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Análisis de Números Telefónicos</h3>
+          <Users className="w-5 h-5 text-gray-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Promedio de Miembros por Hogar</h3>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="p-4 border border-gray-200 rounded-lg text-center">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{phoneAnalysis.primaryPhoneComplete}</div>
-            <div className="text-sm text-gray-600">Teléfono Principal</div>
-            <div className="text-xs text-gray-500">
-              {Math.round((phoneAnalysis.primaryPhoneComplete / records.length) * 100)}% completo
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{avgMembers.average}</div>
+            <div className="text-sm text-gray-600">Promedio</div>
           </div>
-          <div className="p-4 border border-gray-200 rounded-lg text-center">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{phoneAnalysis.secondaryPhoneComplete}</div>
-            <div className="text-sm text-gray-600">Teléfono Secundario</div>
-            <div className="text-xs text-gray-500">
-              {Math.round((phoneAnalysis.secondaryPhoneComplete / records.length) * 100)}% completo
-            </div>
-          </div>
-          <div className="p-4 border border-gray-200 rounded-lg text-center">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{phoneAnalysis.motherPhoneComplete}</div>
-            <div className="text-sm text-gray-600">Teléfono Madre</div>
-            <div className="text-xs text-gray-500">
-              {Math.round((phoneAnalysis.motherPhoneComplete / records.length) * 100)}% completo
-            </div>
-          </div>
-          <div className="p-4 border border-gray-200 rounded-lg text-center">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{phoneAnalysis.fatherPhoneComplete}</div>
-            <div className="text-sm text-gray-600">Teléfono Padre</div>
-            <div className="text-xs text-gray-500">
-              {Math.round((phoneAnalysis.fatherPhoneComplete / records.length) * 100)}% completo
-            </div>
-          </div>
-          <div className="p-4 border border-gray-200 rounded-lg text-center">
-            <div className="text-2xl font-bold text-gray-900 mb-1">{phoneAnalysis.guardianPhoneComplete}</div>
-            <div className="text-sm text-gray-600">Teléfono Encargado</div>
-            <div className="text-xs text-gray-500">
-              {Math.round((phoneAnalysis.guardianPhoneComplete / records.length) * 100)}% completo
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Occupation Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Mother Occupations */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <User className="w-5 h-5 text-pink-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Ocupaciones de Madres</h3>
-          </div>
-          
-          <div className="space-y-3">
-            {occupationAnalysis.motherOccupations.slice(0, 8).map(({ occupation, count }) => (
-              <div key={occupation} className="flex items-center justify-between p-2 bg-pink-50 rounded-lg">
-                <span className="text-sm text-gray-700 truncate">{occupation}</span>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
-                  {count}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Father Occupations */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <User className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Ocupaciones de Padres</h3>
-          </div>
-          
-          <div className="space-y-3">
-            {occupationAnalysis.fatherOccupations.slice(0, 8).map(({ occupation, count }) => (
-              <div key={occupation} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
-                <span className="text-sm text-gray-700 truncate">{occupation}</span>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {count}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Guardian Occupations */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <UserCheck className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Ocupaciones de Encargados</h3>
-          </div>
-          
-          <div className="space-y-3">
-            {occupationAnalysis.guardianOccupations.slice(0, 8).map(({ occupation, count }) => (
-              <div key={occupation} className="flex items-center justify-between p-2 bg-purple-50 rounded-lg">
-                <span className="text-sm text-gray-700 truncate">{occupation}</span>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  {count}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Family Support Insights */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Heart className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Insights de Apoyo Familiar</h3>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-800 mb-2">Familias con Mayor Estabilidad</h4>
-            <p className="text-sm text-blue-700">
-              {familyStructure.bothParents} familias tienen ambos padres presentes, 
-              lo que representa el {Math.round((familyStructure.bothParents / records.length) * 100)}% 
-              de los beneficiarios.
-            </p>
-          </div>
-          
-          <div className="p-4 bg-orange-50 rounded-lg">
-            <h4 className="font-medium text-orange-800 mb-2">Necesidad de Apoyo Adicional</h4>
-            <p className="text-sm text-orange-700">
-              {familyStructure.onlyMother + familyStructure.legalGuardian} familias 
-              ({Math.round(((familyStructure.onlyMother + familyStructure.legalGuardian) / records.length) * 100)}%) 
-              pueden necesitar apoyo adicional debido a la ausencia del padre.
-            </p>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{avgMembers.households}</div>
+            <div className="text-sm text-gray-600">Hogares</div>
           </div>
         </div>
       </div>
