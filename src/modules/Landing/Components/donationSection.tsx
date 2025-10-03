@@ -108,14 +108,14 @@ const DonationSection = () => {
     <section className="w-full py-20 bg-gray-50">
       <div className="text-center mb-12">
         <h2 className="text-4xl sm:text-5xl font-bold text-orange-600 mb-4">
-          {data.header.titulo}
+          {data?.header?.titulo || fallbackData.header.titulo}
         </h2>
         <p className="text-lg text-gray-700 max-w-2xl mx-auto">
-          {data.header.descripcion}
+          {data?.header?.descripcion || fallbackData.header.descripcion}
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        {data.cards.map((card, idx) => (
+        {(data?.cards || fallbackData.cards).map((card, idx) => (
           <div key={idx} className="bg-white shadow-lg rounded-lg overflow-hidden flex flex-col items-center">
             <img
               src={card.URL_imagen || fallbackImg}
