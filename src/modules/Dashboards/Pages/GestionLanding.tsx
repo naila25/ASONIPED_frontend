@@ -127,9 +127,9 @@ export default function GestionLanding() {
           setSectionStats(prev => ({
             ...prev,
             donation: {
-              count: donationData.cards.length,
-              title: donationData.header.titulo || "Donaciones",
-              hasImage: donationData.cards.some(card => !!card.URL_imagen)
+              count: donationData.cards?.length || 0,
+              title: donationData.header?.titulo || "Donaciones",
+              hasImage: donationData.cards?.some(card => !!card.URL_imagen) || false
             }
           }));
           setSectionData(prev => ({
@@ -216,9 +216,9 @@ export default function GestionLanding() {
             setSectionStats(prev => ({
               ...prev,
               donation: {
-                count: donationData.cards.length,
-                title: donationData.header.titulo || "Donaciones",
-                hasImage: donationData.cards.some(card => !!card.URL_imagen)
+                count: donationData.cards?.length || 0,
+                title: donationData.header?.titulo || "Donaciones",
+                hasImage: donationData.cards?.some(card => !!card.URL_imagen) || false
               }
             }));
             setSectionData(prev => ({
