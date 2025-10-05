@@ -11,7 +11,8 @@ import {
   Bell,
   User,
   Shield,
-  MessageSquare
+  MessageSquare,
+  Edit
 } from "lucide-react";
 
 const navLinks = [
@@ -22,8 +23,9 @@ const navLinks = [
   { to: "/admin/events-news", label: "Eventos", icon: Calendar },
   { to: "/admin/attendance", label: "Asistencia", icon: TrendingUp },
   { to: "/admin/workshops", label: "Talleres", icon: GraduationCap },
+  { to: "/admin/landing", label: "Gestión del Landing", icon: Edit},
   { to: "/admin/users", label: "Gestión de Usuarios", icon: Settings },
-  { to: "/admin/landing", label: "Gestión del Landing", icon: Settings},
+  
 ];
 
 export default function AdminDashboard() {
