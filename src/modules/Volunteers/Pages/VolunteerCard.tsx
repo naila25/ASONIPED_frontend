@@ -4,9 +4,10 @@ import { Link } from "@tanstack/react-router";
 import VolunteerModal from "../Components/VolunteerModal";
 import { fetchVolunteerOptions } from "../Services/fetchVolunteers";
 import type { VolunteerOption } from "../Types/volunteer";
-import { FaRegCalendarAlt, FaCheckCircle, FaArrowRight } from "react-icons/fa";
+import { FaRegCalendarAlt, FaCheckCircle, FaArrowRight, FaClock, FaUsers } from "react-icons/fa";
 import { MdLocationOn } from "react-icons/md";
 import { submitVolunteerProposal } from "../Services/fetchVolunteers";
+import { formatTime12Hour } from "../../../shared/Utils/timeUtils";
 
 interface VolunteerCardProps {
   id: string;
@@ -17,6 +18,11 @@ interface VolunteerCardProps {
   location: string;
   skills?: string;
   tools?: string;
+  hour?: string;
+  spots?: number;
+  available_spots?: number;
+  registered_count?: number;
+  is_registered?: boolean;
 }
 
 const VolunteerCard = ({
@@ -28,35 +34,62 @@ const VolunteerCard = ({
   location,
   skills,
   tools,
+  hour,
+  spots,
+  available_spots,
+  registered_count,
+  is_registered,
 }: VolunteerCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const displayImageUrl = imageUrl?.startsWith('http') ? imageUrl : `http://localhost:3000${imageUrl}`;
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+      <div className="bg-white rounded-lg shadow hover:shadow-md transition-shadow flex flex-col h-full">
         <img
           src={displayImageUrl}
           alt={title}
-          className="w-full h-48 object-cover rounded-t-lg"
+          className="w-full h-48 object-cover rounded-t-lg flex-shrink-0"
         />
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-2">{title}</h3>
-          <p className="text-neutral-700 text-sm mb-4 line-clamp-2">
+        <div className="p-4 flex flex-col flex-grow">
+          <h3 className="text-lg font-semibold mb-2 line-clamp-2">{title}</h3>
+          <p className="text-neutral-700 text-sm mb-4 line-clamp-3 flex-grow">
             {description}
           </p>
-          <div className="flex flex-col text-sm text-neutral-700 mb-4">
-            <span className=" flex items-center mb-2">
-              <FaRegCalendarAlt className="w-4 h-4 mr-1 text-gray-800" />
+          <div className="flex flex-col text-sm text-neutral-700 mb-4 space-y-2 flex-shrink-0">
+            <span className="flex items-center">
+              <FaRegCalendarAlt className="w-4 h-4 mr-2 text-gray-800" />
               {date}
             </span>
+            {hour && (
+              <span className="flex items-center">
+                <FaClock className="w-4 h-4 mr-2 text-gray-800" />
+                {formatTime12Hour(hour)}
+              </span>
+            )}
             <span className="flex items-center">
-              <MdLocationOn className="w-4 h-4 mr-1 text-gray-800" />
+              <MdLocationOn className="w-4 h-4 mr-2 text-gray-800" />
               {location}
             </span>
+            {available_spots !== undefined ? (
+              <span className="flex items-center">
+                <FaUsers className="w-4 h-4 mr-2 text-gray-800" />
+                <span className={available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
+                  {available_spots}
+                </span>
+                <span className="text-gray-600 ml-1">
+                  / {spots} cupos disponibles
+                </span>
+              </span>
+            ) : spots && (
+              <span className="flex items-center">
+                <FaUsers className="w-4 h-4 mr-2 text-gray-800" />
+                {spots} cupos disponibles
+              </span>
+            )}
           </div>
 
-          <div className="flex justify-center items-center">
+          <div className="flex justify-center items-center mt-auto">
             <button
               onClick={() => setIsModalOpen(true)}
               className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
@@ -79,6 +112,11 @@ const VolunteerCard = ({
           location,
           skills,
           tools,
+          hour,
+          spots,
+          available_spots,
+          registered_count,
+          is_registered,
         }}
       />
     </>
@@ -98,10 +136,12 @@ const Voluntariados = () => {
   const [pLocation, setPLocation] = useState("");
   const [pDate, setPDate] = useState("");
   const [pTools, setPTools] = useState("");
+  const [pHour, setPHour] = useState("");
+  const [pSpots, setPSpots] = useState("");
   const [pFile, setPFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
 
-  // Fetch volunteer options from backend
+  // Fetch volunteer options from backend - refreshes on every mount
   useEffect(() => {
     const loadVolunteers = async () => {
       try {
@@ -118,7 +158,7 @@ const Voluntariados = () => {
     };
 
     loadVolunteers();
-  }, []);
+  }, []); // Empty dependency array means this runs on every mount
 
   const handleProposalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +183,14 @@ const Voluntariados = () => {
     }
     if (!pTools.trim()) {
       alert("Las herramientas necesarias son requeridas");
+      return;
+    }
+    if (!pHour.trim()) {
+      alert("La hora del voluntariado es requerida");
+      return;
+    }
+    if (!pSpots.trim()) {
+      alert("Los cupos disponibles son requeridos");
       return;
     }
     
@@ -202,6 +250,8 @@ const Voluntariados = () => {
       formData.append("location", pLocation);
       formData.append("date", pDate);
       formData.append("tools", pTools);
+      formData.append("hour", pHour);
+      formData.append("spots", pSpots);
       if (pFile) formData.append("document", pFile);
 
       await submitVolunteerProposal(formData);
@@ -210,6 +260,8 @@ const Voluntariados = () => {
       setPLocation("");
       setPDate("");
       setPTools("");
+      setPHour("");
+      setPSpots("");
       setPFile(null);
       setFileName("");
       setProposalSubmitted(true);
@@ -251,9 +303,11 @@ const Voluntariados = () => {
 
       {/* Áreas de voluntariado */}
       <div className="max-w-7xl  p-2 mb-12 mt-16 mx-auto">
-        <h2 className="text-orange-600 text-4xl text-center font-semibold mb-15">
-          Áreas de voluntariado en ASONIPED
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-orange-600 text-4xl font-semibold">
+            Áreas de voluntariado en ASONIPED
+          </h2>
+        </div>
 
         {loading ? (
           <div className="text-center py-12">
@@ -275,7 +329,10 @@ const Voluntariados = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {volunteers.map((volunteer) => (
-              <VolunteerCard key={volunteer.id} {...volunteer} />
+              <VolunteerCard 
+                key={volunteer.id} 
+                {...volunteer}
+              />
             ))}
           </div>
         )}
@@ -393,7 +450,6 @@ const Voluntariados = () => {
                 maxLength={100}
               />
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-gray-500">Máximo 100 caracteres</span>
                 <span className={pTitle.length > 90 ? 'text-red-500' : pTitle.length > 80 ? 'text-yellow-500' : 'text-gray-500'}>
                   {pTitle.length}/100
                 </span>
@@ -413,7 +469,6 @@ const Voluntariados = () => {
                 rows={4}
               ></textarea>
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-gray-500">Máximo 500 caracteres</span>
                 <span className={pProposal.length > 250 ? 'text-red-500' : pProposal.length > 200 ? 'text-yellow-500' : 'text-gray-500'}>
                   {pProposal.length}/500
                 </span>
@@ -433,7 +488,6 @@ const Voluntariados = () => {
                 maxLength={100}
               />
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-gray-500">Máximo 100 caracteres</span>
                 <span className={pLocation.length > 90 ? 'text-red-500' : pLocation.length > 80 ? 'text-yellow-500' : 'text-gray-500'}>
                   {pLocation.length}/100
                 </span>
@@ -493,6 +547,36 @@ const Voluntariados = () => {
               />
             </div>
 
+            {/* New fields: Hour and Spots */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hora del Voluntariado *
+                </label>
+                <input
+                  type="time"
+                  className="w-full border border-gray-300 rounded px-4 py-2"
+                  value={pHour}
+                  onChange={(e) => setPHour(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cupos Disponibles *
+                </label>
+                <input
+                  type="number"
+                  className="w-full border border-gray-300 rounded px-4 py-2"
+                  value={pSpots}
+                  onChange={(e) => setPSpots(e.target.value)}
+                  min="1"
+                  max="999"
+                  required
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Herramientas o materiales necesarios *
@@ -506,7 +590,7 @@ const Voluntariados = () => {
                 rows={3}
               ></textarea>
               <div className="flex justify-between text-xs mt-1">
-                <span className="text-gray-500">Máximo 500 caracteres</span>
+
                 <span className={pTools.length > 270 ? 'text-red-500' : pTools.length > 240 ? 'text-yellow-500' : 'text-gray-500'}>
                   {pTools.length}/500
                 </span>
