@@ -158,7 +158,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Número de Cédula</label>
-              <p className="text-sm text-gray-900 font-mono">{record.personal_data.cedula}</p>
+              <p className="text-sm text-gray-900 ">{record.personal_data.cedula}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Sexo</label>
@@ -219,11 +219,11 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Nombre Completo</label>
-              <p className="text-sm text-gray-900">{record.complete_personal_data.full_name}</p>
+              <p className="text-sm text-gray-900">{record.complete_personal_data.full_name || 'Sin nombre'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Número de Cédula</label>
-              <p className="text-sm text-gray-900 font-mono">{record.complete_personal_data.cedula}</p>
+              <p className="text-sm text-gray-900 ">{record.complete_personal_data.cedula || 'Sin cédula'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Sexo</label>
@@ -306,7 +306,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Cédula de la Madre</label>
-                        <p className="text-sm text-gray-900 font-mono">{record.family_information.mother_cedula || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900 ">{record.family_information.mother_cedula || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Ocupación de la Madre</label>
@@ -331,7 +331,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Cédula del Padre</label>
-                        <p className="text-sm text-gray-900 font-mono">{record.family_information.father_cedula || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900 ">{record.family_information.father_cedula || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Ocupación del Padre</label>
@@ -356,7 +356,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Cédula del Encargado Legal</label>
-                        <p className="text-sm text-gray-900 font-mono">{(record.family_information as unknown as Record<string, unknown>).responsible_cedula as string || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900 ">{(record.family_information as unknown as Record<string, unknown>).responsible_cedula as string || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Teléfono del Encargado Legal</label>
@@ -393,7 +393,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Cédula de la Madre</label>
-                        <p className="text-sm text-gray-900 font-mono">{record.personal_data.mother_cedula || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900 ">{record.personal_data.mother_cedula || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Ocupación de la Madre</label>
@@ -418,7 +418,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Cédula del Padre</label>
-                        <p className="text-sm text-gray-900 font-mono">{record.personal_data.father_cedula || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900 ">{record.personal_data.father_cedula || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Ocupación del Padre</label>
@@ -443,7 +443,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Cédula del Encargado Legal</label>
-                        <p className="text-sm text-gray-900 font-mono">{record.personal_data?.legal_guardian_cedula || 'No disponible'}</p>
+                        <p className="text-sm text-gray-900 ">{record.personal_data?.legal_guardian_cedula || 'No disponible'}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Ocupación del Encargado Legal</label>
@@ -949,7 +949,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
             <h3 className="text-lg font-medium text-gray-900">Resumen del Expediente</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
                 {record.documents ? record.documents.length : 0}
@@ -970,13 +970,6 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
               </div>
               <div className="text-sm text-yellow-800">Cuota Pagada</div>
             </div>
-            
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {record.phase === 'phase3' ? 'Completo' : record.phase}
-              </div>
-              <div className="text-sm text-purple-800">Estado Actual</div>
-            </div>
           </div>
           
           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -985,7 +978,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
               <div>
                 <span className="text-gray-600">Teléfono:</span>
                 <span className="ml-2 text-gray-900">
-                  {record.personal_data?.phone || 'No disponible'}
+                  {record.complete_personal_data?.primary_phone || record.personal_data?.phone || 'No disponible'}
                 </span>
               </div>
               <div>
@@ -997,13 +990,13 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
               <div>
                 <span className="text-gray-600">Dirección:</span>
                 <span className="ml-2 text-gray-900">
-                  {record.personal_data?.address || 'No disponible'}
+                  {record.complete_personal_data?.exact_address || record.personal_data?.address || 'No disponible'}
                 </span>
               </div>
               <div>
                 <span className="text-gray-600">Cédula:</span>
-                <span className="ml-2 text-gray-900 font-mono">
-                  {record.personal_data?.cedula || 'No disponible'}
+                <span className="ml-2 text-gray-900 ">
+                  {record.complete_personal_data?.cedula || record.personal_data?.cedula || 'No disponible'}
                 </span>
               </div>
             </div>

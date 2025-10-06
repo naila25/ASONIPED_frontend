@@ -4,6 +4,7 @@ import { ModalSimple } from "./ModalSimple.tsx";
 import { heroService, type HeroSection } from "../Services/heroService";
 import { aboutService, type AboutSection } from "../Services/aboutService";
 import { volunteerLandingService, type LandingVolunteer } from "../Services/volunteerLandingService";
+import { donationService, type DonationSection } from "../Services/donationService";
 
 export function PreviewModal({
   sectionData,
@@ -15,21 +16,24 @@ export function PreviewModal({
   const [heroData, setHeroData] = useState<HeroSection | null>(null);
   const [aboutData, setAboutData] = useState<AboutSection | null>(null);
   const [volunteerData, setVolunteerData] = useState<LandingVolunteer | null>(null);
+  const [donationData, setDonationData] = useState<DonationSection | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadPreviewData = async () => {
       try {
         setLoading(true);
-        const [hero, about, volunteer] = await Promise.all([
+        const [hero, about, volunteer, donation] = await Promise.all([
           heroService.getAll().then(data => data[0] || null).catch(() => null),
           aboutService.getAll().then(data => data[0] || null).catch(() => null),
           volunteerLandingService.getAll().then(data => data[0] || null).catch(() => null),
+          donationService.getSection().catch(() => null),
         ]);
         
         setHeroData(hero);
         setAboutData(about);
         setVolunteerData(volunteer);
+        setDonationData(donation);
       } catch (error) {
         console.error('Error loading preview data:', error);
       } finally {
@@ -43,6 +47,7 @@ export function PreviewModal({
   const hero = heroData || (sectionData.hero as HeroSection) || {};
   const about = aboutData || (sectionData.about as AboutSection) || {};
   const volunteering = volunteerData || (sectionData.volunteering as LandingVolunteer) || {};
+  const donation = donationData || (sectionData.donation as DonationSection) || {};
 
 
   if (loading) {
@@ -278,11 +283,83 @@ export function PreviewModal({
           </div>
         </div>
 
+        {/* DONATION */}
+        <div className="mb-8">
+          <div className="flex items-center mb-4">
+            <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center mr-3">
+              <span className="text-white text-sm font-bold">4</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">Donaciones</h3>
+            <div className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            {donation.header?.titulo || donation.cards?.length > 0 ? (
+              <div className="p-6">
+                <div className="space-y-6">
+                  {/* Header Section */}
+                  {donation.header?.titulo && (
+                    <div className="text-center">
+                      <h4 className="text-2xl font-bold text-gray-900 mb-3">{donation.header.titulo}</h4>
+                      {donation.header.descripcion && (
+                        <p className="text-gray-600 leading-relaxed max-w-3xl mx-auto">{donation.header.descripcion}</p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Cards Grid */}
+                  {donation.cards && donation.cards.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {donation.cards.map((card, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-200">
+                          {card.URL_imagen && (
+                            <div className="relative h-40 overflow-hidden">
+                              <img
+                                src={card.URL_imagen}
+                                alt={card.titulo_card}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                            </div>
+                          )}
+                          <div className="p-4">
+                            <h5 className="text-lg font-semibold text-gray-900 mb-2">{card.titulo_card}</h5>
+                            <p className="text-gray-600 text-sm mb-4 leading-relaxed">{card.descripcion_card}</p>
+                            {card.texto_boton && (
+                              <button
+                                className="w-full py-2 px-4 text-sm font-semibold text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
+                                style={{ backgroundColor: card.color_boton || "#ec4899" }}
+                              >
+                                {card.texto_boton}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 font-medium">Sección sin configurar</p>
+                <p className="text-sm text-gray-400 mt-1">No hay contenido disponible para mostrar</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* LOCATION */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
             <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mr-3">
-              <span className="text-white text-sm font-bold">4</span>
+              <span className="text-white text-sm font-bold">5</span>
             </div>
             <h3 className="text-lg font-bold text-gray-900">Ubicación</h3>
             <div className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
@@ -307,8 +384,8 @@ export function PreviewModal({
         {/* TESTIMONIOS */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
-            <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center mr-3">
-              <span className="text-white text-sm font-bold">5</span>
+            <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center mr-3">
+              <span className="text-white text-sm font-bold">6</span>
             </div>
             <h3 className="text-lg font-bold text-gray-900">Testimonios</h3>
             <div className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
@@ -333,7 +410,7 @@ export function PreviewModal({
         <div className="mb-8">
           <div className="flex items-center mb-4">
             <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center mr-3">
-              <span className="text-white text-sm font-bold">6</span>
+              <span className="text-white text-sm font-bold">7</span>
             </div>
             <h3 className="text-lg font-bold text-gray-900">Pie de Página</h3>
             <div className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">

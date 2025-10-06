@@ -15,6 +15,8 @@ import PublicWorkshopsPage from '../../modules/Workshops/Components/PublicWorksh
 import AdminDashboard from '../../modules/Dashboards/Pages/AdminDashboard';
 import AdminDashboardHome from '../../modules/Dashboards/Pages/AdminDashboardHome';
 import ExpedientesAdminPage from '../../modules/Records/Pages/ExpedientesAdminPage';
+import AdminDirectRecordCreation from '../../modules/Records/Pages/AdminDirectRecordCreation';
+import AdminRecordEdit from '../../modules/Records/Pages/AdminRecordEdit';
 import UserManagement from '../../modules/Dashboards/Pages/UserManagement';
 import AdminTicketsPage from '../../modules/Tickets/Pages/AdminTicketsPage';
 import UserDashboard from '../../modules/Dashboards/Pages/UserDashboard';
@@ -27,13 +29,14 @@ import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
 import WorkshopPanel from '../../modules/Workshops/Components/WorkshopPanel';
+import AttendancePanel from '../../modules/Attendance/Components/AttendancePanel';
 
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerOptionsPage'));
 const VolunteerFormsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerFormsPage'));
 const DonationForms = lazy(() => import('../../modules/Donation/Pages/DonationForms'));
-const AttendancePage = lazy(() => import('../../modules/Attendance/Pages/AttendancePage'));
+//const AttendancePage = lazy(() => import('../../modules/Attendance/Pages/AttendancePage'));
 const WorkshopFormsTaller = lazy(() => import('../../modules/Workshops/Pages/WorkshopFormsTaller'));
 const WorkshopOptionsPage = lazy(() => import('../../modules/Workshops/Pages/WorkshopOptionsPage'));
 
@@ -140,6 +143,18 @@ const expedientesAdminRoute = createRoute({
   component: ExpedientesAdminPage,
 });
 
+const adminDirectRecordCreationRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'expedientes/crear-directo',
+  component: AdminDirectRecordCreation,
+});
+
+const adminRecordEditRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'expedientes/editar/$recordId',
+  component: AdminRecordEdit,
+});
+
 const userDashboardRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: 'user',
@@ -221,7 +236,7 @@ const attendanceAdminRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance',
   component: () => (
-      <AttendancePage />
+      <AttendancePanel />
   ),
 });
 
@@ -296,6 +311,8 @@ const routeTree = rootRoute.addChildren([
     adminDashboardRoute.addChildren([
       adminHomeRoute,
       expedientesAdminRoute,
+      adminDirectRecordCreationRoute,
+      adminRecordEditRoute,
       volunteersAdminRoute.addChildren([
         volunteerOptionsRoute,
         volunteerFormsRoute,

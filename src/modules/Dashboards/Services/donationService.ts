@@ -62,13 +62,23 @@ export const donationService = {
   async getCards(): Promise<DonationsCard[]> {
     const response = await fetch(`${API_BASE_URL_CARDS}`);
     if (!response.ok) throw new Error('Failed to fetch Donation cards');
-    return response.json();
+    const cards = await response.json();
+    // Construct full URLs for images
+    return cards.map((card: DonationsCard) => ({
+      ...card,
+      URL_imagen: card.URL_imagen ? `http://localhost:3000${card.URL_imagen}` : card.URL_imagen
+    }));
   },
 
   async getCardById(id: number): Promise<DonationsCard> {
     const response = await fetch(`${API_BASE_URL_CARDS}/${id}`);
     if (!response.ok) throw new Error('Failed to fetch Donation card');
-    return response.json();
+    const card = await response.json();
+    // Construct full URL for the image if provided
+    if (card.URL_imagen) {
+      card.URL_imagen = `http://localhost:3000${card.URL_imagen}`;
+    }
+    return card;
   },
 
   async createCard(card: Omit<DonationsCard, 'id'>, file?: File): Promise<{ message: string; id: number; URL_imagen?: string }> {
@@ -84,7 +94,12 @@ export const donationService = {
       body: formData
     });
     if (!response.ok) throw new Error((await response.json()).error || 'Failed to create Donation card');
-    return response.json();
+    const result = await response.json();
+    // Construct full URL for the image if provided
+    if (result.URL_imagen) {
+      result.URL_imagen = `http://localhost:3000${result.URL_imagen}`;
+    }
+    return result;
   },
 
   async updateCard(id: number, card: Partial<DonationsCard>, file?: File): Promise<{ message: string; URL_imagen?: string }> {
@@ -101,7 +116,12 @@ export const donationService = {
       body: formData
     });
     if (!response.ok) throw new Error((await response.json()).error || 'Failed to update Donation card');
-    return response.json();
+    const result = await response.json();
+    // Construct full URL for the image if provided
+    if (result.URL_imagen) {
+      result.URL_imagen = `http://localhost:3000${result.URL_imagen}`;
+    }
+    return result;
   },
 
   async deleteCard(id: number): Promise<{ message: string }> {
