@@ -129,6 +129,10 @@ const Voluntariados = () => {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [proposalSubmitted, setProposalSubmitted] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // proposal form state
   const [pTitle, setPTitle] = useState("");
@@ -137,7 +141,7 @@ const Voluntariados = () => {
   const [pDate, setPDate] = useState("");
   const [pTools, setPTools] = useState("");
   const [pHour, setPHour] = useState("");
-  const [pSpots, setPSpots] = useState("");
+  const [pSpots, setPSpots] = useState("1");
   const [pFile, setPFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
 
@@ -149,6 +153,7 @@ const Voluntariados = () => {
         const options = await fetchVolunteerOptions();
         setVolunteers(Array.isArray(options) ? options : []);
         setError(null);
+        setCurrentPage(1); // Reset to first page when data loads
     } catch {
       setError("Error al cargar las oportunidades de voluntariado");
       setVolunteers([]);
@@ -159,6 +164,34 @@ const Voluntariados = () => {
 
     loadVolunteers();
   }, []); // Empty dependency array means this runs on every mount
+
+  // Pagination calculations
+  const totalPages = Math.ceil(volunteers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentVolunteers = volunteers.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of volunteer section when page changes
+    const volunteerSection = document.getElementById('volunteer-section');
+    if (volunteerSection) {
+      volunteerSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
 
   const handleProposalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,7 +335,7 @@ const Voluntariados = () => {
       </div>
 
       {/* Áreas de voluntariado */}
-      <div className="max-w-7xl  p-2 mb-12 mt-16 mx-auto">
+      <div id="volunteer-section" className="max-w-7xl p-2 mb-12 mt-16 mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-orange-600 text-4xl font-semibold">
             Áreas de voluntariado en ASONIPED
@@ -327,14 +360,72 @@ const Voluntariados = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {volunteers.map((volunteer) => (
-              <VolunteerCard 
-                key={volunteer.id} 
-                {...volunteer}
-              />
-            ))}
-          </div>
+          <>
+            {/* Pagination Info */}
+            <div className="mb-6 text-center">
+              <p className="text-gray-600">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, volunteers.length)} de {volunteers.length} oportunidades
+              </p>
+            </div>
+
+            {/* Volunteer Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+              {currentVolunteers.map((volunteer) => (
+                <VolunteerCard 
+                  key={volunteer.id} 
+                  {...volunteer}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-2 mt-8">
+                {/* Previous Button */}
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentPage === 1
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-orange-500 text-white hover:bg-orange-600'
+                  }`}
+                >
+                  Anterior
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-orange-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentPage === totalPages
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-orange-500 text-white hover:bg-orange-600'
+                  }`}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -495,53 +586,22 @@ const Voluntariados = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fecha del voluntariado (DD/MM/YYYY) *
+                Fecha del voluntariado *
               </label>
               <input
-                type="text"
+                type="date"
                 className="w-full border border-gray-300 rounded px-4 py-2"
-                value={pDate}
-                placeholder="DD/MM/YYYY"
+                value={pDate ? new Date(pDate.split('/').reverse().join('-')).toISOString().split('T')[0] : ''}
+                min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => {
-                  const inputValue = e.target.value;
-                  
-                  // Allow only numbers and forward slashes
-                  const cleanedValue = inputValue.replace(/[^\d/]/g, '');
-                  
-                  // Auto-format as user types
-                  let formattedValue = cleanedValue;
-                  if (cleanedValue.length >= 2 && !cleanedValue.includes('/')) {
-                    formattedValue = cleanedValue.substring(0, 2) + '/' + cleanedValue.substring(2);
-                  }
-                  if (cleanedValue.length >= 5 && cleanedValue.split('/').length === 2) {
-                    formattedValue = cleanedValue.substring(0, 5) + '/' + cleanedValue.substring(5, 9);
-                  }
-                  
-                  // Limit to DD/MM/YYYY format
-                  if (formattedValue.length <= 10) {
-                    setPDate(formattedValue);
-                  }
-                  
-                  // Validate when complete date is entered
-                  if (formattedValue.length === 10) {
-                    const dateParts = formattedValue.split('/');
-                    if (dateParts.length === 3) {
-                      const day = parseInt(dateParts[0]);
-                      const month = parseInt(dateParts[1]);
-                      const year = parseInt(dateParts[2]);
-                      
-                      // Check if date is valid
-                      const inputDate = new Date(year, month - 1, day);
-                      const today = new Date();
-                      const todayString = today.toISOString().split('T')[0];
-                      const inputDateString = inputDate.toISOString().split('T')[0];
-                      
-                      if (inputDateString < todayString) {
-                        alert("La fecha del voluntariado no puede ser anterior a hoy");
-                        setPDate("");
-                        return;
-                      }
-                    }
+                  const selectedDate = e.target.value;
+                  if (selectedDate) {
+                    // Convert from YYYY-MM-DD to DD/MM/YYYY format
+                    const [year, month, day] = selectedDate.split('-');
+                    const formattedDate = `${day}/${month}/${year}`;
+                    setPDate(formattedDate);
+                  } else {
+                    setPDate('');
                   }
                 }}
               />
@@ -572,6 +632,7 @@ const Voluntariados = () => {
                   onChange={(e) => setPSpots(e.target.value)}
                   min="1"
                   max="999"
+                  placeholder="1"
                   required
                 />
               </div>
