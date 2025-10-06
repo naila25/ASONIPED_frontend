@@ -26,6 +26,10 @@ const VolunteerOptionsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [zoomLevel, setZoomLevel] = useState(1);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  
+  // Pagination state for card view
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Load volunteer options on mount
   useEffect(() => {
@@ -171,6 +175,34 @@ const VolunteerOptionsPage = () => {
     option.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     option.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Pagination calculations for card view
+  const totalPages = Math.ceil(filteredOptions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentOptions = filteredOptions.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  // Reset pagination when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // Loading state
   if (loading) {
@@ -606,9 +638,17 @@ const VolunteerOptionsPage = () => {
             </div>
           </div>
         ) : (
-          /* Options Cards */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredOptions.map((option) => (
+          <>
+            {/* Pagination Info for Cards */}
+            <div className="mb-6 text-center">
+              <p className="text-gray-600">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, filteredOptions.length)} de {filteredOptions.length} opciones
+              </p>
+            </div>
+
+            {/* Options Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {currentOptions.map((option) => (
               <div key={option.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
                 {/* Image Section */}
                 <div className="relative h-48 bg-gray-100 flex-shrink-0">
@@ -720,7 +760,56 @@ const VolunteerOptionsPage = () => {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+
+            {/* Pagination Controls for Cards */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-2 mt-8">
+                {/* Previous Button */}
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentPage === 1
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-orange-500 text-white hover:bg-orange-600'
+                  }`}
+                >
+                  Anterior
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-orange-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    currentPage === totalPages
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-orange-500 text-white hover:bg-orange-600'
+                  }`}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {filteredOptions.length === 0 && (

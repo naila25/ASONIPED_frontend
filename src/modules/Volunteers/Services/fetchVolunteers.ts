@@ -157,10 +157,13 @@ export const deleteMyProposal = async (proposalId: number): Promise<{ message: s
 
 // Fetch all available volunteer options
 export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
-  const res = await fetch(OPTIONS_API_URL, {
+  const params = new URLSearchParams({ _t: String(Date.now()) }); // Cache busting
+  const res = await fetch(`${OPTIONS_API_URL}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     },
   });
   if (!res.ok) throw new Error('Failed to fetch volunteer options');
@@ -251,11 +254,17 @@ export const deleteVolunteerOption = async (id: number): Promise<{ message: stri
 
 // Fetch a paginated list of volunteer forms
 export const fetchVolunteerForms = async (page = 1, limit = 10) => {
-  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const params = new URLSearchParams({ 
+    page: String(page), 
+    limit: String(limit),
+    _t: String(Date.now()) // Cache busting
+  });
   const res = await fetch(`${API_URL}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     },
   });
   if (!res.ok) throw new Error('Failed to fetch volunteer forms');

@@ -66,7 +66,9 @@ export const donationService = {
     // Construct full URLs for images
     return cards.map((card: DonationsCard) => ({
       ...card,
-      URL_imagen: card.URL_imagen ? `http://localhost:3000${card.URL_imagen}` : card.URL_imagen
+      URL_imagen: card.URL_imagen ? 
+        (card.URL_imagen.startsWith('http') ? card.URL_imagen : `http://localhost:3000${card.URL_imagen}`) 
+        : card.URL_imagen
     }));
   },
 
@@ -75,7 +77,7 @@ export const donationService = {
     if (!response.ok) throw new Error('Failed to fetch Donation card');
     const card = await response.json();
     // Construct full URL for the image if provided
-    if (card.URL_imagen) {
+    if (card.URL_imagen && !card.URL_imagen.startsWith('http')) {
       card.URL_imagen = `http://localhost:3000${card.URL_imagen}`;
     }
     return card;
@@ -96,7 +98,7 @@ export const donationService = {
     if (!response.ok) throw new Error((await response.json()).error || 'Failed to create Donation card');
     const result = await response.json();
     // Construct full URL for the image if provided
-    if (result.URL_imagen) {
+    if (result.URL_imagen && !result.URL_imagen.startsWith('http')) {
       result.URL_imagen = `http://localhost:3000${result.URL_imagen}`;
     }
     return result;
@@ -118,7 +120,7 @@ export const donationService = {
     if (!response.ok) throw new Error((await response.json()).error || 'Failed to update Donation card');
     const result = await response.json();
     // Construct full URL for the image if provided
-    if (result.URL_imagen) {
+    if (result.URL_imagen && !result.URL_imagen.startsWith('http')) {
       result.URL_imagen = `http://localhost:3000${result.URL_imagen}`;
     }
     return result;
