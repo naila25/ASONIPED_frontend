@@ -84,7 +84,7 @@ export default function PublicWorkshopsPage() {
 
   return (
     <div
-      className="relative py-10 bg-cover bg-center bg-no-repeat min-h-screen"
+      className="relative py-10 bg-cover bg-center bg-no-repeat min-h-[90vh]"
       style={{ backgroundImage: `url(${asofondo})` }}
     >
       <div className="absolute inset-0 bg-black/70"></div>
