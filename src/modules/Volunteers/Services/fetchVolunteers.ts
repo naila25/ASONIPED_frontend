@@ -159,6 +159,7 @@ export const deleteMyProposal = async (proposalId: number): Promise<{ message: s
 export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
   const res = await fetch(OPTIONS_API_URL, {
     headers: {
+      ...getAuthHeader(),
       'Content-Type': 'application/json',
     },
   });
@@ -186,6 +187,10 @@ export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'> & {
   if (option.tools) formData.append('tools', option.tools);
   if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
+  
+  // Add new fields
+  if ((option as any).hour) formData.append('hour', (option as any).hour);
+  if ((option as any).spots) formData.append('spots', String((option as any).spots));
 
   const res = await fetch(OPTIONS_API_URL, {
     method: 'POST',
@@ -218,6 +223,10 @@ export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOp
   if (option.tools) formData.append('tools', option.tools);
   if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
+  
+  // Add new fields
+  if ((option as any).hour) formData.append('hour', (option as any).hour);
+  if ((option as any).spots) formData.append('spots', String((option as any).spots));
 
   const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
     method: 'PUT',

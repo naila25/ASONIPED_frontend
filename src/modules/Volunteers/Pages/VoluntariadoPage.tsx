@@ -1,17 +1,28 @@
 import { useEffect, useState } from "react";
-import { fetchMyVolunteerEnrollments, fetchMyVolunteerProposals, unenrollFromVolunteerOption, deleteMyProposal } from "../Services/fetchVolunteers";
-import { FaRegCalendarAlt, FaMapMarkerAlt, FaUserCheck, FaClock, FaFileAlt, FaDownload, FaTimes } from "react-icons/fa";
+import { fetchMyVolunteerProposals, deleteMyProposal } from "../Services/fetchVolunteers";
+import { getUserRegistrations, cancelVolunteerRegistration } from "../Services/volunteerRegistrations";
+import { FaRegCalendarAlt, FaMapMarkerAlt, FaUserCheck, FaClock, FaFileAlt, FaDownload, FaTimes, FaUsers } from "react-icons/fa";
+import { formatTime12Hour } from "../../../shared/Utils/timeUtils";
 
-interface VolunteerEnrollment {
-  volunteer_id: number;
+interface VolunteerRegistration {
+  id: number;
+  volunteer_option_id: number;
   status: string;
-  submission_date: string;
-  option_id: number;
-  option_title: string;
-  option_description: string;
-  option_imageUrl?: string;
-  option_date?: string;
-  option_location?: string;
+  registration_date: string;
+  cancellation_date?: string;
+  notes?: string;
+  volunteer_option: {
+    id: number;
+    title: string;
+    description: string;
+    date: string;
+    location: string;
+    hour: string;
+    spots: number;
+    imageUrl?: string;
+    available_spots: number;
+    registered_count: number;
+  };
 }
 
 interface VolunteerProposal {
@@ -32,22 +43,26 @@ interface VolunteerProposal {
 export default function VoluntariadoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [enrollments, setEnrollments] = useState<VolunteerEnrollment[]>([]);
+  const [registrations, setRegistrations] = useState<VolunteerRegistration[]>([]);
   const [proposals, setProposals] = useState<VolunteerProposal[]>([]);
-  const [deletingEnrollment, setDeletingEnrollment] = useState<number | null>(null);
+  const [cancellingRegistration, setCancellingRegistration] = useState<number | null>(null);
   const [deletingProposal, setDeletingProposal] = useState<number | null>(null);
 
   const load = async () => {
     try {
       setLoading(true);
-      const [enrollRes, proposalsRes] = await Promise.all([
-        fetchMyVolunteerEnrollments(),
+      console.log('Loading user registrations...');
+      const [registrationsRes, proposalsRes] = await Promise.all([
+        getUserRegistrations(),
         fetchMyVolunteerProposals()
       ]);
-      setEnrollments(enrollRes.enrollments || []);
+      console.log('Registrations response:', registrationsRes);
+      console.log('Proposals response:', proposalsRes);
+      setRegistrations(registrationsRes || []);
       setProposals(proposalsRes.proposals || []);
       setError(null);
-    } catch {
+    } catch (error) {
+      console.error('Error loading data:', error);
       setError("No se pudieron cargar tus voluntariados");
     } finally {
       setLoading(false);
@@ -60,6 +75,8 @@ export default function VoluntariadoPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'registered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -69,6 +86,8 @@ export default function VoluntariadoPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'registered': return 'Registrado';
+      case 'cancelled': return 'Cancelado';
       case 'approved': return 'Aprobado';
       case 'rejected': return 'Rechazado';
       case 'pending': return 'Pendiente';
@@ -76,20 +95,21 @@ export default function VoluntariadoPage() {
     }
   };
 
-  const handleUnenroll = async (volunteerId: number) => {
-    if (!confirm('¿Estás seguro de que quieres cancelar tu inscripción en este voluntariado?')) {
+  const handleCancelRegistration = async (volunteerOptionId: number) => {
+    if (!confirm('¿Estás seguro de que quieres cancelar tu registro en este voluntariado?')) {
       return;
     }
 
     try {
-      setDeletingEnrollment(volunteerId);
-      await unenrollFromVolunteerOption(volunteerId);
+      setCancellingRegistration(volunteerOptionId);
+      await cancelVolunteerRegistration(volunteerOptionId);
       await load(); // Reload data
-      alert('Te has desinscrito del voluntariado exitosamente');
-    } catch {
-      alert('Error al cancelar la inscripción. Inténtalo nuevamente.');
+      alert('Tu registro ha sido cancelado exitosamente');
+    } catch (error) {
+      console.error('Error cancelling registration:', error);
+      alert(error instanceof Error ? error.message : 'Error al cancelar el registro. Inténtalo nuevamente.');
     } finally {
-      setDeletingEnrollment(null);
+      setCancellingRegistration(null);
     }
   };
 
@@ -149,12 +169,12 @@ export default function VoluntariadoPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
+    <div className="max-w-8xl mx-auto px-6 py-10">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-orange-600 mb-2">Mi Voluntariado</h1>
         <p className="text-gray-600">Gestiona tus participaciones en programas de voluntariado</p>
       </div>
-
+      
       {loading ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
@@ -164,7 +184,7 @@ export default function VoluntariadoPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <p className="text-red-600 text-lg">{error}</p>
         </div>
-      ) : enrollments.length === 0 && proposals.length === 0 ? (
+      ) : registrations.filter(r => r.status === 'registered').length === 0 && proposals.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
           <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
             <FaUserCheck className="w-8 h-8 text-gray-400" />
@@ -180,19 +200,19 @@ export default function VoluntariadoPage() {
         </div>
       ) : (
         <>
-        {/* My Enrollments - Only show if there are enrollments */}
-        {enrollments.length > 0 && (
+        {/* My Active Registrations - Only show if there are active registrations */}
+        {registrations.filter(r => r.status === 'registered').length > 0 && (
           <div className="space-y-6 mb-10">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Mis Inscripciones</h2>
-            {enrollments.map((enrollment) => (
-            <div key={enrollment.volunteer_id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Mis Registros Activos</h2>
+            {registrations.filter(r => r.status === 'registered').map((registration) => (
+            <div key={registration.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="flex flex-col lg:flex-row">
                 {/* Image Section */}
-                {enrollment.option_imageUrl && (
+                {registration.volunteer_option.imageUrl && (
                   <div className="lg:w-80 h-64 lg:h-auto">
                     <img 
-                      src={enrollment.option_imageUrl?.startsWith('http') ? enrollment.option_imageUrl : `http://localhost:3000${enrollment.option_imageUrl}`} 
-                      alt={enrollment.option_title} 
+                      src={registration.volunteer_option.imageUrl?.startsWith('http') ? registration.volunteer_option.imageUrl : `http://localhost:3000${registration.volunteer_option.imageUrl}`} 
+                      alt={registration.volunteer_option.title} 
                       className="w-full h-full object-cover" 
                     />
                   </div>
@@ -202,36 +222,36 @@ export default function VoluntariadoPage() {
                 <div className="flex-1 p-6">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-800 mb-2">{enrollment.option_title}</h3>
+                      <h3 className="text-2xl font-bold text-gray-800 mb-2">{registration.volunteer_option.title}</h3>
                       <p className="text-gray-600 text-base leading-relaxed">
-                        {cleanDescription(enrollment.option_description)}
+                        {cleanDescription(registration.volunteer_option.description)}
                       </p>
                     </div>
                     <div className="mt-4 lg:mt-0 lg:ml-6">
-                      <span className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(enrollment.status)}`}>
-                        {getStatusText(enrollment.status)}
+                      <span className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(registration.status)}`}>
+                        {getStatusText(registration.status)}
                       </span>
                     </div>
                   </div>
 
                   {/* Details Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
-                    {enrollment.option_date && (
+                    {registration.volunteer_option.date && (
                       <div className="flex items-center text-gray-600">
                         <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Fecha</div>
-                          <div className="text-base">{enrollment.option_date}</div>
+                          <div className="text-base">{registration.volunteer_option.date}</div>
                         </div>
                       </div>
                     )}
                     
-                    {enrollment.option_location && (
+                    {registration.volunteer_option.location && (
                       <div className="flex items-center text-gray-600">
                         <FaMapMarkerAlt className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Ubicación</div>
-                          <div className="text-base">{enrollment.option_location}</div>
+                          <div className="text-base">{registration.volunteer_option.location}</div>
                         </div>
                       </div>
                     )}
@@ -239,9 +259,11 @@ export default function VoluntariadoPage() {
                     <div className="flex items-center text-gray-600">
                       <FaClock className="w-5 h-5 mr-3 text-orange-500" />
                       <div>
-                        <div className="text-sm font-medium text-gray-500">Fecha de inscripción</div>
+                        <div className="text-sm font-medium text-gray-500">
+                          {registration.status === 'cancelled' ? 'Fecha de cancelación' : 'Fecha de registro'}
+                        </div>
                         <div className="text-base">
-                          {new Date(enrollment.submission_date).toLocaleDateString('es-ES', {
+                          {new Date(registration.status === 'cancelled' ? registration.cancellation_date! : registration.registration_date).toLocaleDateString('es-ES', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
@@ -251,39 +273,59 @@ export default function VoluntariadoPage() {
                     </div>
                   </div>
 
-                  {/* Extra details: skills/tools */}
-                  {(enrollment as unknown as { option_skills?: string; option_tools?: string }).option_skills || (enrollment as unknown as { option_skills?: string; option_tools?: string }).option_tools ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                      {(enrollment as unknown as { option_skills?: string }).option_skills && (
+                  {/* Hour and Spots */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                    {registration.volunteer_option.hour && (
+                      <div className="flex items-center text-gray-600">
+                        <FaClock className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
-                          <div className="text-sm font-medium text-gray-500 mb-1">Habilidades necesarias</div>
-                          <div className="text-sm text-gray-700 whitespace-pre-line">{(enrollment as unknown as { option_skills?: string }).option_skills}</div>
+                          <div className="text-sm font-medium text-gray-500">Hora</div>
+                          <div className="text-base">{formatTime12Hour(registration.volunteer_option.hour)}</div>
                         </div>
-                      )}
-                      {(enrollment as unknown as { option_tools?: string }).option_tools && (
-                        <div>
-                          <div className="text-sm font-medium text-gray-500 mb-1">Herramientas necesarias</div>
-                          <div className="text-sm text-gray-700 whitespace-pre-line">{(enrollment as unknown as { option_tools?: string }).option_tools}</div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center text-gray-600">
+                      <FaUsers className="w-5 h-5 mr-3 text-orange-500" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-500">Cupos disponibles</div>
+                        <div className="text-base">
+                          <span className={registration.volunteer_option.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
+                            {registration.volunteer_option.available_spots}
+                          </span>
+                          <span className="text-gray-500 text-sm ml-1">
+                            / {registration.volunteer_option.spots} total
+                          </span>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  ) : null}
-
-                  {/* Action Button */}
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <button
-                      onClick={() => handleUnenroll(enrollment.volunteer_id)}
-                      disabled={deletingEnrollment === enrollment.volunteer_id}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {deletingEnrollment === enrollment.volunteer_id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      ) : (
-                        <FaTimes className="w-4 h-4" />
-                      )}
-                      {deletingEnrollment === enrollment.volunteer_id ? 'Cancelando...' : 'Cancelar Inscripción'}
-                    </button>
                   </div>
+
+                  {/* Notes */}
+                  {registration.notes && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="text-sm font-medium text-gray-500 mb-1">Notas</div>
+                      <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{registration.notes}</div>
+                    </div>
+                  )}
+
+                  {/* Action Button - Only show for registered status */}
+                  {registration.status === 'registered' && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <button
+                        onClick={() => handleCancelRegistration(registration.volunteer_option_id)}
+                        disabled={cancellingRegistration === registration.volunteer_option_id}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {cancellingRegistration === registration.volunteer_option_id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        ) : (
+                          <FaTimes className="w-4 h-4" />
+                        )}
+                        {cancellingRegistration === registration.volunteer_option_id ? 'Cancelando...' : 'Cancelar Registro'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
