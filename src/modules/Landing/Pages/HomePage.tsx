@@ -22,14 +22,16 @@ const Home = () => {
           {/*<Testimonials />*/}
         </div>
       </div>
+      
+       {/* Voluntariado fuera para que sea full width */}
+      <VolunteersSection />
       <PublicWorkshopsPage />
 
       <div className="max-w-7xl mx-auto px-6 space-y-8 pt-10">
         <HistoriasdeVida /> 
       </div> 
 
-      {/* Voluntariado fuera para que sea full width */}
-      <VolunteersSection />
+     
 
       <div className="max-w-7xl mx-auto px-6 space-y-8 pt-10">
         <LocationMap />
