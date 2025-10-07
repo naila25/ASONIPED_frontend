@@ -54,7 +54,7 @@ const AboutSection = () => {
           </p>
         )}
 
-        <div className="mt-8 flex justify-center lg:justify-start">
+        <div className="mt-8 flex justify-center lg:justify-center">
           <a
             href="/conocenos"
             className="text-white py-3 px-6  rounded-full border text-sm hover:opacity-90 transition"
