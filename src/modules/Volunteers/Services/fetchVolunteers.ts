@@ -157,9 +157,13 @@ export const deleteMyProposal = async (proposalId: number): Promise<{ message: s
 
 // Fetch all available volunteer options
 export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
-  const res = await fetch(OPTIONS_API_URL, {
+  const params = new URLSearchParams({ _t: String(Date.now()) }); // Cache busting
+  const res = await fetch(`${OPTIONS_API_URL}?${params.toString()}`, {
     headers: {
+      ...getAuthHeader(),
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     },
   });
   if (!res.ok) throw new Error('Failed to fetch volunteer options');
@@ -186,6 +190,10 @@ export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'> & {
   if (option.tools) formData.append('tools', option.tools);
   if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
+  
+  // Add new fields
+  if ((option as any).hour) formData.append('hour', (option as any).hour);
+  if ((option as any).spots) formData.append('spots', String((option as any).spots));
 
   const res = await fetch(OPTIONS_API_URL, {
     method: 'POST',
@@ -218,6 +226,10 @@ export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOp
   if (option.tools) formData.append('tools', option.tools);
   if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
+  
+  // Add new fields
+  if ((option as any).hour) formData.append('hour', (option as any).hour);
+  if ((option as any).spots) formData.append('spots', String((option as any).spots));
 
   const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
     method: 'PUT',
@@ -242,11 +254,17 @@ export const deleteVolunteerOption = async (id: number): Promise<{ message: stri
 
 // Fetch a paginated list of volunteer forms
 export const fetchVolunteerForms = async (page = 1, limit = 10) => {
-  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const params = new URLSearchParams({ 
+    page: String(page), 
+    limit: String(limit),
+    _t: String(Date.now()) // Cache busting
+  });
   const res = await fetch(`${API_URL}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     },
   });
   if (!res.ok) throw new Error('Failed to fetch volunteer forms');

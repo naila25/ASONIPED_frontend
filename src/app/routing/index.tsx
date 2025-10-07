@@ -5,7 +5,7 @@ import Home from '../../modules/Landing/Pages/HomePage';
 import AdminLogin from '../../modules/Login/Pages/AdminLogin';
 import VolunteersSubDashboard from '../../modules/Volunteers/Pages/VolunteersSubDashboard';
 import VolunteerProposalsAdmin from '../../modules/Volunteers/Pages/VolunteerProposalsAdmin';
-import DonacionesPage from '../../modules/Donation/Pages/Donaciones.page';
+import DonacionesPage from '../../modules/Donation/Pages/DonacionesPage';
 import FormularioDonacion from '../../modules/Donation/Components/FormularioDonacion';
 import ConocenosSection from '../../modules/Landing/Components/Conocenos';
 import EventsNewsList from '../../modules/EventsNews/Pages/EventsNewsList';
