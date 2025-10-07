@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { FaRocket, FaInfoCircle, FaHandsHelping, FaDonate} from "react-icons/fa";
-
+import { FaRocket, FaInfoCircle, FaHandsHelping, FaDonate, FaChalkboardTeacher } from "react-icons/fa";
 import { LandingSectionEditor } from "./LandingSectionEditor";
 import { PreviewModal } from "./PreviewModal";
-import type { AllSectionData, SectionData, SectionKey, DonationSection } from "../Types/types";
+import type { AllSectionData, SectionData, SectionKey, DonationSection, LandingWorkshop } from "../Types/types";
 import { heroService } from "../Services/heroService";
 import { aboutService } from "../Services/aboutService";
 import { donationService } from "../Services/donationService";
 import { volunteerLandingService } from "../Services/volunteerLandingService";
+import { landingWorkshopService } from "../Services/workshopService";
 
 const landingSections: {
   key: SectionKey;
@@ -18,6 +18,7 @@ const landingSections: {
   { key: "about", label: "Sobre Nosotros", icon: <FaInfoCircle size={20} /> },
   { key: "volunteering", label: "Voluntariado", icon: <FaHandsHelping size={20} /> },
   { key: "donation", label: "Donaciones", icon: <FaDonate size={20} /> },
+  { key: "workshop", label: "Talleres", icon: <FaChalkboardTeacher size={20} /> },
 ];
 
 export default function GestionLanding() {
@@ -28,7 +29,7 @@ export default function GestionLanding() {
   const [currentSection, setCurrentSection] = useState<SectionKey | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // ¡Tipo global corregido aquí!
+  // Inicializa workshop como array vacío SIEMPRE
   const [sectionData, setSectionData] = useState<AllSectionData>({
     hero: {
       title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff",
@@ -50,6 +51,7 @@ export default function GestionLanding() {
       header: { titulo: "", descripcion: "" },
       cards: [],
     },
+    workshop: [], // SIEMPRE array
     footer: {
       title: "", image: undefined, buttonColor: "#1976d2", backgroundColor: "#ffffff", textAlign: "left",
       footer: { companyName: "", logo: undefined, phone: "", email: "", schedule: "", locationText: "", order: ["company", "contacts", "location", "schedule"] },
@@ -70,6 +72,7 @@ export default function GestionLanding() {
     about: { count: 0, title: "Sin configurar", hasImage: false },
     volunteering: { count: 0, title: "Sin configurar", hasImage: false },
     donation: { count: 0, title: "Sin configurar", hasImage: false },
+    workshop: { count: 0, title: "Sin configurar", hasImage: false },
     footer: { count: 0, title: "Sin configurar", hasImage: false },
     location: { count: 0, title: "Sin configurar", hasImage: false },
     testimonials: { count: 0, title: "Sin configurar", hasImage: false },
@@ -78,7 +81,7 @@ export default function GestionLanding() {
   useEffect(() => {
     const loadSectionData = async () => {
       try {
-        // Load Hero data
+        // Hero
         const heroData = await heroService.getAll();
         if (heroData.length > 0) {
           const hero = heroData[0];
@@ -91,8 +94,7 @@ export default function GestionLanding() {
             }
           }));
         }
-
-        // Load About data
+        // About
         const aboutData = await aboutService.getAll();
         if (aboutData.length > 0) {
           const about = aboutData[0];
@@ -105,8 +107,7 @@ export default function GestionLanding() {
             }
           }));
         }
-
-        // Load Volunteers data
+        // Volunteers
         const volunteerData = await volunteerLandingService.getAll();
         if (volunteerData.length > 0) {
           const volunteer = volunteerData[0];
@@ -119,8 +120,7 @@ export default function GestionLanding() {
             }
           }));
         }
-
-        // Load Donations data
+        // Donations
         const donationData = await donationService.getSection();
         if (donationData) {
           setSectionStats(prev => ({
@@ -136,6 +136,20 @@ export default function GestionLanding() {
             donation: donationData,
           }));
         }
+        // Workshops
+        const workshopData = await landingWorkshopService.getAll();
+        setSectionStats(prev => ({
+          ...prev,
+          workshop: {
+            count: workshopData.length,
+            title: workshopData[0]?.titulo_card || "Talleres",
+            hasImage: !!workshopData[0]?.imagen_card,
+          }
+        }));
+        setSectionData(prev => ({
+          ...prev,
+          workshop: workshopData,
+        }));
       } catch (error) {
         console.error('Error loading section data:', error);
       }
@@ -153,11 +167,32 @@ export default function GestionLanding() {
     setModalOpen(true);
   };
 
-  // ¡OJO! handleSave debe diferenciar donation
-  const handleSave = (data: SectionData | DonationSection) => {
+  // handleSave ahora incluye taller
+  const handleSave = async (data: SectionData | DonationSection | LandingWorkshop) => {
     if (!currentSection) return;
     if (currentSection === "donation") {
       setSectionData(prev => ({ ...prev, donation: data as DonationSection }));
+    } else if (currentSection === "workshop") {
+      // Si es edición de taller, usa el service para guardar (update o create)
+      let resp;
+      const input = data as LandingWorkshop;
+      if (input.id) {
+        resp = await landingWorkshopService.update(input.id, input);
+      } else {
+        resp = await landingWorkshopService.create(input);
+      }
+      // Vuelve a cargar la lista de talleres
+      const workshopData = await landingWorkshopService.getAll();
+      setSectionData(prev => ({ ...prev, workshop: workshopData }));
+      setSectionStats(prev => ({
+        ...prev,
+        workshop: {
+          count: workshopData.length,
+          title: workshopData[0]?.titulo_card || "Talleres",
+          hasImage: !!workshopData[0]?.imagen_card,
+        }
+      }));
+      setMessage({ type: "success", text: "Cambios guardados correctamente." });
     } else {
       setSectionData(prev => ({
         ...prev,
@@ -167,71 +202,72 @@ export default function GestionLanding() {
     setModalOpen(false);
     setMessage({ type: "success", text: "Cambios guardados correctamente." });
 
-    // Reload section data after save
-    const loadSectionData = async () => {
-      try {
-        if (currentSection === "hero") {
-          const heroData = await heroService.getAll();
-          if (heroData.length > 0) {
-            const hero = heroData[0];
-            setSectionStats(prev => ({
-              ...prev,
-              hero: {
-                count: heroData.length,
-                title: hero.titulo || "Hero Section",
-                hasImage: !!hero.url_imagen
-              }
-            }));
+    // Reload section data after save (no necesario para workshop porque ya se recarga arriba)
+    if (currentSection !== "workshop") {
+      const loadSectionData = async () => {
+        try {
+          if (currentSection === "hero") {
+            const heroData = await heroService.getAll();
+            if (heroData.length > 0) {
+              const hero = heroData[0];
+              setSectionStats(prev => ({
+                ...prev,
+                hero: {
+                  count: heroData.length,
+                  title: hero.titulo || "Hero Section",
+                  hasImage: !!hero.url_imagen
+                }
+              }));
+            }
+          } else if (currentSection === "about") {
+            const aboutData = await aboutService.getAll();
+            if (aboutData.length > 0) {
+              const about = aboutData[0];
+              setSectionStats(prev => ({
+                ...prev,
+                about: {
+                  count: aboutData.length,
+                  title: about.titulo || "Sobre Nosotros",
+                  hasImage: !!about.URL_imagen
+                }
+              }));
+            }
+          } else if (currentSection === "volunteering") {
+            const volunteerData = await volunteerLandingService.getAll();
+            if (volunteerData.length > 0) {
+              const volunteer = volunteerData[0];
+              setSectionStats(prev => ({
+                ...prev,
+                volunteering: {
+                  count: volunteerData.length,
+                  title: volunteer.titulo || "Voluntariado",
+                  hasImage: !!volunteer.URL_imagen
+                }
+              }));
+            }
+          } else if (currentSection === "donation") {
+            const donationData = await donationService.getSection();
+            if (donationData) {
+              setSectionStats(prev => ({
+                ...prev,
+                donation: {
+                  count: donationData.cards?.length || 0,
+                  title: donationData.header?.titulo || "Donaciones",
+                  hasImage: donationData.cards?.some(card => !!card.URL_imagen) || false
+                }
+              }));
+              setSectionData(prev => ({
+                ...prev,
+                donation: donationData,
+              }));
+            }
           }
-        } else if (currentSection === "about") {
-          const aboutData = await aboutService.getAll();
-          if (aboutData.length > 0) {
-            const about = aboutData[0];
-            setSectionStats(prev => ({
-              ...prev,
-              about: {
-                count: aboutData.length,
-                title: about.titulo || "Sobre Nosotros",
-                hasImage: !!about.URL_imagen
-              }
-            }));
-          }
-        } else if (currentSection === "volunteering") {
-          const volunteerData = await volunteerLandingService.getAll();
-          if (volunteerData.length > 0) {
-            const volunteer = volunteerData[0];
-            setSectionStats(prev => ({
-              ...prev,
-              volunteering: {
-                count: volunteerData.length,
-                title: volunteer.titulo || "Voluntariado",
-                hasImage: !!volunteer.URL_imagen
-              }
-            }));
-          }
-        } else if (currentSection === "donation") {
-          const donationData = await donationService.getSection();
-          if (donationData) {
-            setSectionStats(prev => ({
-              ...prev,
-              donation: {
-                count: donationData.cards?.length || 0,
-                title: donationData.header?.titulo || "Donaciones",
-                hasImage: donationData.cards?.some(card => !!card.URL_imagen) || false
-              }
-            }));
-            setSectionData(prev => ({
-              ...prev,
-              donation: donationData,
-            }));
-          }
+        } catch (error) {
+          console.error('Error reloading section data:', error);
         }
-      } catch (error) {
-        console.error('Error reloading section data:', error);
-      }
-    };
-
-    loadSectionData();
+      };
+      loadSectionData();
+    }
   };
 
   const cardColors = [
@@ -295,12 +331,27 @@ export default function GestionLanding() {
       {modalOpen && currentSection !== null && (
         <LandingSectionEditor
           section={currentSection}
-          initialData={sectionData[currentSection] as SectionData}
+          initialData={
+            currentSection === "workshop"
+              ? sectionData.workshop[0] || {
+                  titulo: "",
+                  titulo_card: "",
+                  descripcion_card: "",
+                  imagen_card: "",
+                  texto_boton_card: "",
+                  color_boton_card: "#ff6600",
+                  fondo: "",
+                }
+              : sectionData[currentSection] as SectionData
+          }
           onSave={handleSave}
           onCancel={() => setModalOpen(false)}
           onUpdate={(partial) => {
             if (!currentSection) return;
-            setSectionData((prev) => ({ ...prev, [currentSection]: { ...prev[currentSection], ...partial } }));
+            setSectionData((prev) => ({
+              ...prev,
+              [currentSection]: { ...prev[currentSection], ...partial }
+            }));
           }}
         />
       )}

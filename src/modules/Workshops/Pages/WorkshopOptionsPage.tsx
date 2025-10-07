@@ -244,9 +244,7 @@ const WorkshopOptionsPage: React.FC = () => {
             </div>
           </div>
         </div>
-       
-        </div>
-   
+      </div>
 
       {/* Barra control */}
       <div className="px-6 pt-2 pb-4">
@@ -456,7 +454,7 @@ const WorkshopOptionsPage: React.FC = () => {
         {filtered.map(opt => (
           <div
             key={opt.id}
-            className=" border border-gray-200  borderborder-gray-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow transition flex flex-col"
+            className=" border border-gray-200 borderborder-gray-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow transition flex flex-col"
           >
             <div className="h-36 bg-neutral-200 flex items-center justify-center text-neutral-500 text-sm">
               {opt.imageUrl ? (
@@ -472,43 +470,34 @@ const WorkshopOptionsPage: React.FC = () => {
             <div className="p-4 flex flex-col gap-2 flex-grow">
               <h3 className="font-semibold text-lg">{opt.title}</h3>
               <p className="text-sm text-neutral-700 line-clamp-3">{opt.description}</p>
-
               <div className="text-xs text-neutral-600 space-y-1">
                 <span className="flex items-center gap-1 mb-1">
                   <Calendar className="w-4 h-4" /> {opt.date || '—'}
                 </span>
-
                 {opt.time && (
                   <span className="flex items-center gap-1 mb-1">
                     <Clock className="w-4 h-4" /> {opt.time}
                   </span>
                 )}
-
                 <span className="flex items-center gap-1 mb-1">
                   <MapPin className="w-4 h-4" /> {opt.location || '—'}
                 </span>
-
                 {typeof opt.capacity === 'number' && (
                   <span className="flex items-center gap-1 mb-1">
                     <Users className="w-4 h-4" /> Cupo: {opt.capacity}
                   </span>
                 )}
-
-                
-                  {opt.skills && (
-                    <div className="flex gap-1 mb-1">
-                      <Wrench className="w-4 h-4" /> <span>{opt.skills}</span>
-                    </div>
-                  )}
-                  {opt.tools && (
-                    <div className="flex gap-1 mb-1">
-                      <BookOpenCheck className="w-4 h-4" /> <span>{opt.tools}</span>
-                    </div>
-                  )}
-                
-
+                {opt.skills && (
+                  <div className="flex gap-1 mb-1">
+                    <Wrench className="w-4 h-4" /> <span>{opt.skills}</span>
+                  </div>
+                )}
+                {opt.tools && (
+                  <div className="flex gap-1 mb-1">
+                    <BookOpenCheck className="w-4 h-4" /> <span>{opt.tools}</span>
+                  </div>
+                )}
               </div>
-              
               <div className="flex gap-2 pt-2 mt-auto">
                 <button
                   onClick={() => startEdit(opt)}
@@ -527,7 +516,6 @@ const WorkshopOptionsPage: React.FC = () => {
           </div>
         ))}
       </div>
-
     </div>
   );
 };

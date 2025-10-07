@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-
 import type { SectionData, SectionKey, ValueItem } from "../Types/types";
 import { ModalSimple } from "./ModalSimple.tsx";
 import { heroService, type HeroSection } from "../Services/heroService.ts";
 import { aboutService, type AboutSection } from "../Services/aboutService";
 import { volunteerLandingService, type LandingVolunteer } from "../Services/volunteerLandingService";
 import { donationService, type DonationSection, type DonationsCard } from "../Services/donationService";
+import type { LandingWorkshop } from "../Types/types";
 
 // Extiendo ValueItem para incluir id, que es necesario para edición y eliminación
 type ValueItemWithId = ValueItem & { id: string };
@@ -18,10 +18,10 @@ export function LandingSectionEditor({
   onUpdate,
 }: {
   section: SectionKey;
-  initialData: SectionData;
-  onSave: (data: SectionData) => void;
+  initialData: SectionData | LandingWorkshop;
+  onSave: (data: SectionData | LandingWorkshop) => void;
   onCancel: () => void;
-  onUpdate: (partial: Partial<SectionData>) => void;
+  onUpdate: (partial: Partial<SectionData> | Partial<LandingWorkshop>) => void;
 }) {
   // Inicializo valores con id, si no vienen (para evitar errores)
   const addIdToValues = (values?: ValueItem[]): ValueItemWithId[] => {
@@ -54,6 +54,20 @@ export function LandingSectionEditor({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  // Estado específico para workshop section del backend
+  const [workshopData, setWorkshopData] = useState<LandingWorkshop>(
+    section === "workshop"
+      ? (initialData as LandingWorkshop)
+      : {
+        titulo: "",
+        titulo_card: "",
+        descripcion_card: "",
+        imagen_card: "",
+        texto_boton_card: "",
+        color_boton_card: "#ff6600",
+        fondo: "",
+      }
+  );
 
   // Validation functions
   const validateHero = (data: HeroSection): Record<string, string> => {
@@ -156,6 +170,19 @@ export function LandingSectionEditor({
     return errors;
   };
 
+  // Validation for workshop section
+  const validateWorkshop = (data: LandingWorkshop): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    if (!data.titulo || data.titulo.length < 3 || data.titulo.length > 150) errors.titulo = "Título requerido y debe tener entre 3 y 150 caracteres";
+    if (!data.titulo_card || data.titulo_card.length < 3 || data.titulo_card.length > 150) errors.titulo_card = "Título de tarjeta requerido y debe tener entre 3 y 150 caracteres";
+    if (!data.descripcion_card || data.descripcion_card.length < 5 || data.descripcion_card.length > 255) errors.descripcion_card = "Descripción requerida y debe tener entre 5 y 255 caracteres";
+    if (!data.imagen_card || data.imagen_card.length < 5 || data.imagen_card.length > 255) errors.imagen_card = "Imagen requerida y debe tener entre 5 y 255 caracteres";
+    if (!data.texto_boton_card || data.texto_boton_card.length < 1 || data.texto_boton_card.length > 100) errors.texto_boton_card = "Texto botón requerido y debe tener entre 1 y 100 caracteres";
+    if (!data.color_boton_card || data.color_boton_card.length < 1 || data.color_boton_card.length > 20) errors.color_boton_card = "Color botón requerido y máximo 20 caracteres";
+    if (!data.fondo || data.fondo.length < 1 || data.fondo.length > 255) errors.fondo = "Fondo requerido y debe tener entre 1 y 255 caracteres";
+    return errors;
+  };
+
   useEffect(() => {
     // Avoid overriding locally edited dynamic sections
     if (section === 'hero' || section === 'about' || section === 'volunteering') return;
@@ -177,7 +204,8 @@ export function LandingSectionEditor({
           const list = await aboutService.getAll();
           const first = list[0];
           if (first) {
-            setData(prev => ({ ...prev, 
+            setData(prev => ({
+              ...prev,
               // map backend fields into local data for the form binding
               ...(first as unknown as Record<string, unknown>)
             }));
@@ -197,7 +225,8 @@ export function LandingSectionEditor({
           const list = await volunteerLandingService.getAll();
           const first = list[0];
           if (first) {
-            setData(prev => ({ ...prev, 
+            setData(prev => ({
+              ...prev,
               // map backend fields into local data for the form binding
               ...(first as unknown as Record<string, unknown>)
             }));
@@ -264,12 +293,17 @@ export function LandingSectionEditor({
 
   // Handlers específicos para donation section
   const handleDonationHeaderChange = (field: string, value: string) => {
-    setDonationData(prev => prev ? { 
-      ...prev, 
+    setDonationData(prev => prev ? {
+      ...prev,
       header: { ...prev.header, [field]: value }
     } : null);
   };
 
+  // Handlers específicos para workshop section
+  const handleWorkshopChange = (field: keyof LandingWorkshop, value: string) => {
+    setWorkshopData(prev => ({ ...prev, [field]: value }));
+    onUpdate({ [field]: value } as Partial<LandingWorkshop>);
+  };
 
   // Card form handlers
   const handleCardFormChange = (field: keyof DonationsCard, value: string) => {
@@ -285,7 +319,7 @@ export function LandingSectionEditor({
       setCardForm(prev => ({ ...prev, URL_imagen: previewUrl }));
     }
   };
-
+  // Submit card (create or update)
   const handleCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationErrors({});
@@ -300,9 +334,9 @@ export function LandingSectionEditor({
       let updatedCards;
       if (editingId) {
         const res = await donationService.updateCard(editingId, cardForm, cardFile);
-        updatedCards = donationData?.cards.map(c => 
-          c.id === editingId 
-            ? { ...cardForm, id: editingId, URL_imagen: res.URL_imagen || cardForm.URL_imagen } 
+        updatedCards = donationData?.cards.map(c =>
+          c.id === editingId
+            ? { ...cardForm, id: editingId, URL_imagen: res.URL_imagen || cardForm.URL_imagen }
             : c
         ) || [];
         setEditingId(null);
@@ -326,6 +360,19 @@ export function LandingSectionEditor({
     }
   };
 
+  // Submit workshop
+  const handleWorkshopSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors = validateWorkshop(workshopData);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    setValidationErrors({});
+    onSave(workshopData);
+  };
+
+  // Handlers específicos para workshop section
   const handleEditCard = (card: DonationsCard) => {
     setCardForm(card);
     setEditingId(card.id ?? null);
@@ -367,14 +414,14 @@ export function LandingSectionEditor({
   };
 
   // Modern Color Picker Component
-  const ColorPicker = ({ 
-    value, 
-    onChange, 
-    label, 
-    className = "" 
-  }: { 
-    value: string; 
-    onChange: (color: string) => void; 
+  const ColorPicker = ({
+    value,
+    onChange,
+    label,
+    className = ""
+  }: {
+    value: string;
+    onChange: (color: string) => void;
     label: string;
     className?: string;
   }) => {
@@ -449,7 +496,7 @@ export function LandingSectionEditor({
     return (
       <div className={`space-y-2 ${className}`}>
         <label className="block text-sm font-medium text-gray-700">{label}</label>
-        
+
         {/* Color Preview Button */}
         <div className="flex items-center gap-3">
           <button
@@ -596,9 +643,8 @@ export function LandingSectionEditor({
                       <button
                         key={color}
                         type="button"
-                        className={`w-6 h-6 rounded border-2 transition-all hover:scale-110 ${
-                          value === color ? 'border-gray-800 shadow-lg' : 'border-gray-200 hover:border-gray-400'
-                        }`}
+                        className={`w-6 h-6 rounded border-2 transition-all hover:scale-110 ${value === color ? 'border-gray-800 shadow-lg' : 'border-gray-200 hover:border-gray-400'
+                          }`}
                         style={{ backgroundColor: color }}
                         onClick={() => onChange(color)}
                         title={color}
@@ -691,7 +737,7 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Título: 
+                    Título:
                   </label>
                   <input
                     value={heroData?.titulo || ""}
@@ -706,7 +752,7 @@ export function LandingSectionEditor({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descripción: 
+                    Descripción:
                   </label>
                   <textarea
                     value={heroData?.descripcion || ""}
@@ -756,7 +802,7 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto Botón Izquierdo: 
+                    Texto Botón Izquierdo:
                   </label>
                   <input
                     value={heroData?.texto_boton_izquierdo || ""}
@@ -778,7 +824,7 @@ export function LandingSectionEditor({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto Botón Derecho: 
+                    Texto Botón Derecho:
                   </label>
                   <input
                     value={heroData?.texto_boton_derecho || ""}
@@ -833,7 +879,7 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Título: 
+                    Título:
                   </label>
                   <input
                     value={String((data as Record<string, unknown>).titulo || "")}
@@ -848,7 +894,7 @@ export function LandingSectionEditor({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto botón: 
+                    Texto botón:
                   </label>
                   <input
                     value={String((data as Record<string, unknown>).texto_boton || "")}
@@ -886,8 +932,8 @@ export function LandingSectionEditor({
                     }}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
 
-              />
-            </div>
+                  />
+                </div>
                 {((data as Record<string, unknown>).URL_imagen as string) && (
 
                   <div className="mt-3">
@@ -898,7 +944,7 @@ export function LandingSectionEditor({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción: 
+                  Descripción:
                 </label>
                 <textarea
                   value={String((data as Record<string, unknown>).descripcion || "")}
@@ -959,6 +1005,167 @@ export function LandingSectionEditor({
           </form>
         )}
 
+
+        {/* Workshop Section */}
+        {section === "workshop" && (
+          <form onSubmit={handleWorkshopSubmit}>
+            <div className="mt-4 space-y-6">
+              <h2 className="text-2xl font-bold mb-4">Personalizar taller</h2>
+              {loading && <div className="text-blue-600">Cargando datos...</div>}
+              {error && <div className="text-red-600">Error: {error}</div>}
+              {Object.keys(validationErrors).length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <h3 className="text-red-800 font-medium mb-2">Errores de validación:</h3>
+                  <ul className="text-red-700 text-sm space-y-1">
+                    {Object.entries(validationErrors).map(([field, message]) => (
+                      <li key={field}>• {message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título:
+                  </label>
+                  <input
+                    value={workshopData.titulo}
+                    onChange={(e) => handleWorkshopChange("titulo", e.target.value)}
+                    maxLength={150}
+                    className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {workshopData.titulo.length}/150 caracteres
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título tarjeta:
+                  </label>
+                  <input
+                    value={workshopData.titulo_card}
+                    onChange={(e) => handleWorkshopChange("titulo_card", e.target.value)}
+                    maxLength={150}
+                    className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {workshopData.titulo_card.length}/150 caracteres
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Descripción tarjeta:
+                </label>
+                <textarea
+                  value={workshopData.descripcion_card}
+                  onChange={(e) => handleWorkshopChange("descripcion_card", e.target.value)}
+                  maxLength={255}
+                  className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  required
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  {workshopData.descripcion_card.length}/255 caracteres
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subir imagen:
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const url = URL.createObjectURL(file);
+                    handleWorkshopChange("imagen_card", url);
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
+                />
+                <div className="mt-3">
+                  <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
+                  {workshopData.imagen_card && (
+                    <img src={workshopData.imagen_card} alt="Workshop preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Texto botón tarjeta:
+                  </label>
+                  <input
+                    value={workshopData.texto_boton_card}
+                    onChange={(e) => handleWorkshopChange("texto_boton_card", e.target.value)}
+                    maxLength={100}
+                    className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {workshopData.texto_boton_card.length}/100 caracteres
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Color botón tarjeta:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={workshopData.color_boton_card}
+                      onChange={(e) => handleWorkshopChange("color_boton_card", e.target.value)}
+                      className="border border-gray-300 rounded-lg w-12 h-12"
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={workshopData.color_boton_card}
+                      onChange={(e) => handleWorkshopChange("color_boton_card", e.target.value)}
+                      className="border border-gray-300 rounded px-2 py-1 w-24 font-mono"
+                      maxLength={20}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fondo (URL o color):
+                </label>
+                <input
+                  value={workshopData.fondo}
+                  onChange={(e) => handleWorkshopChange("fondo", e.target.value)}
+                  maxLength={255}
+                  className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  {workshopData.fondo.length}/255 caracteres
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+
         {/* Volunteering Section */}
         {section === "volunteering" && (
           <form onSubmit={handleSubmit}>
@@ -979,7 +1186,7 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Título: 
+                    Título:
                   </label>
                   <input
                     value={String((data as Record<string, unknown>).titulo || "")}
@@ -994,7 +1201,7 @@ export function LandingSectionEditor({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subtítulo: 
+                    Subtítulo:
                   </label>
                   <input
                     value={String((data as Record<string, unknown>).subtitulo || "")}
@@ -1009,9 +1216,9 @@ export function LandingSectionEditor({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción: 
+                  Descripción:
                 </label>
-              <textarea
+                <textarea
                   value={String((data as Record<string, unknown>).descripcion || "")}
 
                   onChange={(e) => handleChange("descripcion" as unknown as keyof SectionData, e.target.value)}
@@ -1059,7 +1266,7 @@ export function LandingSectionEditor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texto botón: 
+                    Texto botón:
                   </label>
                   <input
                     value={String((data as Record<string, unknown>).texto_boton || "")}
@@ -1069,7 +1276,7 @@ export function LandingSectionEditor({
                   />
                   <div className="text-xs text-gray-500 mt-1">
 
-                      {((data as Record<string, unknown>).texto_boton as string || "").length}/50 caracteres
+                    {((data as Record<string, unknown>).texto_boton as string || "").length}/50 caracteres
 
                   </div>
                 </div>
@@ -1125,375 +1332,375 @@ export function LandingSectionEditor({
 
         {/* Donation Section */}
         {section === "donation" && (
-            <div className="mt-4 space-y-6">
-              <h2 className="text-2xl font-bold mb-4">Personalizar donaciones</h2>
-              {loading && <div className="text-blue-600">Cargando datos...</div>}
-              {error && <div className="text-red-600">Error: {error}</div>}
-              {Object.keys(validationErrors).length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <h3 className="text-red-800 font-medium mb-2">Errores de validación:</h3>
-                  <ul className="text-red-700 text-sm space-y-1">
-                    {Object.entries(validationErrors).map(([field, message]) => (
-                      <li key={field}>• {message}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {/* Header Section */}
-              <div className="p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-3">Encabezado de la Sección</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Título: 
-                    </label>
-                    <input
-                      value={donationData?.header?.titulo || ""}
-                      onChange={(e) => handleDonationHeaderChange("titulo", e.target.value)}
-                      maxLength={150}
-                      className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      {(donationData?.header?.titulo || "").length}/150 caracteres
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Descripción: 
-                    </label>
-                    <textarea
-                      value={donationData?.header?.descripcion || ""}
-                      onChange={(e) => handleDonationHeaderChange("descripcion", e.target.value)}
-                      maxLength={250}
-                      className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      rows={3}
-                    />
-                    <div className="text-xs text-gray-500 mt-1">
-                      {(donationData?.header?.descripcion || "").length}/250 caracteres
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!donationData?.header) return;
-                      try {
-                        setLoading(true);
-                        if (donationData.header.id) {
-                          await donationService.updateHeader(donationData.header);
-                        } else {
-                          const result = await donationService.createHeader({
-                            titulo: donationData.header.titulo,
-                            descripcion: donationData.header.descripcion
-                          });
-                          setDonationData(prev => prev ? {
-                            ...prev,
-                            header: { ...prev.header, id: result.id }
-                          } : null);
-                        }
-                        setError(null);
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : 'Error saving header');
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
-                  >{loading ? "Guardando..." : "Guardar Header"}</button>
-                </div>
-              </div>
-
-              {/* Card Form Section */}
-              <div className="p-4 rounded-lg">
-                <h3 className="text-xl font-bold mb-4">
-                  {editingId ? "Editar Card" : "Agregar Nueva Card"}
-                </h3>
-                <form onSubmit={handleCardSubmit} className="space-y-6">
-                  {Object.keys(validationErrors).length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                      <h3 className="text-red-800 font-medium mb-2">Errores de validación:</h3>
-                      <ul className="text-red-700 text-sm space-y-1">
-                        {Object.entries(validationErrors).map(([field, message]) => (
-                          <li key={field}>• {message}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Título Card:
-                      </label>
-                      <input
-                        value={cardForm.titulo_card}
-                        onChange={e => handleCardFormChange("titulo_card", e.target.value)}
-                        maxLength={100}
-                        className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                      <div className="text-xs text-gray-500 mt-1">
-                        {cardForm.titulo_card.length}/100 caracteres
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Descripción Card:
-                      </label>
-                      <textarea
-                        value={cardForm.descripcion_card}
-                        onChange={e => handleCardFormChange("descripcion_card", e.target.value)}
-                        maxLength={250}
-                        className="border border-gray-300 rounded-lg px-3 py-2 w-full h-16 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        rows={2}
-                        required
-                      />
-                      <div className="text-xs text-gray-500 mt-1">
-                        {cardForm.descripcion_card.length}/250 caracteres
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleCardFileChange}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                    {cardForm.URL_imagen && (
-                      <div className="mt-3 flex flex-col items-center">
-                        <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
-                        <img
-                          src={cardForm.URL_imagen}
-                          alt="Vista previa donación"
-                          className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm"
-                          style={{ maxWidth: 320 }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Texto Botón:
-                      </label>
-                      <input
-                        value={cardForm.texto_boton}
-                        onChange={e => handleCardFormChange("texto_boton", e.target.value)}
-                        maxLength={100}
-                        className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                      <div className="text-xs text-gray-500 mt-1">
-                        {cardForm.texto_boton.length}/100 caracteres
-                      </div>
-                    </div>
-                    <div>
-                      <ColorPicker
-                        value={cardForm.color_boton || "#1976d2"}
-                        onChange={(color) => handleCardFormChange("color_boton", color)}
-                        label="Color Botón"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2 mt-6">
-                    <button
-                      type="button"
-                      onClick={resetCardForm}
-                      className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
-                    >Cancelar</button>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
-                    >{editingId ? "Actualizar Card" : "Agregar Card"}</button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Existing Cards Section */}
-              <div className="p-4 rounded-lg">
-                <h3 className="text-xl font-bold mb-4">Cards Existentes</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {donationData?.cards?.map(card => (
-                    <div key={card.id} className="bg-white p-4 rounded shadow border border-gray-200">
-                      {card.URL_imagen && (
-                        <img 
-                          src={card.URL_imagen} 
-                          className="w-full h-32 object-cover mb-2 rounded" 
-                          alt={card.titulo_card}
-                        />
-                      )}
-                      <h3 className="font-bold text-lg">{card.titulo_card}</h3>
-                      <p className="text-gray-600 text-sm mb-2">{card.descripcion_card}</p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm">Color botón:</span>
-                        <div 
-                          className="w-6 h-6 rounded border border-gray-300" 
-                          style={{ backgroundColor: card.color_boton }}
-                        ></div>
-                        <span className="font-mono text-sm">{card.color_boton}</span>
-                      </div>
-                      <p className="text-sm text-gray-500 mb-3">Botón: {card.texto_boton}</p>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => handleEditCard(card)} 
-                          className="px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-white text-sm rounded transition-colors duration-200"
-                        >
-                          Editar
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteCard(card.id!)} 
-                          className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded transition-colors duration-200"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
+          <div className="mt-4 space-y-6">
+            <h2 className="text-2xl font-bold mb-4">Personalizar donaciones</h2>
+            {loading && <div className="text-blue-600">Cargando datos...</div>}
+            {error && <div className="text-red-600">Error: {error}</div>}
+            {Object.keys(validationErrors).length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <h3 className="text-red-800 font-medium mb-2">Errores de validación:</h3>
+                <ul className="text-red-700 text-sm space-y-1">
+                  {Object.entries(validationErrors).map(([field, message]) => (
+                    <li key={field}>• {message}</li>
                   ))}
-                  {(!donationData?.cards || donationData.cards.length === 0) && (
-                    <div className="col-span-2 text-center text-gray-500 py-8">
-                      No hay cards de donación creadas aún.
-                    </div>
-                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* Header Section */}
+            <div className="p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">Encabezado de la Sección</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Título:
+                  </label>
+                  <input
+                    value={donationData?.header?.titulo || ""}
+                    onChange={(e) => handleDonationHeaderChange("titulo", e.target.value)}
+                    maxLength={150}
+                    className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(donationData?.header?.titulo || "").length}/150 caracteres
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción:
+                  </label>
+                  <textarea
+                    value={donationData?.header?.descripcion || ""}
+                    onChange={(e) => handleDonationHeaderChange("descripcion", e.target.value)}
+                    maxLength={250}
+                    className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(donationData?.header?.descripcion || "").length}/250 caracteres
+                  </div>
                 </div>
               </div>
-
-              <div className="flex justify-end space-x-2 mt-6">
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
-                >Cancelar</button>
+              <div className="flex justify-end space-x-2 mt-4">
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!donationData) return;
+                    if (!donationData?.header) return;
                     try {
                       setLoading(true);
-                      
-                      // Update header
-                      if (donationData.header?.id) {
+                      if (donationData.header.id) {
                         await donationService.updateHeader(donationData.header);
                       } else {
                         const result = await donationService.createHeader({
-                          titulo: donationData.header?.titulo || "",
-                          descripcion: donationData.header?.descripcion || ""
+                          titulo: donationData.header.titulo,
+                          descripcion: donationData.header.descripcion
                         });
                         setDonationData(prev => prev ? {
                           ...prev,
                           header: { ...prev.header, id: result.id }
                         } : null);
                       }
-                      
-                      // Update cards
-                      for (const card of donationData.cards || []) {
-                        if (card.id) {
-                          await donationService.updateCard(card.id, card);
-                        } else {
-                          await donationService.createCard(card);
-                        }
-                      }
-                      
-                      onSave(donationData as unknown as SectionData);
+                      setError(null);
                     } catch (err) {
-                      setError(err instanceof Error ? err.message : 'Error saving donation data');
+                      setError(err instanceof Error ? err.message : 'Error saving header');
                     } finally {
                       setLoading(false);
                     }
                   }}
                   disabled={loading}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
-                >{loading ? "Guardando..." : "Guardar"}</button>
+                >{loading ? "Guardando..." : "Guardar Header"}</button>
               </div>
             </div>
-          )}
+
+            {/* Card Form Section */}
+            <div className="p-4 rounded-lg">
+              <h3 className="text-xl font-bold mb-4">
+                {editingId ? "Editar Card" : "Agregar Nueva Card"}
+              </h3>
+              <form onSubmit={handleCardSubmit} className="space-y-6">
+                {Object.keys(validationErrors).length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <h3 className="text-red-800 font-medium mb-2">Errores de validación:</h3>
+                    <ul className="text-red-700 text-sm space-y-1">
+                      {Object.entries(validationErrors).map(([field, message]) => (
+                        <li key={field}>• {message}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Título Card:
+                    </label>
+                    <input
+                      value={cardForm.titulo_card}
+                      onChange={e => handleCardFormChange("titulo_card", e.target.value)}
+                      maxLength={100}
+                      className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      {cardForm.titulo_card.length}/100 caracteres
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Descripción Card:
+                    </label>
+                    <textarea
+                      value={cardForm.descripcion_card}
+                      onChange={e => handleCardFormChange("descripcion_card", e.target.value)}
+                      maxLength={250}
+                      className="border border-gray-300 rounded-lg px-3 py-2 w-full h-16 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      rows={2}
+                      required
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      {cardForm.descripcion_card.length}/250 caracteres
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCardFileChange}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
+                    />
+                  </div>
+                  {cardForm.URL_imagen && (
+                    <div className="mt-3 flex flex-col items-center">
+                      <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
+                      <img
+                        src={cardForm.URL_imagen}
+                        alt="Vista previa donación"
+                        className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm"
+                        style={{ maxWidth: 320 }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Texto Botón:
+                    </label>
+                    <input
+                      value={cardForm.texto_boton}
+                      onChange={e => handleCardFormChange("texto_boton", e.target.value)}
+                      maxLength={100}
+                      className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      {cardForm.texto_boton.length}/100 caracteres
+                    </div>
+                  </div>
+                  <div>
+                    <ColorPicker
+                      value={cardForm.color_boton || "#1976d2"}
+                      onChange={(color) => handleCardFormChange("color_boton", color)}
+                      label="Color Botón"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={resetCardForm}
+                    className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
+                  >Cancelar</button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
+                  >{editingId ? "Actualizar Card" : "Agregar Card"}</button>
+                </div>
+              </form>
+            </div>
+
+            {/* Existing Cards Section */}
+            <div className="p-4 rounded-lg">
+              <h3 className="text-xl font-bold mb-4">Cards Existentes</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {donationData?.cards?.map(card => (
+                  <div key={card.id} className="bg-white p-4 rounded shadow border border-gray-200">
+                    {card.URL_imagen && (
+                      <img
+                        src={card.URL_imagen}
+                        className="w-full h-32 object-cover mb-2 rounded"
+                        alt={card.titulo_card}
+                      />
+                    )}
+                    <h3 className="font-bold text-lg">{card.titulo_card}</h3>
+                    <p className="text-gray-600 text-sm mb-2">{card.descripcion_card}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">Color botón:</span>
+                      <div
+                        className="w-6 h-6 rounded border border-gray-300"
+                        style={{ backgroundColor: card.color_boton }}
+                      ></div>
+                      <span className="font-mono text-sm">{card.color_boton}</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-3">Botón: {card.texto_boton}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditCard(card)}
+                        className="px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-white text-sm rounded transition-colors duration-200"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCard(card.id!)}
+                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded transition-colors duration-200"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {(!donationData?.cards || donationData.cards.length === 0) && (
+                  <div className="col-span-2 text-center text-gray-500 py-8">
+                    No hay cards de donación creadas aún.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 mt-6">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
+              >Cancelar</button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!donationData) return;
+                  try {
+                    setLoading(true);
+
+                    // Update header
+                    if (donationData.header?.id) {
+                      await donationService.updateHeader(donationData.header);
+                    } else {
+                      const result = await donationService.createHeader({
+                        titulo: donationData.header?.titulo || "",
+                        descripcion: donationData.header?.descripcion || ""
+                      });
+                      setDonationData(prev => prev ? {
+                        ...prev,
+                        header: { ...prev.header, id: result.id }
+                      } : null);
+                    }
+
+                    // Update cards
+                    for (const card of donationData.cards || []) {
+                      if (card.id) {
+                        await donationService.updateCard(card.id, card);
+                      } else {
+                        await donationService.createCard(card);
+                      }
+                    }
+
+                    onSave(donationData as unknown as SectionData);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Error saving donation data');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
+              >{loading ? "Guardando..." : "Guardar"}</button>
+            </div>
+          </div>
+        )}
 
         {/* Location Section */}
-          {section === "location" && (
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Título de Ubicación</label>
-                <input
-                  type="text"
-                  value={data.locationTitle || ""}
-                  onChange={(e) => handleChange("locationTitle", e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Link de Ubicación</label>
-                <input
-                  type="text"
-                  value={data.locationLink || ""}
-                  onChange={(e) => handleChange("locationLink", e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-              </div>
+        {section === "location" && (
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Título de Ubicación</label>
+              <input
+                type="text"
+                value={data.locationTitle || ""}
+                onChange={(e) => handleChange("locationTitle", e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
             </div>
-          )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Link de Ubicación</label>
+              <input
+                type="text"
+                value={data.locationLink || ""}
+                onChange={(e) => handleChange("locationLink", e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
+            </div>
+          </div>
+        )}
 
-          {/* Testimonials Section */}
-          {section === "testimonials" && (
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Título de Testimonios</label>
-                <input
-                  type="text"
-                  value={data.testimonialsTitle || ""}
-                  onChange={(e) => handleChange("testimonialsTitle", e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Descripción de Testimonios</label>
-                <textarea
-                  value={data.testimonialsDescription || ""}
-                  onChange={(e) => handleChange("testimonialsDescription", e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-              </div>
+        {/* Testimonials Section */}
+        {section === "testimonials" && (
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Título de Testimonios</label>
+              <input
+                type="text"
+                value={data.testimonialsTitle || ""}
+                onChange={(e) => handleChange("testimonialsTitle", e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
             </div>
-          )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Descripción de Testimonios</label>
+              <textarea
+                value={data.testimonialsDescription || ""}
+                onChange={(e) => handleChange("testimonialsDescription", e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
+            </div>
+          </div>
+        )}
 
-          {/* Footer Section */}
-          {section === "footer" && (
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nombre de la Empresa</label>
-                <input
-                  type="text"
-                  value={data.footer?.companyName || ""}
-                  onChange={(e) => handleNestedChange("footer", "companyName", e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Teléfono</label>
-                <input
-                  type="text"
-                  value={data.footer?.phone || ""}
-                  onChange={(e) => handleNestedChange("footer", "phone", e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  value={data.footer?.email || ""}
-                  onChange={(e) => handleNestedChange("footer", "email", e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                />
-              </div>
+        {/* Footer Section */}
+        {section === "footer" && (
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Nombre de la Empresa</label>
+              <input
+                type="text"
+                value={data.footer?.companyName || ""}
+                onChange={(e) => handleNestedChange("footer", "companyName", e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
             </div>
-          )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Teléfono</label>
+              <input
+                type="text"
+                value={data.footer?.phone || ""}
+                onChange={(e) => handleNestedChange("footer", "phone", e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <input
+                type="email"
+                value={data.footer?.email || ""}
+                onChange={(e) => handleNestedChange("footer", "email", e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </ModalSimple>
   );
