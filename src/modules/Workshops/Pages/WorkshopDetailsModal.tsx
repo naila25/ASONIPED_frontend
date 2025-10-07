@@ -1,5 +1,5 @@
 import type { Workshop } from "../Services/workshop";
-import { FaMapMarkerAlt, FaCalendarAlt, FaClock } from "react-icons/fa";
+import { FaMapMarkerAlt, FaCalendarAlt, FaClock, FaUsers } from "react-icons/fa";
 
 interface Props {
   workshop: Workshop;
@@ -38,6 +38,13 @@ export const WorkshopDetailsModal = ({ workshop, onClose, onEnroll }: Props) => 
             <FaClock className="text-orange-600" />
             <span>{workshop.time}</span>
           </div>
+          <div className="flex items-center gap-2 text-gray-700">
+            <FaUsers className="text-orange-600" />
+            {typeof workshop.participants === "number"
+      ? `${workshop.participants} participante${workshop.participants === 1 ? "" : "s"}`
+      : "Por definir"}
+          </div>
+
         </div>
 
         <div className="mb-4">
