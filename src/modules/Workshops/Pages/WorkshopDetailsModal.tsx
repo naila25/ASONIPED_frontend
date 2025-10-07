@@ -41,12 +41,8 @@ export const WorkshopDetailsModal = ({ workshop, onClose, onEnroll }: Props) => 
         </div>
 
         <div className="mb-4">
-          <h3 className="text-orange-600 font-semibold">Objetivos:</h3>
-          <ul className="list-disc list-inside text-gray-700">
-            {workshop.objectives.map((obj, i) => (
-              <li key={i}>{obj}</li>
-            ))}
-          </ul>
+          <h3 className="text-orange-600 font-semibold">Descripción:</h3>
+          <p className="text-gray-700">{workshop.description}</p>
         </div>
 
         <div className="mb-4">
