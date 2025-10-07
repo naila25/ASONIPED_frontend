@@ -3,13 +3,15 @@ export interface Workshop {
   title: string;
   description: string;
   imageUrl: string;
-  objectives: string[];
   materials: string[];
   learnText: string;
    location: string; // Nuevo
   date: string;     // Nuevo
   time: string;  
+  participants: number;      // Número de participantes (nuevo)
+  slotsAvailable: number;    // Cupos disponibles (nuevo)
 }
+
 
 export interface WorkshopEnrollment {
   id?: string;
