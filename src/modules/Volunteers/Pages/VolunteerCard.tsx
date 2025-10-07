@@ -303,7 +303,7 @@ const Voluntariados = () => {
 
       {/* Áreas de voluntariado */}
       <div className="max-w-7xl  p-2 mb-12 mt-16 mx-auto">
-        <div className="flex justify-between items-center mb-6">
+        <div className=" text-center lex justify-between items-center mb-6">
           <h2 className="text-orange-600 text-4xl font-semibold">
             Áreas de voluntariado en ASONIPED
           </h2>
