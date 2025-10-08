@@ -114,10 +114,10 @@ export default function GuestAttendancePage() {
                 </div>
                 <div>
                   <h1 className="text-xl font-semibold text-gray-900">
-                    Registro Manual - Invitados
+                    Registro Manual 
                   </h1>
                   <p className="text-sm text-gray-600">
-                    Registra asistencia de invitados con formularios
+                    Registra asistencia con formularios
                   </p>
                 </div>
               </div>
@@ -195,13 +195,13 @@ export default function GuestAttendancePage() {
             {selectedActivity && (
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900">Registro de Invitados</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Registro de Personas</h2>
                   <button
                     onClick={() => setShowForm(!showForm)}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     <FaPlus className="w-4 h-4" />
-                    {showForm ? 'Cancelar' : 'Nuevo Invitado'}
+                    {showForm ? 'Cancelar' : 'Nuevo Registro'}
                   </button>
                 </div>
 
@@ -303,7 +303,7 @@ export default function GuestAttendancePage() {
                         ) : (
                           <>
                             <FaCheckCircle className="w-4 h-4" />
-                            Registrar Invitado
+                            Registrar Persona 
                           </>
                         )}
                       </button>

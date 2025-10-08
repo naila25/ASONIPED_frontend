@@ -110,10 +110,10 @@ export default function AttendancePanel() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
-                    Registro Manual - Invitados
+                    Registro Manual 
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Registra manualmente la asistencia de invitados con formularios.
+                    Registra manualmente la asistencia con formularios.
                   </p>
                 </div>
               </div>
