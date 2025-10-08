@@ -207,5 +207,39 @@ export const fetchWorkshopEnrollments = async (page = 1, limit = 10) => {
   return res.json();
 };
 
-// TODO: Add a new workshop enrollment
-// TODO: Update the status of a workshop enrollment
+// Add a new workshop enrollment
+export const addWorkshopEnrollment = async (enrollmentData: any) => {
+  const res = await fetch(`${API_URL}/enrollments`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(enrollmentData),
+  });
+  if (!res.ok) throw new Error('Failed to add workshop enrollment');
+  return res.json();
+};
+
+// Update the status of a workshop enrollment
+export const updateWorkshopFormStatus = async (
+  id: number, 
+  status: string
+): Promise<{ message: string }> => {
+  const res = await fetch(`${API_URL}/enrollments/${id}/status`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to update workshop enrollment status');
+  }
+  return res.json();
+};
+
+// Alias for fetchWorkshopEnrollments to match the expected import name
+export const fetchWorkshopForms = fetchWorkshopEnrollments;

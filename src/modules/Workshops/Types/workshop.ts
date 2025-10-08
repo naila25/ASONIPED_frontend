@@ -9,7 +9,7 @@ export type WorkshopForm = {
   workshopOptionId: string; // referencia al taller seleccionado
   workshopTitle?: string;   // título opcional (normalmente viene desde WorkshopOption)
   fechaInscripcion: string; // ISO string "2025-10-01T10:00:00Z"
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "enrolled" | "cancelled";
 };
 
 
@@ -36,10 +36,35 @@ export interface Workshop {
   titulo: string;
   ubicacion: string;
   descripcion: string;
-  materiales: string;
+  materiales: string[];
   aprender: string;
   imagen: string;
   fecha: string;
   hora: string;
   capacidad: number;
+  // Enrollment-related fields
+  is_enrolled?: boolean;
+  available_spots?: number;
+  enrolled_count?: number;
+}
+
+export interface WorkshopEnrollment {
+  id: number;
+  user_id: number;
+  workshop_id: number;
+  status: 'enrolled' | 'cancelled';
+  enrollment_date: string;
+  cancellation_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkshopEnrollmentWithDetails extends WorkshopEnrollment {
+  user_name: string;
+  user_email: string;
+  workshop_title: string;
+  workshop_fecha: string;
+  workshop_hora: string;
+  workshop_ubicacion: string;
 }

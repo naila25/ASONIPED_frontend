@@ -10,7 +10,6 @@ import {
   Settings,
   Bell,
   User,
-  Shield,
   MessageSquare,
   Edit
 } from "lucide-react";
@@ -52,9 +51,6 @@ export default function AdminDashboard() {
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
               <h2 className="text-xl font-semibold text-gray-800">Admin Panel</h2>
             </div>
             <p className="text-sm text-gray-600">ASONIPED Digital</p>
@@ -68,7 +64,7 @@ export default function AdminDashboard() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 hover:text-orange-600 text-gray-700 transition-colors duration-200"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-gray-700 transition-colors duration-200"
                   onClick={() => setSidebarOpen(false)}
                 >
                   <Icon className="w-5 h-5" />
