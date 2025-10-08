@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import type { WorkshopOption } from '../Services/workshop';
+import type { Workshop } from '../Services/workshop';
 import {
-  fetchWorkshopOptions,
-  addWorkshopOption,
-  updateWorkshopOption,
-  deleteWorkshopOption,
-  seedWorkshopsIfEmpty
-} from '../Services/fetchWorkshopsMock';
+  getAllWorkshops,
+  createWorkshop,
+  updateWorkshop,
+  deleteWorkshop
+} from '../Services/workshopService';
 
 import {
   Search,
@@ -26,50 +25,49 @@ import {
 } from 'lucide-react';
 
 interface FormState {
-  title: string;
-  description: string;
-  imageUrl: string;
-  date: string;
-  time: string;
-  location: string;
-  skills: string;
-  tools: string;
-  capacity: string;
+  titulo: string;
+  descripcion: string;
+  imagen: string;
+  fecha: string;
+  hora: string;
+  ubicacion: string;
+  materiales: string; // User input as string, converted to array on submit
+  aprender: string;
+  capacidad: string;
   imageFile?: File | null;
 }
 
 const blankForm: FormState = {
-  title: '',
-  description: '',
-  imageUrl: '',
-  date: '',
-  time: '',
-  location: '',
-  skills: '',
-  tools: '',
-  capacity: '',
+  titulo: '',
+  descripcion: '',
+  imagen: '',
+  fecha: '',
+  hora: '',
+  ubicacion: '',
+  materiales: '',
+  aprender: '',
+  capacidad: '',
   imageFile: null,
 };
 
 const WorkshopOptionsPage: React.FC = () => {
-  const [options, setOptions] = useState<WorkshopOption[]>([]);
+  const [options, setOptions] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(blankForm);
 
   useEffect(() => {
-    seedWorkshopsIfEmpty();
     load();
   }, []);
 
   const load = async () => {
     try {
       setLoading(true);
-      const list = await fetchWorkshopOptions();
+      const list = await getAllWorkshops();
       setOptions(list);
       setError(null);
     } catch {
@@ -80,8 +78,8 @@ const WorkshopOptionsPage: React.FC = () => {
   };
 
   const filtered = options.filter(o =>
-    o.title.toLowerCase().includes(search.toLowerCase()) ||
-    o.location.toLowerCase().includes(search.toLowerCase())
+    o.titulo.toLowerCase().includes(search.toLowerCase()) ||
+    o.ubicacion.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -93,7 +91,7 @@ const WorkshopOptionsPage: React.FC = () => {
     setForm(prev => ({ ...prev, imageFile: file }));
     if (file) {
       const url = URL.createObjectURL(file);
-      setForm(prev => ({ ...prev, imageUrl: url }));
+      setForm(prev => ({ ...prev, imagen: url }));
     }
   };
 
@@ -104,19 +102,25 @@ const WorkshopOptionsPage: React.FC = () => {
     setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
-  const startEdit = (opt: WorkshopOption) => {
+  const startEdit = (opt: Workshop) => {
+    console.log('Editing workshop data:', opt); // Debug log
     setEditingId(opt.id);
     setIsAdding(false);
+    
+    // Handle date format - ensure it's in YYYY-MM-DD format for input[type="date"]
+    const formattedDate = opt.fecha ? 
+      (opt.fecha.includes('T') ? opt.fecha.split('T')[0] : opt.fecha) : '';
+    
     setForm({
-      title: opt.title,
-      description: opt.description,
-      imageUrl: opt.imageUrl,
-      date: opt.date,
-      time: opt.time || '',
-      location: opt.location,
-      skills: opt.skills || '',
-      tools: opt.tools || '',
-      capacity: opt.capacity?.toString() || '',
+      titulo: opt.titulo,
+      descripcion: opt.descripcion,
+      imagen: opt.imagen,
+      fecha: formattedDate,
+      hora: opt.hora || '',
+      ubicacion: opt.ubicacion,
+      materiales: Array.isArray(opt.materiales) ? opt.materiales.join(', ') : (opt.materiales || ''),
+      aprender: opt.aprender || '',
+      capacidad: opt.capacidad?.toString() || '',
       imageFile: null,
     });
     setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
@@ -131,35 +135,42 @@ const WorkshopOptionsPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!form.title.trim()) throw new Error('Título requerido');
-      if (form.title.length > 100) throw new Error('El título no puede exceder 100 caracteres');
-      if (form.description.length > 500) throw new Error('La descripción no puede exceder 500 caracteres');
-      if (form.skills.length > 500) throw new Error('Las habilidades no pueden exceder 500 caracteres');
-      if (form.tools.length > 500) throw new Error('Las herramientas no pueden exceder 500 caracteres');
-      if (!form.date) throw new Error('La fecha es requerida');
-      if (!form.time) throw new Error('La hora es requerida');
-      if (!form.capacity) throw new Error('La capacidad es requerida');
+      if (!form.titulo.trim()) throw new Error('Título requerido');
+      if (form.titulo.length > 100) throw new Error('El título no puede exceder 100 caracteres');
+      if (form.descripcion.length > 500) throw new Error('La descripción no puede exceder 500 caracteres');
+      if (form.materiales.length > 500) throw new Error('Los materiales no pueden exceder 500 caracteres');
+      if (form.aprender.length > 500) throw new Error('El campo aprender no puede exceder 500 caracteres');
+      if (!form.fecha) throw new Error('La fecha es requerida');
+      if (!form.hora) throw new Error('La hora es requerida');
+      if (!form.capacidad) throw new Error('La capacidad es requerida');
 
-      const capNum = parseInt(form.capacity, 10);
+      const capNum = parseInt(form.capacidad, 10);
       if (isNaN(capNum) || capNum <= 0) throw new Error('La capacidad debe ser un número mayor a 0');
       if (capNum > 10000) throw new Error('Capacidad demasiado alta');
 
       // Validar combinación fecha + hora
-      const combined = new Date(`${form.date}T${form.time}:00`);
+      const combined = new Date(`${form.fecha}T${form.hora}:00`);
       const now = new Date();
       if (combined < now) {
         throw new Error('La fecha y hora no pueden estar en el pasado');
       }
 
       const payload = {
-        ...form,
-        capacity: capNum,
+        titulo: form.titulo,
+        descripcion: form.descripcion,
+        imagen: form.imagen,
+        fecha: form.fecha,
+        hora: form.hora,
+        ubicacion: form.ubicacion,
+        materiales: form.materiales.split(',').map(m => m.trim()).filter(m => m.length > 0),
+        aprender: form.aprender,
+        capacidad: capNum,
       };
 
       if (editingId) {
-        await updateWorkshopOption(editingId, payload);
+        await updateWorkshop(editingId, payload);
       } else {
-        await addWorkshopOption(payload);
+        await createWorkshop(payload);
       }
       cancelModals();
       await load();
@@ -168,10 +179,10 @@ const WorkshopOptionsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm('¿Eliminar este taller?')) return;
     try {
-      await deleteWorkshopOption(id);
+      await deleteWorkshop(id);
       await load();
     } catch {
       alert('Error eliminando');
@@ -223,7 +234,7 @@ const WorkshopOptionsPage: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Con Imagen</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                {options.filter(o => o.imageUrl).length}
+                {options.filter(o => o.imagen).length}
               </p>
             </div>
             <div className="p-3 bg-purple-100 rounded-lg">
@@ -236,7 +247,7 @@ const WorkshopOptionsPage: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Ubicaciones</p>
               <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                {new Set(options.map(o => o.location)).size}
+                {new Set(options.map(o => o.ubicacion)).size}
               </p>
             </div>
             <div className="p-3 bg-orange-100 rounded-lg">
@@ -296,27 +307,27 @@ const WorkshopOptionsPage: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
                 <input
                   type="text"
-                  name="title"
-                  value={form.title}
+                  name="titulo"
+                  value={form.titulo}
                   onChange={handleChange}
                   maxLength={100}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   required
                 />
-                <div className="text-xs text-gray-500 mt-1">{form.title.length}/100</div>
+                <div className="text-xs text-gray-500 mt-1">{form.titulo.length}/100</div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
                 <input
                   type="text"
-                  name="location"
-                  value={form.location}
+                  name="ubicacion"
+                  value={form.ubicacion}
                   onChange={handleChange}
                   maxLength={100}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   required
                 />
-                <div className="text-xs text-gray-500 mt-1">{form.location.length}/100</div>
+                <div className="text-xs text-gray-500 mt-1">{form.ubicacion.length}/100</div>
               </div>
             </div>
 
@@ -324,39 +335,39 @@ const WorkshopOptionsPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
                 <textarea
-                  name="description"
-                  value={form.description}
+                  name="descripcion"
+                  value={form.descripcion}
                   onChange={handleChange}
                   rows={3}
                   maxLength={500}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                   required
                 />
-                <div className="text-xs text-gray-500 mt-1">{form.description.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">{form.descripcion.length}/500</div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Materiales</label>
                 <textarea
-                  name="skills"
-                  value={form.skills}
+                  name="materiales"
+                  value={form.materiales}
                   onChange={handleChange}
                   rows={3}
                   maxLength={500}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
-                <div className="text-xs text-gray-500 mt-1">{form.skills.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">{form.materiales.length}/500</div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">¿Qué aprenderás?</label>
                 <textarea
-                  name="tools"
-                  value={form.tools}
+                  name="aprender"
+                  value={form.aprender}
                   onChange={handleChange}
                   rows={3}
                   maxLength={500}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
-                <div className="text-xs text-gray-500 mt-1">{form.tools.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">{form.aprender.length}/500</div>
               </div>
             </div>
 
@@ -371,9 +382,9 @@ const WorkshopOptionsPage: React.FC = () => {
                     file:rounded-md file:border-0 file:text-sm file:font-medium
                     file:bg-orange-500 file:text-white hover:file:bg-orange-600"
                 />
-                {form.imageUrl && (
+                {form.imagen && (
                   <img
-                    src={form.imageUrl}
+                    src={form.imagen}
                     alt="preview"
                     className="h-12 w-12 object-cover rounded border mt-2"
                   />
@@ -387,8 +398,8 @@ const WorkshopOptionsPage: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
                 <input
                   type="date"
-                  name="date"
-                  value={form.date}
+                  name="fecha"
+                  value={form.fecha}
                   onChange={handleChange}
                   min={new Date().toISOString().split('T')[0]}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
@@ -400,8 +411,8 @@ const WorkshopOptionsPage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Hora</label>
                   <input
                     type="time"
-                    name="time"
-                    value={form.time}
+                    name="hora"
+                    value={form.hora}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     required
@@ -411,8 +422,8 @@ const WorkshopOptionsPage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Capacidad</label>
                   <input
                     type="number"
-                    name="capacity"
-                    value={form.capacity}
+                    name="capacidad"
+                    value={form.capacidad}
                     onChange={handleChange}
                     min={1}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
@@ -457,10 +468,10 @@ const WorkshopOptionsPage: React.FC = () => {
             className=" border border-gray-200 borderborder-gray-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow transition flex flex-col"
           >
             <div className="h-36 bg-neutral-200 flex items-center justify-center text-neutral-500 text-sm">
-              {opt.imageUrl ? (
+              {opt.imagen ? (
                 <img
-                  src={opt.imageUrl}
-                  alt={opt.title}
+                  src={opt.imagen}
+                  alt={opt.titulo}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -468,33 +479,33 @@ const WorkshopOptionsPage: React.FC = () => {
               )}
             </div>
             <div className="p-4 flex flex-col gap-2 flex-grow">
-              <h3 className="font-semibold text-lg">{opt.title}</h3>
-              <p className="text-sm text-neutral-700 line-clamp-3">{opt.description}</p>
+              <h3 className="font-semibold text-lg">{opt.titulo}</h3>
+              <p className="text-sm text-neutral-700 line-clamp-3">{opt.descripcion}</p>
               <div className="text-xs text-neutral-600 space-y-1">
                 <span className="flex items-center gap-1 mb-1">
-                  <Calendar className="w-4 h-4" /> {opt.date || '—'}
+                  <Calendar className="w-4 h-4" /> {opt.fecha || '—'}
                 </span>
-                {opt.time && (
+                {opt.hora && (
                   <span className="flex items-center gap-1 mb-1">
-                    <Clock className="w-4 h-4" /> {opt.time}
+                    <Clock className="w-4 h-4" /> {opt.hora}
                   </span>
                 )}
                 <span className="flex items-center gap-1 mb-1">
-                  <MapPin className="w-4 h-4" /> {opt.location || '—'}
+                  <MapPin className="w-4 h-4" /> {opt.ubicacion || '—'}
                 </span>
-                {typeof opt.capacity === 'number' && (
+                {typeof opt.capacidad === 'number' && (
                   <span className="flex items-center gap-1 mb-1">
-                    <Users className="w-4 h-4" /> Cupo: {opt.capacity}
+                    <Users className="w-4 h-4" /> Cupo: {opt.capacidad}
                   </span>
                 )}
-                {opt.skills && (
+                {opt.materiales && opt.materiales.length > 0 && (
                   <div className="flex gap-1 mb-1">
-                    <Wrench className="w-4 h-4" /> <span>{opt.skills}</span>
+                    <Wrench className="w-4 h-4" /> <span>{Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}</span>
                   </div>
                 )}
-                {opt.tools && (
+                {opt.aprender && (
                   <div className="flex gap-1 mb-1">
-                    <BookOpenCheck className="w-4 h-4" /> <span>{opt.tools}</span>
+                    <BookOpenCheck className="w-4 h-4" /> <span>{opt.aprender}</span>
                   </div>
                 )}
               </div>

@@ -3,7 +3,7 @@ export interface Workshop {
   titulo: string;
   ubicacion: string;
   descripcion: string;
-  materiales: string;
+  materiales: string[]; // Array of materials
   aprender: string;
   imagen: string;
   fecha: string;

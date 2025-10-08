@@ -22,6 +22,22 @@ export const createWorkshop = async (workshop: Omit<Workshop, 'id'>): Promise<Wo
   return data;
 };
 
+// Actualizar un workshop (PUT)
+export const updateWorkshop = async (id: number, workshop: Partial<Workshop>): Promise<Workshop> => {
+  const { data } = await axios.put(`${BACKEND_URL}/workshops/${id}`, workshop, {
+    headers: getAuthHeader()
+  });
+  return data;
+};
+
+// Eliminar un workshop (DELETE)
+export const deleteWorkshop = async (id: number): Promise<{ message: string }> => {
+  const { data } = await axios.delete(`${BACKEND_URL}/workshops/${id}`, {
+    headers: getAuthHeader()
+  });
+  return data;
+};
+
 // Si quieres usar React Query para crear workshops:
 export const useCreateWorkshop = () =>
   useMutation({
