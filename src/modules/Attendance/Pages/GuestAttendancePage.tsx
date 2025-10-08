@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaUserFriends, FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaPlus } from 'react-icons/fa';
+import { FaUserFriends, FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaPlus,} from 'react-icons/fa';
 import { Link } from '@tanstack/react-router';
 import ActivitySelector from '../Components/ActivitySelector';
 import { attendanceRecordsApi } from '../Services/attendanceNewApi';
@@ -17,7 +17,7 @@ export default function GuestAttendancePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     cedula: '',
-    phone: ''
+    phone: '',
   });
 
   // Load attendance records when activity is selected
@@ -29,7 +29,7 @@ export default function GuestAttendancePage() {
 
   const loadAttendanceRecords = async () => {
     if (!selectedActivity) return;
-    
+
     try {
       setLoading(true);
       const records = await attendanceRecordsApi.getAll(selectedActivity.id, 'guest');
@@ -49,7 +49,7 @@ export default function GuestAttendancePage() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedActivity) {
       setError('Por favor selecciona una actividad primero');
       return;
@@ -63,7 +63,7 @@ export default function GuestAttendancePage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       await attendanceRecordsApi.manualEntry({
         activity_track_id: selectedActivity.id!,
         attendance_type: 'guest',
@@ -76,14 +76,13 @@ export default function GuestAttendancePage() {
 
       // Reload attendance records
       await loadAttendanceRecords();
-      
+
       setSuccess(`Invitado registrado: ${formData.full_name}`);
       setFormData({ full_name: '', cedula: '', phone: '' });
       setShowForm(false);
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
-      
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al registrar invitado');
       console.error('Error registering guest:', err);
@@ -93,7 +92,7 @@ export default function GuestAttendancePage() {
   };
 
   const getGuestsCount = () => {
-    return attendanceRecords.filter(record => record.attendance_type === 'guest').length;
+    return attendanceRecords.filter((record) => record.attendance_type === 'guest').length;
   };
 
   return (
@@ -114,12 +113,16 @@ export default function GuestAttendancePage() {
                   <FaUserFriends className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Registro Manual - Invitados</h1>
-                  <p className="text-sm text-gray-600">Registra asistencia de invitados con formularios</p>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Registro Manual - Invitados
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    Registra asistencia de invitados con formularios
+                  </p>
                 </div>
               </div>
             </div>
-            
+
             {selectedActivity && (
               <div className="flex items-center gap-4">
                 <div className="text-right">
@@ -177,9 +180,12 @@ export default function GuestAttendancePage() {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="text-center">
                   <FaUserFriends className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona una Actividad</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Selecciona una Actividad
+                  </h3>
                   <p className="text-gray-600">
-                    Para comenzar a registrar invitados, primero selecciona una actividad en el panel izquierdo.
+                    Para comenzar a registrar invitados, primero selecciona una actividad en el
+                    panel izquierdo.
                   </p>
                 </div>
               </div>
@@ -202,14 +208,25 @@ export default function GuestAttendancePage() {
                 {showForm && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
                     <div>
-                      <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="full_name"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         Nombre Completo *
                       </label>
                       <input
                         type="text"
                         id="full_name"
                         value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]*$/.test(value)) {
+                            setFormData({ ...formData, full_name: value });
+                            setError(null);
+                          } else {
+                            setError(' Solo se permiten letras en el nombre completo');
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         placeholder="Ej: Juan Pérez"
                         required
@@ -218,28 +235,54 @@ export default function GuestAttendancePage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="cedula" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="cedula"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Cédula (Opcional)
                         </label>
                         <input
                           type="text"
                           id="cedula"
                           value={formData.cedula}
-                          onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (!/^\d*$/.test(value)) {
+                              setError(' Solo se permiten números en la cédula');
+                            } else if (value.length > 15) {
+                              setError(' La cédula no puede tener más de 15 dígitos');
+                            } else {
+                              setFormData({ ...formData, cedula: value });
+                              setError(null);
+                            }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           placeholder="Ej: 12345678"
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="phone"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           Teléfono (Opcional)
                         </label>
                         <input
                           type="tel"
                           id="phone"
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (!/^\d*$/.test(value)) {
+                              setError(' Solo se permiten números en el teléfono');
+                            } else if (value.length > 15) {
+                              setError('El teléfono no puede tener más de 15 dígitos');
+                            } else {
+                              setFormData({ ...formData, phone: value });
+                              setError(null);
+                            }
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           placeholder="Ej: 555-1234"
                         />
@@ -290,7 +333,10 @@ export default function GuestAttendancePage() {
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {attendanceRecords.map((record) => (
-                    <div key={record.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div
+                      key={record.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-purple-100 rounded-lg">
                           <FaUserFriends className="w-4 h-4 text-purple-600" />
@@ -305,7 +351,8 @@ export default function GuestAttendancePage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-500">
-                          {record.created_at && new Date(record.created_at).toLocaleString('es-ES')}
+                          {record.created_at &&
+                            new Date(record.created_at).toLocaleString('es-ES')}
                         </p>
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           Manual
