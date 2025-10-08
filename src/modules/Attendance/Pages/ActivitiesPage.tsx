@@ -284,7 +284,11 @@ export default function ActivitiesPage() {
                   <textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 400) {
+                         setFormData({ ...formData, description: e.target.value });
+                      }
+                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     rows={3}
                     placeholder="Descripción de la actividad..."
@@ -301,6 +305,7 @@ export default function ActivitiesPage() {
                       id="event_date"
                       value={formData.event_date}
                       onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                       min={new Date().toISOString().split("T")[0]}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                       required
                     />
@@ -315,6 +320,11 @@ export default function ActivitiesPage() {
                       id="event_time"
                       value={formData.event_time}
                       onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                      min={
+                        formData.event_date === new Date().toISOString().split("T")[0]
+                         ? new Date().toTimeString().slice(0, 5)
+                         : undefined
+                      } 
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     />
                   </div>
@@ -439,10 +449,14 @@ export default function ActivitiesPage() {
                         <div>
                           <div className="text-sm font-medium text-gray-900">{activity.name}</div>
                           {activity.description && (
-                            <div className="text-sm text-gray-500">{activity.description}</div>
+                            <div className="text-sm text-gray-500 break-words max-w-xs">
+                              {activity.description .length > 100
+                                ? `${activity.description.slice(0, 100)}…`
+                                : activity.description
+                            }</div>
                           )}
                           {activity.location && (
-                            <div className="text-sm text-gray-500">📍 {activity.location}</div>
+                            <div className="text-sm text-gray-500"> {activity.location}</div>
                           )}
                         </div>
                       </td>
