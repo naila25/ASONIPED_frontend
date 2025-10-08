@@ -1,4 +1,4 @@
-export type SectionKey = "hero" | "about" | "donation" | "volunteering" | "location" | "testimonials" | "footer";
+export type SectionKey = | "hero" | "about" | "donation" | "volunteering" | "location" | "testimonials" | "footer" | "workshop";
 
 export interface ValueItem {
   label: string;
@@ -40,7 +40,7 @@ export interface FooterData {
 }
 
 // -------------------------------------------
-// DONATION SECTION TYPES (agregado)
+// DONATION SECTION TYPES
 // -------------------------------------------
 export interface DonationsCard {
   id?: number;
@@ -58,6 +58,21 @@ export interface DonationSection {
   };
   cards: DonationsCard[];
 }
+
+// -------------------------------------------
+// WORKSHOP SECTION TYPE
+// -------------------------------------------
+export interface LandingWorkshop {
+  id?: number;
+  titulo: string;
+  titulo_card: string;
+  descripcion_card: string;
+  imagen_card: string;
+  texto_boton_card: string;
+  color_boton_card: string;
+  fondo: string;
+}
+
 // -------------------------------------------
 
 export interface SectionData {
@@ -125,6 +140,7 @@ export type AllSectionData = {
   about: SectionData;
   volunteering: SectionData;
   donation: DonationSection;
+  workshop: LandingWorkshop[]; // <- array de talleres para el landing
   footer: SectionData;
   location: SectionData;
   testimonials: SectionData;

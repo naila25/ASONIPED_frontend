@@ -1,15 +1,16 @@
 export interface Workshop {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  materials: string[];
-  learnText: string;
-   location: string; // Nuevo
-  date: string;     // Nuevo
-  time: string;  
-  participants: number;      // Número de participantes (nuevo)
-  slotsAvailable: number;    // Cupos disponibles (nuevo)
+
+  id: number;
+  titulo: string;
+  ubicacion: string;
+  descripcion: string;
+  materiales: string[]; // Array of materials
+  aprender: string;
+  imagen: string;
+  fecha: string;
+  hora: string;
+  capacidad: number;
+
 }
 
 

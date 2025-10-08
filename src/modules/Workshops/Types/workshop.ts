@@ -30,3 +30,16 @@ export type BackendWorkshop = {
   fecha_inscripcion: string;
   status: "pending" | "approved" | "rejected";
 };
+// Mapeo entre BackendWorkshop y WorkshopForm 
+export interface Workshop {
+  id: number;
+  titulo: string;
+  ubicacion: string;
+  descripcion: string;
+  materiales: string;
+  aprender: string;
+  imagen: string;
+  fecha: string;
+  hora: string;
+  capacidad: number;
+}
