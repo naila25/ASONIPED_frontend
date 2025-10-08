@@ -1,4 +1,5 @@
 export interface Workshop {
+
   id: number;
   titulo: string;
   ubicacion: string;
@@ -9,7 +10,9 @@ export interface Workshop {
   fecha: string;
   hora: string;
   capacidad: number;
+
 }
+
 
 export interface WorkshopEnrollment {
   id?: string;

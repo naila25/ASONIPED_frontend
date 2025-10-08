@@ -232,12 +232,38 @@ const donationsAdminRoute = createRoute({
   ),
 });
 
+// Attendance main route
 const attendanceAdminRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance',
   component: () => (
       <AttendancePanel />
   ),
+});
+
+// Attendance sub-routes (direct children of adminDashboardRoute)
+const attendanceBeneficiariesRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'attendance/beneficiaries',
+  component: lazy(() => import('../../modules/Attendance/Pages/QRScannerPage')),
+});
+
+const attendanceGuestsRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'attendance/guests',
+  component: lazy(() => import('../../modules/Attendance/Pages/GuestAttendancePage')),
+});
+
+const attendanceListRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'attendance/list',
+  component: lazy(() => import('../../modules/Attendance/Pages/AttendanceListPage')),
+});
+
+const attendanceActivitiesRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'attendance/activities',
+  component: lazy(() => import('../../modules/Attendance/Pages/ActivitiesPage')),
 });
 
 const userManagementRoute = createRoute({
@@ -320,6 +346,10 @@ const routeTree = rootRoute.addChildren([
       ]),
       donationsAdminRoute,
       attendanceAdminRoute,
+      attendanceBeneficiariesRoute,
+      attendanceGuestsRoute,
+      attendanceListRoute,
+      attendanceActivitiesRoute,
       eventsNewsAdminRoute,
       WorkshopAdminRoute.addChildren([
        WorkshopOptionsRoute,
