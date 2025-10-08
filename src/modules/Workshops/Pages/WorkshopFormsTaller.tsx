@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   fetchWorkshopForms, // <-- IMPLEMENTA este servicio para tu backend
-  updateWorkshopFormStatus, // <-- IMPLEMENTA este servicio para tu backend
-  fetchWorkshopOptions // <-- IMPLEMENTA este servicio para tu backend
+  updateWorkshopFormStatus // <-- IMPLEMENTA este servicio para tu backend
 } from '../Services/fetchWorkshops';
 import type { WorkshopForm, WorkshopOption } from '../Types/workshop';
 import { 
@@ -16,7 +15,6 @@ import {
   User,
   Mail,
   Phone,
-  Calendar,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
@@ -30,26 +28,86 @@ const WorkshopFormsTallerPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'enrolled' | 'cancelled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOption, setSelectedOption] = useState<string>('all');
   const [expandedForms, setExpandedForms] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
-  // Load forms and options on mount or page change
+  // Load forms on mount or page change
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [formsResponse, optionsResponse] = await Promise.all([
-          fetchWorkshopForms(),
-          fetchWorkshopOptions()
-        ]);
+        const formsResponse = await fetchWorkshopForms();
         // Transform backend data to frontend format
-        const transformedForms = formsResponse.inscripciones; 
+        console.log('Forms response:', formsResponse);
+        const rawForms = formsResponse.enrollments || formsResponse.inscripciones || [];
+        
+        // Transform the data to match the expected format
+        const transformedForms = rawForms.map((enrollment: {
+          id: string;
+          status: string;
+          enrollment_date: string;
+          cancellation_date?: string;
+          notes?: string;
+          workshop_id: string;
+          user_full_name: string;
+          user_email: string;
+          user_username?: string;
+          user_phone?: string;
+          user_telefono?: string;
+          workshop_titulo: string;
+          workshop_descripcion?: string;
+          workshop_ubicacion?: string;
+          workshop_fecha?: string;
+          workshop_hora?: string;
+          workshop_capacidad?: number;
+          workshop_materiales?: string | string[];
+          workshop_aprender?: string;
+          workshop_imagen?: string;
+          asistencia?: boolean;
+        }) => ({
+          id: enrollment.id,
+          // Map backend status to frontend status
+          status: enrollment.status === 'cancelled' ? 'cancelled' : 'enrolled',
+          enrollmentDate: enrollment.enrollment_date,
+          fechaInscripcion: enrollment.enrollment_date, // Add this for the formatDate function
+          cancellationDate: enrollment.cancellation_date,
+          notes: enrollment.notes,
+          workshopOptionId: enrollment.workshop_id,
+          workshopTitle: enrollment.workshop_titulo, // Add this for display
+          asistencia: enrollment.asistencia || false, // Add asistencia field
+          personalInfo: {
+            nombre: enrollment.user_full_name,
+            email: enrollment.user_email,
+            username: enrollment.user_username,
+            telefono: enrollment.user_phone || '' // Add phone number
+          },
+          workshopInfo: {
+            titulo: enrollment.workshop_titulo,
+            descripcion: enrollment.workshop_descripcion,
+            ubicacion: enrollment.workshop_ubicacion,
+            fecha: enrollment.workshop_fecha,
+            hora: enrollment.workshop_hora,
+            capacidad: enrollment.workshop_capacidad,
+            materiales: enrollment.workshop_materiales,
+            aprender: enrollment.workshop_aprender,
+            imagen: enrollment.workshop_imagen
+          }
+        }));
+        
         setForms(transformedForms);
-        setOptions(optionsResponse);
-        setTotalPages(Math.ceil((formsResponse.total || 0) / 10));
+        
+        // Create options from unique workshop titles
+        const uniqueOptions = Array.from(new Set(transformedForms.map((form: WorkshopForm) => form.workshopTitle)))
+          .map((title, index) => ({
+            id: String(index + 1),
+            title: (title as string) || 'Sin título'
+          }));
+        setOptions(uniqueOptions);
+        
+        setTotalPages(Math.ceil((formsResponse.pagination?.pages || formsResponse.total || 0)));
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error loading data');
@@ -61,9 +119,12 @@ const WorkshopFormsTallerPage = () => {
   }, [currentPage]);
 
   // Handle status change for a workshop form
-  const handleStatusChange = async (formId: number, newStatus: 'pending' | 'approved' | 'rejected') => {
+  const handleStatusChange = async (formId: number, newStatus: 'pending' | 'approved' | 'rejected' | 'enrolled' | 'cancelled') => {
     try {
-      await updateWorkshopFormStatus();
+      // Map frontend status to backend status
+      const backendStatus = newStatus === 'cancelled' ? 'cancelled' : 'enrolled';
+      
+      await updateWorkshopFormStatus(formId, backendStatus);
       setForms(forms.map(form => 
         Number(form.id) === formId ? { ...form, status: newStatus } : form
       ));
@@ -73,21 +134,20 @@ const WorkshopFormsTallerPage = () => {
   };
 
   // Filter forms by status, search, and option
-  const filteredForms = forms.filter(form => {
+  const filteredForms = (forms || []).filter(form => {
     const matchesStatus = statusFilter === 'all' || form.status === statusFilter;
     const matchesSearch = searchTerm === '' || 
       form.personalInfo.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       form.personalInfo.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesOption = selectedOption === 'all' || String(form.workshopOptionId) === selectedOption;
+    const matchesOption = selectedOption === 'all' || form.workshopTitle === selectedOption;
     return matchesStatus && matchesSearch && matchesOption;
   });
 
   // Calculate statistics
   const stats = {
-    total: forms.length,
-    pending: forms.filter(f => f.status === 'pending').length,
-    approved: forms.filter(f => f.status === 'approved').length,
-    rejected: forms.filter(f => f.status === 'rejected').length,
+    total: (forms || []).length,
+    enrolled: (forms || []).filter(f => f.status === 'enrolled').length,
+    cancelled: (forms || []).filter(f => f.status === 'cancelled').length,
   };
 
   // Toggle form expansion
@@ -104,10 +164,10 @@ const WorkshopFormsTallerPage = () => {
   // Get status color and text
   const getStatusInfo = (status: string) => {
     switch (status) {
-      case 'approved':
-        return { color: 'bg-green-100 text-green-800 border-green-200', text: 'Aprobado', icon: CheckCircle };
-      case 'rejected':
-        return { color: 'bg-red-100 text-red-800 border-red-200', text: 'Rechazado', icon: XCircle };
+      case 'enrolled':
+        return { color: 'bg-green-100 text-green-800 border-green-200', text: 'Inscrito', icon: CheckCircle };
+      case 'cancelled':
+        return { color: 'bg-red-100 text-red-800 border-red-200', text: 'Cancelado', icon: XCircle };
       default:
         return { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', text: 'Pendiente', icon: Clock };
     }
@@ -193,23 +253,11 @@ const WorkshopFormsTallerPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">Pendientes</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.pending}</p>
-            </div>
-            <div className="p-2.5 bg-amber-50 rounded-lg">
-              <Clock className="w-6 h-6 text-amber-600" />
-            </div>
-          </div>
-        </div>
-
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">Aprobados</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.approved}</p>
+              <p className="text-sm font-medium text-gray-500 mb-2">Inscritos</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.enrolled}</p>
             </div>
             <div className="p-2.5 bg-emerald-50 rounded-lg">
               <CheckCircle className="w-6 h-6 text-emerald-600" />
@@ -220,8 +268,8 @@ const WorkshopFormsTallerPage = () => {
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">Rechazados</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.rejected}</p>
+              <p className="text-sm font-medium text-gray-500 mb-2">Cancelados</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.cancelled}</p>
             </div>
             <div className="p-2.5 bg-red-50 rounded-lg">
               <XCircle className="w-6 h-6 text-red-600" />
@@ -266,9 +314,8 @@ const WorkshopFormsTallerPage = () => {
             className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
           >
             <option value="all">Todos los estados</option>
-            <option value="pending">Pendiente</option>
-            <option value="approved">Aprobado</option>
-            <option value="rejected">Rechazado</option>
+            <option value="enrolled">Inscrito</option>
+            <option value="cancelled">Cancelado</option>
           </select>
           
           <div className="text-sm text-gray-500 flex items-center">
@@ -282,7 +329,7 @@ const WorkshopFormsTallerPage = () => {
       {viewMode === 'cards' ? (
         <div className="space-y-8">
           {options.map(option => {
-            const optionForms = filteredForms.filter(form => String(form.workshopOptionId) === String(option.id));
+            const optionForms = filteredForms.filter(form => form.workshopTitle === option.title);
             if (optionForms.length === 0) return null;
 
             return (
@@ -337,13 +384,6 @@ const WorkshopFormsTallerPage = () => {
                                   <span>{form.personalInfo.telefono}</span>
                                 </div>
                               )}
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Calendar className="w-4 h-4 text-gray-400" />
-                                <span>{form.workshopTitle}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <span>Asistencia: {form.asistencia ? "Sí" : "No"}</span>
-                              </div>
                             </div>
 
                             {/* Expandable Details (puedes agregar más campos si tu modelo lo requiere) */}
@@ -366,12 +406,11 @@ const WorkshopFormsTallerPage = () => {
                               
                               <select
                                 value={form.status}
-                                onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected')}
+                                onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected' | 'enrolled' | 'cancelled')}
                                 className="px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                               >
-                                <option value="pending">Pendiente</option>
-                                <option value="approved">Aprobar</option>
-                                <option value="rejected">Rechazar</option>
+                                <option value="enrolled">Inscrito</option>
+                                <option value="cancelled">Cancelado</option>
                               </select>
                             </div>
                           </div>
@@ -402,7 +441,6 @@ const WorkshopFormsTallerPage = () => {
                 {filteredForms.map(form => {
                   const statusInfo = getStatusInfo(form.status);
                   const StatusIcon = statusInfo.icon;
-                  const option = options.find(opt => String(opt.id) === String(form.workshopOptionId));
                   
                   return (
                     <tr key={form.id} className="hover:bg-gray-50 transition-colors">
@@ -423,7 +461,7 @@ const WorkshopFormsTallerPage = () => {
                         <div className="text-xs text-gray-500">{form.personalInfo.telefono}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{option?.title || 'N/A'}</div>
+                        <div className="text-sm text-gray-900">{form.workshopTitle || 'N/A'}</div>
                         <div className="text-xs text-gray-500">{formatDate(form.fechaInscripcion)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -435,12 +473,11 @@ const WorkshopFormsTallerPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select
                           value={form.status}
-                          onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected')}
+                          onChange={(e) => handleStatusChange(Number(form.id), e.target.value as 'pending' | 'approved' | 'rejected' | 'enrolled' | 'cancelled')}
                           className="px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                         >
-                          <option value="pending">Pendiente</option>
-                          <option value="approved">Aprobar</option>
-                          <option value="rejected">Rechazar</option>
+                          <option value="enrolled">Inscrito</option>
+                          <option value="cancelled">Cancelado</option>
                         </select>
                       </td>
                     </tr>

@@ -23,6 +23,7 @@ import UserDashboard from '../../modules/Dashboards/Pages/UserDashboard';
 import DashboardHome from '../../modules/Dashboards/Pages/DashboardHome';
 import ExpedientesPage from '../../modules/Records/Pages/ExpedientesPage';
 import VoluntariadoPage from '../../modules/Volunteers/Pages/VoluntariadoPage';
+import UserWorkshopsPage from '../../modules/Workshops/Pages/UserWorkshopsPage';
 import MensajesPage from '../../modules/Tickets/Pages/MensajesPage';
 import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
@@ -178,6 +179,12 @@ const voluntariadoRoute = createRoute({
   getParentRoute: () => userDashboardRoute,
   path: 'voluntariado',
   component: VoluntariadoPage,
+});
+
+const talleresRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'talleres',
+  component: UserWorkshopsPage,
 });
 
 const WorkshopAdminRoute = createRoute({
@@ -363,8 +370,8 @@ const routeTree = rootRoute.addChildren([
     userDashboardRoute.addChildren([
       userHomeRoute,
       expedientesRoute,
-     
       voluntariadoRoute,
+      talleresRoute,
       mensajesRoute,
       calendarioRoute,
       perfilRoute
