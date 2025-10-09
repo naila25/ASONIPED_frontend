@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from '@tanstack/react-router';
 import type { Workshop } from "../Types/workshop";
 import { FaCalendarAlt, FaClock, FaUsers, FaTools, FaRegLightbulb } from "react-icons/fa";
 import { MdLocationOn, MdDescription } from "react-icons/md";
@@ -226,14 +227,16 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Pr
             {/* Actions */}
             <div className="flex justify-center items-center">
               {justEnrolled ? (
-                <div className="text-center">
+                <div className="text-center space-y-3">
                   <div className="text-green-600 font-semibold mb-2">¡Te has inscrito exitosamente!</div>
-                  <button
-                    onClick={() => setJustEnrolled(false)}
-                    className="text-sm text-gray-600 hover:text-gray-800 underline"
-                  >
-                    Continuar
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                    <Link
+                      to="/user/talleres"
+                      className="inline-flex items-center justify-center bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
+                    >
+                      Ir a Mis Talleres
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <button

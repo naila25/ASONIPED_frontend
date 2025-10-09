@@ -15,3 +15,15 @@ body {
 html {
     scroll-behavior: smooth;
   }
+
+/* Prevent layout shifts during component loading */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Smooth transitions for layout changes */
+* {
+  transition: height 0.2s ease-in-out;
+}
