@@ -1,15 +1,18 @@
 export interface Workshop {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  objectives: string[];
-  materials: string[];
-  learnText: string;
-   location: string; // Nuevo
-  date: string;     // Nuevo
-  time: string;  
+
+  id: number;
+  titulo: string;
+  ubicacion: string;
+  descripcion: string;
+  materiales: string[]; // Array of materials
+  aprender: string;
+  imagen: string;
+  fecha: string;
+  hora: string;
+  capacidad: number;
+
 }
+
 
 export interface WorkshopEnrollment {
   id?: string;

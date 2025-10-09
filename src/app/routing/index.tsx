@@ -5,7 +5,7 @@ import Home from '../../modules/Landing/Pages/HomePage';
 import AdminLogin from '../../modules/Login/Pages/AdminLogin';
 import VolunteersSubDashboard from '../../modules/Volunteers/Pages/VolunteersSubDashboard';
 import VolunteerProposalsAdmin from '../../modules/Volunteers/Pages/VolunteerProposalsAdmin';
-import DonacionesPage from '../../modules/Donation/Pages/Donaciones.page';
+import DonacionesPage from '../../modules/Donation/Pages/DonacionesPage';
 import FormularioDonacion from '../../modules/Donation/Components/FormularioDonacion';
 import ConocenosSection from '../../modules/Landing/Components/Conocenos';
 import EventsNewsList from '../../modules/EventsNews/Pages/EventsNewsList';
@@ -15,25 +15,29 @@ import PublicWorkshopsPage from '../../modules/Workshops/Components/PublicWorksh
 import AdminDashboard from '../../modules/Dashboards/Pages/AdminDashboard';
 import AdminDashboardHome from '../../modules/Dashboards/Pages/AdminDashboardHome';
 import ExpedientesAdminPage from '../../modules/Records/Pages/ExpedientesAdminPage';
+import AdminDirectRecordCreation from '../../modules/Records/Pages/AdminDirectRecordCreation';
+import AdminRecordEdit from '../../modules/Records/Pages/AdminRecordEdit';
 import UserManagement from '../../modules/Dashboards/Pages/UserManagement';
 import AdminTicketsPage from '../../modules/Tickets/Pages/AdminTicketsPage';
 import UserDashboard from '../../modules/Dashboards/Pages/UserDashboard';
 import DashboardHome from '../../modules/Dashboards/Pages/DashboardHome';
 import ExpedientesPage from '../../modules/Records/Pages/ExpedientesPage';
 import VoluntariadoPage from '../../modules/Volunteers/Pages/VoluntariadoPage';
+import UserWorkshopsPage from '../../modules/Workshops/Pages/UserWorkshopsPage';
 import MensajesPage from '../../modules/Tickets/Pages/MensajesPage';
 import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
 import WorkshopPanel from '../../modules/Workshops/Components/WorkshopPanel';
+import AttendancePanel from '../../modules/Attendance/Components/AttendancePanel';
 
 
 // Lazy-loaded admin Pages with Suspense boundaries
 const VolunteerOptionsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerOptionsPage'));
 const VolunteerFormsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerFormsPage'));
 const DonationForms = lazy(() => import('../../modules/Donation/Pages/DonationForms'));
-const AttendancePage = lazy(() => import('../../modules/Attendance/Pages/AttendancePage'));
+//const AttendancePage = lazy(() => import('../../modules/Attendance/Pages/AttendancePage'));
 const WorkshopFormsTaller = lazy(() => import('../../modules/Workshops/Pages/WorkshopFormsTaller'));
 const WorkshopOptionsPage = lazy(() => import('../../modules/Workshops/Pages/WorkshopOptionsPage'));
 
@@ -140,6 +144,18 @@ const expedientesAdminRoute = createRoute({
   component: ExpedientesAdminPage,
 });
 
+const adminDirectRecordCreationRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'expedientes/crear-directo',
+  component: AdminDirectRecordCreation,
+});
+
+const adminRecordEditRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'expedientes/editar/$recordId',
+  component: AdminRecordEdit,
+});
+
 const userDashboardRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: 'user',
@@ -163,6 +179,12 @@ const voluntariadoRoute = createRoute({
   getParentRoute: () => userDashboardRoute,
   path: 'voluntariado',
   component: VoluntariadoPage,
+});
+
+const talleresRoute = createRoute({
+  getParentRoute: () => userDashboardRoute,
+  path: 'talleres',
+  component: UserWorkshopsPage,
 });
 
 const WorkshopAdminRoute = createRoute({
@@ -217,12 +239,38 @@ const donationsAdminRoute = createRoute({
   ),
 });
 
+// Attendance main route
 const attendanceAdminRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance',
   component: () => (
-      <AttendancePage />
+      <AttendancePanel />
   ),
+});
+
+// Attendance sub-routes (direct children of adminDashboardRoute)
+const attendanceBeneficiariesRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'attendance/beneficiaries',
+  component: lazy(() => import('../../modules/Attendance/Pages/QRScannerPage')),
+});
+
+const attendanceGuestsRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'attendance/guests',
+  component: lazy(() => import('../../modules/Attendance/Pages/GuestAttendancePage')),
+});
+
+const attendanceListRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'attendance/list',
+  component: lazy(() => import('../../modules/Attendance/Pages/AttendanceListPage')),
+});
+
+const attendanceActivitiesRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'attendance/activities',
+  component: lazy(() => import('../../modules/Attendance/Pages/ActivitiesPage')),
 });
 
 const userManagementRoute = createRoute({
@@ -296,6 +344,8 @@ const routeTree = rootRoute.addChildren([
     adminDashboardRoute.addChildren([
       adminHomeRoute,
       expedientesAdminRoute,
+      adminDirectRecordCreationRoute,
+      adminRecordEditRoute,
       volunteersAdminRoute.addChildren([
         volunteerOptionsRoute,
         volunteerFormsRoute,
@@ -303,6 +353,10 @@ const routeTree = rootRoute.addChildren([
       ]),
       donationsAdminRoute,
       attendanceAdminRoute,
+      attendanceBeneficiariesRoute,
+      attendanceGuestsRoute,
+      attendanceListRoute,
+      attendanceActivitiesRoute,
       eventsNewsAdminRoute,
       WorkshopAdminRoute.addChildren([
        WorkshopOptionsRoute,
@@ -316,8 +370,8 @@ const routeTree = rootRoute.addChildren([
     userDashboardRoute.addChildren([
       userHomeRoute,
       expedientesRoute,
-     
       voluntariadoRoute,
+      talleresRoute,
       mensajesRoute,
       calendarioRoute,
       perfilRoute

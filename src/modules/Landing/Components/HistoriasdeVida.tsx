@@ -36,7 +36,7 @@ const HistoriasdeVida = () => {
   return (
     <section className="max-w-7xl mx-auto px-6 py-10 text-center mt-20">
       {/* Título principal */}
-      <h2 className= "text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mt-20 mb-5">
+      <h2 className= "text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide ">
         Testimonios de Vida
       </h2>
 

@@ -11,8 +11,10 @@ import {
   XCircle, 
   Clock, 
   Eye,
-  MessageSquare,
-  AlertCircle
+  AlertCircle,
+  Phone,
+  Users,
+  Search
 } from 'lucide-react';
 
 interface VolunteerProposal {
@@ -22,6 +24,8 @@ interface VolunteerProposal {
   proposal: string;
   location: string;
   date: string;
+  hour?: string;
+  spots?: number;
   tools?: string;
   document_path?: string;
   status: string;
@@ -29,6 +33,7 @@ interface VolunteerProposal {
   created_at: string;
   full_name?: string;
   email?: string;
+  phone?: string;
 }
 
 export default function VolunteerProposalsAdmin() {
@@ -37,6 +42,7 @@ export default function VolunteerProposalsAdmin() {
   const [proposals, setProposals] = useState<VolunteerProposal[]>([]);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const load = async () => {
     try {
@@ -110,6 +116,17 @@ export default function VolunteerProposalsAdmin() {
   const formatDate = (dateString: string) => {
     if (!dateString) return 'No especificada';
     try {
+      // Handle DD/MM/YYYY format
+      if (dateString.includes('/')) {
+        const [day, month, year] = dateString.split('/');
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return date.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+      // Handle ISO format
       return new Date(dateString).toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'short',
@@ -120,86 +137,115 @@ export default function VolunteerProposalsAdmin() {
     }
   };
 
-  // Filtered list (hide archived unless toggled on)
+  // Filtered list (hide archived unless toggled on and apply search filter)
   const filteredProposals = proposals.filter((p) => {
     const archived = p.status === 'filed' || (p.admin_note?.includes('[ARCHIVED]') ?? false);
-    return showArchived ? true : !archived;
+    const isArchivedVisible = showArchived ? true : !archived;
+    
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = 
+        p.full_name?.toLowerCase().includes(searchLower) ||
+        p.phone?.toLowerCase().includes(searchLower) ||
+        p.title?.toLowerCase().includes(searchLower) ||
+        p.proposal?.toLowerCase().includes(searchLower) ||
+        p.email?.toLowerCase().includes(searchLower);
+      
+      return isArchivedVisible && matchesSearch;
+    }
+    
+    return isArchivedVisible;
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-8xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 bg-orange-100 rounded-xl">
-            <MessageSquare className="w-8 h-8 text-orange-600" />
-          </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Propuestas de Voluntariado</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Propuestas de Voluntariado</h1>
             <p className="text-gray-600 mt-1">Revisa y gestiona las propuestas de voluntariado enviadas</p>
           </div>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="text-sm text-gray-600">
             {showArchived ? 'Mostrando archivadas' : 'Archivadas ocultas'}
           </div>
-          <button
-            onClick={() => setShowArchived((v) => !v)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            {showArchived ? 'Ocultar archivadas' : 'Mostrar archivadas'}
-          </button>
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+            {/* Search Input */}
+            <div className="relative w-full sm:w-80">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Buscar por nombre, teléfono, propuesta..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+              />
+            </div>
+            
+            <button
+              onClick={() => setShowArchived((v) => !v)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+            >
+              {showArchived ? 'Ocultar archivadas' : 'Mostrar archivadas'}
+            </button>
+          </div>
         </div>
         
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-600" />
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 py-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{filteredProposals.length}</p>
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{filteredProposals.length}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                <FileText className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
-              </div>
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Pendientes</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600">Pendientes</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {filteredProposals.filter(p => p.status === 'pending' || !p.status).length}
                 </p>
               </div>
+              <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
+                <Clock className="w-6 h-6 text-orange-600" />
+              </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Aprobadas</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600">Aprobadas</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {filteredProposals.filter(p => p.status === 'approved').length}
                 </p>
               </div>
+              <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
-              </div>
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-red-500">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Rechazadas</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600">Rechazadas</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {filteredProposals.filter(p => p.status === 'rejected').length}
                 </p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-lg flex-shrink-0">
+                <XCircle className="w-6 h-6 text-red-600" />
               </div>
             </div>
           </div>
@@ -252,7 +298,7 @@ export default function VolunteerProposalsAdmin() {
                 </div>
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   <div className="flex items-center gap-3 text-gray-600">
                     <div className="p-2 bg-gray-100 rounded-lg">
                       <User className="w-4 h-4 text-gray-600" />
@@ -267,6 +313,18 @@ export default function VolunteerProposalsAdmin() {
                       )}
                     </div>
                   </div>
+
+                  {proposal.phone && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <Phone className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Teléfono</p>
+                        <p className="text-sm font-medium">{proposal.phone}</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-3 text-gray-600">
                     <div className="p-2 bg-gray-100 rounded-lg">
@@ -287,6 +345,30 @@ export default function VolunteerProposalsAdmin() {
                       <p className="text-sm font-medium">{formatDate(proposal.date)}</p>
                     </div>
                   </div>
+
+                  {proposal.hour && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <Clock className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Hora</p>
+                        <p className="text-sm font-medium">{proposal.hour}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {proposal.spots && (
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <div className="p-2 bg-gray-100 rounded-lg">
+                        <Users className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">Cupos Disponibles</p>
+                        <p className="text-sm font-medium">{proposal.spots}</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-3 text-gray-600">
                     <div className="p-2 bg-gray-100 rounded-lg">

@@ -63,7 +63,7 @@ const RecordStatus: React.FC<RecordStatusProps> = ({ record }) => {
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-600">Número de Expediente</p>
-          <p className="font-mono text-lg font-semibold text-gray-900">{record.record_number}</p>
+          <p className="text-lg font-semibold text-gray-900">{record.record_number}</p>
         </div>
       </div>
 
@@ -83,7 +83,7 @@ const RecordStatus: React.FC<RecordStatusProps> = ({ record }) => {
             </div>
             <div>
               <span className="text-gray-600">Cédula:</span>
-              <span className="ml-2 font-mono">{record.personal_data.cedula}</span>
+              <span className="ml-2">{record.personal_data.cedula}</span>
             </div>
             <div>
               <span className="text-gray-600">Fecha de Creación:</span>

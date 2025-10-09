@@ -44,10 +44,10 @@ const NavBar = () => {
         };
 
         checkAuth();
-        // Verificar cada vez que cambie la URL
-        const interval = setInterval(checkAuth, 1000);
+        // Only check auth when location changes, not every second
+        const interval = setInterval(checkAuth, 5000); // Reduced frequency
         return () => clearInterval(interval);
-    }, []);
+    }, [location.pathname]); // Add location dependency
 
     // Cerrar dropdown cuando se hace clic fuera
     useEffect(() => {
