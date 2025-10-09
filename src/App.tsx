@@ -5,11 +5,13 @@ import Footer from "./modules/Landing/Components/Footer"
 
 function App() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <NavBar />
-      <Outlet />
+      <main className="flex-1">
+        <Outlet />
+      </main>
       <Footer />
-    </>
+    </div>
   );
 }
 
