@@ -227,6 +227,15 @@ export interface Record {
   created_at: string;
   updated_at: string;
   created_by?: number;
+  admin_created?: boolean;
+  // Creator attribution information
+  creator_username?: string;
+  creator_full_name?: string;
+  // Handover tracking fields
+  handed_over_to_user?: boolean;
+  handed_over_to?: number;
+  handed_over_at?: string;
+  handed_over_by?: number;
   // Datos relacionados
   personal_data?: PersonalData;
   complete_personal_data?: CompletePersonalData;

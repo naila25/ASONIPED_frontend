@@ -29,6 +29,11 @@ export interface VolunteerOption {
   location: string;
   skills?: string;
   tools?: string;
+  hour?: string;
+  spots?: number;
+  available_spots?: number;
+  registered_count?: number;
+  is_registered?: boolean;
 }
 
 // Standard API error structure
