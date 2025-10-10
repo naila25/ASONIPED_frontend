@@ -8,6 +8,11 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  
+  // Prevent duplicate QR processing
+  const lastProcessedQR = useRef<string>('');
+  const processingRef = useRef<boolean>(false);
+  
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,44 +30,68 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
       
       // Check if camera is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('❌ Camera API not available:', {
+          hasNavigator: !!navigator,
+          hasMediaDevices: !!navigator.mediaDevices,
+          hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+          userAgent: navigator.userAgent,
+          isSecureContext: window.isSecureContext,
+          protocol: window.location.protocol
+        });
         throw new Error('Cámara no soportada en este dispositivo');
       }
 
       
-      // Request camera permission
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Request camera permission with iOS Safari compatibility
+      const constraints = {
         video: {
           facingMode: 'environment', // Use back camera on mobile
           width: { ideal: 1280 },
           height: { ideal: 720 }
         }
-      });
+      };
+
+      console.log('🎥 Requesting camera with constraints:', constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       streamRef.current = stream;
       setCameraPermission('granted');
 
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        
-        // Wait for video to be ready
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().then(() => {
-            // Start QR scanning after video is ready
-            setIsScanning(true);
-          }).catch((playError) => {
-            console.error('❌ Error playing video:', playError);
-            setError('Error al reproducir el video de la cámara');
-          });
-        };
+        // Add safety check to ensure element is still in DOM
+        if (document.body.contains(videoRef.current)) {
+          videoRef.current.srcObject = stream;
+          
+          // Wait for video to be ready
+          videoRef.current.onloadedmetadata = () => {
+            if (videoRef.current && document.body.contains(videoRef.current)) {
+              videoRef.current.play().then(() => {
+                // Start QR scanning after video is ready
+                setIsScanning(true);
+              }).catch((playError) => {
+                console.error('❌ Error playing video:', playError);
+                setError('Error al reproducir el video de la cámara');
+              });
+            }
+          };
+        }
       }
 
     } catch (err: unknown) {
       setCameraPermission('denied');
       
+      console.error('❌ Camera error:', err);
+      
       if ((err as Error).name === 'NotAllowedError') {
-        setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara.');
+        setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara en la configuración del navegador.');
       } else if ((err as Error).name === 'NotFoundError') {
         setError('No se encontró ninguna cámara en este dispositivo.');
+      } else if ((err as Error).name === 'NotSupportedError') {
+        setError('La cámara no es compatible con este navegador. Intenta con Safari, Chrome o Firefox.');
+      } else if ((err as Error).name === 'NotReadableError') {
+        setError('La cámara está siendo usada por otra aplicación. Cierra otras apps que usen la cámara.');
+      } else if ((err as Error).name === 'OverconstrainedError') {
+        setError('Configuración de cámara no soportada. Intenta con configuración básica.');
       } else {
         setError('Error al acceder a la cámara: ' + (err as Error).message);
       }
@@ -72,15 +101,32 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
   }, [onScanError]);
 
   const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      
+      // Clean up video element safely
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        if (videoRef.current.onloadedmetadata) {
+          videoRef.current.onloadedmetadata = null;
+        }
+      }
+      
+      setIsScanning(false);
+      
+      // Reset processing flags
+      processingRef.current = false;
+      lastProcessedQR.current = '';
+    } catch (error) {
+      console.warn('Cleanup warning:', error);
     }
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    setIsScanning(false);
   }, []);
 
   const scanForQRCode = useCallback(() => {
@@ -100,21 +146,28 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
 
     if (!context) {
       return;
     }
 
     // Set canvas size to match video
+    // Check if video has valid dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.log('Video not ready yet, skipping scan');
+      return;
+    }
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
     // Draw video frame to canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Get image data from canvas
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    // Get image data from canvas (only if dimensions are valid)
+    if (canvas.width > 0 && canvas.height > 0) {
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
     // Use jsQR to decode QR code with options to reduce false positives
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
@@ -122,7 +175,19 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
     });
 
     if (code && code.data && code.data.trim().length > 0) {
+      // Prevent duplicate processing of the same QR code
+      const currentQR = code.data;
+      const now = Date.now();
+      
+      if (processingRef.current || 
+          (lastProcessedQR.current === currentQR && (now - lastScanTime) < 2000)) {
+        return;
+      }
+      
       try {
+        processingRef.current = true;
+        lastProcessedQR.current = currentQR;
+        
         // Parse QR code content as JSON
         const parsedData = JSON.parse(code.data);
         
@@ -139,7 +204,7 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
         }
         
         if (qrData) {
-          setLastScanTime(Date.now());
+          setLastScanTime(now);
           onScanSuccess(qrData);
           
           // Add visual feedback
@@ -155,8 +220,14 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
         }
       } catch {
         // Silently ignore parse errors
+      } finally {
+        // Reset processing flag after a delay
+        setTimeout(() => {
+          processingRef.current = false;
+        }, 1000);
       }
     }
+    } // Close the canvas dimension check
 
     // Continue scanning
     if (isScanning && isActive) {

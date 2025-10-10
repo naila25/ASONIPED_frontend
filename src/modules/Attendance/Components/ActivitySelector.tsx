@@ -187,41 +187,43 @@ export default function ActivitySelector({
                 }`}
                 onClick={() => onActivitySelect(activity)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{activity.name}</h3>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(activity.status)}`}>
-                        {getStatusText(activity.status)}
-                      </span>
-                      {isScanning && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          🔴 Escaneando
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-gray-900 truncate flex-1 min-w-0">{activity.name}</h3>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(activity.status)}`}>
+                          {getStatusText(activity.status)}
                         </span>
-                      )}
+                        {isScanning && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 whitespace-nowrap">
+                            🔴 Escaneando
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     {activity.description && (
-                      <p className="text-sm text-gray-600 mb-2">{activity.description}</p>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2 break-words">{activity.description}</p>
                     )}
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <FaCalendarAlt className="w-4 h-4" />
-                        <span>{formatDate(activity.event_date)}</span>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <FaCalendarAlt className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{formatDate(activity.event_date)}</span>
                       </div>
                       
                       {activity.event_time && (
-                        <div className="flex items-center gap-1">
-                          <FaClock className="w-4 h-4" />
-                          <span>{formatTime(activity.event_time)}</span>
+                        <div className="flex items-center gap-1 min-w-0">
+                          <FaClock className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{formatTime(activity.event_time)}</span>
                         </div>
                       )}
                       
                       {activity.location && (
-                        <div className="flex items-center gap-1">
-                          <FaMapMarkerAlt className="w-4 h-4" />
-                          <span>{activity.location}</span>
+                        <div className="flex items-center gap-1 min-w-0 flex-1">
+                          <FaMapMarkerAlt className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{activity.location}</span>
                         </div>
                       )}
                     </div>
