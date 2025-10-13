@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaQrcode, FaUsers, FaCheckCircle, FaExclamationTriangle, FaArrowLeft } from 'react-icons/fa';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { FaQrcode, FaUsers, FaArrowLeft } from 'react-icons/fa';
+import { Link } from '@tanstack/react-router';
 import ActivitySelector from '../Components/ActivitySelector';
 import QRScannerJSQR from '../Components/QRScannerJSQR';
 import ScanningStatus from '../Components/ScanningStatus';
@@ -9,7 +9,6 @@ import { attendanceRecordsApi, activityTracksApi } from '../Services/attendanceN
 import type { ActivityTrack, AttendanceRecordWithDetails, QRScanData } from '../Types/attendanceNew';
 
 export default function QRScannerPage() {
-  const navigate = useNavigate();
   const [selectedActivity, setSelectedActivity] = useState<ActivityTrack | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecordWithDetails[]>([]);
@@ -186,7 +185,7 @@ export default function QRScannerPage() {
               selectedActivity={selectedActivity || undefined}
               showCreateButton={true}
               onCreateActivity={() => {
-                navigate({ to: '/admin/attendance/activities' });
+                window.location.href = '/admin/attendance/activities';
               }}
             />
           </div>
@@ -201,11 +200,13 @@ export default function QRScannerPage() {
                  attendanceCount={attendanceRecords.length}
                  onStartScanning={handleStartScanning}
                  onStopScanning={handleStopScanning}
+                 success={success}
+                 error={error}
                />
             )}
 
             {/* QR Scanner */}
-            {selectedActivity && isScanning && (
+            {selectedActivity && (
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Escáner de Códigos QR</h2>
                  <QRScannerJSQR
@@ -217,24 +218,6 @@ export default function QRScannerPage() {
               </div>
             )}
 
-            {/* Messages */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <FaExclamationTriangle className="w-5 h-5 text-red-500" />
-                  <p className="text-red-800">{error}</p>
-                </div>
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <FaCheckCircle className="w-5 h-5 text-green-500" />
-                  <p className="text-green-800">{success}</p>
-                </div>
-              </div>
-            )}
 
             {/* Instructions */}
             {!selectedActivity && (

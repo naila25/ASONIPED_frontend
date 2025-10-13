@@ -15,6 +15,7 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
   
   const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
   const [isScanning, setIsScanning] = useState(false);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastScanTime, setLastScanTime] = useState<number>(0);
 
@@ -66,11 +67,14 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
           videoRef.current.onloadedmetadata = () => {
             if (videoRef.current && document.body.contains(videoRef.current)) {
               videoRef.current.play().then(() => {
-                // Start QR scanning after video is ready
-                setIsScanning(true);
+                console.log('🎥 Video is ready and playing');
+                setIsCameraReady(true);
+                // Don't automatically set isScanning here - let the parent control it
+                // The parent will call setIsScanning when it's ready to start scanning
               }).catch((playError) => {
                 console.error('❌ Error playing video:', playError);
                 setError('Error al reproducir el video de la cámara');
+                setIsCameraReady(false);
               });
             }
           };
@@ -120,6 +124,7 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
       }
       
       setIsScanning(false);
+      setIsCameraReady(false);
       
       // Reset processing flags
       processingRef.current = false;
@@ -311,18 +316,28 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
     };
   }, [isActive, startCamera, stopCamera]);
 
-  // Start scanning when isScanning becomes true
+  // Start scanning when both camera is ready and parent wants to scan
   useEffect(() => {
-    if (isScanning && isActive && videoRef.current && canvasRef.current) {
+    if (isActive && isCameraReady && !isScanning) {
+      console.log('🎥 Camera is ready, starting QR scanning...');
+      setIsScanning(true);
+    } else if (!isActive || !isCameraReady) {
+      setIsScanning(false);
+    }
+  }, [isActive, isCameraReady]);
+
+  // Start scanning loop when isScanning becomes true
+  useEffect(() => {
+    if (isScanning && isActive && isCameraReady && videoRef.current && canvasRef.current) {
       scanForQRCode();
     }
-  }, [isScanning, isActive, scanForQRCode]);
+  }, [isScanning, isActive, isCameraReady, scanForQRCode]);
 
   if (!isActive) {
     return (
       <div className="text-center py-8">
         <FaCamera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600">El escáner está inactivo</p>
+        <p className="text-gray-600">Cámara lista. Haz clic en "Iniciar Escaneo" para comenzar.</p>
       </div>
     );
   }
@@ -418,27 +433,6 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
           </div>
         </div>
       )}
-
-      {/* Test Buttons */}
-      <div className="text-center space-y-4">
-        <div>
-          <button
-            onClick={testQRDetection}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors mr-2"
-          >
-            🧪 Test QR Detection
-          </button>
-          <button
-            onClick={testQRScanner}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            🔍 Test QR Scanner
-          </button>
-        </div>
-        <p className="text-sm text-gray-600">
-          Test buttons to verify the QR detection system is working (jsQR library)
-        </p>
-      </div>
     </div>
   );
 }

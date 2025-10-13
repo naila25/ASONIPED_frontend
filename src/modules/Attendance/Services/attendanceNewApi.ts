@@ -576,31 +576,57 @@ export const dashboardApi = {
   // Get dashboard statistics
   getStats: async (): Promise<DashboardStats> => {
     try {
+      console.log('Dashboard API: Starting to fetch stats...');
+      
       // Get upcoming activities
+      console.log('Dashboard API: Fetching upcoming activities...');
       const upcomingActivities = await activityTracksApi.getUpcoming(5);
+      console.log('Dashboard API: Upcoming activities fetched:', upcomingActivities);
       
       // Get today's date for filtering
       const today = new Date().toISOString().split('T')[0];
+      console.log('Dashboard API: Today date:', today);
       
       // Get today's attendance
+      console.log('Dashboard API: Fetching today\'s attendance...');
       const todayAttendance = await attendanceRecordsApi.getAll(1, 1000, undefined, undefined, undefined, today, today);
+      console.log('Dashboard API: Today\'s attendance fetched:', todayAttendance);
       
       // Get total attendance
+      console.log('Dashboard API: Fetching total attendance...');
       const totalAttendance = await attendanceRecordsApi.getAll(1, 1);
+      console.log('Dashboard API: Total attendance fetched:', totalAttendance);
       
       // Get all activities for stats
+      console.log('Dashboard API: Fetching all activities...');
       const allActivities = await activityTracksApi.getAll(1, 1000);
+      console.log('Dashboard API: All activities fetched:', allActivities);
       
-      return {
-        totalActivities: allActivities.total,
-        activeActivities: allActivities.data.filter(a => a.status === 'active').length,
-        todayAttendance: todayAttendance.total,
-        totalAttendance: totalAttendance.total,
-        recentActivities: upcomingActivities
+      const stats = {
+        totalActivities: allActivities.total || 0,
+        activeActivities: (allActivities.data || []).filter(a => a.status === 'active').length,
+        todayAttendance: todayAttendance.total || 0,
+        totalAttendance: totalAttendance.total || 0,
+        recentActivities: upcomingActivities || []
       };
+      
+      console.log('Dashboard API: Stats computed:', stats);
+      return stats;
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      throw error;
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      // Return default stats instead of throwing
+      return {
+        totalActivities: 0,
+        activeActivities: 0,
+        todayAttendance: 0,
+        totalAttendance: 0,
+        recentActivities: []
+      };
     }
   }
 };

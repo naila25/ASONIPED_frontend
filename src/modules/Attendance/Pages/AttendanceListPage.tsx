@@ -150,20 +150,12 @@ export default function AttendanceListPage() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleExport('json')}
-                    disabled={loading}
-                    className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                  >
-                    <FaDownload className="w-4 h-4" />
-                    JSON
-                  </button>
-                  <button
                     onClick={() => handleExport('csv')}
                     disabled={loading}
                     className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                   >
                     <FaDownload className="w-4 h-4" />
-                    CSV
+                    Excel
                   </button>
                 </div>
               </div>

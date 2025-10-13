@@ -1,3 +1,5 @@
+import { getToken } from '../../Login/Services/auth';
+
 const API_BASE_URL = 'http://localhost:3000/api/landing-volunteer';
 
 export interface LandingVolunteer {
@@ -22,9 +24,17 @@ export const volunteerLandingService = {
     return res.json();
   },
   async create(payload: Omit<LandingVolunteer, 'id'>): Promise<{ message: string; id: number }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const res = await fetch(`${API_BASE_URL}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -34,9 +44,17 @@ export const volunteerLandingService = {
     return res.json();
   },
   async update(id: number, payload: Omit<LandingVolunteer, 'id'>): Promise<{ message: string }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const res = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -46,7 +64,17 @@ export const volunteerLandingService = {
     return res.json();
   },
   async delete(id: number): Promise<{ message: string }> {
-    const res = await fetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' });
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const res = await fetch(`${API_BASE_URL}/${id}`, { 
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     if (!res.ok) throw new Error('Failed to delete volunteer');
     return res.json();
   },

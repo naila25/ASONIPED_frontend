@@ -151,7 +151,7 @@ export default function ActivitySelector({
             className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
           >
             <FaPlus className="w-4 h-4" />
-            Nueva Actividad
+            Actividades
           </button>
         )}
       </div>
