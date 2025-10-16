@@ -142,6 +142,8 @@ export interface ScanningStatusProps {
   attendanceCount: number;
   onStartScanning: () => void;
   onStopScanning: () => void;
+  success?: string | null;
+  error?: string | null;
 }
 
 export interface BeneficiarioCardProps {

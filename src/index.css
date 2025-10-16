@@ -27,3 +27,11 @@ html {
 * {
   transition: height 0.2s ease-in-out;
 }
+
+/* Text truncation utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

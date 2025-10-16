@@ -1,4 +1,4 @@
-import { FaPlay, FaStop, FaUsers, FaQrcode, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { FaPlay, FaStop, FaUsers, FaQrcode, FaClock, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import type { ScanningStatusProps } from '../Types/attendanceNew';
 
 export default function ScanningStatus({
@@ -6,7 +6,9 @@ export default function ScanningStatus({
   currentActivity,
   attendanceCount,
   onStartScanning,
-  onStopScanning
+  onStopScanning,
+  success,
+  error
 }: ScanningStatusProps) {
   const formatTime = (timeString?: string) => {
     if (!timeString) return '';
@@ -33,6 +35,7 @@ export default function ScanningStatus({
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
+          
           <div className="p-2 bg-blue-100 rounded-lg">
             <FaQrcode className="w-5 h-5 text-blue-600" />
           </div>
@@ -41,6 +44,29 @@ export default function ScanningStatus({
             <p className="text-sm text-gray-600">Controla el escaneo de códigos QR</p>
           </div>
         </div>
+        
+        {/* Alerts */}
+        {(success || error) && (
+          <div className="mt-4 space-y-3">
+            {success && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <FaCheckCircle className="w-5 h-5 text-green-500" />
+                  <p className="text-green-800">{success}</p>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <FaExclamationTriangle className="w-5 h-5 text-red-500" />
+                  <p className="text-red-800">{error}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="flex items-center gap-2">
           {getStatusIcon()}

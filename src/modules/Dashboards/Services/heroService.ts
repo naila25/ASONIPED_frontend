@@ -1,3 +1,5 @@
+import { getToken } from '../../Login/Services/auth';
+
 const API_BASE_URL = 'http://localhost:3000/api/hero-section';
 
 export interface HeroSection {
@@ -53,6 +55,11 @@ export const heroService = {
 
   // Create new hero section
   async create(section: Omit<HeroSection, 'id'>): Promise<{ message: string; id: number }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     // Map frontend fields to backend field names
     const payload = {
       titulo: section.titulo,
@@ -67,7 +74,8 @@ export const heroService = {
     const response = await fetch(`${API_BASE_URL}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(payload)
     });
@@ -80,6 +88,11 @@ export const heroService = {
 
   // Update hero section
   async update(id: number, section: Partial<HeroSection>): Promise<{ message: string }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     // Map frontend fields to backend field names
     const payload = {
       titulo: section.titulo || '',
@@ -94,7 +107,8 @@ export const heroService = {
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(payload)
     });
@@ -107,8 +121,16 @@ export const heroService = {
 
   // Delete hero section
   async delete(id: number): Promise<{ message: string }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await fetch(`${API_BASE_URL}/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
     if (!response.ok) {
       throw new Error('Failed to delete hero section');
