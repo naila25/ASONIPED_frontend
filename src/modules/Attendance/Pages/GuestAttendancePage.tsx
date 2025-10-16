@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { FaUserFriends, FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaPlus,} from 'react-icons/fa';
-import { Link } from '@tanstack/react-router';
+import { FaUserFriends, FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaPlus, FaUsers} from 'react-icons/fa';
+import { Link, useNavigate } from '@tanstack/react-router';
 import ActivitySelector from '../Components/ActivitySelector';
 import { attendanceRecordsApi } from '../Services/attendanceNewApi';
 import type { ActivityTrack, AttendanceRecord } from '../Types/attendanceNew';
 
 export default function GuestAttendancePage() {
+  const navigate = useNavigate();
   const [selectedActivity, setSelectedActivity] = useState<ActivityTrack | null>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,8 +33,9 @@ export default function GuestAttendancePage() {
 
     try {
       setLoading(true);
-      const records = await attendanceRecordsApi.getAll(selectedActivity.id, 'guest');
-      setAttendanceRecords(records);
+      // Load ALL attendance records (both beneficiaries and guests)
+      const records = await attendanceRecordsApi.getByActivityTrack(selectedActivity.id);
+      setAttendanceRecords(records.data);
     } catch (err) {
       console.error('Error loading attendance records:', err);
     } finally {
@@ -64,7 +66,7 @@ export default function GuestAttendancePage() {
       setLoading(true);
       setError(null);
 
-      await attendanceRecordsApi.manualEntry({
+      await attendanceRecordsApi.createManual({
         activity_track_id: selectedActivity.id!,
         attendance_type: 'guest',
         full_name: formData.full_name.trim(),
@@ -95,11 +97,15 @@ export default function GuestAttendancePage() {
     return attendanceRecords.filter((record) => record.attendance_type === 'guest').length;
   };
 
+  const getBeneficiariosCount = () => {
+    return attendanceRecords.filter((record) => record.attendance_type === 'beneficiario').length;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <Link
@@ -139,7 +145,7 @@ export default function GuestAttendancePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Activity Selection */}
           <div className="lg:col-span-1">
@@ -148,8 +154,7 @@ export default function GuestAttendancePage() {
               selectedActivity={selectedActivity || undefined}
               showCreateButton={true}
               onCreateActivity={() => {
-                // TODO: Navigate to create activity page
-                console.log('Create new activity');
+                navigate({ to: '/admin/attendance/activities' });
               }}
             />
           </div>
@@ -320,46 +325,67 @@ export default function GuestAttendancePage() {
               </div>
             )}
 
-            {/* Guest List */}
+            {/* Attendance Records */}
             {selectedActivity && attendanceRecords.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Invitados Registrados</h2>
-                  <div className="flex items-center gap-2">
-                    <FaUserFriends className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm text-gray-600">{getGuestsCount()} invitados</span>
+                  <h2 className="text-lg font-semibold text-gray-900">Registros de Asistencia</h2>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <FaUsers className="w-4 h-4 text-blue-600" />
+                      <span className="text-gray-600">{getBeneficiariosCount()} beneficiarios</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FaUserFriends className="w-4 h-4 text-purple-600" />
+                      <span className="text-gray-600">{getGuestsCount()} invitados</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {attendanceRecords.map((record) => (
-                    <div
-                      key={record.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                          <FaUserFriends className="w-4 h-4 text-purple-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900">{record.full_name}</h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            {record.cedula && <span>Cédula: {record.cedula}</span>}
-                            {record.phone && <span>Tel: {record.phone}</span>}
+                  {attendanceRecords.map((record) => {
+                    const isGuest = record.attendance_type === 'guest';
+                    const isBeneficiario = record.attendance_type === 'beneficiario';
+                    
+                    return (
+                      <div
+                        key={record.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${
+                            isBeneficiario ? 'bg-blue-100' : 'bg-purple-100'
+                          }`}>
+                            {isBeneficiario ? (
+                              <FaUsers className="w-4 h-4 text-blue-600" />
+                            ) : (
+                              <FaUserFriends className="w-4 h-4 text-purple-600" />
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">{record.full_name}</h3>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              {record.cedula && <span>Cédula: {record.cedula}</span>}
+                              {record.phone && <span>Tel: {record.phone}</span>}
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">
+                            {record.created_at &&
+                              new Date(record.created_at).toLocaleString('es-ES')}
+                          </p>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            isBeneficiario 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {isBeneficiario ? 'Beneficiario' : 'Invitado'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">
-                          {record.created_at &&
-                            new Date(record.created_at).toLocaleString('es-ES')}
-                        </p>
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          Manual
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -1,4 +1,6 @@
 // ASONIPED_frontend/src/modules/Dashboards/Services/donationService.ts
+import { getToken } from '../../Login/Services/auth';
+
 const API_BASE_URL_HEADER = 'http://localhost:3000/api/landing-donaciones-component';
 const API_BASE_URL_CARDS = 'http://localhost:3000/api/landing-donaciones-card';
 
@@ -38,9 +40,17 @@ export const donationService = {
   },
 
   async createHeader(header: Omit<DonationHeader, 'id'>): Promise<{ message: string; id: number }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await fetch(`${API_BASE_URL_HEADER}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(header)
     });
     if (!response.ok) throw new Error((await response.json()).error || 'Failed to create Donation header');
@@ -49,9 +59,18 @@ export const donationService = {
 
   async updateHeader(header: DonationHeader): Promise<{ message: string }> {
     if (!header.id) throw new Error('Se requiere el id del header para actualizar');
+    
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await fetch(`${API_BASE_URL_HEADER}/${header.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(header)
     });
     if (!response.ok) throw new Error((await response.json()).error || 'Failed to update Donation header');
@@ -84,6 +103,11 @@ export const donationService = {
   },
 
   async createCard(card: Omit<DonationsCard, 'id'>, file?: File): Promise<{ message: string; id: number; URL_imagen?: string }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const formData = new FormData();
     formData.append('titulo_card', card.titulo_card);
     formData.append('descripcion_card', card.descripcion_card);
@@ -93,6 +117,9 @@ export const donationService = {
 
     const response = await fetch(`${API_BASE_URL_CARDS}`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
       body: formData
     });
     if (!response.ok) throw new Error((await response.json()).error || 'Failed to create Donation card');
@@ -105,6 +132,11 @@ export const donationService = {
   },
 
   async updateCard(id: number, card: Partial<DonationsCard>, file?: File): Promise<{ message: string; URL_imagen?: string }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const formData = new FormData();
     if (card.titulo_card) formData.append('titulo_card', card.titulo_card);
     if (card.descripcion_card) formData.append('descripcion_card', card.descripcion_card);
@@ -115,6 +147,9 @@ export const donationService = {
 
     const response = await fetch(`${API_BASE_URL_CARDS}/${id}`, {
       method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
       body: formData
     });
     if (!response.ok) throw new Error((await response.json()).error || 'Failed to update Donation card');
@@ -127,8 +162,16 @@ export const donationService = {
   },
 
   async deleteCard(id: number): Promise<{ message: string }> {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await fetch(`${API_BASE_URL_CARDS}/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
     if (!response.ok) throw new Error('Failed to delete Donation card');
     return response.json();

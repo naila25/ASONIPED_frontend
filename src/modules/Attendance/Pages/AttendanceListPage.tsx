@@ -68,15 +68,35 @@ export default function AttendanceListPage() {
       setLoading(true);
       const blob = await analyticsApi.exportData(format, filters.startDate, filters.endDate);
       
-      // Create download link
+      // Create download link with safer DOM manipulation
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `asistencia_${selectedActivity.name}_${new Date().toISOString().split('T')[0]}.${format}`;
-      document.body.appendChild(a);
-      a.click();
+      a.style.display = 'none';
+      
+      // Safely append to body
+      try {
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up with timeout to avoid DOM conflicts
+        setTimeout(() => {
+          try {
+            if (document.body.contains(a)) {
+              document.body.removeChild(a);
+            }
+          } catch (cleanupError) {
+            console.warn('Cleanup warning:', cleanupError);
+          }
+        }, 100);
+      } catch (domError) {
+        console.error('DOM manipulation error:', domError);
+        // Fallback: try direct download
+        window.open(url, '_blank');
+      }
+      
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
     } catch (err) {
       console.error('Error exporting data:', err);
       setError('Error al exportar datos');
@@ -130,20 +150,12 @@ export default function AttendanceListPage() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleExport('json')}
-                    disabled={loading}
-                    className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                  >
-                    <FaDownload className="w-4 h-4" />
-                    JSON
-                  </button>
-                  <button
                     onClick={() => handleExport('csv')}
                     disabled={loading}
                     className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                   >
                     <FaDownload className="w-4 h-4" />
-                    CSV
+                    Excel
                   </button>
                 </div>
               </div>
