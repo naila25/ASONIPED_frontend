@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews, createEventNews, updateEventNews, deleteEventNews } from '../Services/eventsNewsApi';
-import { Calendar, Plus, Edit, Trash2, Image, FileText, X, Search } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash2, Image,  X, Search } from 'lucide-react';
 
 const initialForm: Omit<EventNewsItem, 'id'> = {
   title: '',
@@ -151,56 +151,7 @@ const EventsNewsAdmin: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Total Eventos</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
-              <Calendar className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Con Imagen</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.withImage}</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
-              <Image className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-purple-500">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Este Mes</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.thisMonth}</p>
-            </div>
-            <div className="p-3 bg-purple-100 rounded-lg flex-shrink-0">
-              <FileText className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-600">Próximos</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.upcoming}</p>
-            </div>
-            <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
-              <Calendar className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Search and Actions */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
