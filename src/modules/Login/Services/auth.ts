@@ -12,9 +12,31 @@ export const login = (token: string) => {
   });
 };
 
-export const logout = () => {
-  Cookies.remove(TOKEN_KEY);
-  sessionStorage.removeItem('adminToken');
+export const logout = async () => {
+  try {
+    // Call backend logout endpoint to remove active session
+    const { getAPIBaseURL } = await import('../../../shared/Services/config');
+    const base = await getAPIBaseURL();
+    const token = getToken();
+    
+    if (token) {
+      await fetch(`${base}/users/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }).catch(() => {
+        // Don't fail logout if backend call fails
+      });
+    }
+  } catch {
+    // Logout error, continue with cleanup
+  } finally {
+    // Always clear local storage regardless of backend response
+    Cookies.remove(TOKEN_KEY);
+    sessionStorage.removeItem('adminToken');
+  }
 };
 
 export const getToken = () => {

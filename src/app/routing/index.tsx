@@ -2,7 +2,7 @@ import { createRouter, createRootRoute, createRoute, Router } from '@tanstack/re
 import { lazy } from 'react';
 import App from '../../App';
 import Home from '../../modules/Landing/Pages/HomePage';
-import AdminLogin from '../../modules/Login/Pages/AdminLogin';
+import AdminLogin from '../../modules/Login/Pages/Login';
 import VolunteersSubDashboard from '../../modules/Volunteers/Pages/VolunteersSubDashboard';
 import VolunteerProposalsAdmin from '../../modules/Volunteers/Pages/VolunteerProposalsAdmin';
 import DonacionesPage from '../../modules/Donation/Pages/DonacionesPage';
