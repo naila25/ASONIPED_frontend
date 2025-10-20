@@ -44,12 +44,43 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
   const [cedulaAvailable, setCedulaAvailable] = useState<boolean | null>(null);
   const [cedulaChecking, setCedulaChecking] = useState(false);
 
-  // Validation error states
+  // Validation states
   const [fullNameError, setFullNameError] = useState("");
+  const [fullNameCharsLeft, setFullNameCharsLeft] = useState(30);
+
   const [cedulaError, setCedulaError] = useState("");
+  const [cedulaCharsLeft, setCedulaCharsLeft] = useState(9);
+
   const [phoneError, setPhoneError] = useState("");
+  const [phoneCharsLeft, setPhoneCharsLeft] = useState(9);
+
   const [birthPlaceError, setBirthPlaceError] = useState("");
+  const [birthPlaceCharsLeft, setBirthPlaceCharsLeft] = useState(30);
+
   const [addressError, setAddressError] = useState("");
+  const [addressCharsLeft, setAddressCharsLeft] = useState(255);
+
+  // Validaciones para Información Familiar
+  const [motherNameError, setMotherNameError] = useState('');
+  const [motherNameCharsLeft, setMotherNameCharsLeft] = useState(30);
+  const [motherCedulaError, setMotherCedulaError] = useState('');
+  const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(9);
+  const [motherPhoneError, setMotherPhoneError] = useState('');
+  const [motherPhoneCharsLeft, setMotherPhoneCharsLeft] = useState(9);
+
+  const [fatherNameError, setFatherNameError] = useState('');
+  const [fatherNameCharsLeft, setFatherNameCharsLeft] = useState(30);
+  const [fatherCedulaError, setFatherCedulaError] = useState('');
+  const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(9);
+  const [fatherPhoneError, setFatherPhoneError] = useState('');
+  const [fatherPhoneCharsLeft, setFatherPhoneCharsLeft] = useState(9);
+
+  const [responsibleNameError, setResponsibleNameError] = useState('');
+  const [responsibleNameCharsLeft, setResponsibleNameCharsLeft] = useState(30);
+  const [responsibleCedulaError, setResponsibleCedulaError] = useState('');
+  const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(9);
+  const [responsiblePhoneError, setResponsiblePhoneError] = useState('');
+  const [responsiblePhoneCharsLeft, setResponsiblePhoneCharsLeft] = useState(9);
 
 
   // Geographic data states
@@ -471,16 +502,32 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
               type="text"
               name="full_name"
               value={form.full_name}
-              onChange={handleChange}
+              onChange={(e) => {
+                const value = e.target.value;
+                const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(value);
+                const length = value.length;
+
+                if (!isValid) {
+                  setFullNameError('Solo se permiten letras y espacios.');
+                  return;
+                }
+
+                if (length > 30) {
+                  setFullNameError('Máximo 30 caracteres.');
+                  return;
+                }
+
+                setFullNameError('');
+                setForm(prev => ({ ...prev, full_name: value }));
+                setFullNameCharsLeft(30 - length);
+              }}
               className={`w-full px-3 py-2 border ${fullNameError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
               required
-              maxLength={150}
-              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{1,150}"
-              title="Solo letras y espacios, máximo 150 caracteres"
             />
-            {fullNameError && (
-              <p className="text-red-600 text-sm mt-1">{fullNameError}</p>
-            )}
+            <p className="text-xs text-gray-500 mt-1">
+              {fullNameCharsLeft} caracteres restantes (máximo 30)
+            </p>
+            {fullNameError && <p className="text-xs text-red-500 mt-1">{fullNameError}</p>}
           </div>
         </div>
 
@@ -517,13 +564,40 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
               type="text"
               name="cedula"
               value={form.cedula}
-              onChange={handleChange}
+              onChange={(e) => {
+                const rawValue = e.target.value;
+                // Verificar si hay caracteres no numéricos
+                if (/\D/.test(rawValue)) {
+                  setCedulaError('Solo se permiten números.');
+                  return;
+                }
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 9) return;
+
+                if (value.length > 8 && value.length < 9) {
+                  setCedulaError('Debe tener 9 dígitos.');
+                  return;
+                }
+
+                if (value.length > 9) {
+                  setCedulaError('Máximo 9 caracteres.');
+                  return;
+                }
+
+                setCedulaError('');
+                setForm(prev => ({ ...prev, cedula: value }));
+                setCedulaCharsLeft(9 - value.length);
+
+                if (value.length === 9) {
+                  checkCedula(value);
+                }
+              }}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${cedulaAvailable === false || cedulaError ? 'border-red-300' : cedulaAvailable === true ? 'border-green-300' : 'border-gray-300'}`}
               required
-              maxLength={9} // <-- solo 9 dígitos
-              pattern="[0-9]{9}"
-              title="Solo números, exactamente 9 dígitos"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              {cedulaCharsLeft} caracteres restantes (máximo 9)
+            </p>
             {cedulaChecking && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
@@ -563,18 +637,34 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
             Teléfono
           </label>
           <input
-            type="tel"
+            type="text"
             name="phone"
             value={form.phone}
-            onChange={handleChange}
+            onChange={(e) => {
+              const rawValue = e.target.value;
+              // Verificar si hay caracteres no numéricos (excepto el guion permitido)
+              if (/[^\d-]/.test(rawValue)) {
+                setPhoneError('Solo se permiten números.');
+                return;
+              }
+
+              let digits = rawValue.replace(/\D/g, '').slice(0, 8);
+              let formatted = digits;
+              if (digits.length > 4) {
+                formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+              }
+              if (formatted.length > 9) return;
+
+              setPhoneError('');
+              setForm(prev => ({ ...prev, phone: formatted }));
+              setPhoneCharsLeft(9 - formatted.length);
+            }}
             className={`w-full px-3 py-2 border ${phoneError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-            maxLength={9} // 8 dígitos + 1 guion
-            pattern="[0-9]{4}-[0-9]{4}"
-            title="Formato: 8888-8888"
           />
-          {phoneError && (
-            <p className="text-red-600 text-sm mt-1">{phoneError}</p>
-          )}
+          <p className="text-xs text-gray-500 mt-1">
+            {phoneCharsLeft} caracteres restantes (máximo 9, formato: 9999-9999)
+          </p>
+          {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
         </div>
 
         <div>
@@ -593,22 +683,38 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nacionalidad
+            Nacionalidad *
           </label>
           <input
             type="text"
             name="birth_place"
             value={form.birth_place}
-            onChange={handleChange}
+            onChange={(e) => {
+              const value = e.target.value;
+              const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(value);
+              const length = value.length;
+
+              if (!isValid) {
+                setBirthPlaceError('Solo se permiten letras y espacios.');
+                return;
+              }
+
+              if (length > 30) {
+                setBirthPlaceError('Máximo 30 caracteres.');
+                return;
+              }
+
+              setBirthPlaceError('');
+              setForm(prev => ({ ...prev, birth_place: value }));
+              setBirthPlaceCharsLeft(30 - length);
+            }}
             className={`w-full px-3 py-2 border ${birthPlaceError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             required
-            maxLength={30}
-            pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{1,30}"
-            title="Solo letras y espacios, máximo 30 caracteres"
           />
-          {birthPlaceError && (
-            <p className="text-red-600 text-sm mt-1">{birthPlaceError}</p>
-          )}
+          <p className="text-xs text-gray-500 mt-1">
+            {birthPlaceCharsLeft} caracteres restantes (máximo 30)
+          </p>
+          {birthPlaceError && <p className="text-xs text-red-500 mt-1">{birthPlaceError}</p>}
         </div>
 
         <div>
@@ -618,15 +724,27 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
           <textarea
             name="address"
             value={form.address}
-            onChange={handleChange}
+            onChange={(e) => {
+              const value = e.target.value;
+              const length = value.length;
+
+              if (length > 255) {
+                setAddressError('Máximo 255 caracteres.');
+                return;
+              }
+
+              setAddressError('');
+              setForm(prev => ({ ...prev, address: value }));
+              setAddressCharsLeft(255 - length);
+            }}
             rows={3}
-            maxLength={255}
             className={`w-full px-3 py-2 border ${addressError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             required
           />
-          {addressError && (
-            <p className="text-red-600 text-sm mt-1">{addressError}</p>
-          )}
+          <p className="text-xs text-gray-500 mt-1">
+            {addressCharsLeft} caracteres restantes (máximo 255)
+          </p>
+          {addressError && <p className="text-xs text-red-500 mt-1">{addressError}</p>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -762,12 +880,36 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  name="mother_name"
                   value={form.mother_name || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Opcional"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(value);
+                    const length = value.length;
+
+                    if (!isValid) {
+                      setMotherNameError('Solo se permiten letras y espacios.');
+                      return;
+                    }
+
+                    if (length > 30) {
+                      setMotherNameError('Máximo 30 caracteres.');
+                      return;
+                    }
+
+                    setMotherNameError('');
+                    setForm(prev => ({
+                      ...prev,
+                      mother_name: value
+                    }));
+                    setMotherNameCharsLeft(30 - length);
+                  }}
+                  className={`w-full px-3 py-2 border ${motherNameError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder='Opcional'
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {motherNameCharsLeft} caracteres restantes (Máximo 30)
+                </p>
+                {motherNameError && <p className="text-xs text-red-500 mt-1">{motherNameError}</p>}
               </div>
 
               <div>
@@ -776,12 +918,41 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  name="mother_cedula"
                   value={form.mother_cedula || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Opcional"
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    // Verificar si hay caracteres no numéricos
+                    if (/\D/.test(rawValue)) {
+                      setMotherCedulaError('Solo se permiten números.');
+                      return;
+                    }
+                    let value = rawValue.replace(/\D/g, '');
+                    if (value.length > 9) return;
+
+                    if (value.length > 0 && value.length < 9) {
+                      setMotherCedulaError('Debe tener 9 dígitos.');
+                      return;
+                    }
+
+                    if (value.length > 9) {
+                      setMotherCedulaError('Máximo 9 caracteres.');
+                      return;
+                    }
+
+                    setMotherCedulaError('');
+                    setForm(prev => ({
+                      ...prev,
+                      mother_cedula: value
+                    }));
+                    setMotherCedulaCharsLeft(9 - value.length);
+                  }}
+                  className={`w-full px-3 py-2 border ${motherCedulaError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder='Opcional'
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {motherCedulaCharsLeft} caracteres restantes (Máximo 9)
+                </p>
+                {motherCedulaError && <p className="text-xs text-red-500 mt-1">{motherCedulaError}</p>}
               </div>
 
               <div>
@@ -789,14 +960,38 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                   Teléfono de la Madre
                 </label>
                 <input
-                  type="tel"
-                  name="mother_phone"
+                  type="text"
                   value={form.mother_phone || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Opcional"
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    // Verificar si hay caracteres no numéricos (excepto el guion permitido)
+                    if (/[^\d-]/.test(rawValue)) {
+                      setMotherPhoneError('Solo se permiten números.');
+                      return;
+                    }
+                    let digits = rawValue.replace(/\D/g, '').slice(0, 8);
+                    let formatted = digits;
+                    if (digits.length > 4) {
+                      formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+                    }
+                    if (formatted.length > 9) return;
+
+                    setMotherPhoneError('');
+                    setForm(prev => ({
+                      ...prev,
+                      mother_phone: formatted
+                    }));
+                    setMotherPhoneCharsLeft(9 - formatted.length);
+                  }}
+                  className={`w-full px-3 py-2 border ${motherPhoneError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder='Opcional'
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {motherPhoneCharsLeft} caracteres restantes (Máximo 9, formato: 8888-8888)
+                </p>
+                {motherPhoneError && <p className="text-xs text-red-500 mt-1">{motherPhoneError}</p>}
               </div>
+
               <div className="col-span-full">
                 <hr className="my-4 border-t border-gray-200" />
                 <h4 className="text-sm font-medium text-gray-700 mb-4">Información del Padre</h4>
@@ -808,12 +1003,36 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  name="father_name"
                   value={form.father_name || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Opcional"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(value);
+                    const length = value.length;
+
+                    if (!isValid) {
+                      setFatherNameError('Solo se permiten letras y espacios.');
+                      return;
+                    }
+
+                    if (length > 30) {
+                      setFatherNameError('Máximo 30 caracteres.');
+                      return;
+                    }
+
+                    setFatherNameError('');
+                    setForm(prev => ({
+                      ...prev,
+                      father_name: value
+                    }));
+                    setFatherNameCharsLeft(30 - length);
+                  }}
+                  className={`w-full px-3 py-2 border ${fatherNameError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder='Opcional'
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {fatherNameCharsLeft} caracteres restantes (Máximo 30)
+                </p>
+                {fatherNameError && <p className="text-xs text-red-500 mt-1">{fatherNameError}</p>}
               </div>
 
               <div>
@@ -822,12 +1041,41 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  name="father_cedula"
                   value={form.father_cedula || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Opcional"
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    // Verificar si hay caracteres no numéricos
+                    if (/\D/.test(rawValue)) {
+                      setFatherCedulaError('Solo se permiten números.');
+                      return;
+                    }
+                    let value = rawValue.replace(/\D/g, '');
+                    if (value.length > 9) return;
+
+                    if (value.length > 0 && value.length < 9) {
+                      setFatherCedulaError('Debe tener 9 dígitos.');
+                      return;
+                    }
+
+                    if (value.length > 9) {
+                      setFatherCedulaError('Máximo 9 caracteres.');
+                      return;
+                    }
+
+                    setFatherCedulaError('');
+                    setForm(prev => ({
+                      ...prev,
+                      father_cedula: value
+                    }));
+                    setFatherCedulaCharsLeft(9 - value.length);
+                  }}
+                  className={`w-full px-3 py-2 border ${fatherCedulaError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder='Opcional'
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {fatherCedulaCharsLeft} caracteres restantes (Máximo 9)
+                </p>
+                {fatherCedulaError && <p className="text-xs text-red-500 mt-1">{fatherCedulaError}</p>}
               </div>
 
               <div>
@@ -835,13 +1083,36 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                   Teléfono del Padre
                 </label>
                 <input
-                  type="tel"
-                  name="father_phone"
+                  type="text"
                   value={form.father_phone || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Opcional"
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    // Verificar si hay caracteres no numéricos (excepto el guion permitido)
+                    if (/[^\d-]/.test(rawValue)) {
+                      setFatherPhoneError('Solo se permiten números.');
+                      return;
+                    }
+                    let digits = rawValue.replace(/\D/g, '').slice(0, 8);
+                    let formatted = digits;
+                    if (digits.length > 4) {
+                      formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+                    }
+                    if (formatted.length > 9) return;
+
+                    setFatherPhoneError('');
+                    setForm(prev => ({
+                      ...prev,
+                      father_phone: formatted
+                    }));
+                    setFatherPhoneCharsLeft(9 - formatted.length);
+                  }}
+                  className={`w-full px-3 py-2 border ${fatherPhoneError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder='Opcional'
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {fatherPhoneCharsLeft} caracteres restantes (Máximo 9, formato: 8888-8888)
+                </p>
+                {fatherPhoneError && <p className="text-xs text-red-500 mt-1">{fatherPhoneError}</p>}
               </div>
             </div>
           ) : (
@@ -857,12 +1128,36 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  name="legal_guardian_name"
                   value={form.legal_guardian_name || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(value);
+                    const length = value.length;
+
+                    if (!isValid) {
+                      setResponsibleNameError('Solo se permiten letras y espacios.');
+                      return;
+                    }
+
+                    if (length > 30) {
+                      setResponsibleNameError('Máximo 30 caracteres.');
+                      return;
+                    }
+
+                    setResponsibleNameError('');
+                    setForm(prev => ({
+                      ...prev,
+                      legal_guardian_name: value
+                    }));
+                    setResponsibleNameCharsLeft(30 - length);
+                  }}
+                  className={`w-full px-3 py-2 border ${responsibleNameError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   required={!hasParents}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {responsibleNameCharsLeft} caracteres restantes (Máximo 30)
+                </p>
+                {responsibleNameError && <p className="text-xs text-red-500 mt-1">{responsibleNameError}</p>}
               </div>
 
               <div>
@@ -871,12 +1166,41 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                 </label>
                 <input
                   type="text"
-                  name="legal_guardian_cedula"
-                  value={form.legal_guardian_cedula || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={(form as unknown as Record<string, unknown>).legal_guardian_cedula as string || ''}
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    // Verificar si hay caracteres no numéricos
+                    if (/\D/.test(rawValue)) {
+                      setResponsibleCedulaError('Solo se permiten números.');
+                      return;
+                    }
+                    let value = rawValue.replace(/\D/g, '');
+                    if (value.length > 9) return;
+
+                    if (value.length > 0 && value.length < 9) {
+                      setResponsibleCedulaError('Debe tener 9 dígitos.');
+                      return;
+                    }
+
+                    if (value.length > 9) {
+                      setResponsibleCedulaError('Máximo 9 caracteres.');
+                      return;
+                    }
+
+                    setResponsibleCedulaError('');
+                    setForm(prev => ({
+                      ...prev,
+                      legal_guardian_cedula: value
+                    }));
+                    setResponsibleCedulaCharsLeft(9 - value.length);
+                  }}
+                  className={`w-full px-3 py-2 border ${responsibleCedulaError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   required={!hasParents}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {responsibleCedulaCharsLeft} caracteres restantes (Máximo 9)
+                </p>
+                {responsibleCedulaError && <p className="text-xs text-red-500 mt-1">{responsibleCedulaError}</p>}
               </div>
 
               <div>
@@ -884,13 +1208,35 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                   Teléfono del Encargado Legal
                 </label>
                 <input
-                  type="tel"
-                  name="legal_guardian_phone"
+                  type="text"
                   value={form.legal_guardian_phone || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    // Verificar si hay caracteres no numéricos (excepto el guion permitido)
+                    if (/[^\d-]/.test(rawValue)) {
+                      setResponsiblePhoneError('Solo se permiten números.');
+                      return;
+                    }
+                    let digits = rawValue.replace(/\D/g, '').slice(0, 8);
+                    let formatted = digits;
+                    if (digits.length > 4) {
+                      formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+                    }
+                    if (formatted.length > 9) return;
 
+                    setResponsiblePhoneError('');
+                    setForm(prev => ({
+                      ...prev,
+                      legal_guardian_phone: formatted
+                    }));
+                    setResponsiblePhoneCharsLeft(9 - formatted.length);
+                  }}
+                  className={`w-full px-3 py-2 border ${responsiblePhoneError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {responsiblePhoneCharsLeft} caracteres restantes (Máximo 9, formato: 8888-8888)
+                </p>
+                {responsiblePhoneError && <p className="text-xs text-red-500 mt-1">{responsiblePhoneError}</p>}
               </div>
             </div>
           )}
