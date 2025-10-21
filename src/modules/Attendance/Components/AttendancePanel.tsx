@@ -1,5 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import { FaUsers, FaUserFriends, FaArrowRight, FaQrcode, FaCalendarAlt, FaChartLine, FaPlus } from "react-icons/fa";
+import { FaUsers, FaCalendarAlt, FaPlus } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { dashboardApi } from "../Services/attendanceNewApi";
 import type { DashboardStats } from "../Types/attendanceNew";
@@ -73,96 +72,6 @@ export default function AttendancePanel() {
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Asistencia de Beneficiarios - QR Scanning */}
-          <Link
-            to="/admin/attendance/beneficiaries"
-            className="group bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200"
-            onClick={(e) => {
-              e.preventDefault();
-              console.log('BENEFICIARIES Link clicked - navigating to beneficiaries');
-              console.log('Current URL before:', window.location.href);
-              window.location.href = '/admin/attendance/beneficiaries';
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                  <FaQrcode className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                    Escaneo QR - Beneficiarios
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Escanea códigos QR para registrar asistencia de beneficiarios.
-                  </p>
-                </div>
-              </div>
-              <FaArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-            </div>
-          </Link>
-
-          {/* Asistencia de Invitados - Manual Entry */}
-          <Link
-            to="/admin/attendance/guests"
-            className="group bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all duration-200"
-            onClick={(e) => {
-              e.preventDefault();
-              console.log('GUESTS Link clicked - navigating to guests');
-              console.log('Current URL before:', window.location.href);
-              window.location.href = '/admin/attendance/guests';
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                  <FaUserFriends className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
-                    Registro Manual 
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Registra manualmente la asistencia con formularios.
-                  </p>
-                </div>
-              </div>
-              <FaArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
-            </div>
-          </Link>
-
-          {/* Lista de Asistencia - Analytics */}
-          <Link
-            to="/admin/attendance/list"
-            className="group bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:border-green-300 hover:shadow-md transition-all duration-200"
-            onClick={(e) => {
-              e.preventDefault();
-              console.log('LIST Link clicked - navigating to list');
-              console.log('Current URL before:', window.location.href);
-              window.location.href = '/admin/attendance/list';
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
-                  <FaChartLine className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
-                    Analytics & Reportes
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Visualiza estadísticas, reportes y exporta datos de asistencia.
-                  </p>
-                </div>
-              </div>
-              <FaArrowRight className="w-5 h-5 text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all" />
-            </div>
-          </Link>
         </div>
 
         {/* Recent Activities */}

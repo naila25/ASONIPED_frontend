@@ -303,8 +303,8 @@ const WorkshopOptionsPage: React.FC = () => {
   return (
     <div className="space-y-6 min-w-0">
       {/* Header */}
-      <div className="bg-white p-4 sm:p-6">
-        <div className="flex items-center gap-4">
+      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+        <div className="flex items-center gap-4 mb-20">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-semibold text-gray-900 truncate">
               Gestión de Opciones de Talleres
@@ -335,7 +335,7 @@ const WorkshopOptionsPage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nuevo Taller</span>
+              <span className="hidden sm:inline">Nueva Opción</span>
               <span className="sm:hidden">Nuevo</span>
             </button>
         </div>
@@ -642,13 +642,7 @@ const WorkshopOptionsPage: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Pagination Info for Cards */}
-            <div className="mb-6 text-center">
-              <p className="text-gray-600">
-                Mostrando {startIndex + 1} - {Math.min(endIndex, filtered.length)} de {filtered.length} opciones
-              </p>
-            </div>
-
+           
             {/* Options Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {currentOptions.map((opt) => (
@@ -763,6 +757,12 @@ const WorkshopOptionsPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+             {/* Pagination Info for Cards */}
+             <div className="mb-6 text-center">
+              <p className="text-gray-600">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, filtered.length)} de {filtered.length} opciones
+              </p>
             </div>
 
             {/* Pagination Controls for Cards */}
