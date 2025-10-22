@@ -224,13 +224,13 @@ const VolunteerFormsPage = () => {
 
   // Main render
   return (
-    <div className="max-w-8xl mx-auto px-8 py-8">
+    <div className="max-w-8xl mx-auto px-8 py-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
       {/* Header */}
       <div className="mb-10">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Voluntarios</h2>
-            <p className="text-gray-600 text-base">Administra y revisa todos los formularios de voluntariado</p>
+            <h2 className="text-lg font-semibold text-gray-900">Gestión de Voluntarios</h2>
+            
           </div>
           <div className="flex items-center gap-3">
             {viewMode === 'cards' && (
@@ -253,57 +253,6 @@ const VolunteerFormsPage = () => {
               {viewMode === 'cards' ? <Users className="w-4 h-4" /> : <Filter className="w-4 h-4" />}
               {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">Total Voluntarios</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="p-2.5 bg-slate-100 rounded-lg">
-              <Users className="w-6 h-6 text-slate-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">Pendientes</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.pending}</p>
-            </div>
-            <div className="p-2.5 bg-amber-50 rounded-lg">
-              <Clock className="w-6 h-6 text-amber-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">Aprobados</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.approved}</p>
-            </div>
-            <div className="p-2.5 bg-emerald-50 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-emerald-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-red-500 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-2">Rechazados</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.rejected}</p>
-            </div>
-            <div className="p-2.5 bg-red-50 rounded-lg">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
           </div>
         </div>
       </div>
@@ -359,12 +308,7 @@ const VolunteerFormsPage = () => {
       {/* Volunteer Forms */}
       {viewMode === 'cards' ? (
         <>
-          {/* Info for Cards */}
-          <div className="mb-6 text-center">
-            <p className="text-gray-600">
-              {filteredForms.length} voluntarios encontrados
-            </p>
-          </div>
+         
 
           <div className="space-y-8">
             {/* Unassigned Forms Section */}
@@ -640,6 +584,12 @@ const VolunteerFormsPage = () => {
               </div>
             );
           })}
+           {/* Info for Cards */}
+           <div className="mb-6 text-center">
+            <p className="text-gray-600">
+              {filteredForms.length} voluntarios encontrados
+            </p>
+          </div>
           </div>
         </>
       ) : (

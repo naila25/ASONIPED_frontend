@@ -15,7 +15,6 @@ import {
   Calendar,
   MapPin,
   Image,
-  Settings,
   FileText,
   Users,
   Clock,
@@ -304,77 +303,16 @@ const WorkshopOptionsPage: React.FC = () => {
   return (
     <div className="space-y-6 min-w-0">
       {/* Header */}
-      <div className="bg-white p-4 sm:p-6">
-        <div className="flex items-center gap-4">
+      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+        <div className="flex items-center gap-4 mb-20">
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+            <h1 className="text-lg font-semibold text-gray-900 truncate">
               Gestión de Opciones de Talleres
             </h1>
-            <p className="text-gray-600 text-sm sm:text-base">
-              Administra y configura las opciones de talleres disponibles
-            </p>
           </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 p-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Opciones</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{options.length}</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Settings className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Activas</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{options.length}</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <Calendar className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-purple-500">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Con Imagen</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                {options.filter(o => o.imagen).length}
-              </p>
-            </div>
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Image className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Ubicaciones</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                {new Set(options.map(o => o.ubicacion)).size}
-              </p>
-            </div>
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <MapPin className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Actions */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
-          <h2 className="text-lg font-semibold text-gray-900">Opciones de Talleres</h2>
-          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-            {/* View Mode Toggle */}
+               {/* Actions moved to header */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+           {/* View Mode Toggle */}
             <button
               onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
               className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
@@ -397,11 +335,11 @@ const WorkshopOptionsPage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nuevo Taller</span>
+              <span className="hidden sm:inline">Nueva Opción</span>
               <span className="sm:hidden">Nuevo</span>
             </button>
         </div>
-      </div>
+       </div>
 
         {/* Add/Edit Option Form */}
       {(isAdding || editingId) && (
@@ -704,13 +642,7 @@ const WorkshopOptionsPage: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Pagination Info for Cards */}
-            <div className="mb-6 text-center">
-              <p className="text-gray-600">
-                Mostrando {startIndex + 1} - {Math.min(endIndex, filtered.length)} de {filtered.length} opciones
-              </p>
-            </div>
-
+           
             {/* Options Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {currentOptions.map((opt) => (
@@ -825,6 +757,12 @@ const WorkshopOptionsPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+             {/* Pagination Info for Cards */}
+             <div className="mb-6 text-center">
+              <p className="text-gray-600">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, filtered.length)} de {filtered.length} opciones
+              </p>
             </div>
 
             {/* Pagination Controls for Cards */}

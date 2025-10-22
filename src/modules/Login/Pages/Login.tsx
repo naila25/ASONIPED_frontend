@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { login } from '../Services/auth';
-import { getAPIBaseURL } from '../../../shared/Services/config';
+import { getStatistics, type Statistics } from '../../../shared/Services/statistics.service';
 
 // Validation function for user data
 const validateUserInput = (username: string, email: string, fullName: string, phone: string, password: string): string | null => {
@@ -38,7 +38,27 @@ const AdminLogin = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [statistics, setStatistics] = useState<Statistics>({
+    users: 0,
+    volunteers: 0,
+    workshops: 0,
+    beneficiaries: 0
+  });
   // const navigate = useNavigate();
+
+  // Fetch statistics on component mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const stats = await getStatistics();
+        setStatistics(stats);
+      } catch {
+        // Keep default values if fetch fails
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,10 +66,9 @@ const AdminLogin = () => {
     setError(null);
     setSuccess(null);
     try {
-      const base = await getAPIBaseURL();
-      const response = await fetch(`${base}/users/login`, {
+      const { apiRequest } = await import('../../../shared/Services/api.service');
+      const response = await apiRequest('/users/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
@@ -69,7 +88,7 @@ const AdminLogin = () => {
         
         // Navegar basado en el rol del usuario
         if (isAdmin) {
-          window.location.href = '/admin';
+          window.location.href = '/';
         } else {
           window.location.href = '/';
         }
@@ -103,10 +122,9 @@ const AdminLogin = () => {
     }
     
     try {
-      const base = await getAPIBaseURL();
-      const response = await fetch(`${base}/users/register`, {
+      const { apiRequest } = await import('../../../shared/Services/api.service');
+      const response = await apiRequest('/users/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           username, 
           email, 
@@ -148,8 +166,7 @@ const AdminLogin = () => {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl text-white mb-2">ASONIPED</h1>
-            <p className="text-gray-400 text-sm">Portal de Acceso</p>
+            <h1 className="text-2xl sm:text-3xl text-white mb-2 ">¡Bienvenido!</h1>
           </div>
 
           {/* Toggle Buttons */}
@@ -200,7 +217,7 @@ const AdminLogin = () => {
             <p className="text-gray-300 text-base sm:text-lg">
               {isLogin 
                 ? 'Accede a tu cuenta personal de ASONIPED.'
-                : 'Crea tu cuenta y comienza tu journey con nosotros.'
+                : 'Crea tu cuenta y comienza tu viaje con nosotros.'
               }
             </p>
           </div>
@@ -445,8 +462,7 @@ const AdminLogin = () => {
         
         {/* Header */}
         <div className="absolute top-8 left-8 right-8">
-          <h3 className="text-white text-lg font-semibold mb-2">Panel ASONIPED</h3>
-          <p className="text-gray-300 text-sm">Sistema de gestión integral</p>
+          <h3 className="text-white text-lg font-semibold mb-2">Sistema de gestión integral</h3>
         </div>
 
         {/* Statistics Section - Top */}
@@ -457,7 +473,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Beneficiarios</p>
-                  <p className="text-white text-xl font-bold">0+</p>
+                  <p className="text-white text-xl font-bold">{statistics.beneficiaries}+</p>
                 </div>
                 <div className="w-8 h-8 bg-blue-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
@@ -470,7 +486,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Voluntarios</p>
-                  <p className="text-white text-xl font-bold">0+</p>
+                  <p className="text-white text-xl font-bold">{statistics.volunteers}+</p>
                 </div>
                 <div className="w-8 h-8 bg-cyan-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-cyan-300" fill="currentColor" viewBox="0 0 20 20">
@@ -483,7 +499,7 @@ const AdminLogin = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-300 text-xs">Talleres</p>
-                  <p className="text-white text-xl font-bold">0+</p>
+                  <p className="text-white text-xl font-bold">{statistics.workshops}+</p>
                 </div>
                 <div className="w-8 h-8 bg-purple-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
@@ -495,8 +511,8 @@ const AdminLogin = () => {
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-300 text-xs">Donaciones</p>
-                  <p className="text-white text-xl font-bold">0+</p>
+                  <p className="text-gray-300 text-xs">Usuarios</p>
+                  <p className="text-white text-xl font-bold">{statistics.users}+</p>
                 </div>
                 <div className="w-8 h-8 bg-green-500/30 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
@@ -540,53 +556,11 @@ const AdminLogin = () => {
             <div className="flex items-center space-x-3 bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
               <div className="w-8 h-8 bg-green-500/30 rounded-lg flex items-center justify-center">
                 <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                  <path d="M18 13v-2A8 8 0 1 0 2 11v2a3 3 0 0 0 3 3h1a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H5v-1a6 6 0 1 1 12 0v1h-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1a3 3 0 0 0 3-3zM5 15a1 1 0 0 1-1-1v-2h2v3H5zm10 0v-3h2v2a1 1 0 0 1-1 1h-1z"/>
                 </svg>
               </div>
-              <span className="text-white text-sm">Sistema de Donaciones</span>
+              <span className="text-white text-sm">Soporte al usuario</span>
             </div>
-          </div>
-        </div>
-
-        {/* Quick Access Section - Bottom */}
-        <div className="absolute bottom-8 left-8 right-8">
-          <h4 className="text-white text-sm font-medium mb-4">Acceso Rápido</h4>
-          <div className="grid grid-cols-2 gap-3">
-            <button className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-all duration-200 text-left">
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-white text-xs">Crear Expediente</span>
-              </div>
-            </button>
-            <button className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-all duration-200 text-left">
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4 text-cyan-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                </svg>
-                <span className="text-white text-xs">Ver Talleres</span>
-              </div>
-            </button>
-            <button className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-all duration-200 text-left">
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
-                </svg>
-                <span className="text-white text-xs">Consultar Donaciones</span>
-              </div>
-            </button>
-            <button className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-all duration-200 text-left">
-              <div className="flex items-center space-x-2">
-                <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                </svg>
-                <span className="text-white text-xs">Contactar Soporte</span>
-              </div>
-            </button>
           </div>
         </div>
       </div>

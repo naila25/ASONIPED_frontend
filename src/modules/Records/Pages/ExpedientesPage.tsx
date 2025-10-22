@@ -424,7 +424,7 @@ const ExpedientesPage: React.FC = () => {
   if (record.phase === 'completed' && record.status === 'active') {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-8xl mx-auto px-4">
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               <CheckCircle className="w-8 h-8 text-green-600" />

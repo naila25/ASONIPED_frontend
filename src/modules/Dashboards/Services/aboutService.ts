@@ -1,3 +1,5 @@
+import { getToken } from '../../Login/Services/auth';
+
 const API_BASE_URL = 'http://localhost:3000/api/about-section';
 
 export interface AboutSection {
@@ -27,12 +29,16 @@ export const aboutService = {
   },
 
   async create(section: Omit<AboutSection, 'id'>): Promise<{ message: string; id: number }> {
-    const token = localStorage.getItem('token');
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await fetch(`${API_BASE_URL}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(section)
     });
@@ -44,12 +50,16 @@ export const aboutService = {
   },
 
   async update(id: number, section: Partial<AboutSection>): Promise<{ message: string }> {
-    const token = localStorage.getItem('token');
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(section)
     });
@@ -61,11 +71,15 @@ export const aboutService = {
   },
 
   async delete(id: number): Promise<{ message: string }> {
-    const token = localStorage.getItem('token');
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await fetch(`${API_BASE_URL}/${id}`, {
       method: 'DELETE',
       headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'Authorization': `Bearer ${token}`
       }
     });
     if (!response.ok) {

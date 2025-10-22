@@ -159,13 +159,13 @@ export default function VolunteerProposalsAdmin() {
   });
 
   return (
-    <div className="max-w-8xl mx-auto px-6 py-8">
+    <div className="max-w-8xl mx-auto px-6 py-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Propuestas de Voluntariado</h1>
-            <p className="text-gray-600 mt-1">Revisa y gestiona las propuestas de voluntariado enviadas</p>
+            <h1 className="ext-lg font-semibold text-gray-900">Propuestas de Voluntariado</h1>
+           
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -197,59 +197,7 @@ export default function VolunteerProposalsAdmin() {
           </div>
         </div>
         
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 py-6">
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{filteredProposals.length}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                <FileText className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pendientes</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {filteredProposals.filter(p => p.status === 'pending' || !p.status).length}
-                </p>
-              </div>
-              <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
-                <Clock className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Aprobadas</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {filteredProposals.filter(p => p.status === 'approved').length}
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Rechazadas</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {filteredProposals.filter(p => p.status === 'rejected').length}
-                </p>
-              </div>
-              <div className="p-3 bg-red-100 rounded-lg flex-shrink-0">
-                <XCircle className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-          </div>
-        </div>
+        
       </div>
 
       {/* Content */}
