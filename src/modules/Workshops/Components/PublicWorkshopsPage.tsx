@@ -86,13 +86,10 @@ export default function PublicWorkshopsPage() {
                     <img
                       src={(() => {
                         const originalUrl = workshop.imagen;
-                        console.log(`Workshop "${workshop.titulo}" image URL:`, originalUrl);
                         if (!originalUrl) return '';
                         if (originalUrl.startsWith('blob:')) return '';
                         if (originalUrl.startsWith('http')) return originalUrl;
-                        const finalUrl = `http://localhost:3000${originalUrl}`;
-                        console.log(`Final URL for "${workshop.titulo}":`, finalUrl);
-                        return finalUrl;
+                        return `http://localhost:3000${originalUrl}`;
                       })()}
                       alt={workshop.titulo}
                       className="w-full h-full object-cover"
