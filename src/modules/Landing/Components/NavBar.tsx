@@ -36,8 +36,8 @@ const NavBar = () => {
                     try {
                         const payload = JSON.parse(atob(token.split('.')[1]));
                         setUserData(payload);
-                    } catch (error) {
-                        console.error('Error parsing token:', error);
+                    } catch {
+                        // Token parsing failed, continue without user data
                     }
                 }
             }
@@ -74,12 +74,20 @@ const NavBar = () => {
         window.location.href = "/admin/login";
     };
 
-    const handleLogout = () => {
-        logout();
-        setIsLoggedIn(false);
-        setUserData(null);
-        setUserDropdownOpen(false);
-        window.location.href = "/";
+    const handleLogout = async () => {
+        try {
+            await logout();
+            setIsLoggedIn(false);
+            setUserData(null);
+            setUserDropdownOpen(false);
+            window.location.href = "/";
+        } catch {
+            // Even if logout fails, clear local state and redirect
+            setIsLoggedIn(false);
+            setUserData(null);
+            setUserDropdownOpen(false);
+            window.location.href = "/";
+        }
     };
 
     const handleDashboardClick = () => {
@@ -87,11 +95,6 @@ const NavBar = () => {
         const destination = isAdmin ? "/admin" : "/user";
         
         window.location.href = destination;
-        setUserDropdownOpen(false);
-    };
-//We are going to use this function later
-    const handleProfileClick = () => {
-        window.location.href = "/profile";
         setUserDropdownOpen(false);
     };
 

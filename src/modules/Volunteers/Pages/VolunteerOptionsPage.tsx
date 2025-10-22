@@ -246,7 +246,7 @@ const VolunteerOptionsPage = () => {
      
       {/* Search and Actions */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
           <h2 className="text-lg font-semibold text-gray-900">Opciones de Voluntariado</h2>
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
             {/* View Mode Toggle */}
@@ -579,12 +579,7 @@ const VolunteerOptionsPage = () => {
           </div>
         ) : (
           <>
-            {/* Pagination Info for Cards */}
-            <div className="mb-6 text-center">
-              <p className="text-gray-600">
-                Mostrando {startIndex + 1} - {Math.min(endIndex, filteredOptions.length)} de {filteredOptions.length} opciones
-              </p>
-            </div>
+
 
             {/* Options Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -700,6 +695,13 @@ const VolunteerOptionsPage = () => {
                 </div>
               </div>
             ))}
+            </div>
+
+            {/* Pagination Info for Cards */}
+            <div className="mb-6 text-center">
+              <p className="text-gray-600">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, filteredOptions.length)} de {filteredOptions.length} opciones
+              </p>
             </div>
 
             {/* Pagination Controls for Cards */}

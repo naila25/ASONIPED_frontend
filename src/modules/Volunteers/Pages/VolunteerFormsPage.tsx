@@ -224,7 +224,7 @@ const VolunteerFormsPage = () => {
 
   // Main render
   return (
-    <div className="max-w-8xl mx-auto px-8 py-8">
+    <div className="max-w-8xl mx-auto px-8 py-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
       {/* Header */}
       <div className="mb-10">
         <div className="flex items-center justify-between">
@@ -308,12 +308,7 @@ const VolunteerFormsPage = () => {
       {/* Volunteer Forms */}
       {viewMode === 'cards' ? (
         <>
-          {/* Info for Cards */}
-          <div className="mb-6 text-center">
-            <p className="text-gray-600">
-              {filteredForms.length} voluntarios encontrados
-            </p>
-          </div>
+         
 
           <div className="space-y-8">
             {/* Unassigned Forms Section */}
@@ -589,6 +584,12 @@ const VolunteerFormsPage = () => {
               </div>
             );
           })}
+           {/* Info for Cards */}
+           <div className="mb-6 text-center">
+            <p className="text-gray-600">
+              {filteredForms.length} voluntarios encontrados
+            </p>
+          </div>
           </div>
         </>
       ) : (

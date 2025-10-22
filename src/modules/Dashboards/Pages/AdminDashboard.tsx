@@ -11,17 +11,47 @@ import {
   Bell,
   User,
   MessageSquare,
-  Edit
+  Edit,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 
 const navLinks = [
   { to: "/admin", label: "Dashboard", icon: Home },
   { to: "/admin/expedientes", label: "Expedientes", icon: FileText },
-  { to: "/admin/volunteers", label: "Voluntarios", icon: Users },
+  { 
+    label: "Asistencia", 
+    icon: TrendingUp, 
+    hasSubmenu: true,
+    submenu: [
+      { to: "/admin/attendance", label: "Panel de Asistencia", icon: TrendingUp },
+      { to: "/admin/attendance/beneficiaries", label: "Asistencia Beneficiarios", icon: Users },
+      { to: "/admin/attendance/guests", label: "Asistencia Invitados", icon: User },
+      { to: "/admin/attendance/list", label: "Lista de Asistencia", icon: FileText },
+      { to: "/admin/attendance/activities", label: "Actividades", icon: Calendar }
+    ]
+  },
+  { 
+    label: "Voluntarios", 
+    icon: Users, 
+    hasSubmenu: true,
+    submenu: [
+      { to: "/admin/volunteers/options", label: "Opciones de Voluntariado", icon: Settings },
+      { to: "/admin/volunteers/forms", label: "Formularios de Voluntarios", icon: FileText },
+      { to: "/admin/volunteers/proposals", label: "Propuestas de Voluntariado", icon: MessageSquare }
+    ]
+  },
+  { 
+    label: "Talleres", 
+    icon: GraduationCap, 
+    hasSubmenu: true,
+    submenu: [
+      { to: "/admin/workshops/options", label: "Opciones de Talleres", icon: Settings },
+      { to: "/admin/workshops/forms", label: "Formularios de Talleres", icon: FileText }
+    ]
+  },
   { to: "/admin/tickets", label: "Tickets", icon: MessageSquare },
   { to: "/admin/events-news", label: "Eventos", icon: Calendar },
-  { to: "/admin/attendance", label: "Asistencia", icon: TrendingUp },
-  { to: "/admin/workshops", label: "Talleres", icon: GraduationCap },
   { to: "/admin/landing", label: "Gestión del Landing", icon: Edit},
   { to: "/admin/users", label: "Gestión de Usuarios", icon: Settings },
   
@@ -31,6 +61,7 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications] = useState(0);
   const [username, setUsername] = useState<string | null>(null);
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
@@ -38,6 +69,18 @@ export default function AdminDashboard() {
       setUsername(storedUsername);
     }
   }, []);
+
+  const toggleSubmenu = (label: string) => {
+    setExpandedMenus(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(label)) {
+        newSet.delete(label);
+      } else {
+        newSet.add(label);
+      }
+      return newSet;
+    });
+  };
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -60,6 +103,50 @@ export default function AdminDashboard() {
           <nav className="flex flex-col gap-2">
             {navLinks.map((link) => {
               const Icon = link.icon;
+              const isExpanded = expandedMenus.has(link.label);
+              
+              if (link.hasSubmenu && link.submenu) {
+                return (
+                  <div key={link.label}>
+                    {/* Parent menu item */}
+                    <button
+                      onClick={() => toggleSubmenu(link.label)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-gray-700 transition-colors duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-5 h-5" />
+                        <span className="font-medium">{link.label}</span>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </button>
+                    
+                    {/* Submenu items */}
+                    {isExpanded && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {link.submenu.map((subItem) => {
+                          const SubIcon = subItem.icon;
+                          return (
+                            <Link
+                              key={subItem.to}
+                              to={subItem.to}
+                              className="flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-gray-600 transition-colors duration-200 text-sm"
+                              onClick={() => setSidebarOpen(false)}
+                            >
+                              <SubIcon className="w-4 h-4" />
+                              <span>{subItem.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              
               return (
                 <Link
                   key={link.to}
@@ -85,12 +172,9 @@ export default function AdminDashboard() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col ml-0 md:ml-0 transition-all">
-        <div>
-          
-    </div>
+      <div className="flex-1 flex flex-col ml-0 md:ml-0 transition-all min-h-screen">
         {/* Top bar */}
-        <div className="bg-white shadow-sm border-b border-gray-300">
+        <div className="bg-white shadow-sm border-b border-gray-300 flex-shrink-0">
           <div className="flex items-center justify-between p-4">
             {/* Mobile menu button */}
             <div className="md:hidden">
@@ -147,7 +231,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Main content area */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

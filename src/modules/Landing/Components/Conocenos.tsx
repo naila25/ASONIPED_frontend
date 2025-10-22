@@ -58,7 +58,7 @@ const ConocenosSection = () => {
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
             viewport={{ once: true }}
           >
-            <h3 className="text-orange-600 text-2xl font-semibold mb-4">¿A Quiénes Ayudamos?</h3>
+            <h3 className="text-orange-600 text-2xl font-semibold mb-4">¿A quiénes ayudamos?</h3>
             <p className="text-neutral-700 text-lg leading-relaxed">
               Ayudamos a niños, jóvenes y adultos con diversas condiciones de discapacidad, brindándoles acceso a educación especializada, actividades integradoras y apoyo familiar.
             </p>
@@ -122,7 +122,7 @@ const ConocenosSection = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
           viewport={{ once: true }}
         >
-          <h3 className="text-orange-600 text-3xl font-semibold mb-6">Nuestros Valores</h3>
+          <h3 className="text-orange-600 text-3xl font-semibold mb-6">Nuestros valores</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 justify-center">
             {[
               { name: 'Solidaridad', icon: HandHeart },
@@ -132,6 +132,7 @@ const ConocenosSection = () => {
               { name: 'Respeto', icon: HeartHandshake},
               { name: 'Tolerancia', icon: Scale },
               { name: 'Credibilidad', icon: ShieldCheck },
+              { name: 'Inclusividad', icon: Users },
             ].map((valor, index) => (
               <motion.div
                 key={index}
