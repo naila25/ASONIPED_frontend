@@ -44,7 +44,7 @@ const ProtectedRoute = () => {
   }, []);
 
   // Show children immediately while validating in background
-  // This prevents the loading flash and provides seamless UX
+  // This provides seamless UX without loading spinners
   if (isValidating) {
     return <Outlet />;
   }
