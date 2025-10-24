@@ -318,7 +318,7 @@ const Voluntariados = () => {
       >
         <div className="absolute inset-0 bg-black/50"></div>
         <h1 className="relative text-4xl sm:text-5xl lg:text-6xl font-semibold text-white z-10 tracking-wide">
-          Voluntariados Disponibles
+          Voluntariados disponibles
         </h1>
       </div>
 

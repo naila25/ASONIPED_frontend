@@ -8,7 +8,7 @@ const VolunteerOptionsPage = () => {
   // State for options, form, loading, error, and UI
   const [options, setOptions] = useState<VolunteerOption[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<(Omit<VolunteerOption, 'id'> & { imageFile?: File | null })>({
+  const [form, setForm] = useState<Omit<VolunteerOption, 'id'>>({
     title: '',
     description: '',
     imageUrl: '',
@@ -18,7 +18,6 @@ const VolunteerOptionsPage = () => {
     tools: '',
     hour: '',
     spots: 1,
-    imageFile: null,
   });
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -85,19 +84,11 @@ const VolunteerOptionsPage = () => {
     });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setForm({ ...form, imageFile: file });
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setForm((prev: (Omit<VolunteerOption, 'id'> & { imageFile?: File | null })) => ({ ...prev, imageUrl: url }));
-    }
-  };
 
   // Start adding a new option
   const handleAdd = () => {
     setIsAdding(true);
-    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1, imageFile: null });
+    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1 });
     setEditingId(null);
   };
 
@@ -114,7 +105,6 @@ const VolunteerOptionsPage = () => {
       tools: option.tools || '',
       hour: option.hour || '',
       spots: option.spots || 1,
-      imageFile: null,
     });
     setIsAdding(false);
   };
@@ -154,7 +144,7 @@ const VolunteerOptionsPage = () => {
         await addVolunteerOption(form);
       }
       await loadOptions();
-      setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1, imageFile: null });
+      setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1 });
       setIsAdding(false);
       setEditingId(null);
     } catch (err) {
@@ -166,7 +156,7 @@ const VolunteerOptionsPage = () => {
   const handleCancel = () => {
     setEditingId(null);
     setIsAdding(false);
-    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1, imageFile: null });
+    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1 });
   };
 
   // Filter options by search term
@@ -246,7 +236,7 @@ const VolunteerOptionsPage = () => {
      
       {/* Search and Actions */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
           <h2 className="text-lg font-semibold text-gray-900">Opciones de Voluntariado</h2>
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
             {/* View Mode Toggle */}
@@ -417,33 +407,31 @@ const VolunteerOptionsPage = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Imagen del Voluntariado
+                    URL de la Imagen (Cloudinary)
                   </label>
-                  <div className="space-y-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="block w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 
-                        file:rounded-md file:border-0 file:text-sm file:font-medium
-                        file:bg-orange-500 file:text-white hover:file:bg-orange-600"
-                    />
-                    <div className="text-xs text-gray-500">
-                      Formatos: JPG, PNG. Máximo 5MB.
-                    </div>
-                    {form.imageUrl && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                          <img
-                            src={form.imageUrl.startsWith('http') || form.imageUrl.startsWith('blob:') ? form.imageUrl : `http://localhost:3000${form.imageUrl}`}
-                            alt="preview"
-                            className="w-full h-48 object-cover"
-                          />
-                        </div>
-                      </div>
-                    )}
+                  <input
+                    type="url"
+                    name="imageUrl"
+                    value={form.imageUrl}
+                    onChange={handleChange}
+                    placeholder="https://res.cloudinary.com/..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Pega aquí la URL de la imagen desde Cloudinary
                   </div>
+                  {form.imageUrl && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                        <img
+                          src={form.imageUrl}
+                          alt="preview"
+                          className="w-full h-48 object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -579,12 +567,7 @@ const VolunteerOptionsPage = () => {
           </div>
         ) : (
           <>
-            {/* Pagination Info for Cards */}
-            <div className="mb-6 text-center">
-              <p className="text-gray-600">
-                Mostrando {startIndex + 1} - {Math.min(endIndex, filteredOptions.length)} de {filteredOptions.length} opciones
-              </p>
-            </div>
+
 
             {/* Options Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -700,6 +683,13 @@ const VolunteerOptionsPage = () => {
                 </div>
               </div>
             ))}
+            </div>
+
+            {/* Pagination Info for Cards */}
+            <div className="mb-6 text-center">
+              <p className="text-gray-600">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, filteredOptions.length)} de {filteredOptions.length} opciones
+              </p>
             </div>
 
             {/* Pagination Controls for Cards */}

@@ -328,7 +328,7 @@ export const createAdminDirectRecord = async (
     
     console.log('FormData preparado, enviando request...');
     
-    // Usar XMLHttpRequest para poder reportar progreso de subida
+    
     const authHeader = getAuthHeader();
     const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
 
@@ -361,6 +361,8 @@ export const createAdminDirectRecord = async (
             }
           } else {
             const errorText = xhr.responseText || `HTTP ${xhr.status}`;
+            
+            
             try {
               const error = JSON.parse(errorText);
               reject(new Error(error.error || 'Error creando expediente admin'));
@@ -572,11 +574,9 @@ export const getRecordById = async (id: number): Promise<RecordWithDetails> => {
     console.log('API URL:', `${API_URL}/${id}`);
     console.log('Auth header:', getAuthHeader());
     
-    const response = await fetch(`${API_URL}/${id}`, {
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
+    const { authenticatedRequest } = await import('../../../shared/Services/api.service');
+    const response = await authenticatedRequest(`/records/${id}`, {
+      method: 'GET',
     });
     
     console.log('Response status:', response.status);

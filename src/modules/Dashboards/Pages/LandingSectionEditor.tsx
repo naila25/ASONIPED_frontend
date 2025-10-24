@@ -311,13 +311,7 @@ export function LandingSectionEditor({
   };
 
   const handleCardFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    setCardFile(file);
-    if (file) {
-      // Create a preview URL for the image
-      const previewUrl = URL.createObjectURL(file);
-      setCardForm(prev => ({ ...prev, URL_imagen: previewUrl }));
-    }
+    // No longer needed - using URL input instead
   };
   // Submit card (create or update)
   const handleCardSubmit = async (e: React.FormEvent) => {
@@ -333,7 +327,7 @@ export function LandingSectionEditor({
     try {
       let updatedCards;
       if (editingId) {
-        const res = await donationService.updateCard(editingId, cardForm, cardFile);
+        const res = await donationService.updateCard(editingId, cardForm);
         updatedCards = donationData?.cards.map(c =>
           c.id === editingId
             ? { ...cardForm, id: editingId, URL_imagen: res.URL_imagen || cardForm.URL_imagen }
@@ -341,7 +335,7 @@ export function LandingSectionEditor({
         ) || [];
         setEditingId(null);
       } else {
-        const res = await donationService.createCard(cardForm, cardFile);
+        const res = await donationService.createCard(cardForm);
         updatedCards = [...(donationData?.cards || []), { ...cardForm, id: res.id, URL_imagen: res.URL_imagen || cardForm.URL_imagen }];
       }
       setDonationData(prev => prev ? { ...prev, cards: updatedCards } : null);
@@ -396,10 +390,6 @@ export function LandingSectionEditor({
   };
 
   const resetCardForm = () => {
-    // Clean up any preview URLs to prevent memory leaks
-    if (cardForm.URL_imagen && cardForm.URL_imagen.startsWith('blob:')) {
-      URL.revokeObjectURL(cardForm.URL_imagen);
-    }
     setCardForm({
       titulo_card: "",
       descripcion_card: "",
@@ -767,30 +757,16 @@ export function LandingSectionEditor({
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Subir imagen:</label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const form = new FormData();
-                      form.append('image', file);
-                      try {
-                        const res = await fetch('http://localhost:3000/api/upload/image', {
-                          method: 'POST',
-                          body: form,
-                        });
-                        if (!res.ok) throw new Error('Upload failed');
-                        const { url } = await res.json();
-                        handleHeroChange("url_imagen", url);
-                      } catch (err) {
-                        console.error(err);
-                      }
-                    }}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
-                  />
+                <label className="block text-sm font-medium text-gray-700">URL de la Imagen (Cloudinary):</label>
+                <input
+                  type="url"
+                  value={heroData?.url_imagen || ""}
+                  onChange={(e) => handleHeroChange("url_imagen", e.target.value)}
+                  placeholder="https://res.cloudinary.com/..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <div className="text-xs text-gray-500">
+                  Pega aquí la URL de la imagen desde Cloudinary
                 </div>
                 {heroData?.url_imagen && (
                   <div className="mt-3">
@@ -908,34 +884,18 @@ export function LandingSectionEditor({
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Subir imagen:</label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const form = new FormData();
-                      form.append('image', file);
-                      try {
-                        const res = await fetch('http://localhost:3000/api/upload/image', {
-                          method: 'POST',
-                          body: form,
-                        });
-                        if (!res.ok) throw new Error('Upload failed');
-                        const { url } = await res.json();
-                        handleChange("URL_imagen" as unknown as keyof SectionData, url);
-                      } catch (err) {
-                        console.error(err);
-                      }
-                    }}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
-
-                  />
+                <label className="block text-sm font-medium text-gray-700">URL de la Imagen (Cloudinary):</label>
+                <input
+                  type="url"
+                  value={String((data as Record<string, unknown>).URL_imagen || "")}
+                  onChange={(e) => handleChange("URL_imagen" as unknown as keyof SectionData, e.target.value)}
+                  placeholder="https://res.cloudinary.com/..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <div className="text-xs text-gray-500">
+                  Pega aquí la URL de la imagen desde Cloudinary
                 </div>
                 {((data as Record<string, unknown>).URL_imagen as string) && (
-
                   <div className="mt-3">
                     <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
                     <img src={(data as Record<string, unknown>).URL_imagen as string} alt="About preview" className="max-h-48 w-full object-cover rounded-lg border border-gray-200 shadow-sm" />
@@ -1073,19 +1033,18 @@ export function LandingSectionEditor({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subir imagen:
+                  URL de la Imagen (Cloudinary):
                 </label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const url = URL.createObjectURL(file);
-                    handleWorkshopChange("imagen_card", url);
-                  }}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
+                  type="url"
+                  value={workshopData.imagen_card}
+                  onChange={(e) => handleWorkshopChange("imagen_card", e.target.value)}
+                  placeholder="https://res.cloudinary.com/..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <div className="text-xs text-gray-500 mt-1">
+                  Pega aquí la URL de la imagen desde Cloudinary
+                </div>
                 <div className="mt-3">
                   <p className="text-sm text-gray-600 mb-2">Vista previa:</p>
                   {workshopData.imagen_card && (
@@ -1231,30 +1190,16 @@ export function LandingSectionEditor({
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Subir imagen:</label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const form = new FormData();
-                      form.append('image', file);
-                      try {
-                        const res = await fetch('http://localhost:3000/api/upload/image', {
-                          method: 'POST',
-                          body: form,
-                        });
-                        if (!res.ok) throw new Error('Upload failed');
-                        const { url } = await res.json();
-                        handleChange("URL_imagen" as unknown as keyof SectionData, url);
-                      } catch (err) {
-                        console.error(err);
-                      }
-                    }}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
-                  />
+                <label className="block text-sm font-medium text-gray-700">URL de la Imagen (Cloudinary):</label>
+                <input
+                  type="url"
+                  value={String((data as Record<string, unknown>).URL_imagen || "")}
+                  onChange={(e) => handleChange("URL_imagen" as unknown as keyof SectionData, e.target.value)}
+                  placeholder="https://res.cloudinary.com/..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <div className="text-xs text-gray-500">
+                  Pega aquí la URL de la imagen desde Cloudinary
                 </div>
                 {((data as Record<string, unknown>).URL_imagen as string) && (
                   <div className="mt-3">
@@ -1464,14 +1409,16 @@ export function LandingSectionEditor({
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">Subir imagen (opcional):</label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCardFileChange}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-lg cursor-pointer"
-                    />
+                  <label className="block text-sm font-medium text-gray-700">URL de la Imagen (Cloudinary):</label>
+                  <input
+                    type="url"
+                    value={cardForm.URL_imagen}
+                    onChange={(e) => handleCardFormChange("URL_imagen", e.target.value)}
+                    placeholder="https://res.cloudinary.com/..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <div className="text-xs text-gray-500">
+                    Pega aquí la URL de la imagen desde Cloudinary
                   </div>
                   {cardForm.URL_imagen && (
                     <div className="mt-3 flex flex-col items-center">

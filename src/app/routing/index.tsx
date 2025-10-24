@@ -2,8 +2,7 @@ import { createRouter, createRootRoute, createRoute, Router } from '@tanstack/re
 import { lazy } from 'react';
 import App from '../../App';
 import Home from '../../modules/Landing/Pages/HomePage';
-import AdminLogin from '../../modules/Login/Pages/AdminLogin';
-import VolunteersSubDashboard from '../../modules/Volunteers/Pages/VolunteersSubDashboard';
+import AdminLogin from '../../modules/Login/Pages/Login';
 import VolunteerProposalsAdmin from '../../modules/Volunteers/Pages/VolunteerProposalsAdmin';
 import DonacionesPage from '../../modules/Donation/Pages/DonacionesPage';
 import FormularioDonacion from '../../modules/Donation/Components/FormularioDonacion';
@@ -29,7 +28,6 @@ import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
-import WorkshopPanel from '../../modules/Workshops/Components/WorkshopPanel';
 import AttendancePanel from '../../modules/Attendance/Components/AttendancePanel';
 
 
@@ -187,21 +185,15 @@ const talleresRoute = createRoute({
   component: UserWorkshopsPage,
 });
 
-const WorkshopAdminRoute = createRoute({
-  getParentRoute: () => adminDashboardRoute,
-  path: 'workshops',
-  component: WorkshopPanel,
-});
-
 const WorkshopFormsRoute = createRoute({
-  getParentRoute: () => WorkshopAdminRoute,
-  path: 'forms',
+  getParentRoute: () => adminDashboardRoute,
+  path: 'workshops/forms',
   component: WorkshopFormsTaller,
 });
 
 const WorkshopOptionsRoute = createRoute({
-  getParentRoute: () => WorkshopAdminRoute,
-  path: 'options',
+  getParentRoute: () => adminDashboardRoute,
+  path: 'workshops/options',
   component: WorkshopOptionsPage,
 });
 // Removed user dashboard Donaciones route in favor of /user/mensajes
@@ -224,12 +216,7 @@ const perfilRoute = createRoute({
   component: PerfilPage,
 });
 
-// Admin sub-routes
-const volunteersAdminRoute = createRoute({
-  getParentRoute: () => adminDashboardRoute,
-  path: 'volunteers',
-  component: VolunteersSubDashboard,
-});
+// Admin sub-routes - Direct volunteer routes
 
 const donationsAdminRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
@@ -239,8 +226,8 @@ const donationsAdminRoute = createRoute({
   ),
 });
 
-// Attendance main route
-const attendanceAdminRoute = createRoute({
+// Attendance routes (direct children of adminDashboardRoute)
+const attendanceMainRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance',
   component: () => (
@@ -248,7 +235,6 @@ const attendanceAdminRoute = createRoute({
   ),
 });
 
-// Attendance sub-routes (direct children of adminDashboardRoute)
 const attendanceBeneficiariesRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance/beneficiaries',
@@ -286,24 +272,24 @@ const adminTicketsRoute = createRoute({
 });
 
 const volunteerOptionsRoute = createRoute({
-  getParentRoute: () => volunteersAdminRoute,
-  path: 'options',
+  getParentRoute: () => adminDashboardRoute,
+  path: 'volunteers/options',
   component: () => (
       <VolunteerOptionsPage />
   ),
 });
 
 const volunteerFormsRoute = createRoute({
-  getParentRoute: () => volunteersAdminRoute,
-  path: 'forms',
+  getParentRoute: () => adminDashboardRoute,
+  path: 'volunteers/forms',
   component: () => (
       <VolunteerFormsPage />
   ),
 });
 
 const volunteerProposalsAdminRoute = createRoute({
-  getParentRoute: () => volunteersAdminRoute,
-  path: 'proposals',
+  getParentRoute: () => adminDashboardRoute,
+  path: 'volunteers/proposals',
   component: VolunteerProposalsAdmin,
 });
 
@@ -346,22 +332,18 @@ const routeTree = rootRoute.addChildren([
       expedientesAdminRoute,
       adminDirectRecordCreationRoute,
       adminRecordEditRoute,
-      volunteersAdminRoute.addChildren([
-        volunteerOptionsRoute,
-        volunteerFormsRoute,
-        volunteerProposalsAdminRoute
-      ]),
+      volunteerOptionsRoute,
+      volunteerFormsRoute,
+      volunteerProposalsAdminRoute,
       donationsAdminRoute,
-      attendanceAdminRoute,
+      attendanceMainRoute,
       attendanceBeneficiariesRoute,
       attendanceGuestsRoute,
       attendanceListRoute,
       attendanceActivitiesRoute,
       eventsNewsAdminRoute,
-      WorkshopAdminRoute.addChildren([
-       WorkshopOptionsRoute,
-       WorkshopFormsRoute
-      ]),
+      WorkshopOptionsRoute,
+      WorkshopFormsRoute,
       
       userManagementRoute,
       adminTicketsRoute,

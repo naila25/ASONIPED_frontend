@@ -122,7 +122,7 @@ export default function AttendanceListPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <Link
@@ -136,7 +136,7 @@ export default function AttendanceListPage() {
                   <FaChartLine className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Analytics & Reportes</h1>
+                  <h1 className="text-xl font-semibold text-gray-900">Analítica & Reportes</h1>
                   <p className="text-sm text-gray-600">Visualiza estadísticas y exporta datos de asistencia</p>
                 </div>
               </div>

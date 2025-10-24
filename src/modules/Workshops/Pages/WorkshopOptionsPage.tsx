@@ -32,7 +32,6 @@ interface FormState {
   materiales: string; // User input as string, converted to array on submit
   aprender: string;
   capacidad: string;
-  imageFile?: File | null;
 }
 
 const blankForm: FormState = {
@@ -45,7 +44,6 @@ const blankForm: FormState = {
   materiales: '',
   aprender: '',
   capacidad: '',
-  imageFile: null,
 };
 
 const WorkshopOptionsPage: React.FC = () => {
@@ -147,12 +145,7 @@ const WorkshopOptionsPage: React.FC = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setForm(prev => ({ ...prev, imageFile: file }));
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setForm(prev => ({ ...prev, imagen: url }));
-    }
+    setForm(prev => ({ ...prev, imagen: e.target.value }));
   };
 
   const startAdd = () => {
@@ -177,7 +170,6 @@ const WorkshopOptionsPage: React.FC = () => {
       materiales: Array.isArray(opt.materiales) ? opt.materiales.join(', ') : (opt.materiales || ''),
       aprender: opt.aprender || '',
       capacidad: opt.capacidad?.toString() || '',
-      imageFile: null,
     });
     setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
@@ -210,31 +202,10 @@ const WorkshopOptionsPage: React.FC = () => {
       const inputDate = new Date(form.fecha);
       if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
 
-      let imageUrl = form.imagen;
-
-      // Upload image file if a new file was selected
-      if (form.imageFile) {
-        const formData = new FormData();
-        formData.append('image', form.imageFile);
-
-        const uploadResponse = await fetch('http://localhost:3000/api/upload/image', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error('Error al subir la imagen');
-        }
-
-        const uploadResult = await uploadResponse.json();
-        imageUrl = uploadResult.url;
-        console.log('Image uploaded successfully:', imageUrl);
-      }
-
       const payload = {
         titulo: form.titulo,
         descripcion: form.descripcion,
-        imagen: imageUrl,
+        imagen: form.imagen,
         fecha: form.fecha,
         hora: form.hora,
         ubicacion: form.ubicacion,
@@ -303,8 +274,8 @@ const WorkshopOptionsPage: React.FC = () => {
   return (
     <div className="space-y-6 min-w-0">
       {/* Header */}
-      <div className="bg-white p-4 sm:p-6">
-        <div className="flex items-center gap-4">
+      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+        <div className="flex items-center gap-4 mb-20">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-semibold text-gray-900 truncate">
               Gestión de Opciones de Talleres
@@ -335,7 +306,7 @@ const WorkshopOptionsPage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nuevo Taller</span>
+              <span className="hidden sm:inline">Nueva Opción</span>
               <span className="sm:hidden">Nuevo</span>
             </button>
         </div>
@@ -479,33 +450,31 @@ const WorkshopOptionsPage: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Imagen del Taller
+                    URL de la Imagen (Cloudinary)
                   </label>
-                  <div className="space-y-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                      className="block w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 
-                    file:rounded-md file:border-0 file:text-sm file:font-medium
-                    file:bg-orange-500 file:text-white hover:file:bg-orange-600"
-                />
-                    <div className="text-xs text-gray-500">
-                      Formatos: JPG, PNG. Máximo 5MB.
-                    </div>
-                    {form.imagen && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                          <img
-                            src={form.imagen.startsWith('http') || form.imagen.startsWith('blob:') ? form.imagen : `http://localhost:3000${form.imagen}`}
-                    alt="preview"
-                            className="w-full h-48 object-cover"
+                  <input
+                    type="url"
+                    name="imagen"
+                    value={form.imagen}
+                    onChange={handleImageChange}
+                    placeholder="https://res.cloudinary.com/..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
-                        </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Pega aquí la URL de la imagen desde Cloudinary
+                  </div>
+                  {form.imagen && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                        <img
+                          src={form.imagen}
+                          alt="preview"
+                          className="w-full h-48 object-cover"
+                        />
                       </div>
-                )}
-              </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -568,7 +537,7 @@ const WorkshopOptionsPage: React.FC = () => {
                       <tr key={opt.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
                         <td className="px-4 py-3 align-top">
                           <img
-                            src={opt.imagen?.startsWith('http') ? opt.imagen : `http://localhost:3000${opt.imagen}`}
+                            src={opt.imagen || '/placeholder-image.png'}
                             alt={opt.titulo}
                             className="h-11 w-11 object-cover rounded-md border border-gray-200"
                           />
@@ -642,13 +611,7 @@ const WorkshopOptionsPage: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Pagination Info for Cards */}
-            <div className="mb-6 text-center">
-              <p className="text-gray-600">
-                Mostrando {startIndex + 1} - {Math.min(endIndex, filtered.length)} de {filtered.length} opciones
-              </p>
-            </div>
-
+           
             {/* Options Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {currentOptions.map((opt) => (
@@ -657,7 +620,7 @@ const WorkshopOptionsPage: React.FC = () => {
                   <div className="relative h-48 bg-gray-100 flex-shrink-0">
                     {opt.imagen ? (
                       <img
-                        src={opt.imagen.startsWith('http') ? opt.imagen : `http://localhost:3000${opt.imagen}`}
+                        src={opt.imagen}
                         alt={opt.titulo}
                         className="w-full h-full object-cover"
                       />
@@ -763,6 +726,12 @@ const WorkshopOptionsPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+             {/* Pagination Info for Cards */}
+             <div className="mb-6 text-center">
+              <p className="text-gray-600">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, filtered.length)} de {filtered.length} opciones
+              </p>
             </div>
 
             {/* Pagination Controls for Cards */}

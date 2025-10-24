@@ -51,7 +51,7 @@ const WorkshopCreateForm: React.FC<Props> = ({ onCreated }) => {
       <textarea name="descripcion" value={form.descripcion} onChange={handleChange} placeholder="Descripción" />
       <textarea name="materiales" value={form.materiales} onChange={handleChange} placeholder="Materiales" />
       <textarea name="aprender" value={form.aprender} onChange={handleChange} placeholder="¿Qué aprenderás?" />
-      <input name="imagen" value={form.imagen} onChange={handleChange} placeholder="URL de la imagen" type="url" />
+      <input name="imagen" value={form.imagen} onChange={handleChange} placeholder="URL de la imagen (Cloudinary)" type="url" />
       <input name="fecha" value={form.fecha} onChange={handleChange} placeholder="Fecha" type="date" />
       <input name="hora" value={form.hora} onChange={handleChange} placeholder="Hora" type="time" />
       <input name="capacidad" value={form.capacidad} onChange={handleChange} placeholder="Capacidad" type="number" min={1} />

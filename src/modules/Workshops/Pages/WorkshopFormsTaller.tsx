@@ -219,7 +219,7 @@ const WorkshopFormsTallerPage = () => {
 
   // Main render
   return (
-    <div className="max-w-8xl mx-auto px-8 py-8">
+    <div className="max-w-8xl mx-auto px-8 py-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
       {/* Header */}
       <div className="mb-10">
         <div className="flex items-center justify-between">
