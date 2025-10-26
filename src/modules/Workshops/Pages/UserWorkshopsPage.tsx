@@ -199,7 +199,22 @@ export default function UserWorkshopsPage() {
                         <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Fecha</div>
-                          <div className="text-base">{enrollment.workshop_fecha}</div>
+                          <div className="text-base">{(() => {
+                            try {
+                              // Handle DD/MM/YYYY format (already correct)
+                              if (enrollment.workshop_fecha.includes('/')) {
+                                return enrollment.workshop_fecha;
+                              }
+                              // Handle ISO format and convert to DD/MM/YYYY
+                              const date = new Date(enrollment.workshop_fecha);
+                              if (!isNaN(date.getTime())) {
+                                return date.toLocaleDateString('es-ES');
+                              }
+                              return enrollment.workshop_fecha;
+                            } catch (error) {
+                              return enrollment.workshop_fecha;
+                            }
+                          })()}</div>
                         </div>
                       </div>
                     )}

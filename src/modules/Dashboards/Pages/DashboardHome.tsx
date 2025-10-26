@@ -3,7 +3,6 @@ import {
   FileText, 
   GraduationCap, 
   Heart, 
-  Plus,
   Calendar,
   Clock,
   MapPin
@@ -59,8 +58,8 @@ export default function DashboardHome() {
             onClick={quickActions.createRecord}
             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
           >
-            <Plus className="w-5 h-5 text-blue-600" />
-            <span className="font-medium text-gray-700">Crear Expediente</span>
+            <FileText className="w-5 h-5 text-blue-600" />
+            <span className="font-medium text-gray-700">Expediente</span>
           </button>
           <button 
             onClick={quickActions.enrollWorkshop}
@@ -70,11 +69,11 @@ export default function DashboardHome() {
             <span className="font-medium text-gray-700">Inscribirse a Taller</span>
           </button>
           <button 
-            onClick={quickActions.registerVolunteer}
+            onClick={() => window.location.href = '/VolunteerCard'}
             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors"
           >
             <Heart className="w-5 h-5 text-purple-600" />
-            <span className="font-medium text-gray-700">Registrar Voluntariado</span>
+            <span className="font-medium text-gray-700">Inscribirse a Voluntariado</span>
           </button>
         </div>
       </div>
@@ -120,7 +119,22 @@ export default function DashboardHome() {
                     <p className="font-medium text-gray-900">{activity.title}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Clock className="w-3 h-3" />
-                      <span>{new Date(activity.date).toLocaleDateString('es-ES')}</span>
+                      <span>{(() => {
+                        try {
+                          // Handle DD/MM/YYYY format (already correct)
+                          if (activity.date.includes('/')) {
+                            return activity.date;
+                          }
+                          // Handle ISO format and convert to DD/MM/YYYY
+                          const date = new Date(activity.date);
+                          if (!isNaN(date.getTime())) {
+                            return date.toLocaleDateString('es-ES');
+                          }
+                          return activity.date;
+                        } catch (error) {
+                          return activity.date;
+                        }
+                      })()}</span>
                       {activity.time && <span>• {activity.time}</span>}
                     </div>
                     {activity.description && (
@@ -185,7 +199,22 @@ export default function DashboardHome() {
                     <p className="font-medium text-gray-900">{event.title}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Clock className="w-3 h-3" />
-                      <span>{new Date(event.date).toLocaleDateString('es-ES')}</span>
+                      <span>{(() => {
+                        try {
+                          // Handle DD/MM/YYYY format (already correct)
+                          if (event.date.includes('/')) {
+                            return event.date;
+                          }
+                          // Handle ISO format and convert to DD/MM/YYYY
+                          const date = new Date(event.date);
+                          if (!isNaN(date.getTime())) {
+                            return date.toLocaleDateString('es-ES');
+                          }
+                          return event.date;
+                        } catch (error) {
+                          return event.date;
+                        }
+                      })()}</span>
                       <span>• {event.time}</span>
                     </div>
                     {event.location && (

@@ -185,7 +185,22 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Pr
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-700">
               <div className="flex items-center gap-2">
                 <FaCalendarAlt className="text-orange-500" />
-                <span className="font-medium text-gray-900">Fecha:</span> {workshop.fecha || 'Por definir'}
+                <span className="font-medium text-gray-900">Fecha:</span> {workshop.fecha ? (() => {
+                  try {
+                    // Handle DD/MM/YYYY format (already correct)
+                    if (workshop.fecha.includes('/')) {
+                      return workshop.fecha;
+                    }
+                    // Handle ISO format and convert to DD/MM/YYYY
+                    const date = new Date(workshop.fecha);
+                    if (!isNaN(date.getTime())) {
+                      return date.toLocaleDateString('es-ES');
+                    }
+                    return workshop.fecha;
+                  } catch (error) {
+                    return workshop.fecha;
+                  }
+                })() : 'Por definir'}
               </div>
               {workshop.hora && (
                 <div className="flex items-center gap-2">
