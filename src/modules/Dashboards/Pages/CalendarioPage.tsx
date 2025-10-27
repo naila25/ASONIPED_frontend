@@ -10,7 +10,7 @@ interface CalendarEvent {
   type: 'workshop' | 'volunteer' | 'attendance';
   time: string;
   location?: string;
-  status: 'registered' | 'completed' | 'cancelled';
+  status: 'registered' | 'completed' | 'cancelled' | 'enrolled';
 }
 
 export default function CalendarioPage() {
@@ -146,10 +146,12 @@ export default function CalendarioPage() {
                     <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                       event.status === 'registered' ? 'bg-blue-100 text-blue-800' :
                       event.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      event.status === 'enrolled' ? 'bg-green-100 text-green-800' :
                       'bg-red-100 text-red-800'
                     }`}>
                       {event.status === 'registered' ? 'Inscrito' :
                        event.status === 'completed' ? 'Completado' :
+                       event.status === 'enrolled' ? 'Inscrito' :
                        'Cancelado'}
                     </div>
                   </div>
