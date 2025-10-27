@@ -5,7 +5,8 @@ import {
   Heart, 
   Calendar,
   Clock,
-  MapPin
+  MapPin,
+  Ticket
 } from "lucide-react";
 import { getUserActivities, getUserCalendarEvents, quickActions } from '../Services/userDashboard.service';
 import type { UserActivity, UserCalendarEvent } from '../Services/userDashboard.service';
@@ -103,6 +104,7 @@ export default function DashboardHome() {
                     activity.type === 'workshop' ? 'bg-green-100' :
                     activity.type === 'volunteer' ? 'bg-purple-100' :
                     activity.type === 'attendance' ? 'bg-orange-100' :
+                    activity.type === 'ticket' ? 'bg-yellow-100' :
                     'bg-blue-100'
                   }`}>
                     {activity.type === 'workshop' ? (
@@ -111,6 +113,8 @@ export default function DashboardHome() {
                       <Heart className="w-4 h-4 text-purple-600" />
                     ) : activity.type === 'attendance' ? (
                       <Calendar className="w-4 h-4 text-orange-600" />
+                    ) : activity.type === 'ticket' ? (
+                      <Ticket className="w-4 h-4 text-yellow-600" />
                     ) : (
                       <FileText className="w-4 h-4 text-blue-600" />
                     )}
@@ -145,11 +149,23 @@ export default function DashboardHome() {
                     activity.status === 'completed' ? 'bg-green-100 text-green-800' :
                     activity.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                     activity.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    activity.status === 'enrolled' ? 'bg-green-100 text-green-800' :
+                    activity.status === 'registered' ? 'bg-blue-100 text-blue-800' :
+                    activity.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+                    activity.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                    activity.status === 'archived' ? 'bg-gray-100 text-gray-800' :
+                    activity.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                     'bg-red-100 text-red-800'
                   }`}>
                     {activity.status === 'completed' ? 'Completado' :
                      activity.status === 'approved' ? 'Aprobado' :
                      activity.status === 'pending' ? 'Pendiente' :
+                     activity.status === 'enrolled' ? 'Inscrito' :
+                     activity.status === 'registered' ? 'Registrado' :
+                     activity.status === 'open' ? 'Abierto' :
+                     activity.status === 'closed' ? 'Cerrado' :
+                     activity.status === 'archived' ? 'Archivado' :
+                     activity.status === 'cancelled' ? 'Cancelado' :
                      'Rechazado'}
                   </div>
                 </div>
@@ -227,10 +243,12 @@ export default function DashboardHome() {
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                     event.status === 'registered' ? 'bg-blue-100 text-blue-800' :
                     event.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    event.status === 'enrolled' ? 'bg-green-100 text-green-800' :
                     'bg-red-100 text-red-800'
                   }`}>
                     {event.status === 'registered' ? 'Inscrito' :
                      event.status === 'completed' ? 'Completado' :
+                     event.status === 'enrolled' ? 'Inscrito' :
                      'Cancelado'}
                   </div>
                 </div>
