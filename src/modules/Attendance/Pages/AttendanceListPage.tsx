@@ -17,12 +17,22 @@ export default function AttendanceListPage() {
   });
 
   useEffect(() => {
-    loadActivities();
+    // Defer initial data loading to improve initial render
+    const timer = setTimeout(() => {
+      loadActivities();
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (selectedActivity) {
-      loadAttendanceRecords();
+      // Defer data loading to improve initial render
+      const timer = setTimeout(() => {
+        loadAttendanceRecords();
+      }, 0);
+      
+      return () => clearTimeout(timer);
     }
   }, [selectedActivity, filters]);
 

@@ -63,12 +63,19 @@ const WorkshopOptionsPage: React.FC = () => {
   const itemsPerPage = 6;
 
   useEffect(() => {
-    load();
+    // Defer initial data loading to improve initial render
+    const timer = setTimeout(() => {
+      load();
+    }, 0);
+    
     detectZoomLevel();
     
     // Listen for zoom changes
     window.addEventListener('resize', detectZoomLevel);
-    return () => window.removeEventListener('resize', detectZoomLevel);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', detectZoomLevel);
+    };
   }, []);
 
   // Detect zoom level based on device pixel ratio and visual viewport
@@ -236,13 +243,33 @@ const WorkshopOptionsPage: React.FC = () => {
     }
   };
 
-  // Loading state
-  if (loading) {
+  // Show skeleton UI instead of full loading screen for better perceived performance
+  if (loading && options.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          <p className="text-gray-600">Cargando opciones de talleres...</p>
+      <div className="space-y-6 min-w-0">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          <div className="flex items-center gap-4 mb-20">
+            <div className="min-w-0 flex-1">
+              <div className="h-6 bg-gray-200 rounded w-64 animate-pulse"></div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-48 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="h-48 bg-gray-200 animate-pulse"></div>
+              <div className="p-6 space-y-3">
+                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
