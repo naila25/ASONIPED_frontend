@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews } from '../Services/eventsNewsApi';
 import { Link } from '@tanstack/react-router';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 const EventsNews: React.FC = () => {
   const [items, setItems] = useState<EventNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,32 +25,26 @@ const EventsNews: React.FC = () => {
     fetchData();
   }, []);
 
-  // Sort and get the 3 latest
   const latestItems = [...items]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
 
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev === 0 ? latestItems.length - 1 : prev - 1));
+  };
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev === latestItems.length - 1 ? 0 : prev + 1));
+  };
+
   return (
-    <section className='py-10'>
-      <h2
-        id="events-news-heading"
-        className="text-orange-700 text-3xl sm:text-6xl lg:text-5xl text-center tracking-wide py-6"
-      >
+    <section className="relative w-full py-10">
+      <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide py-6">
         Eventos y Noticias
-        <span className="bg-gradient-to-r from-orange-500 to-red-800 text-transparent bg-clip-text">
-            {" "}
-            De ASONIPED
-          </span>
       </h2>
+
       {loading ? (
-        <div className="grid gap-6 md:grid-cols-3">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="animate-pulse bg-gray-100 rounded-lg shadow-md h-64"
-            />
-          ))}
-        </div>
+        <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />
       ) : error ? (
         <div className="text-center text-red-500 py-8">{error}</div>
       ) : items.length === 0 ? (
@@ -56,41 +52,51 @@ const EventsNews: React.FC = () => {
           No hay eventos o noticias disponibles.
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-3 py-3">
-          {latestItems.map((item) => (
-            <article
-              key={item.id}
-              className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden flex flex-col"
-            >
-              {item.imageUrl && (
-                <img
-                  src={item.imageUrl}
-                  alt={item.title}
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-              )}
-              <div className="p-4 flex-1 flex flex-col">
-                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <time
-                  className="text-sm text-gray-500 mb-4"
-                  dateTime={item.date}
-                >
-                  {new Date(item.date).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </time>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-1">{item.description}</p>
-              </div>
-            </article>
-          ))}
+        <div className="relative h-[500px] md:h-[600px] rounded-lg overflow-hidden shadow-lg">
+          <div
+            className="w-full h-full bg-cover bg-center flex items-center"
+            style={{
+              backgroundImage: `url(${latestItems[currentIndex].imageUrl})`,
+            }}
+          >
+            {/* Overlay oscuro */}
+            <div className="absolute inset-0 bg-black/50"></div>
+
+            {/* Contenido de la noticia */}
+            <div className="relative z-10 text-white max-w-lg px-8 ml-16 space-y-4">
+              <h3 className="text-3xl font-bold">{latestItems[currentIndex].title}</h3>
+              <p className="text-sm opacity-90">{latestItems[currentIndex].description}</p>
+              <Link
+                to={`/events-news/${latestItems[currentIndex].id}`}
+                className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
+              >
+                Leer más
+              </Link>
+            </div>
+          </div>
+
+          {/* Flecha izquierda */}
+          <button
+            onClick={prevSlide}
+            className="absolute top-1/2 -translate-y-1/2 left-6 bg-black/50 hover:bg-black/70 p-3 rounded-full text-white"
+          >
+            <FaChevronLeft size={20} />
+          </button>
+
+          {/* Flecha derecha */}
+          <button
+            onClick={nextSlide}
+            className="absolute top-1/2 -translate-y-1/2 right-6 bg-black/50 hover:bg-black/70 p-3 rounded-full text-white"
+          >
+            <FaChevronRight size={20} />
+          </button>
         </div>
       )}
+
       <div className="flex justify-center mt-6">
         <Link
           to="/events-news"
-          className="text-white bg-gradient-to-r from-orange-400 to-orange-700 py-2 px-6 rounded hover:bg-orange-600 transition-colors hover:opacity-90 font-medium"
+          className="mt-auto bg-orange-500 text-white py-2 px-4 rounded-full border hover:bg-orange-600 transition"
         >
           Ver todos los eventos y noticias
         </Link>
