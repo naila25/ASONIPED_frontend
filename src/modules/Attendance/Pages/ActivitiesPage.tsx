@@ -23,7 +23,12 @@ export default function ActivitiesPage() {
   });
 
   useEffect(() => {
-    loadActivities();
+    // Defer initial data loading to improve initial render
+    const timer = setTimeout(() => {
+      loadActivities();
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const loadActivities = async () => {

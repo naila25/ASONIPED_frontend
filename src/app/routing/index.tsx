@@ -29,15 +29,15 @@ import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
 import AttendancePanel from '../../modules/Attendance/Components/AttendancePanel';
-
-
-// Lazy-loaded admin Pages with Suspense boundaries
-const VolunteerOptionsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerOptionsPage'));
-const VolunteerFormsPage = lazy(() => import('../../modules/Volunteers/Pages/VolunteerFormsPage'));
-const DonationForms = lazy(() => import('../../modules/Donation/Pages/DonationForms'));
-//const AttendancePage = lazy(() => import('../../modules/Attendance/Pages/AttendancePage'));
-const WorkshopFormsTaller = lazy(() => import('../../modules/Workshops/Pages/WorkshopFormsTaller'));
-const WorkshopOptionsPage = lazy(() => import('../../modules/Workshops/Pages/WorkshopOptionsPage'));
+import WorkshopFormsTaller from '../../modules/Workshops/Pages/WorkshopFormsTaller';
+import WorkshopOptionsPage from '../../modules/Workshops/Pages/WorkshopOptionsPage';
+import VolunteerOptionsPage from '../../modules/Volunteers/Pages/VolunteerOptionsPage';
+import VolunteerFormsPage from '../../modules/Volunteers/Pages/VolunteerFormsPage';
+import QRScannerPage from '../../modules/Attendance/Pages/QRScannerPage';
+import GuestAttendancePage from '../../modules/Attendance/Pages/GuestAttendancePage';
+import AttendanceListPage from '../../modules/Attendance/Pages/AttendanceListPage';
+import ActivitiesPage from '../../modules/Attendance/Pages/ActivitiesPage';
+import DonationForms from '../../modules/Donation/Pages/DonationForms';
 
 // Root route - SINGLE SOURCE OF TRUTH
 const rootRoute = createRootRoute({
@@ -238,25 +238,25 @@ const attendanceMainRoute = createRoute({
 const attendanceBeneficiariesRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance/beneficiaries',
-  component: lazy(() => import('../../modules/Attendance/Pages/QRScannerPage')),
+  component: QRScannerPage,
 });
 
 const attendanceGuestsRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance/guests',
-  component: lazy(() => import('../../modules/Attendance/Pages/GuestAttendancePage')),
+  component: GuestAttendancePage,
 });
 
 const attendanceListRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance/list',
-  component: lazy(() => import('../../modules/Attendance/Pages/AttendanceListPage')),
+  component: AttendanceListPage,
 });
 
 const attendanceActivitiesRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance/activities',
-  component: lazy(() => import('../../modules/Attendance/Pages/ActivitiesPage')),
+  component: ActivitiesPage,
 });
 
 const userManagementRoute = createRoute({
