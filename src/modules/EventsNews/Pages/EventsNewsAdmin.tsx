@@ -8,6 +8,7 @@ const initialForm: Omit<EventNewsItem, 'id'> = {
   description: '',
   date: '',
   imageUrl: '',
+  type: 'evento',
 };
 
 const EventsNewsAdmin: React.FC = () => {
@@ -73,6 +74,7 @@ const EventsNewsAdmin: React.FC = () => {
       description: item.description,
       date: item.date,
       imageUrl: item.imageUrl || '',
+      type: item.type
     });
     setShowEditModal(true);
   };
@@ -146,7 +148,7 @@ const EventsNewsAdmin: React.FC = () => {
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Eventos y Noticias</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Administra y publica eventos y noticias de ASONIPED</p>
+            <p className="text-gray-600 text-sm sm:text-base">Administra y pública eventos y noticias de ASONIPED</p>
           </div>
         </div>
       </div>
@@ -173,7 +175,7 @@ const EventsNewsAdmin: React.FC = () => {
               className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nuevo Evento</span>
+              <span className="hidden sm:inline">Nuevo Evento/Noticia</span>
               <span className="sm:hidden">Nuevo</span>
             </button>
           </div>
@@ -235,12 +237,24 @@ const EventsNewsAdmin: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imagen (opcional)</label>
+               <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+               <select
+                 name="type"
+                 value={form.type}
+                 onChange={handleChange}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                 <option value="evento">Evento</option>
+                 <option value="noticia">Noticia</option>
+               </select>
+             </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imágen (opcional)</label>
                 <input
                   name="imageUrl"
                   value={form.imageUrl}
                   onChange={handleChange}
-                  placeholder="https://ejemplo.com/imagen.jpg"
+                  placeholder="https://ejemplo.com/imágen.jpg"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
@@ -274,6 +288,116 @@ const EventsNewsAdmin: React.FC = () => {
           </div>
         )}
 
+    {/* Edit Modal */}
+{showEditModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+      <div className="bg-gradient-to-r from-orange-500 to-orange-700 p-4">
+        <h2 className="text-lg sm:text-xl font-semibold text-white text-center">
+          Editar Evento o Noticia
+        </h2>
+      </div>
+      <form onSubmit={handleUpdate} className="p-6 space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Título */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
+            <input
+              name="title"
+              value={editForm.title}
+              onChange={handleEditChange}
+              placeholder="Título del evento o noticia"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          {/* Fecha */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+            <input
+              name="date"
+              value={editForm.date}
+              onChange={handleEditChange}
+              type="date"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              required
+            />
+          </div>
+        </div>
+
+        {/* Descripción */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+          <textarea
+            name="description"
+            value={editForm.description}
+            onChange={handleEditChange}
+            placeholder="Escribe una breve descripción..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            rows={3}
+            required
+          />
+        </div>
+
+        {/* Tipo */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+          <select
+            name="type"
+            value={editForm.type}
+            onChange={handleEditChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          >
+            <option value="evento">Evento</option>
+            <option value="noticia">Noticia</option>
+          </select>
+        </div>
+
+        {/* Imagen */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imágen</label>
+          <input
+            name="imageUrl"
+            value={editForm.imageUrl}
+            onChange={handleEditChange}
+            placeholder="https://ejemplo.com/imágen.jpg"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          />
+          {editForm.imageUrl && (
+            <img
+              src={editForm.imageUrl}
+              alt="Vista previa"
+              className="mt-3 w-full h-40 object-cover rounded-lg border"
+            />
+          )}
+        </div>
+
+        {/* Botones */}
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              setShowEditModal(false);
+              setEditingId(null);
+            }}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+          >
+            {submitting ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
         {/* Events Table */}
         <div className="overflow-x-auto -mx-4 sm:mx-0">
           <div className="inline-block min-w-full align-middle">
@@ -281,10 +405,11 @@ const EventsNewsAdmin: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imagen</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imágen</th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                   </tr>
                 </thead>
@@ -316,6 +441,15 @@ const EventsNewsAdmin: React.FC = () => {
                         <div className="text-sm text-gray-900 max-w-[200px] truncate" title={item.description}>
                           {item.description}
                         </div>
+                      </td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">
+                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          item.type === 'evento'
+                         ? 'bg-blue-100 text-blue-800'
+                         : 'bg-green-100 text-green-800'
+                        }`}>
+                         {item.type === 'evento' ? 'Evento' : 'Noticia'}
+                       </span>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         <div className="flex flex-col sm:flex-row gap-2">
@@ -349,90 +483,7 @@ const EventsNewsAdmin: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Editar Evento/Noticia</h2>
-                <button
-                  onClick={() => { setShowEditModal(false); setEditingId(null); }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <form onSubmit={handleUpdate} className="space-y-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
-                    <input
-                      name="title"
-                      value={editForm.title}
-                      onChange={handleEditChange}
-                      placeholder="Título del evento"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-                    <input
-                      name="date"
-                      value={editForm.date}
-                      onChange={handleEditChange}
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                  <textarea
-                    name="description"
-                    value={editForm.description}
-                    onChange={handleEditChange}
-                    placeholder="Descripción del evento"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    required
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imagen (opcional)</label>
-                  <input
-                    name="imageUrl"
-                    value={editForm.imageUrl}
-                    onChange={handleEditChange}
-                    placeholder="https://ejemplo.com/imagen.jpg"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => { setShowEditModal(false); setEditingId(null); }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
-                  >
-                    {submitting ? 'Guardando...' : 'Guardar Cambios'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </div>  
   );
 };
 
