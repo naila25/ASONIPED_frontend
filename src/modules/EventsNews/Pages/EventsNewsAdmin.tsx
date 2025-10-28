@@ -16,7 +16,7 @@ const EventsNewsAdmin: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -40,11 +40,11 @@ const EventsNewsAdmin: React.FC = () => {
     fetchItems();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
@@ -52,11 +52,7 @@ const EventsNewsAdmin: React.FC = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const newItem: EventNewsItem = {
-        id: Date.now().toString(),
-        ...form,
-      };
-      await createEventNews(newItem);
+      await createEventNews(form);
       setForm(initialForm);
       setShowCreateForm(false);
       fetchItems();
@@ -74,7 +70,7 @@ const EventsNewsAdmin: React.FC = () => {
       description: item.description,
       date: item.date,
       imageUrl: item.imageUrl || '',
-      type: item.type
+      type: item.type || 'evento'
     });
     setShowEditModal(true);
   };
@@ -84,7 +80,7 @@ const EventsNewsAdmin: React.FC = () => {
     if (!editingId) return;
     setSubmitting(true);
     try {
-      await updateEventNews(parseInt(editingId), editForm);
+      await updateEventNews(editingId, editForm);
       setEditingId(null);
       setShowEditModal(false);
       fetchItems();
@@ -95,11 +91,11 @@ const EventsNewsAdmin: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('¿Estás seguro de eliminar este evento/noticia?')) return;
     setSubmitting(true);
     try {
-      await deleteEventNews(id);
+      await deleteEventNews(id.toString());
       fetchItems();
     } catch {
       setError('Error deleting event/news.');
@@ -114,17 +110,6 @@ const EventsNewsAdmin: React.FC = () => {
     item.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate statistics
-  const stats = { 
-    total: items.length,
-    withImage: items.filter(item => item.imageUrl).length,
-    thisMonth: items.filter(item => {
-      const itemDate = new Date(item.date);
-      const now = new Date();
-      return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
-    }).length,
-    upcoming: items.filter(item => new Date(item.date) > new Date()).length,
-  };
 
   // Loading state
   if (loading) {
