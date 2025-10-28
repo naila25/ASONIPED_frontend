@@ -115,7 +115,7 @@ const EventsNewsAdmin: React.FC = () => {
   );
 
   // Calculate statistics
-  const stats = {
+  const stats = { 
     total: items.length,
     withImage: items.filter(item => item.imageUrl).length,
     thisMonth: items.filter(item => {
@@ -288,113 +288,115 @@ const EventsNewsAdmin: React.FC = () => {
           </div>
         )}
 
-    {/* Edit Modal */}
+       {/* Edit Form (ya no es modal) */}
 {showEditModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-      <div className="bg-gradient-to-r from-orange-500 to-orange-700 p-4">
-        <h2 className="text-lg sm:text-xl font-semibold text-white text-center">
-          Editar Evento o Noticia
-        </h2>
+  <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <Edit className="w-5 h-5 text-orange-600 flex-shrink-0" />
+        <h3 className="text-lg font-semibold text-gray-900 truncate">Editar Evento o Noticia</h3>
       </div>
-      <form onSubmit={handleUpdate} className="p-6 space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Título */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
-            <input
-              name="title"
-              value={editForm.title}
-              onChange={handleEditChange}
-              placeholder="Título del evento o noticia"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              required
-            />
-          </div>
+      <button
+        onClick={() => {
+          setShowEditModal(false);
+          setEditingId(null);
+        }}
+        className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
 
-          {/* Fecha */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-            <input
-              name="date"
-              value={editForm.date}
-              onChange={handleEditChange}
-              type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Descripción */}
+    <form onSubmit={handleUpdate} className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-          <textarea
-            name="description"
-            value={editForm.description}
+          <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
+          <input
+            name="title"
+            value={editForm.title}
             onChange={handleEditChange}
-            placeholder="Escribe una breve descripción..."
+            placeholder="Título del evento o noticia"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            rows={3}
             required
           />
         </div>
-
-        {/* Tipo */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-          <select
-            name="type"
-            value={editForm.type}
-            onChange={handleEditChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            <option value="evento">Evento</option>
-            <option value="noticia">Noticia</option>
-          </select>
-        </div>
-
-        {/* Imagen */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imágen</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
           <input
-            name="imageUrl"
-            value={editForm.imageUrl}
+            name="date"
+            value={editForm.date}
             onChange={handleEditChange}
-            placeholder="https://ejemplo.com/imágen.jpg"
+            type="date"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            required
           />
-          {editForm.imageUrl && (
-            <img
-              src={editForm.imageUrl}
-              alt="Vista previa"
-              className="mt-3 w-full h-40 object-cover rounded-lg border"
-            />
-          )}
         </div>
+      </div>
 
-        {/* Botones */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
-          <button
-            type="button"
-            onClick={() => {
-              setShowEditModal(false);
-              setEditingId(null);
-            }}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
-          >
-            {submitting ? 'Guardando...' : 'Guardar Cambios'}
-          </button>
-        </div>
-      </form>
-    </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+        <textarea
+          name="description"
+          value={editForm.description}
+          onChange={handleEditChange}
+          placeholder="Escribe una breve descripción..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          rows={3}
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+        <select
+          name="type"
+          value={editForm.type}
+          onChange={handleEditChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        >
+          <option value="evento">Evento</option>
+          <option value="noticia">Noticia</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imágen</label>
+        <input
+          name="imageUrl"
+          value={editForm.imageUrl}
+          onChange={handleEditChange}
+          placeholder="https://ejemplo.com/imágen.jpg"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {editForm.imageUrl && (
+          <img
+            src={editForm.imageUrl}
+            alt="Vista previa"
+            className="mt-3 w-full h-40 object-cover rounded-lg border"
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 mt-6">
+        <button
+          type="button"
+          onClick={() => {
+            setShowEditModal(false);
+            setEditingId(null);
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Guardando...' : 'Guardar Cambios'}
+        </button>
+      </div>
+    </form>
   </div>
 )}
 
@@ -482,8 +484,8 @@ const EventsNewsAdmin: React.FC = () => {
             {searchTerm ? 'No se encontraron eventos que coincidan con la búsqueda' : 'No hay eventos o noticias disponibles'}
           </div>
         )}
-      </div>
-    </div>  
+     </div>
+  </div>
   );
 };
 
