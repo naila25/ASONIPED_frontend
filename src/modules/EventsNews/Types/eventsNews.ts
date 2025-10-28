@@ -4,4 +4,5 @@ export interface EventNewsItem {
   description: string;
   date: string; // ISO string
   imageUrl?: string;
+  type: 'evento' | 'noticia' ;
 } 
