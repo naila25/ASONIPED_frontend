@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { FaChartLine, FaArrowLeft, FaDownload, FaFilter, FaUsers, FaQrcode } from 'react-icons/fa';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { FaChartLine, FaArrowLeft, FaDownload, FaFilter, FaUsers, FaQrcode, FaSearch } from 'react-icons/fa';
 import { Link } from '@tanstack/react-router';
 import { analyticsApi, activityTracksApi, attendanceRecordsApi } from '../Services/attendanceNewApi';
 import type { ActivityTrack, ActivityTrackWithStats, AttendanceRecord } from '../Types/attendanceNew';
@@ -14,22 +14,29 @@ export default function AttendanceListPage() {
     startDate: '',
     endDate: '',
     attendanceType: '' as 'beneficiario' | 'guest' | '',
+    searchTerm: '', 
   });
 
   useEffect(() => {
-    loadActivities();
+    const timer = setTimeout(() => {
+      loadActivities();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (selectedActivity) {
-      loadAttendanceRecords();
+      const timer = setTimeout(() => {
+        loadAttendanceRecords();
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [selectedActivity, filters]);
+  }, [selectedActivity, filters.startDate, filters.endDate, filters.attendanceType]);
 
   const loadActivities = async () => {
     try {
       setLoading(true);
-      const response = await activityTracksApi.getAll(1, 1000); // Get all activities
+      const response = await activityTracksApi.getAll(1, 1000);
       setActivities(response.data);
     } catch (err) {
       console.error('Error loading activities:', err);
@@ -41,7 +48,6 @@ export default function AttendanceListPage() {
 
   const loadAttendanceRecords = useCallback(async () => {
     if (!selectedActivity) return;
-    
     try {
       setLoading(true);
       const response = await attendanceRecordsApi.getAll(
@@ -59,43 +65,20 @@ export default function AttendanceListPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedActivity, filters]);
+  }, [selectedActivity, filters.startDate, filters.endDate]);
 
   const handleExport = async (format: 'json' | 'csv') => {
     if (!selectedActivity) return;
-    
     try {
       setLoading(true);
       const blob = await analyticsApi.exportData(format, filters.startDate, filters.endDate);
-      
-      // Create download link with safer DOM manipulation
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `asistencia_${selectedActivity.name}_${new Date().toISOString().split('T')[0]}.${format}`;
-      a.style.display = 'none';
-      
-      // Safely append to body
-      try {
-        document.body.appendChild(a);
-        a.click();
-        
-        // Clean up with timeout to avoid DOM conflicts
-        setTimeout(() => {
-          try {
-            if (document.body.contains(a)) {
-              document.body.removeChild(a);
-            }
-          } catch (cleanupError) {
-            console.warn('Cleanup warning:', cleanupError);
-          }
-        }, 100);
-      } catch (domError) {
-        console.error('DOM manipulation error:', domError);
-        // Fallback: try direct download
-        window.open(url, '_blank');
-      }
-      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error exporting data:', err);
@@ -105,30 +88,36 @@ export default function AttendanceListPage() {
     }
   };
 
-  const getBeneficiariosCount = () => {
-    return attendanceRecords.filter(record => record.attendance_type === 'beneficiario').length;
-  };
+  //  Aplica filtros locales a los registros cargados
+  const filteredRecords = useMemo(() => {
+    return attendanceRecords.filter(record => {
+      const matchesType =
+        !filters.attendanceType || record.attendance_type === filters.attendanceType;
+      const matchesSearch =
+        !filters.searchTerm ||
+        record.full_name?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        record.cedula?.toLowerCase().includes(filters.searchTerm.toLowerCase());
+      return matchesType && matchesSearch;
+    });
+  }, [attendanceRecords, filters.attendanceType, filters.searchTerm]);
 
-  const getGuestsCount = () => {
-    return attendanceRecords.filter(record => record.attendance_type === 'guest').length;
-  };
+  const getBeneficiariosCount = () =>
+    filteredRecords.filter(record => record.attendance_type === 'beneficiario').length;
 
-  const getQRScansCount = () => {
-    return attendanceRecords.filter(record => record.attendance_method === 'qr_scan').length;
-  };
+  const getGuestsCount = () =>
+    filteredRecords.filter(record => record.attendance_type === 'guest').length;
 
+  const getQRScansCount = () =>
+    filteredRecords.filter(record => record.attendance_method === 'qr_scan').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <Link
-                to="/admin/attendance"
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <Link to="/admin/attendance" className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
                 <FaArrowLeft className="w-5 h-5" />
               </Link>
               <div className="flex items-center gap-3">
@@ -136,12 +125,12 @@ export default function AttendanceListPage() {
                   <FaChartLine className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Analytics & Reportes</h1>
+                  <h1 className="text-xl font-semibold text-gray-900">Analítica & Reportes</h1>
                   <p className="text-sm text-gray-600">Visualiza estadísticas y exporta datos de asistencia</p>
                 </div>
               </div>
             </div>
-            
+
             {selectedActivity && (
               <div className="flex items-center gap-4">
                 <div className="text-right">
@@ -196,10 +185,24 @@ export default function AttendanceListPage() {
                   Filtros
                 </h3>
                 <div className="space-y-4">
+                  {/* Buscar por nombre o cédula */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fecha Inicio
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                    <div className="relative">
+                      <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Nombre o cédula..."
+                        value={filters.searchTerm}
+                        onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fecha Inicio */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
                     <input
                       type="date"
                       value={filters.startDate}
@@ -207,10 +210,10 @@ export default function AttendanceListPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
+
+                  {/* Fecha Fin */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fecha Fin
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
                     <input
                       type="date"
                       value={filters.endDate}
@@ -218,10 +221,10 @@ export default function AttendanceListPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
+
+                  {/* Tipo de asistencia */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de Asistencia
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Asistencia</label>
                     <select
                       value={filters.attendanceType}
                       onChange={(e) => setFilters({ ...filters, attendanceType: e.target.value as any })}
@@ -249,7 +252,7 @@ export default function AttendanceListPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Total Asistencia</p>
-                      <p className="text-2xl font-bold text-gray-900">{attendanceRecords.length}</p>
+                      <p className="text-2xl font-bold text-gray-900">{filteredRecords.length}</p>
                     </div>
                   </div>
                 </div>
@@ -292,28 +295,8 @@ export default function AttendanceListPage() {
               </div>
             )}
 
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800">{error}</p>
-              </div>
-            )}
-
-            {/* Instructions */}
-            {!selectedActivity && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="text-center">
-                  <FaChartLine className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona una Actividad</h3>
-                  <p className="text-gray-600">
-                    Para ver estadísticas y reportes, selecciona una actividad en el panel izquierdo.
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Attendance Records Table */}
-            {selectedActivity && attendanceRecords.length > 0 && (
+            {selectedActivity && filteredRecords.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-lg font-semibold text-gray-900">Registros de Asistencia</h2>
@@ -322,56 +305,34 @@ export default function AttendanceListPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Nombre
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tipo
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Método
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Cédula
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Teléfono
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Fecha
-                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Método</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cédula</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {attendanceRecords.map((record) => (
+                      {filteredRecords.map((record) => (
                         <tr key={record.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{record.full_name}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{record.full_name}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              record.attendance_type === 'beneficiario' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-purple-100 text-purple-800'
-                            }`}>
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                record.attendance_type === 'beneficiario'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-purple-100 text-purple-800'
+                              }`}
+                            >
                               {record.attendance_type === 'beneficiario' ? 'Beneficiario' : 'Invitado'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              record.attendance_method === 'qr_scan' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-orange-100 text-orange-800'
-                            }`}>
-                              {record.attendance_method === 'qr_scan' ? 'QR Scan' : 'Manual'}
-                            </span>
-                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {record.cedula || '-'}
+                            {record.attendance_method === 'qr_scan' ? 'QR Scan' : 'Manual'}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {record.phone || '-'}
-                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.cedula || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.phone || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {record.created_at && new Date(record.created_at).toLocaleString('es-ES')}
                           </td>
@@ -379,16 +340,6 @@ export default function AttendanceListPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
-            )}
-
-            {/* Loading State */}
-            {loading && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                  <span className="ml-3 text-gray-600">Cargando...</span>
                 </div>
               </div>
             )}
