@@ -8,7 +8,7 @@ const VolunteerOptionsPage = () => {
   // State for options, form, loading, error, and UI
   const [options, setOptions] = useState<VolunteerOption[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<(Omit<VolunteerOption, 'id'> & { imageFile?: File | null })>({
+  const [form, setForm] = useState<Omit<VolunteerOption, 'id'>>({
     title: '',
     description: '',
     imageUrl: '',
@@ -18,7 +18,6 @@ const VolunteerOptionsPage = () => {
     tools: '',
     hour: '',
     spots: 1,
-    imageFile: null,
   });
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -33,12 +32,19 @@ const VolunteerOptionsPage = () => {
 
   // Load volunteer options on mount
   useEffect(() => {
-    loadOptions();
+    // Defer initial data loading to improve initial render
+    const timer = setTimeout(() => {
+      loadOptions();
+    }, 0);
+    
     detectZoomLevel();
     
     // Listen for zoom changes
     window.addEventListener('resize', detectZoomLevel);
-    return () => window.removeEventListener('resize', detectZoomLevel);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', detectZoomLevel);
+    };
   }, []);
 
   // Detect zoom level based on device pixel ratio and visual viewport
@@ -85,19 +91,11 @@ const VolunteerOptionsPage = () => {
     });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setForm({ ...form, imageFile: file });
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setForm((prev: (Omit<VolunteerOption, 'id'> & { imageFile?: File | null })) => ({ ...prev, imageUrl: url }));
-    }
-  };
 
   // Start adding a new option
   const handleAdd = () => {
     setIsAdding(true);
-    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1, imageFile: null });
+    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1 });
     setEditingId(null);
   };
 
@@ -114,7 +112,6 @@ const VolunteerOptionsPage = () => {
       tools: option.tools || '',
       hour: option.hour || '',
       spots: option.spots || 1,
-      imageFile: null,
     });
     setIsAdding(false);
   };
@@ -145,8 +142,19 @@ const VolunteerOptionsPage = () => {
       // Prevent past dates
       const today = new Date();
       today.setHours(0,0,0,0);
-      const inputDate = new Date(form.date);
-      if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
+      let inputDate;
+      try {
+        // Handle DD/MM/YYYY format
+        if (form.date.includes('/')) {
+          const [day, month, year] = form.date.split('/');
+          inputDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+          inputDate = new Date(form.date);
+        }
+        if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
+      } catch (error) {
+        throw new Error('Formato de fecha inválido. Use DD/MM/YYYY');
+      }
 
       if (editingId) {
         await updateVolunteerOption(Number(editingId), form);
@@ -154,7 +162,7 @@ const VolunteerOptionsPage = () => {
         await addVolunteerOption(form);
       }
       await loadOptions();
-      setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1, imageFile: null });
+      setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1 });
       setIsAdding(false);
       setEditingId(null);
     } catch (err) {
@@ -166,7 +174,7 @@ const VolunteerOptionsPage = () => {
   const handleCancel = () => {
     setEditingId(null);
     setIsAdding(false);
-    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1, imageFile: null });
+    setForm({ title: '', description: '', imageUrl: '', date: '', location: '', skills: '', tools: '', hour: '', spots: 1 });
   };
 
   // Filter options by search term
@@ -204,13 +212,31 @@ const VolunteerOptionsPage = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // Loading state
-  if (loading) {
+  // Show skeleton UI instead of full loading screen for better perceived performance
+  if (loading && options.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          <p className="text-gray-600">Cargando opciones de voluntariado...</p>
+      <div className="space-y-6 min-w-0">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
+            <div className="h-6 bg-gray-200 rounded w-64 animate-pulse"></div>
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-48 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="h-48 bg-gray-200 animate-pulse"></div>
+              <div className="p-6 space-y-3">
+                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -246,7 +272,7 @@ const VolunteerOptionsPage = () => {
      
       {/* Search and Actions */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
           <h2 className="text-lg font-semibold text-gray-900">Opciones de Voluntariado</h2>
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
             {/* View Mode Toggle */}
@@ -417,33 +443,31 @@ const VolunteerOptionsPage = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Imagen del Voluntariado
+                    URL de la Imagen (Cloudinary)
                   </label>
-                  <div className="space-y-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="block w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 
-                        file:rounded-md file:border-0 file:text-sm file:font-medium
-                        file:bg-orange-500 file:text-white hover:file:bg-orange-600"
-                    />
-                    <div className="text-xs text-gray-500">
-                      Formatos: JPG, PNG. Máximo 5MB.
-                    </div>
-                    {form.imageUrl && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                          <img
-                            src={form.imageUrl.startsWith('http') || form.imageUrl.startsWith('blob:') ? form.imageUrl : `http://localhost:3000${form.imageUrl}`}
-                            alt="preview"
-                            className="w-full h-48 object-cover"
-                          />
-                        </div>
-                      </div>
-                    )}
+                  <input
+                    type="url"
+                    name="imageUrl"
+                    value={form.imageUrl}
+                    onChange={handleChange}
+                    placeholder="https://res.cloudinary.com/..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Pega aquí la URL de la imagen desde Cloudinary
                   </div>
+                  {form.imageUrl && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                        <img
+                          src={form.imageUrl}
+                          alt="preview"
+                          className="w-full h-48 object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -579,12 +603,7 @@ const VolunteerOptionsPage = () => {
           </div>
         ) : (
           <>
-            {/* Pagination Info for Cards */}
-            <div className="mb-6 text-center">
-              <p className="text-gray-600">
-                Mostrando {startIndex + 1} - {Math.min(endIndex, filteredOptions.length)} de {filteredOptions.length} opciones
-              </p>
-            </div>
+
 
             {/* Options Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -629,7 +648,26 @@ const VolunteerOptionsPage = () => {
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <span className="font-medium">Fecha:</span>
-                    <span>{new Date(option.date).toLocaleDateString('es-ES')}</span>
+                    <span>{(() => {
+                      try {
+                        // Handle DD/MM/YYYY format from database
+                        if (option.date.includes('/')) {
+                          const [day, month, year] = option.date.split('/');
+                          const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                          if (!isNaN(dateObj.getTime())) {
+                            return dateObj.toLocaleDateString('es-ES');
+                          }
+                        }
+                        // Fallback for other formats
+                        const dateObj = new Date(option.date);
+                        if (!isNaN(dateObj.getTime())) {
+                          return dateObj.toLocaleDateString('es-ES');
+                        }
+                        return option.date; // Show raw date if parsing fails
+                      } catch (error) {
+                        return option.date; // Show raw date if parsing fails
+                      }
+                    })()}</span>
                   </div>
 
                   {/* Hour */}
@@ -700,6 +738,13 @@ const VolunteerOptionsPage = () => {
                 </div>
               </div>
             ))}
+            </div>
+
+            {/* Pagination Info for Cards */}
+            <div className="mb-6 text-center">
+              <p className="text-gray-600">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, filteredOptions.length)} de {filteredOptions.length} opciones
+              </p>
             </div>
 
             {/* Pagination Controls for Cards */}

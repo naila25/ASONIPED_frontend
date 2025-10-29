@@ -54,7 +54,8 @@ const VolunteerFormsPage = () => {
 
   // Load forms and options on mount
   useEffect(() => {
-    const loadData = async () => {
+    // Defer initial data loading to improve initial render
+    const timer = setTimeout(async () => {
       try {
         setLoading(true);
         const [formsResponse, optionsResponse] = await Promise.all([
@@ -91,8 +92,9 @@ const VolunteerFormsPage = () => {
       } finally {
         setLoading(false);
       }
-    };
-    loadData();
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   // Handle status change for a volunteer form
@@ -189,13 +191,31 @@ const VolunteerFormsPage = () => {
     });
   };
 
-  // Loading state
-  if (loading) {
+  // Show skeleton UI instead of full loading screen for better perceived performance
+  if (loading && forms.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          <p className="text-gray-600">Cargando formularios...</p>
+      <div className="space-y-6 min-w-0">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
+            <div className="h-6 bg-gray-200 rounded w-64 animate-pulse"></div>
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-48 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-6 space-y-3">
+                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -224,7 +244,7 @@ const VolunteerFormsPage = () => {
 
   // Main render
   return (
-    <div className="max-w-8xl mx-auto px-8 py-8">
+    <div className="max-w-8xl mx-auto px-8 py-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
       {/* Header */}
       <div className="mb-10">
         <div className="flex items-center justify-between">
@@ -308,12 +328,7 @@ const VolunteerFormsPage = () => {
       {/* Volunteer Forms */}
       {viewMode === 'cards' ? (
         <>
-          {/* Info for Cards */}
-          <div className="mb-6 text-center">
-            <p className="text-gray-600">
-              {filteredForms.length} voluntarios encontrados
-            </p>
-          </div>
+         
 
           <div className="space-y-8">
             {/* Unassigned Forms Section */}
@@ -589,6 +604,12 @@ const VolunteerFormsPage = () => {
               </div>
             );
           })}
+           {/* Info for Cards */}
+           <div className="mb-6 text-center">
+            <p className="text-gray-600">
+              {filteredForms.length} voluntarios encontrados
+            </p>
+          </div>
           </div>
         </>
       ) : (

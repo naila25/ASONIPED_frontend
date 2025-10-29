@@ -318,7 +318,7 @@ const Voluntariados = () => {
       >
         <div className="absolute inset-0 bg-black/50"></div>
         <h1 className="relative text-4xl sm:text-5xl lg:text-6xl font-semibold text-white z-10 tracking-wide">
-          Voluntariados Disponibles
+          Voluntariados disponibles
         </h1>
       </div>
 
@@ -592,12 +592,28 @@ const Voluntariados = () => {
               <input
                 type="date"
                 className="w-full border border-gray-300 rounded px-4 py-2"
-                value={pDate ? new Date(pDate.split('/').reverse().join('-')).toISOString().split('T')[0] : ''}
+                value={pDate ? (() => {
+                  try {
+                    // Handle DD/MM/YYYY format - convert to YYYY-MM-DD for HTML input
+                    if (pDate.includes('/')) {
+                      const [day, month, year] = pDate.split('/');
+                      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+                    // Handle other formats
+                    const date = new Date(pDate);
+                    if (!isNaN(date.getTime())) {
+                      return date.toISOString().split('T')[0];
+                    }
+                    return '';
+                  } catch (error) {
+                    return '';
+                  }
+                })() : ''}
                 min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => {
                   const selectedDate = e.target.value;
                   if (selectedDate) {
-                    // Convert from YYYY-MM-DD to DD/MM/YYYY format
+                    // Convert from YYYY-MM-DD to DD/MM/YYYY format for storage
                     const [year, month, day] = selectedDate.split('-');
                     const formattedDate = `${day}/${month}/${year}`;
                     setPDate(formattedDate);
