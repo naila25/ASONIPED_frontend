@@ -3,10 +3,10 @@ import { authenticatedRequest } from '../../../shared/Services/api.service';
 export interface UserActivity {
   id: string;
   title: string;
-  type: 'workshop' | 'volunteer' | 'record' | 'attendance';
+  type: 'workshop' | 'volunteer' | 'record' | 'attendance' | 'ticket';
   date: string;
   time?: string;
-  status: 'pending' | 'approved' | 'completed' | 'rejected';
+  status: 'pending' | 'approved' | 'completed' | 'rejected' | 'open' | 'closed' | 'archived' | 'enrolled' | 'registered' | 'cancelled';
   description?: string;
 }
 
@@ -32,11 +32,11 @@ export const getUserActivities = async (limit: number = 5): Promise<UserActivity
   try {
     const response = await authenticatedRequest(`/user/activities?limit=${limit}`);
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch user activities');
-    }
-    
-    return await response.json();
+        if (!response.ok) {
+          throw new Error('Failed to fetch user activities');
+        }
+        
+        return await response.json();
   } catch (error) {
     console.error('Error fetching user activities:', error);
     // Return mock data for now
@@ -76,11 +76,11 @@ export const getUserCalendarEvents = async (): Promise<UserCalendarEvent[]> => {
   try {
     const response = await authenticatedRequest('/user/calendar');
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch user calendar');
-    }
-    
-    return await response.json();
+        if (!response.ok) {
+          throw new Error('Failed to fetch user calendar');
+        }
+        
+        return await response.json();
   } catch (error) {
     console.error('Error fetching user calendar:', error);
     // Return mock data for now
