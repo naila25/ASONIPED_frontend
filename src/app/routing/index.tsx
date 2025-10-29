@@ -9,6 +9,7 @@ import FormularioDonacion from '../../modules/Donation/Components/FormularioDona
 import ConocenosSection from '../../modules/Landing/Components/Conocenos';
 import EventsNewsList from '../../modules/EventsNews/Pages/EventsNewsList';
 import EventsNewsAdmin from '../../modules/EventsNews/Pages/EventsNewsAdmin';
+import EventNewsDetail from '../../modules/EventsNews/Pages/EventNewsDetail';
 import ProtectedRoute from "./ProtectedRoute"; 
 import PublicWorkshopsPage from '../../modules/Workshops/Components/PublicWorkshopsPage';
 import AdminDashboard from '../../modules/Dashboards/Pages/AdminDashboard';
@@ -305,6 +306,12 @@ const eventsNewsRoute = createRoute({
   component: EventsNewsList,
 });
 
+const eventNewsDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'events-news/$id',
+  component: EventNewsDetail,
+});
+
 
 const GestionLandingRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
@@ -360,6 +367,7 @@ const routeTree = rootRoute.addChildren([
     ]),
   ]),
   eventsNewsRoute,
+  eventNewsDetailRoute,
 ]);
 
 
