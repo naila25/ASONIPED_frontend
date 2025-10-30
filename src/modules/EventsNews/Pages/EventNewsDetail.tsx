@@ -5,6 +5,13 @@ import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews } from '../Services/eventsNewsApi';
 
 const EventNewsDetail: React.FC = () => {
+  const formatHour12 = (hhmm?: string) => {
+    if (!hhmm) return '';
+    const [h, m] = hhmm.split(':');
+    const date = new Date();
+    date.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+    return date.toLocaleTimeString('es-ES', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
   const { id } = useParams({ strict: false });
   const [item, setItem] = useState<EventNewsItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,6 +130,11 @@ const EventNewsDetail: React.FC = () => {
                 })}
               </time>
             </div>
+            {item.hour && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 border border-blue-200 text-sm">
+                <Clock className="w-4 h-4 mr-1" /> {formatHour12(item.hour)}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -156,6 +168,15 @@ const EventNewsDetail: React.FC = () => {
                     })}</p>
                   </div>
                 </div>
+                {item.hour && (
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-orange-600" />
+                    <div>
+                      <p className="font-medium">Hora</p>
+                      <p>{formatHour12(item.hour)}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-orange-600" />
                   <div>
