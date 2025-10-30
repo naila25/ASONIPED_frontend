@@ -163,7 +163,7 @@ export const Calendar: React.FC<CalendarProps> = ({
               className={`
                 p-2 min-h-[80px] border border-gray-200 rounded-lg cursor-pointer transition-colors
                 ${isTodayDate ? 'bg-blue-50 border-blue-300' : ''}
-                ${isSelectedDate ? 'bg-blue-100 border-blue-400' : 'hover:bg-gray-50'}
+                ${isSelectedDate ? 'bg-blue-100 border-blue-400' : 'hover:bg-gray-200'}
               `}
               onClick={() => {
                 const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
