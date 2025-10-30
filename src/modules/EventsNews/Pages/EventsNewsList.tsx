@@ -6,6 +6,13 @@ import { fetchEventsNews } from '../Services/eventsNewsApi';
 const ITEMS_PER_PAGE = 9;
 
 const EventsNewsList: React.FC = () => {
+  const formatHour12 = (hhmm?: string) => {
+    if (!hhmm) return '';
+    const [h, m] = hhmm.split(':');
+    const date = new Date();
+    date.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+    return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
   const [items, setItems] = useState<EventNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,16 +102,20 @@ Mantenete al día con nuestros proyectos, logros y oportunidades para participar
                   )}
                   <div className="p-4 flex-1 flex flex-col">
                     <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                    <time
-                      className="text-sm text-gray-500 mb-4"
-                      dateTime={item.date}
-                    >
-                      {new Date(item.date).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </time>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                      <time dateTime={item.date}>
+                        {new Date(item.date).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </time>
+                      {item.hour && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 border border-blue-200 text-xs font-medium">
+                          {formatHour12(item.hour)}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-1">
                       {item.description}
                     </p>

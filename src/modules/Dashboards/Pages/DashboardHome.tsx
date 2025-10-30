@@ -6,9 +6,20 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Ticket
+  Ticket,
 } from "lucide-react";
+import { FaHandsHelping } from 'react-icons/fa';
 import { getUserActivities, getUserCalendarEvents, quickActions } from '../Services/userDashboard.service';
+import { fetchMyVolunteerProposals } from '../../Volunteers/Services/fetchVolunteers';
+type VolunteerProposalBrief = {
+  id: number;
+  title?: string;
+  status?: string;
+  date?: string;
+  created_at?: string;
+  hour?: string;
+  location?: string;
+};
 import type { UserActivity, UserCalendarEvent } from '../Services/userDashboard.service';
 
 export default function DashboardHome() {
@@ -20,13 +31,43 @@ export default function DashboardHome() {
     const loadUserData = async () => {
       try {
         setLoading(true);
-        const [activitiesData, calendarData] = await Promise.all([
+        const [activitiesData, calendarData, proposalsRes] = await Promise.all([
           getUserActivities(5),
-          getUserCalendarEvents()
+          getUserCalendarEvents(),
+          fetchMyVolunteerProposals()
         ]);
-        
-        setActivities(activitiesData);
-        setCalendarEvents(calendarData);
+
+        const proposals = (proposalsRes?.proposals as VolunteerProposalBrief[] || []).map((p) => {
+          const normalizedStatus: 'approved' | 'rejected' | 'pending' =
+            p.status === 'approved' ? 'approved' : p.status === 'rejected' ? 'rejected' : 'pending';
+          return {
+            id: `proposal-${p.id}`,
+            title: p.title || 'Propuesta de voluntariado',
+            type: 'volunteer' as const,
+            date: p.created_at || p.date || new Date().toISOString(),
+            time: undefined,
+            status: normalizedStatus,
+            description: 'Propuesta de voluntariado enviada'
+          };
+        });
+
+        // Merge and keep latest 5 by date desc
+        const merged = [...activitiesData, ...proposals].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+        setActivities(merged);
+        // Add approved proposals into the calendar
+        const approvedProposalEvents = (proposalsRes?.proposals as VolunteerProposalBrief[] || [])
+          .filter((p) => p.status === 'approved')
+          .map((p) => ({
+            id: `proposal-${p.id}`,
+            title: p.title || 'Propuesta de voluntariado',
+            type: 'volunteer' as const,
+            date: p.date || p.created_at || new Date().toISOString().split('T')[0],
+            time: (p.hour && typeof p.hour === 'string') ? p.hour : '00:00',
+            location: p.location,
+            status: 'registered' as const
+          }));
+
+        setCalendarEvents([...calendarData, ...approvedProposalEvents]);
       } catch (error) {
         console.error('Error loading user data:', error);
       } finally {
@@ -110,7 +151,7 @@ export default function DashboardHome() {
                     {activity.type === 'workshop' ? (
                       <GraduationCap className="w-4 h-4 text-green-600" />
                     ) : activity.type === 'volunteer' ? (
-                      <Heart className="w-4 h-4 text-purple-600" />
+                      <FaHandsHelping className="w-4 h-4 text-purple-600" />
                     ) : activity.type === 'attendance' ? (
                       <Calendar className="w-4 h-4 text-orange-600" />
                     ) : activity.type === 'ticket' ? (
@@ -135,7 +176,7 @@ export default function DashboardHome() {
                             return date.toLocaleDateString('es-ES');
                           }
                           return activity.date;
-                        } catch (error) {
+                        } catch {
                           return activity.date;
                         }
                       })()}</span>
@@ -147,10 +188,10 @@ export default function DashboardHome() {
                   </div>
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                     activity.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    activity.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                    activity.status === 'approved' ? 'bg-green-100 text-green-800' :
                     activity.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     activity.status === 'enrolled' ? 'bg-green-100 text-green-800' :
-                    activity.status === 'registered' ? 'bg-blue-100 text-blue-800' :
+                    activity.status === 'registered' ? 'bg-green-100 text-green-800' :
                     activity.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
                     activity.status === 'closed' ? 'bg-gray-100 text-gray-800' :
                     activity.status === 'archived' ? 'bg-gray-100 text-gray-800' :
@@ -227,7 +268,7 @@ export default function DashboardHome() {
                             return date.toLocaleDateString('es-ES');
                           }
                           return event.date;
-                        } catch (error) {
+                        } catch {
                           return event.date;
                         }
                       })()}</span>

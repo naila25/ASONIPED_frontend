@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Clock, MapPin, GraduationCap, Heart, Calendar as CalendarIcon } from "lucide-react";
 import { getUserCalendarEvents } from '../Services/userDashboard.service';
+import { fetchMyVolunteerProposals } from '../../Volunteers/Services/fetchVolunteers';
 import type { UserCalendarEvent } from '../Services/userDashboard.service';
 import Calendar from '../../../shared/Components/Calendar';
+import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
 
-interface CalendarEvent {
-  id: string;
-  title: string;
-  type: 'workshop' | 'volunteer' | 'attendance';
-  time: string;
+type VolunteerProposalBrief = {
+  id: number;
+  title?: string;
+  status?: string;
+  date?: string;
+  created_at?: string;
+  hour?: string;
   location?: string;
-  status: 'registered' | 'completed' | 'cancelled' | 'enrolled';
-}
+};
 
 export default function CalendarioPage() {
   const [events, setEvents] = useState<UserCalendarEvent[]>([]);
@@ -22,8 +25,31 @@ export default function CalendarioPage() {
     const loadEvents = async () => {
       try {
         setLoading(true);
-        const eventsData = await getUserCalendarEvents();
-        setEvents(eventsData);
+        const [eventsData, proposalsRes] = await Promise.all([
+          getUserCalendarEvents(),
+          fetchMyVolunteerProposals()
+        ]);
+
+        const approvedProposalEvents = (proposalsRes?.proposals as VolunteerProposalBrief[] || [])
+          .filter((p) => p.status === 'approved')
+          .map((p) => {
+            const rawDate = (p.date || p.created_at || new Date().toISOString()).toString();
+            // Normalize DD/MM/YYYY -> YYYY-MM-DD for date equality checks
+            const isoDate = rawDate.includes('/')
+              ? (() => { const [d,m,y] = rawDate.split('/'); return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; })()
+              : rawDate.slice(0,10);
+            return {
+              id: `proposal-${p.id}`,
+              title: p.title || 'Propuesta de voluntariado',
+              type: 'volunteer' as const,
+              date: isoDate as string,
+              time: (typeof p.hour === 'string' && p.hour) ? p.hour : '00:00',
+              location: p.location as string | undefined,
+              status: 'registered' as const,
+            };
+          });
+
+        setEvents([...(eventsData || []), ...approvedProposalEvents]);
       } catch (error) {
         console.error('Error loading calendar events:', error);
       } finally {
@@ -35,13 +61,13 @@ export default function CalendarioPage() {
   }, []);
 
   // Convert UserCalendarEvent to CalendarEvent format
-  const calendarEvents: CalendarEvent[] = events.map(event => ({
+  const calendarEvents = events.map(event => ({
     id: `${event.date}-${event.id}`,
     title: event.title,
     type: event.type,
     time: event.time,
     location: event.location,
-    status: event.status
+    status: (event.status === 'enrolled' ? 'registered' : event.status) as 'registered' | 'completed' | 'cancelled'
   }));
 
   // Get events for selected date
@@ -133,7 +159,7 @@ export default function CalendarioPage() {
                       <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          <span>{event.time}</span>
+                          <span>{formatTime12Hour(event.time)}</span>
                         </div>
                         {event.location && (
                           <div className="flex items-center gap-1">

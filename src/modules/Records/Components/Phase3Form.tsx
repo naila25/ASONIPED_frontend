@@ -851,9 +851,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
     // Lugar de nacimiento
     const birthPlace = form.complete_personal_data.birth_place;
-    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(birthPlace) || birthPlace.length > 20 || birthPlace.length === 0) {
+    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(birthPlace) || birthPlace.length > 40 || birthPlace.length === 0) {
       setBirthPlaceError(birthPlace.length === 0 ? 'Este campo es obligatorio.' :
-        birthPlace.length > 20 ? 'Máximo 20 caracteres.' :
+        birthPlace.length > 40 ? 'Máximo 40 caracteres.' :
           'Solo se permiten letras y espacios.');
       hasErrors = true;
     }
@@ -1254,21 +1254,21 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     return;
                   }
 
-                  if (length > 20) {
-                    setBirthPlaceError('Máximo 20 caracteres.');
+                  if (length > 40) {
+                    setBirthPlaceError('Máximo 40 caracteres.');
                     return;
                   }
 
                   setBirthPlaceError('');
                   handleChange('complete_personal_data', 'birth_place', value);
-                  setBirthPlaceCharsLeft(20 - length);
+                  setBirthPlaceCharsLeft(40 - length);
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${birthPlaceError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                {birthPlaceCharsLeft} caracteres restantes (máximo 20)
+                {birthPlaceCharsLeft} caracteres restantes (máximo 40)
               </p>
               {birthPlaceError && <p className="text-xs text-red-500 mt-1">{birthPlaceError}</p>}
             </div>
