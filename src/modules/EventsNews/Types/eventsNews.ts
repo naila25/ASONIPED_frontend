@@ -1,8 +1,9 @@
 export interface EventNewsItem {
-  id: string;
+  id: number;
   title: string;
   description: string;
   date: string; // ISO string
   imageUrl?: string;
-  type: 'evento' | 'noticia' ;
+  hour?: string; // HH:MM
+  type?: 'evento' | 'noticia' ;
 } 

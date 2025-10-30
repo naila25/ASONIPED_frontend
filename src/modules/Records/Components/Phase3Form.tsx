@@ -851,9 +851,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
     // Lugar de nacimiento
     const birthPlace = form.complete_personal_data.birth_place;
-    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(birthPlace) || birthPlace.length > 20 || birthPlace.length === 0) {
+    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(birthPlace) || birthPlace.length > 40 || birthPlace.length === 0) {
       setBirthPlaceError(birthPlace.length === 0 ? 'Este campo es obligatorio.' :
-        birthPlace.length > 20 ? 'Máximo 20 caracteres.' :
+        birthPlace.length > 40 ? 'Máximo 40 caracteres.' :
           'Solo se permiten letras y espacios.');
       hasErrors = true;
     }
