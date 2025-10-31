@@ -4,6 +4,40 @@ import { fetchEventsNews, createEventNews, updateEventNews, deleteEventNews } fr
 import { Plus, Edit, Trash2, Image,  X, Search, Table, Grid3X3 } from 'lucide-react';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
 
+// Format date string safely (handles M/D/YYYY format and ISO/UTC without TZ shift)
+const formatDisplayDate = (input: string): string => {
+  try {
+    if (!input) return '';
+    // Slash input: assume M/D/YYYY and render as DD/MM/YYYY
+    if (input.includes('/')) {
+      const parts = input.split('/');
+      if (parts.length === 3) {
+        const [monthStr, dayStr, y] = parts;
+        const month = parseInt(monthStr, 10);
+        const day = parseInt(dayStr, 10);
+        const dateObj = new Date(Number(y), month - 1, day);
+        return dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      }
+      return input;
+    }
+    // Extract YYYY-MM-DD part if ISO with time or with space 'YYYY-MM-DD HH:MM:SS'
+    const datePart = (input.includes('T') ? input.split('T')[0] : input.split(' ')[0]);
+    const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      const [, y, m, d] = match;
+      // Build date using local timezone components to avoid UTC shift
+      const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+      return dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+    // Fallback: try native Date
+    const fallback = new Date(input);
+    if (!isNaN(fallback.getTime())) return fallback.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    return input;
+  } catch {
+    return input;
+  }
+};
+
 const initialForm: Omit<EventNewsItem, 'id'> = {
   title: '',
   description: '',
@@ -441,7 +475,7 @@ const EventsNewsAdmin: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(item.date).toLocaleDateString()}
+                          {formatDisplayDate(item.date)}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.hour ? formatTime12Hour(item.hour) : '—'}
@@ -510,7 +544,7 @@ const EventsNewsAdmin: React.FC = () => {
                 <div className="p-6 flex flex-col flex-grow">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2" title={item.title}>{item.title}</h3>
                   <div className="text-sm text-gray-600 mb-3">
-                    {new Date(item.date).toLocaleDateString()}
+                    {formatDisplayDate(item.date)}
                     {item.hour && (
                       <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium">
                         {formatTime12Hour(item.hour)}

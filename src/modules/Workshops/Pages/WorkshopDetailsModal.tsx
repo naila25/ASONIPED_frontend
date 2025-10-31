@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@tanstack/react-router';
 import type { Workshop } from "../Types/workshop";
 import { FaCalendarAlt, FaClock, FaUsers, FaTools, FaRegLightbulb } from "react-icons/fa";
@@ -13,7 +13,7 @@ interface Props {
   onEnroll?: (workshop: Workshop) => void;
 }
 
-export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Props) => {
+export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
   const [submitting, setSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [justEnrolled, setJustEnrolled] = useState(false);
@@ -26,6 +26,19 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Pr
     available_spots: workshop?.available_spots || workshop?.capacidad || 0,
     enrolled_count: workshop?.enrolled_count || 0,
   });
+
+  // Format HH:MM (24h) to 12-hour AM/PM for display
+  const formatHour12 = (hhmm?: string): string => {
+    if (!hhmm) return '';
+    try {
+      const [h, m] = hhmm.split(':');
+      const d = new Date();
+      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return hhmm;
+    }
+  };
 
   // Handle ESC key press to close modal
   useEffect(() => {
@@ -45,6 +58,20 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Pr
   }, [isOpen, onClose]);
 
   // Detect auth and update enrollment status when modal opens
+  const fetchEnrollmentStatus = useCallback(async () => {
+    if (!workshop?.id) return;
+    try {
+      const spots = await getAvailableSpots(workshop.id);
+      setEnrollmentStatus({
+        is_enrolled: workshop.is_enrolled || false,
+        available_spots: spots.available_spots,
+        enrolled_count: spots.enrolled_count,
+      });
+    } catch (e) {
+      console.error('Error fetching enrollment status:', e);
+    }
+  }, [workshop?.id, workshop?.is_enrolled]);
+
   useEffect(() => {
     const token = getToken();
     setIsAuthenticated(!!token);
@@ -53,22 +80,7 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Pr
       // Fetch current enrollment status
       fetchEnrollmentStatus();
     }
-  }, [isOpen, workshop?.id]);
-
-  const fetchEnrollmentStatus = async () => {
-    if (!workshop?.id) return;
-    
-    try {
-      const spots = await getAvailableSpots(workshop.id);
-      setEnrollmentStatus({
-        is_enrolled: workshop.is_enrolled || false,
-        available_spots: spots.available_spots,
-        enrolled_count: spots.enrolled_count,
-      });
-    } catch (error) {
-      console.error('Error fetching enrollment status:', error);
-    }
-  };
+  }, [isOpen, workshop?.id, fetchEnrollmentStatus]);
 
   const handleEnroll = async () => {
     if (!workshop?.id) return;
@@ -99,8 +111,9 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Pr
         }));
         setJustEnrolled(true);
       }
-    } catch (error: any) {
-      alert(error.message || 'Error al procesar la inscripción');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al procesar la inscripción';
+      alert(message);
     } finally {
       setSubmitting(false);
     }
@@ -197,7 +210,7 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Pr
                       return date.toLocaleDateString('es-ES');
                     }
                     return workshop.fecha;
-                  } catch (error) {
+                  } catch {
                     return workshop.fecha;
                   }
                 })() : 'Por definir'}
@@ -205,7 +218,7 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop, onEnroll }: Pr
               {workshop.hora && (
                 <div className="flex items-center gap-2">
                   <FaClock className="text-orange-500" />
-                  <span className="font-medium text-gray-900">Hora:</span> {workshop.hora}
+                  <span className="font-medium text-gray-900">Hora:</span> {formatHour12(workshop.hora)}
                 </div>
               )}
               <div className="flex items-center gap-2">

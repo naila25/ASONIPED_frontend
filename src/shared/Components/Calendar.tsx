@@ -46,22 +46,22 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   // Get events for a specific date
   const getEventsForDate = (day: number) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const dateString = date.toISOString().split('T')[0];
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth() + 1;
+    const localDateString = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     return events.filter(event => {
       try {
-        // Check if event.id contains the date string or if it's a valid date
-        if (event.id.includes(dateString)) return true;
-        
-        // Try to parse the event.id as a date
-        const eventDate = new Date(event.id);
-        if (!isNaN(eventDate.getTime())) {
-          return eventDate.toISOString().split('T')[0] === dateString;
+        // Prefer ID-convention that embeds date (YYYY-MM-DD-*)
+        if (event.id.includes(localDateString)) return true;
+        // Fallback: if id itself is a date-like string, compare by local Y-M-D
+        const parts = event.id.split('-');
+        if (parts.length >= 3) {
+          const [y, m, d] = parts;
+          const idLocal = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+          return idLocal === localDateString;
         }
-        
         return false;
-      } catch (error) {
-        console.warn('Error parsing event date:', error);
+      } catch {
         return false;
       }
     });
@@ -163,7 +163,7 @@ export const Calendar: React.FC<CalendarProps> = ({
               className={`
                 p-2 min-h-[80px] border border-gray-200 rounded-lg cursor-pointer transition-colors
                 ${isTodayDate ? 'bg-blue-50 border-blue-300' : ''}
-                ${isSelectedDate ? 'bg-blue-100 border-blue-400' : 'hover:bg-gray-50'}
+                ${isSelectedDate ? 'bg-blue-100 border-blue-400' : 'hover:bg-gray-200'}
               `}
               onClick={() => {
                 const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
