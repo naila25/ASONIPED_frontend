@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews } from '../Services/eventsNewsApi';
+import eventos from '../../../assets/eventos.jpeg';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -92,7 +93,7 @@ const EventsNewsList: React.FC = () => {
       <div
         className="relative w-full h-72 flex items-center justify-center"
         style={{
-          backgroundImage: `url('https://asoniped.org/wp-content/uploads/2023/09/voluntariado-asoniped-1.jpg')`,
+          backgroundImage: `url(${eventos})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}

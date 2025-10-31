@@ -49,7 +49,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
   const [fullNameCharsLeft, setFullNameCharsLeft] = useState(40);
 
   const [cedulaError, setCedulaError] = useState("");
-  const [cedulaCharsLeft, setCedulaCharsLeft] = useState(9);
+  const [cedulaCharsLeft, setCedulaCharsLeft] = useState(12);
 
   const [phoneError, setPhoneError] = useState("");
   const [phoneCharsLeft, setPhoneCharsLeft] = useState(9);
@@ -64,21 +64,21 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
   const [motherNameError, setMotherNameError] = useState('');
   const [motherNameCharsLeft, setMotherNameCharsLeft] = useState(40);
   const [motherCedulaError, setMotherCedulaError] = useState('');
-  const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(9);
+  const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(12);
   const [motherPhoneError, setMotherPhoneError] = useState('');
   const [motherPhoneCharsLeft, setMotherPhoneCharsLeft] = useState(9);
 
   const [fatherNameError, setFatherNameError] = useState('');
   const [fatherNameCharsLeft, setFatherNameCharsLeft] = useState(40);
   const [fatherCedulaError, setFatherCedulaError] = useState('');
-  const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(9);
+  const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(12);
   const [fatherPhoneError, setFatherPhoneError] = useState('');
   const [fatherPhoneCharsLeft, setFatherPhoneCharsLeft] = useState(9);
 
   const [responsibleNameError, setResponsibleNameError] = useState('');
   const [responsibleNameCharsLeft, setResponsibleNameCharsLeft] = useState(40);
   const [responsibleCedulaError, setResponsibleCedulaError] = useState('');
-  const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(9);
+  const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(12);
   const [responsiblePhoneError, setResponsiblePhoneError] = useState('');
   const [responsiblePhoneCharsLeft, setResponsiblePhoneCharsLeft] = useState(9);
 
@@ -121,20 +121,17 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
     if (name === "cedula") {
       // Solo permite números, elimina cualquier letra o símbolo
       const onlyNums = value.replace(/[^0-9]/g, "");
-      // Limita a 9 dígitos
-      if (onlyNums.length > 9) {
-        setCedulaError("La cédula no puede tener más de 9 números.");
-        setForm(prev => ({ ...prev, [name]: onlyNums.slice(0, 9) }));
+      // Limita a 12 dígitos
+      if (onlyNums.length > 12) {
+        setCedulaError("La cédula no puede tener más de 12 números.");
+        setForm(prev => ({ ...prev, [name]: onlyNums.slice(0, 12) }));
         return;
       }
-      if (onlyNums.length < 9 && onlyNums.length > 0) {
-        setCedulaError("La cédula debe tener 9 números.");
-      } else {
-        setCedulaError("");
-      }
+      // No mostrar error para longitudes intermedias; solo limpiar
+      setCedulaError("");
       setForm(prev => ({ ...prev, [name]: onlyNums }));
-      // Si quieres verificar disponibilidad solo cuando tenga los 9 dígitos
-      if (onlyNums.length === 9) {
+      // Verificar disponibilidad cuando tenga 9 o 12 dígitos
+      if (onlyNums.length === 9 || onlyNums.length === 12) {
         checkCedula(onlyNums);
       }
       return;
@@ -565,38 +562,21 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
               name="cedula"
               value={form.cedula}
               onChange={(e) => {
-                const rawValue = e.target.value;
-                // Verificar si hay caracteres no numéricos
-                if (/\D/.test(rawValue)) {
-                  setCedulaError('Solo se permiten números.');
-                  return;
-                }
-                let value = e.target.value.replace(/\D/g, '');
-                if (value.length > 9) return;
-
-                if (value.length > 8 && value.length < 9) {
-                  setCedulaError('Debe tener 9 dígitos.');
-                  return;
-                }
-
-                if (value.length > 9) {
-                  setCedulaError('Máximo 9 caracteres.');
-                  return;
-                }
-
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                setForm(prev => ({ ...prev, cedula: digits }));
+                // No mostrar error para longitudes intermedias
                 setCedulaError('');
-                setForm(prev => ({ ...prev, cedula: value }));
-                setCedulaCharsLeft(9 - value.length);
+                setCedulaCharsLeft(12 - digits.length);
 
-                if (value.length === 9) {
-                  checkCedula(value);
+                if (digits.length === 9 || digits.length === 12) {
+                  checkCedula(digits);
                 }
               }}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${cedulaAvailable === false || cedulaError ? 'border-red-300' : cedulaAvailable === true ? 'border-green-300' : 'border-gray-300'}`}
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              {cedulaCharsLeft} caracteres restantes (máximo 9)
+              {cedulaCharsLeft} caracteres restantes (máximo 12)
             </p>
             {cedulaChecking && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -648,7 +628,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                 return;
               }
 
-              let digits = rawValue.replace(/\D/g, '').slice(0, 8);
+              const digits = rawValue.replace(/\D/g, '').slice(0, 8);
               let formatted = digits;
               if (digits.length > 4) {
                 formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
@@ -920,37 +900,20 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                   type="text"
                   value={form.mother_cedula || ''}
                   onChange={(e) => {
-                    const rawValue = e.target.value;
-                    // Verificar si hay caracteres no numéricos
-                    if (/\D/.test(rawValue)) {
-                      setMotherCedulaError('Solo se permiten números.');
-                      return;
-                    }
-                    let value = rawValue.replace(/\D/g, '');
-                    if (value.length > 9) return;
-
-                    if (value.length > 0 && value.length < 9) {
-                      setMotherCedulaError('Debe tener 9 dígitos.');
-                      return;
-                    }
-
-                    if (value.length > 9) {
-                      setMotherCedulaError('Máximo 9 caracteres.');
-                      return;
-                    }
-
-                    setMotherCedulaError('');
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
                     setForm(prev => ({
                       ...prev,
-                      mother_cedula: value
+                      mother_cedula: digits
                     }));
-                    setMotherCedulaCharsLeft(9 - value.length);
+                    // No mostrar error para longitudes intermedias
+                    setMotherCedulaError('');
+                    setMotherCedulaCharsLeft(12 - digits.length);
                   }}
                   className={`w-full px-3 py-2 border ${motherCedulaError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder='Opcional'
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {motherCedulaCharsLeft} caracteres restantes (Máximo 9)
+                  {motherCedulaCharsLeft} caracteres restantes (Máximo 12)
                 </p>
                 {motherCedulaError && <p className="text-xs text-red-500 mt-1">{motherCedulaError}</p>}
               </div>
@@ -969,7 +932,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       setMotherPhoneError('Solo se permiten números.');
                       return;
                     }
-                    let digits = rawValue.replace(/\D/g, '').slice(0, 8);
+                    const digits = rawValue.replace(/\D/g, '').slice(0, 8);
                     let formatted = digits;
                     if (digits.length > 4) {
                       formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
@@ -1043,37 +1006,20 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                   type="text"
                   value={form.father_cedula || ''}
                   onChange={(e) => {
-                    const rawValue = e.target.value;
-                    // Verificar si hay caracteres no numéricos
-                    if (/\D/.test(rawValue)) {
-                      setFatherCedulaError('Solo se permiten números.');
-                      return;
-                    }
-                    let value = rawValue.replace(/\D/g, '');
-                    if (value.length > 9) return;
-
-                    if (value.length > 0 && value.length < 9) {
-                      setFatherCedulaError('Debe tener 9 dígitos.');
-                      return;
-                    }
-
-                    if (value.length > 9) {
-                      setFatherCedulaError('Máximo 9 caracteres.');
-                      return;
-                    }
-
-                    setFatherCedulaError('');
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
                     setForm(prev => ({
                       ...prev,
-                      father_cedula: value
+                      father_cedula: digits
                     }));
-                    setFatherCedulaCharsLeft(9 - value.length);
+                    // No mostrar error para longitudes intermedias
+                    setFatherCedulaError('');
+                    setFatherCedulaCharsLeft(12 - digits.length);
                   }}
                   className={`w-full px-3 py-2 border ${fatherCedulaError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder='Opcional'
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {fatherCedulaCharsLeft} caracteres restantes (Máximo 9)
+                  {fatherCedulaCharsLeft} caracteres restantes (Máximo 12)
                 </p>
                 {fatherCedulaError && <p className="text-xs text-red-500 mt-1">{fatherCedulaError}</p>}
               </div>
@@ -1092,7 +1038,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       setFatherPhoneError('Solo se permiten números.');
                       return;
                     }
-                    let digits = rawValue.replace(/\D/g, '').slice(0, 8);
+                    const digits = rawValue.replace(/\D/g, '').slice(0, 8);
                     let formatted = digits;
                     if (digits.length > 4) {
                       formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
@@ -1168,37 +1114,20 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                   type="text"
                   value={(form as unknown as Record<string, unknown>).legal_guardian_cedula as string || ''}
                   onChange={(e) => {
-                    const rawValue = e.target.value;
-                    // Verificar si hay caracteres no numéricos
-                    if (/\D/.test(rawValue)) {
-                      setResponsibleCedulaError('Solo se permiten números.');
-                      return;
-                    }
-                    let value = rawValue.replace(/\D/g, '');
-                    if (value.length > 9) return;
-
-                    if (value.length > 0 && value.length < 9) {
-                      setResponsibleCedulaError('Debe tener 9 dígitos.');
-                      return;
-                    }
-
-                    if (value.length > 9) {
-                      setResponsibleCedulaError('Máximo 9 caracteres.');
-                      return;
-                    }
-
-                    setResponsibleCedulaError('');
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
                     setForm(prev => ({
                       ...prev,
-                      legal_guardian_cedula: value
+                      legal_guardian_cedula: digits
                     }));
-                    setResponsibleCedulaCharsLeft(9 - value.length);
+                    // No mostrar error para longitudes intermedias
+                    setResponsibleCedulaError('');
+                    setResponsibleCedulaCharsLeft(12 - digits.length);
                   }}
                   className={`w-full px-3 py-2 border ${responsibleCedulaError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   required={!hasParents}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {responsibleCedulaCharsLeft} caracteres restantes (Máximo 9)
+                  {responsibleCedulaCharsLeft} caracteres restantes (Máximo 12)
                 </p>
                 {responsibleCedulaError && <p className="text-xs text-red-500 mt-1">{responsibleCedulaError}</p>}
               </div>
@@ -1217,7 +1146,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       setResponsiblePhoneError('Solo se permiten números.');
                       return;
                     }
-                    let digits = rawValue.replace(/\D/g, '').slice(0, 8);
+                    const digits = rawValue.replace(/\D/g, '').slice(0, 8);
                     let formatted = digits;
                     if (digits.length > 4) {
                       formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;

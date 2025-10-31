@@ -18,7 +18,6 @@ const landingSections: {
   { key: "about", label: "Sobre Nosotros", icon: <FaInfoCircle size={20} /> },
   { key: "volunteering", label: "Voluntariado", icon: <FaHandsHelping size={20} /> },
   { key: "donation", label: "Donaciones", icon: <FaDonate size={20} /> },
-  { key: "workshop", label: "Talleres", icon: <FaChalkboardTeacher size={20} /> },
 ];
 
 export default function GestionLanding() {
