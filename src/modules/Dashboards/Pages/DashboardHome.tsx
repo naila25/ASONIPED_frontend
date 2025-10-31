@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   FileText, 
   GraduationCap, 
@@ -27,6 +27,108 @@ export default function DashboardHome() {
   const [calendarEvents, setCalendarEvents] = useState<UserCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Format a date string safely (handles DD/MM/YYYY and ISO/UTC without TZ shift)
+  const formatDisplayDate = (input: string): string => {
+    try {
+      if (!input) return '';
+      // Normalize any slash-based date as DD/MM/YYYY (project convention)
+      if (input.includes('/')) {
+        const parts = input.split('/');
+        if (parts.length === 3) {
+          const [dayStr, monthStr, y] = parts;
+          const day = parseInt(dayStr, 10);
+          const month = parseInt(monthStr, 10);
+          const dateObj = new Date(Number(y), month - 1, day);
+          return dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+        return input;
+      }
+      // Extract YYYY-MM-DD part if ISO with time or with space 'YYYY-MM-DD HH:MM:SS'
+      const datePart = (input.includes('T') ? input.split('T')[0] : input.split(' ')[0]);
+      const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (match) {
+        const [, y, m, d] = match;
+        const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+        return dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      }
+      // Fallback: try native Date
+      const fallback = new Date(input);
+      if (!isNaN(fallback.getTime())) return fallback.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      return input;
+    } catch {
+      return input;
+    }
+  };
+
+  // Format HH:MM (24h) to 12-hour AM/PM
+  const formatHour12 = (hhmm?: string): string => {
+    if (!hhmm) return '';
+    try {
+      const [h, m] = hhmm.split(':');
+      const d = new Date();
+      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return hhmm;
+    }
+  };
+
+  // Comparable timestamp for mixed date formats (DD/MM/YYYY or ISO)
+  const getTimeForSort = useCallback((input: string): number => {
+    if (!input) return -Infinity;
+    try {
+      if (input.includes('/')) {
+        const [d, m, y] = input.split('/');
+        const dt = new Date(Number(y), Number(m) - 1, Number(d));
+        return dt.getTime();
+      }
+      // Support 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM:SS'
+      const datePart = (input.includes('T') ? input.split('T')[0] : input.split(' ')[0]);
+      const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (match) {
+        const [, y, m, d] = match;
+        return new Date(Number(y), Number(m) - 1, Number(d)).getTime();
+      }
+      const iso = new Date(input);
+      return isNaN(iso.getTime()) ? -Infinity : iso.getTime();
+    } catch {
+      return -Infinity;
+    }
+  }, []);
+
+  // Determine the most relevant action timestamp for an activity-like item
+  type ActivityLike = {
+    created_at?: string | Date;
+    updated_at?: string | Date;
+    registration_date?: string | Date;
+    cancellation_date?: string | Date;
+    submissionDate?: string | Date;
+    submission_date?: string | Date;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+    timestamp?: string | Date;
+    date?: string | Date;
+  };
+
+  const getActionTime = useCallback((item: ActivityLike): number => {
+    const candidate =
+      item?.created_at ||
+      item?.updated_at ||
+      item?.registration_date ||
+      item?.cancellation_date ||
+      item?.submissionDate ||
+      item?.submission_date ||
+      item?.createdAt ||
+      item?.updatedAt ||
+      item?.timestamp ||
+      item?.date;
+
+    if (!candidate) return -Infinity;
+    // Support Date objects or strings
+    if (candidate instanceof Date) return candidate.getTime();
+    return getTimeForSort(String(candidate));
+  }, [getTimeForSort]);
+
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -44,7 +146,8 @@ export default function DashboardHome() {
             id: `proposal-${p.id}`,
             title: p.title || 'Propuesta de voluntariado',
             type: 'volunteer' as const,
-            date: p.created_at || p.date || new Date().toISOString(),
+            // Prefer the event date for display/sorting; fall back to creation time
+            date: p.date || p.created_at || new Date().toISOString(),
             time: undefined,
             status: normalizedStatus,
             description: 'Propuesta de voluntariado enviada'
@@ -52,7 +155,19 @@ export default function DashboardHome() {
         });
 
         // Merge and keep latest 5 by date desc
-        const merged = [...activitiesData, ...proposals].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+        // Align activity dates with calendar where ids match (avoids backend format mismatches)
+        const calById = new Map(calendarData.map((e) => [String(e.id), e]));
+        const normalizedActivities = (activitiesData || []).map((a) => {
+          const match = calById.get(String(a.id));
+          if (match && (a.type === 'volunteer' || a.type === 'workshop')) {
+            return { ...a, date: match.date, time: a.time || match.time };
+          }
+          return a;
+        });
+
+        const merged = [...normalizedActivities, ...proposals]
+          .sort((a, b) => getActionTime(b) - getActionTime(a))
+          .slice(0, 5);
         setActivities(merged);
         // Add approved proposals into the calendar
         const approvedProposalEvents = (proposalsRes?.proposals as VolunteerProposalBrief[] || [])
@@ -61,6 +176,7 @@ export default function DashboardHome() {
             id: `proposal-${p.id}`,
             title: p.title || 'Propuesta de voluntariado',
             type: 'volunteer' as const,
+            // Keep the same ordering preference here too
             date: p.date || p.created_at || new Date().toISOString().split('T')[0],
             time: (p.hour && typeof p.hour === 'string') ? p.hour : '00:00',
             location: p.location,
@@ -76,7 +192,7 @@ export default function DashboardHome() {
     };
 
     loadUserData();
-  }, []);
+  }, [getActionTime]);
 
   return (
     <div className="space-y-6">
@@ -164,23 +280,8 @@ export default function DashboardHome() {
                     <p className="font-medium text-gray-900">{activity.title}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Clock className="w-3 h-3" />
-                      <span>{(() => {
-                        try {
-                          // Handle DD/MM/YYYY format (already correct)
-                          if (activity.date.includes('/')) {
-                            return activity.date;
-                          }
-                          // Handle ISO format and convert to DD/MM/YYYY
-                          const date = new Date(activity.date);
-                          if (!isNaN(date.getTime())) {
-                            return date.toLocaleDateString('es-ES');
-                          }
-                          return activity.date;
-                        } catch {
-                          return activity.date;
-                        }
-                      })()}</span>
-                      {activity.time && <span>• {activity.time}</span>}
+                      <span>{formatDisplayDate(activity.date)}</span>
+                      {activity.time && <span>• {formatHour12(activity.time)}</span>}
                     </div>
                     {activity.description && (
                       <p className="text-xs text-gray-400 mt-1">{activity.description}</p>
@@ -256,23 +357,8 @@ export default function DashboardHome() {
                     <p className="font-medium text-gray-900">{event.title}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Clock className="w-3 h-3" />
-                      <span>{(() => {
-                        try {
-                          // Handle DD/MM/YYYY format (already correct)
-                          if (event.date.includes('/')) {
-                            return event.date;
-                          }
-                          // Handle ISO format and convert to DD/MM/YYYY
-                          const date = new Date(event.date);
-                          if (!isNaN(date.getTime())) {
-                            return date.toLocaleDateString('es-ES');
-                          }
-                          return event.date;
-                        } catch {
-                          return event.date;
-                        }
-                      })()}</span>
-                      <span>• {event.time}</span>
+                      <span>{formatDisplayDate(event.date)}</span>
+                      <span>• {formatHour12(event.time)}</span>
                     </div>
                     {event.location && (
                       <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
