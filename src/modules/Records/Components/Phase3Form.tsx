@@ -43,7 +43,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
   // Validación y estados de error para expediente 1 phase3
   const [fullNameError, setFullNameError] = useState('');
-  const [fullNameCharsLeft, setFullNameCharsLeft] = useState(30);
+  const [fullNameCharsLeft, setFullNameCharsLeft] = useState(40);
 
   const [primaryPhoneError, setPrimaryPhoneError] = useState('');
   const [primaryPhoneCharsLeft, setPrimaryPhoneCharsLeft] = useState(9);
@@ -64,26 +64,26 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
   // Madre
   const [motherNameError, setMotherNameError] = useState('');
-  const [motherNameCharsLeft, setMotherNameCharsLeft] = useState(30);
+  const [motherNameCharsLeft, setMotherNameCharsLeft] = useState(40);
 
   const [motherCedulaError, setMotherCedulaError] = useState('');
   const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(9);
 
   const [motherOccupationError, setMotherOccupationError] = useState('');
-  const [motherOccupationCharsLeft, setMotherOccupationCharsLeft] = useState(20);
+  const [motherOccupationCharsLeft, setMotherOccupationCharsLeft] = useState(40);
 
   const [motherPhoneError, setMotherPhoneError] = useState('');
   const [motherPhoneCharsLeft, setMotherPhoneCharsLeft] = useState(9);
 
   // Padre
   const [fatherNameError, setFatherNameError] = useState('');
-  const [fatherNameCharsLeft, setFatherNameCharsLeft] = useState(30);
+  const [fatherNameCharsLeft, setFatherNameCharsLeft] = useState(40);
 
   const [fatherCedulaError, setFatherCedulaError] = useState('');
   const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(9);
 
   const [fatherOccupationError, setFatherOccupationError] = useState('');
-  const [fatherOccupationCharsLeft, setFatherOccupationCharsLeft] = useState(20);
+  const [fatherOccupationCharsLeft, setFatherOccupationCharsLeft] = useState(40);
 
   const [fatherPhoneError, setFatherPhoneError] = useState('');
   const [fatherPhoneCharsLeft, setFatherPhoneCharsLeft] = useState(9);
@@ -91,13 +91,13 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // === Validaciones para Encargado Legal ===
 
   const [responsibleNameError, setResponsibleNameError] = useState('');
-  const [responsibleNameCharsLeft, setResponsibleNameCharsLeft] = useState(30);
+  const [responsibleNameCharsLeft, setResponsibleNameCharsLeft] = useState(40);
 
   const [responsibleCedulaError, setResponsibleCedulaError] = useState('');
   const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(9);
 
   const [responsibleOccupationError, setResponsibleOccupationError] = useState('');
-  const [responsibleOccupationCharsLeft, setResponsibleOccupationCharsLeft] = useState(20);
+  const [responsibleOccupationCharsLeft, setResponsibleOccupationCharsLeft] = useState(40);
 
   const [responsiblePhoneError, setResponsiblePhoneError] = useState('');
   const [responsiblePhoneCharsLeft, setResponsiblePhoneCharsLeft] = useState(9);
@@ -1146,8 +1146,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   }
 
                   // Si excede el máximo, no actualizamos y mostramos error
-                  if (length > 30) {
-                    setFullNameError('Máximo 30 caracteres.');
+                  if (length > 40) {
+                    setFullNameError('Máximo 40 caracteres.');
                     return;
                   }
 
@@ -1160,14 +1160,14 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
                   // Actualizamos solo si es válido
                   handleChange('complete_personal_data', 'full_name', value);
-                  setFullNameCharsLeft(30 - length);
+                  setFullNameCharsLeft(40 - length);
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fullNameError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                {fullNameCharsLeft} caracteres restantes (mínimo 5, máximo 30)
+                {fullNameCharsLeft} caracteres restantes (mínimo 5, máximo 40)
               </p>
               {fullNameError && <p className="text-xs text-red-500 mt-1">{fullNameError}</p>}
             </div>
@@ -1527,21 +1527,21 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         return;
                       }
 
-                      if (length > 30) {
-                        setMotherNameError('Máximo 30 caracteres.');
+                      if (length > 40) {
+                        setMotherNameError('Máximo 40 caracteres.');
                         return;
                       }
 
                       setMotherNameError('');
                       handleChange('family_information', 'mother_name', value);
-                      setMotherNameCharsLeft(30 - length);
+                      setMotherNameCharsLeft(40 - length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${motherNameError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     placeholder='Opcional'
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {motherNameCharsLeft} caracteres restantes (mín. 5, máx. 30)
+                    {motherNameCharsLeft} caracteres restantes (mín. 5, máx. 40)
                   </p>
                   {motherNameError && <p className="text-xs text-red-500 mt-1">{motherNameError}</p>}
                 </div>
@@ -1591,21 +1591,21 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         return;
                       }
 
-                      if (length > 20) {
-                        setMotherOccupationError('Máximo 20 caracteres.');
+                      if (length > 40) {
+                        setMotherOccupationError('Máximo 40 caracteres.');
                         return;
                       }
 
                       setMotherOccupationError('');
                       handleChange('family_information', 'mother_occupation', value);
-                      setMotherOccupationCharsLeft(20 - length);
+                      setMotherOccupationCharsLeft(40 - length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${motherOccupationError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     placeholder='Opcional'
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {motherOccupationCharsLeft} caracteres restantes (máx. 20)
+                    {motherOccupationCharsLeft} caracteres restantes (máx. 40)
                   </p>
                   {motherOccupationError && <p className="text-xs text-red-500 mt-1">{motherOccupationError}</p>}
                 </div>
@@ -1664,21 +1664,21 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         return;
                       }
 
-                      if (length > 30) {
-                        setFatherNameError('Máximo 30 caracteres.');
+                      if (length > 40) {
+                        setFatherNameError('Máximo 40 caracteres.');
                         return;
                       }
 
                       setFatherNameError('');
                       handleChange('family_information', 'father_name', value);
-                      setFatherNameCharsLeft(30 - length);
+                      setFatherNameCharsLeft(40 - length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fatherNameError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     placeholder='Opcional'
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {fatherNameCharsLeft} caracteres restantes (mín. 5, máx. 30)
+                    {fatherNameCharsLeft} caracteres restantes (mín. 5, máx. 40)
                   </p>
                   {fatherNameError && <p className="text-xs text-red-500 mt-1">{fatherNameError}</p>}
                 </div>
@@ -1728,21 +1728,21 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         return;
                       }
 
-                      if (length > 20) {
-                        setFatherOccupationError('Máximo 20 caracteres.');
+                      if (length > 40) {
+                        setFatherOccupationError('Máximo 40 caracteres.');
                         return;
                       }
 
                       setFatherOccupationError('');
                       handleChange('family_information', 'father_occupation', value);
-                      setFatherOccupationCharsLeft(20 - length);
+                      setFatherOccupationCharsLeft(40 - length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fatherOccupationError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     placeholder='Opcional'
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {fatherOccupationCharsLeft} caracteres restantes (máx. 20)
+                    {fatherOccupationCharsLeft} caracteres restantes (máx. 40)
                   </p>
                   {fatherOccupationError && <p className="text-xs text-red-500 mt-1">{fatherOccupationError}</p>}
                 </div>
@@ -1803,20 +1803,20 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         return;
                       }
 
-                      if (length > 30) {
-                        setResponsibleNameError('Máximo 30 caracteres.');
+                      if (length > 40) {
+                        setResponsibleNameError('Máximo 40 caracteres.');
                         return;
                       }
 
                       setResponsibleNameError('');
                       handleChange('family_information', 'responsible_person', value);
-                      setResponsibleNameCharsLeft(30 - length);
+                      setResponsibleNameCharsLeft(40 - length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${responsibleNameError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {responsibleNameCharsLeft} caracteres restantes (máximo. 30)
+                    {responsibleNameCharsLeft} caracteres restantes (máximo. 40)
                   </p>
                   {responsibleNameError && <p className="text-xs text-red-500 mt-1">{responsibleNameError}</p>}
                 </div>
@@ -1867,20 +1867,20 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         return;
                       }
 
-                      if (length > 20) {
-                        setResponsibleOccupationError('Máximo 20 caracteres.');
+                      if (length > 40) {
+                        setResponsibleOccupationError('Máximo 40 caracteres.');
                         return;
                       }
 
                       setResponsibleOccupationError('');
                       handleChange('family_information', 'responsible_occupation', value);
-                      setResponsibleOccupationCharsLeft(20 - length);
+                      setResponsibleOccupationCharsLeft(40 - length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${responsibleOccupationError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {responsibleOccupationCharsLeft} caracteres restantes (máximo 20)
+                    {responsibleOccupationCharsLeft} caracteres restantes (máximo 40)
                   </p>
                   {responsibleOccupationError && <p className="text-xs text-red-500 mt-1">{responsibleOccupationError}</p>}
                 </div>

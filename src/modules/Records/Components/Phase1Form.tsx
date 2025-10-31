@@ -46,7 +46,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
 
   // Validation states
   const [fullNameError, setFullNameError] = useState("");
-  const [fullNameCharsLeft, setFullNameCharsLeft] = useState(30);
+  const [fullNameCharsLeft, setFullNameCharsLeft] = useState(40);
 
   const [cedulaError, setCedulaError] = useState("");
   const [cedulaCharsLeft, setCedulaCharsLeft] = useState(9);
@@ -55,28 +55,28 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
   const [phoneCharsLeft, setPhoneCharsLeft] = useState(9);
 
   const [birthPlaceError, setBirthPlaceError] = useState("");
-  const [birthPlaceCharsLeft, setBirthPlaceCharsLeft] = useState(30);
+  const [birthPlaceCharsLeft, setBirthPlaceCharsLeft] = useState(40);
 
   const [addressError, setAddressError] = useState("");
   const [addressCharsLeft, setAddressCharsLeft] = useState(255);
 
   // Validaciones para Información Familiar
   const [motherNameError, setMotherNameError] = useState('');
-  const [motherNameCharsLeft, setMotherNameCharsLeft] = useState(30);
+  const [motherNameCharsLeft, setMotherNameCharsLeft] = useState(40);
   const [motherCedulaError, setMotherCedulaError] = useState('');
   const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(9);
   const [motherPhoneError, setMotherPhoneError] = useState('');
   const [motherPhoneCharsLeft, setMotherPhoneCharsLeft] = useState(9);
 
   const [fatherNameError, setFatherNameError] = useState('');
-  const [fatherNameCharsLeft, setFatherNameCharsLeft] = useState(30);
+  const [fatherNameCharsLeft, setFatherNameCharsLeft] = useState(40);
   const [fatherCedulaError, setFatherCedulaError] = useState('');
   const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(9);
   const [fatherPhoneError, setFatherPhoneError] = useState('');
   const [fatherPhoneCharsLeft, setFatherPhoneCharsLeft] = useState(9);
 
   const [responsibleNameError, setResponsibleNameError] = useState('');
-  const [responsibleNameCharsLeft, setResponsibleNameCharsLeft] = useState(30);
+  const [responsibleNameCharsLeft, setResponsibleNameCharsLeft] = useState(40);
   const [responsibleCedulaError, setResponsibleCedulaError] = useState('');
   const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(9);
   const [responsiblePhoneError, setResponsiblePhoneError] = useState('');
@@ -513,19 +513,19 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                 }
 
                 if (length > 30) {
-                  setFullNameError('Máximo 30 caracteres.');
+                  setFullNameError('Máximo 40 caracteres.');
                   return;
                 }
 
                 setFullNameError('');
                 setForm(prev => ({ ...prev, full_name: value }));
-                setFullNameCharsLeft(30 - length);
+                setFullNameCharsLeft(40 - length);
               }}
               className={`w-full px-3 py-2 border ${fullNameError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              {fullNameCharsLeft} caracteres restantes (máximo 30)
+              {fullNameCharsLeft} caracteres restantes (máximo 40)
             </p>
             {fullNameError && <p className="text-xs text-red-500 mt-1">{fullNameError}</p>}
           </div>
@@ -700,19 +700,19 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
               }
 
               if (length > 30) {
-                setBirthPlaceError('Máximo 30 caracteres.');
+                setBirthPlaceError('Máximo 40 caracteres.');
                 return;
               }
 
               setBirthPlaceError('');
               setForm(prev => ({ ...prev, birth_place: value }));
-              setBirthPlaceCharsLeft(30 - length);
+              setBirthPlaceCharsLeft(40 - length);
             }}
             className={`w-full px-3 py-2 border ${birthPlaceError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             required
           />
           <p className="text-xs text-gray-500 mt-1">
-            {birthPlaceCharsLeft} caracteres restantes (máximo 30)
+            {birthPlaceCharsLeft} caracteres restantes (máximo 40)
           </p>
           {birthPlaceError && <p className="text-xs text-red-500 mt-1">{birthPlaceError}</p>}
         </div>
@@ -891,8 +891,8 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       return;
                     }
 
-                    if (length > 30) {
-                      setMotherNameError('Máximo 30 caracteres.');
+                    if (length > 40) {
+                      setMotherNameError('Máximo 40 caracteres.');
                       return;
                     }
 
@@ -901,13 +901,13 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       ...prev,
                       mother_name: value
                     }));
-                    setMotherNameCharsLeft(30 - length);
+                    setMotherNameCharsLeft(40 - length);
                   }}
                   className={`w-full px-3 py-2 border ${motherNameError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder='Opcional'
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {motherNameCharsLeft} caracteres restantes (Máximo 30)
+                  {motherNameCharsLeft} caracteres restantes (Máximo 40)
                 </p>
                 {motherNameError && <p className="text-xs text-red-500 mt-1">{motherNameError}</p>}
               </div>
@@ -1014,8 +1014,8 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       return;
                     }
 
-                    if (length > 30) {
-                      setFatherNameError('Máximo 30 caracteres.');
+                    if (length > 40) {
+                      setFatherNameError('Máximo 40 caracteres.');
                       return;
                     }
 
@@ -1024,13 +1024,13 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       ...prev,
                       father_name: value
                     }));
-                    setFatherNameCharsLeft(30 - length);
+                    setFatherNameCharsLeft(40 - length);
                   }}
                   className={`w-full px-3 py-2 border ${fatherNameError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder='Opcional'
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {fatherNameCharsLeft} caracteres restantes (Máximo 30)
+                  {fatherNameCharsLeft} caracteres restantes (Máximo 40)
                 </p>
                 {fatherNameError && <p className="text-xs text-red-500 mt-1">{fatherNameError}</p>}
               </div>
@@ -1139,8 +1139,8 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       return;
                     }
 
-                    if (length > 30) {
-                      setResponsibleNameError('Máximo 30 caracteres.');
+                    if (length > 40) {
+                      setResponsibleNameError('Máximo 40 caracteres.');
                       return;
                     }
 
@@ -1149,13 +1149,13 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
                       ...prev,
                       legal_guardian_name: value
                     }));
-                    setResponsibleNameCharsLeft(30 - length);
+                    setResponsibleNameCharsLeft(40 - length);
                   }}
                   className={`w-full px-3 py-2 border ${responsibleNameError ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   required={!hasParents}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {responsibleNameCharsLeft} caracteres restantes (Máximo 30)
+                  {responsibleNameCharsLeft} caracteres restantes (Máximo 40)
                 </p>
                 {responsibleNameError && <p className="text-xs text-red-500 mt-1">{responsibleNameError}</p>}
               </div>
