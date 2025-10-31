@@ -188,7 +188,7 @@ const EventNewsDetail: React.FC = () => {
             </div>
           )}
 
-          {/* Call to Action */}
+          {/* Call to Action 
           <div className="mt-12 text-center">
             <div className="bg-gray-50 rounded-lg p-8">
               <h3 className="text-2xl font-semibold text-gray-900 mb-4">
@@ -213,6 +213,7 @@ const EventNewsDetail: React.FC = () => {
               </div>
             </div>
           </div>
+          */}
         </div>
       </div>
     </article>
