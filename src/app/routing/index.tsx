@@ -371,27 +371,23 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 
-let router: Router<typeof routeTree> | undefined;
-
-if (!router) {
-  router = createRouter({
-    routeTree,
-    defaultPreload: 'intent',
-    defaultPreloadStaleTime: 0,
-    defaultErrorComponent: ({ error }) => (
-      <div className="text-center p-4">
-        <h1 className="text-2xl font-bold text-red-600">Error</h1>
-        <p className="text-gray-700">{error.message}</p>
-      </div>
-    ),
-    defaultNotFoundComponent: () => (
-      <div className="text-center p-4">
-        <h1 className="text-2xl font-bold text-red-600">Page Not Found</h1>
-        <p className="text-gray-700">The page you're looking for doesn't exist.</p>
-      </div>
-    )
-  });
-}
+const router = createRouter({
+  routeTree,
+  defaultPreload: 'intent',
+  defaultPreloadStaleTime: 0,
+  defaultErrorComponent: ({ error }) => (
+    <div className="text-center p-4">
+      <h1 className="text-2xl font-bold text-red-600">Error</h1>
+      <p className="text-gray-700">{error.message}</p>
+    </div>
+  ),
+  defaultNotFoundComponent: () => (
+    <div className="text-center p-4">
+      <h1 className="text-2xl font-bold text-red-600">Page Not Found</h1>
+      <p className="text-gray-700">The page you're looking for doesn't exist.</p>
+    </div>
+  )
+});
 
 export { router };
 

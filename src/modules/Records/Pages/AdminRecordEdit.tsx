@@ -74,7 +74,7 @@ const AdminRecordEdit: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate({ to: '/admin/expedientes' });
+    navigate({ to: '..' as any });
   };
 
   if (loading) {

@@ -91,7 +91,7 @@ export class SimpleNetworkConfig {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch(`${url}/health`, {
+      await fetch(`${url}/health`, {
         method: 'GET',
         signal: controller.signal,
         mode: 'no-cors'
