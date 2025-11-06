@@ -163,7 +163,7 @@ Mantenete al día con nuestros proyectos, logros y oportunidades para participar
                     </p>
                     {item.description.length > 100 && (
                       <Link
-                        to={`/events-news/${item.id}`}
+                        to={`/events-news/${item.id}` as any}
                         className="text-blue-600 hover:underline font-medium self-start"
                       >
                         Leer más

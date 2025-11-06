@@ -1,5 +1,5 @@
-import HeroSection from "../Components/HeroSection";
-import DonationSection from "../../Donation/Components/donationSection";
+import HeroSectionComponent from "../Components/HeroSection";
+import DonationSectionComponent from "../../Donation/Components/donationSection";
 import AboutSection from "../Components/AboutSection";
 //import Testimonials from "../Components/Testimonials";
 import VolunteersSection from "../../Volunteers/Components/VolunteersSection";
@@ -11,9 +11,9 @@ import HistoriasdeVida from "../Components/HistoriasdeVida";
 const Home = () => {
   return (
     <>
-         <HeroSection />
+         <HeroSectionComponent />
          <AboutSection />
-         <DonationSection /> 
+         <DonationSectionComponent /> 
           {/*<PublicWorkshopsPage />*/} 
           
           {/*<Testimonials />*/}

@@ -77,8 +77,6 @@ export default function GuestAttendancePage() {
         full_name: formData.full_name.trim(),
         cedula: formData.cedula.trim() || undefined,
         phone: formData.phone.trim() || undefined,
-        attendance_method: 'manual_form',
-        created_by: 1, // TODO: Get from auth context
       });
 
       // Reload attendance records
