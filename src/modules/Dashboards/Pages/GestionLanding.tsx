@@ -18,7 +18,6 @@ const landingSections: {
   { key: "about", label: "Sobre Nosotros", icon: <FaInfoCircle size={20} /> },
   { key: "volunteering", label: "Voluntariado", icon: <FaHandsHelping size={20} /> },
   { key: "donation", label: "Donaciones", icon: <FaDonate size={20} /> },
-  { key: "workshop", label: "Talleres", icon: <FaChalkboardTeacher size={20} /> },
 ];
 
 export default function GestionLanding() {
@@ -306,13 +305,6 @@ export default function GestionLanding() {
                   <p className="text-lg font-bold text-gray-900 truncate" title={stats.title}>
                     {stats.title}
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {stats.hasImage && (
-                      <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
-                        Con imagen
-                      </span>
-                    )}
-                  </div>
                 </div>
                 <div className={`p-3 ${cardColor.bg} rounded-lg flex-shrink-0`}>
                   <span className={`${cardColor.text}`}>{sec.icon}</span>

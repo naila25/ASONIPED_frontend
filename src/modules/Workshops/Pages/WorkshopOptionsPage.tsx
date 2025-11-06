@@ -32,7 +32,6 @@ interface FormState {
   materiales: string; // User input as string, converted to array on submit
   aprender: string;
   capacidad: string;
-  imageFile?: File | null;
 }
 
 const blankForm: FormState = {
@@ -45,7 +44,6 @@ const blankForm: FormState = {
   materiales: '',
   aprender: '',
   capacidad: '',
-  imageFile: null,
 };
 
 const WorkshopOptionsPage: React.FC = () => {
@@ -65,18 +63,38 @@ const WorkshopOptionsPage: React.FC = () => {
   const itemsPerPage = 6;
 
   useEffect(() => {
-    load();
+    // Defer initial data loading to improve initial render
+    const timer = setTimeout(() => {
+      load();
+    }, 0);
+    
     detectZoomLevel();
     
     // Listen for zoom changes
     window.addEventListener('resize', detectZoomLevel);
-    return () => window.removeEventListener('resize', detectZoomLevel);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', detectZoomLevel);
+    };
   }, []);
 
   // Detect zoom level based on device pixel ratio and visual viewport
   const detectZoomLevel = () => {
     const zoom = window.visualViewport ? window.visualViewport.scale : window.devicePixelRatio;
     setZoomLevel(zoom);
+  };
+
+  // Format HH:MM (24h) to 12-hour AM/PM for display
+  const formatHour12 = (hhmm?: string): string => {
+    if (!hhmm) return '';
+    try {
+      const [h, m] = hhmm.split(':');
+      const d = new Date();
+      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return hhmm;
+    }
   };
 
   // Get character limit based on zoom level
@@ -98,7 +116,29 @@ const WorkshopOptionsPage: React.FC = () => {
     try {
       setLoading(true);
       const list = await getAllWorkshops();
-      setOptions(list);
+      // Sort newest first by date (supports YYYY-MM-DD and DD/MM/YYYY)
+      const getTime = (d: string) => {
+        try {
+          if (!d) return -Infinity;
+          if (d.includes('/')) {
+            const [day, month, year] = d.split('/');
+            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
+          }
+          const datePart = (d.includes('T') ? d.split('T')[0] : d.split(' ')[0]);
+          const m = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (m) return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3])).getTime();
+          const f = new Date(d);
+          return isNaN(f.getTime()) ? -Infinity : f.getTime();
+        } catch { return -Infinity; }
+      };
+      const sorted = [...list].sort((a, b) => {
+        const tb = getTime(b.fecha as unknown as string);
+        const ta = getTime(a.fecha as unknown as string);
+        if (tb !== ta) return tb - ta;
+        // Tie-breaker by id desc if available
+        return (b.id || 0) - (a.id || 0);
+      });
+      setOptions(sorted);
       setError(null);
     } catch {
       setError('No se pudieron cargar las opciones');
@@ -147,12 +187,7 @@ const WorkshopOptionsPage: React.FC = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setForm(prev => ({ ...prev, imageFile: file }));
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setForm(prev => ({ ...prev, imagen: url }));
-    }
+    setForm(prev => ({ ...prev, imagen: e.target.value }));
   };
 
   const startAdd = () => {
@@ -177,7 +212,6 @@ const WorkshopOptionsPage: React.FC = () => {
       materiales: Array.isArray(opt.materiales) ? opt.materiales.join(', ') : (opt.materiales || ''),
       aprender: opt.aprender || '',
       capacidad: opt.capacidad?.toString() || '',
-      imageFile: null,
     });
     setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
@@ -210,31 +244,10 @@ const WorkshopOptionsPage: React.FC = () => {
       const inputDate = new Date(form.fecha);
       if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
 
-      let imageUrl = form.imagen;
-
-      // Upload image file if a new file was selected
-      if (form.imageFile) {
-        const formData = new FormData();
-        formData.append('image', form.imageFile);
-
-        const uploadResponse = await fetch('http://localhost:3000/api/upload/image', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error('Error al subir la imagen');
-        }
-
-        const uploadResult = await uploadResponse.json();
-        imageUrl = uploadResult.url;
-        console.log('Image uploaded successfully:', imageUrl);
-      }
-
       const payload = {
         titulo: form.titulo,
         descripcion: form.descripcion,
-        imagen: imageUrl,
+        imagen: form.imagen,
         fecha: form.fecha,
         hora: form.hora,
         ubicacion: form.ubicacion,
@@ -265,13 +278,33 @@ const WorkshopOptionsPage: React.FC = () => {
     }
   };
 
-  // Loading state
-  if (loading) {
+  // Show skeleton UI instead of full loading screen for better perceived performance
+  if (loading && options.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          <p className="text-gray-600">Cargando opciones de talleres...</p>
+      <div className="space-y-6 min-w-0">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          <div className="flex items-center gap-4 mb-20">
+            <div className="min-w-0 flex-1">
+              <div className="h-6 bg-gray-200 rounded w-64 animate-pulse"></div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-48 animate-pulse"></div>
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="h-48 bg-gray-200 animate-pulse"></div>
+              <div className="p-6 space-y-3">
+                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -479,33 +512,31 @@ const WorkshopOptionsPage: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Imagen del Taller
+                    URL de la Imagen (Cloudinary)
                   </label>
-                  <div className="space-y-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                      className="block w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 
-                    file:rounded-md file:border-0 file:text-sm file:font-medium
-                    file:bg-orange-500 file:text-white hover:file:bg-orange-600"
-                />
-                    <div className="text-xs text-gray-500">
-                      Formatos: JPG, PNG. Máximo 5MB.
-                    </div>
-                    {form.imagen && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                          <img
-                            src={form.imagen.startsWith('http') || form.imagen.startsWith('blob:') ? form.imagen : `http://localhost:3000${form.imagen}`}
-                    alt="preview"
-                            className="w-full h-48 object-cover"
+                  <input
+                    type="url"
+                    name="imagen"
+                    value={form.imagen}
+                    onChange={handleImageChange}
+                    placeholder="https://res.cloudinary.com/..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
-                        </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Pega aquí la URL de la imagen desde Cloudinary
+                  </div>
+                  {form.imagen && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                        <img
+                          src={form.imagen}
+                          alt="preview"
+                          className="w-full h-48 object-cover"
+                        />
                       </div>
-                )}
-              </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -568,7 +599,7 @@ const WorkshopOptionsPage: React.FC = () => {
                       <tr key={opt.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
                         <td className="px-4 py-3 align-top">
                           <img
-                            src={opt.imagen?.startsWith('http') ? opt.imagen : `http://localhost:3000${opt.imagen}`}
+                            src={opt.imagen || '/placeholder-image.png'}
                             alt={opt.titulo}
                             className="h-11 w-11 object-cover rounded-md border border-gray-200"
                           />
@@ -601,7 +632,7 @@ const WorkshopOptionsPage: React.FC = () => {
                         <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
                           <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={opt.hora || 'No especificada'}>
                             <Clock className="w-3 h-3 mr-1" />
-                            {opt.hora ? opt.hora.substring(0, 5) : '—'}
+                            {opt.hora ? formatHour12(opt.hora) : '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
@@ -651,7 +682,7 @@ const WorkshopOptionsPage: React.FC = () => {
                   <div className="relative h-48 bg-gray-100 flex-shrink-0">
                     {opt.imagen ? (
                       <img
-                        src={opt.imagen.startsWith('http') ? opt.imagen : `http://localhost:3000${opt.imagen}`}
+                        src={opt.imagen}
                         alt={opt.titulo}
                         className="w-full h-full object-cover"
                       />
@@ -694,7 +725,7 @@ const WorkshopOptionsPage: React.FC = () => {
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Clock className="w-4 h-4 text-gray-400" />
                           <span className="font-medium">Hora:</span>
-                          <span>{opt.hora.substring(0, 5)}</span>
+                          <span>{formatHour12(opt.hora)}</span>
                         </div>
                       )}
 

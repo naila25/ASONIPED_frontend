@@ -24,7 +24,12 @@ export default function GuestAttendancePage() {
   // Load attendance records when activity is selected
   useEffect(() => {
     if (selectedActivity) {
-      loadAttendanceRecords();
+      // Defer data loading to improve initial render
+      const timer = setTimeout(() => {
+        loadAttendanceRecords();
+      }, 0);
+      
+      return () => clearTimeout(timer);
     }
   }, [selectedActivity]);
 

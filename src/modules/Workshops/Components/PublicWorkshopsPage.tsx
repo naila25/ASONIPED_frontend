@@ -83,18 +83,10 @@ export default function PublicWorkshopsPage() {
                   className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex flex-col border border-gray-200"
                 >
                   <div className="h-[220px]">
-                    <img
-                      src={(() => {
-                        const originalUrl = workshop.imagen;
-                        console.log(`Workshop "${workshop.titulo}" image URL:`, originalUrl);
-                        if (!originalUrl) return '';
-                        if (originalUrl.startsWith('blob:')) return '';
-                        if (originalUrl.startsWith('http')) return originalUrl;
-                        const finalUrl = `http://localhost:3000${originalUrl}`;
-                        console.log(`Final URL for "${workshop.titulo}":`, finalUrl);
-                        return finalUrl;
-                      })()}
-                      alt={workshop.titulo}
+                    {workshop.imagen && !workshop.imagen.startsWith('blob:') ? (
+                      <img
+                        src={workshop.imagen.startsWith('http') ? workshop.imagen : `http://localhost:3000${workshop.imagen}`}
+                        alt={workshop.titulo}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -102,14 +94,19 @@ export default function PublicWorkshopsPage() {
                         const placeholder = target.parentElement?.querySelector('.image-placeholder') as HTMLElement;
                         if (placeholder) placeholder.classList.remove('hidden');
                       }}
-                      onLoad={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        const placeholder = target.parentElement?.querySelector('.image-placeholder') as HTMLElement;
-                        if (placeholder) placeholder.classList.add('hidden');
-                      }}
-                    />
-                    {/* Placeholder div - shown when no image or image fails to load */}
-                    <div className={`w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm image-placeholder ${workshop.imagen && !workshop.imagen.startsWith('blob:') ? 'hidden' : ''}`}>
+                        onLoad={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          const placeholder = target.parentElement?.querySelector('.image-placeholder') as HTMLElement;
+                          if (placeholder) placeholder.classList.add('hidden');
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
+                        <span>Imagen no disponible</span>
+                      </div>
+                    )}
+                    {/* Placeholder div - shown when image fails to load */}
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm image-placeholder hidden">
                       <span>Imagen no disponible</span>
                     </div>
                   </div>

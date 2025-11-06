@@ -109,7 +109,7 @@ export default function UserWorkshopsPage() {
   return (
     <div className="max-w-8xl mx-auto px-6 py-10">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-orange-600 mb-2">Mis Talleres</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Mis Talleres</h1>
         <p className="text-gray-600">Gestiona tus inscripciones en talleres</p>
       </div>
       
@@ -199,7 +199,22 @@ export default function UserWorkshopsPage() {
                         <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Fecha</div>
-                          <div className="text-base">{enrollment.workshop_fecha}</div>
+                          <div className="text-base">{(() => {
+                            try {
+                              // Handle DD/MM/YYYY format (already correct)
+                              if (enrollment.workshop_fecha.includes('/')) {
+                                return enrollment.workshop_fecha;
+                              }
+                              // Handle ISO format and convert to DD/MM/YYYY
+                              const date = new Date(enrollment.workshop_fecha);
+                              if (!isNaN(date.getTime())) {
+                                return date.toLocaleDateString('es-ES');
+                              }
+                              return enrollment.workshop_fecha;
+                            } catch (error) {
+                              return enrollment.workshop_fecha;
+                            }
+                          })()}</div>
                         </div>
                       </div>
                     )}

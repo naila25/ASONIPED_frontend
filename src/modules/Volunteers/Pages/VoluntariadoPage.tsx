@@ -31,6 +31,7 @@ interface VolunteerProposal {
   proposal: string;
   location: string;
   date: string;
+  hour?: string;
   tools?: string;
   document_path?: string;
   status: string;
@@ -171,7 +172,7 @@ export default function VoluntariadoPage() {
   return (
     <div className="max-w-8xl mx-auto px-6 py-10">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-orange-600 mb-2">Mi Voluntariado</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Mi Voluntariado</h1>
         <p className="text-gray-600">Gestiona tus participaciones en programas de voluntariado</p>
       </div>
       
@@ -377,7 +378,7 @@ export default function VoluntariadoPage() {
                     </div>
 
                     {/* Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                       {proposal.date && (
                         <div className="flex items-center text-gray-600">
                           <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
@@ -394,6 +395,16 @@ export default function VoluntariadoPage() {
                           <div>
                             <div className="text-sm font-medium text-gray-500">Ubicación</div>
                             <div className="text-base">{proposal.location}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {proposal.hour && (
+                        <div className="flex items-center text-gray-600">
+                          <FaClock className="w-5 h-5 mr-3 text-orange-500" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-500">Hora propuesta</div>
+                            <div className="text-base">{formatTime12Hour(proposal.hour)}</div>
                           </div>
                         </div>
                       )}

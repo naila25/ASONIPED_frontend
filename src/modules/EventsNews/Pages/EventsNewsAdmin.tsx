@@ -1,13 +1,50 @@
 import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews, createEventNews, updateEventNews, deleteEventNews } from '../Services/eventsNewsApi';
-import { Calendar, Plus, Edit, Trash2, Image,  X, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Image,  X, Search, Table, Grid3X3 } from 'lucide-react';
+import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
+
+// Format date string safely (handles M/D/YYYY format and ISO/UTC without TZ shift)
+const formatDisplayDate = (input: string): string => {
+  try {
+    if (!input) return '';
+    // Slash input: assume M/D/YYYY and render as DD/MM/YYYY
+    if (input.includes('/')) {
+      const parts = input.split('/');
+      if (parts.length === 3) {
+        const [monthStr, dayStr, y] = parts;
+        const month = parseInt(monthStr, 10);
+        const day = parseInt(dayStr, 10);
+        const dateObj = new Date(Number(y), month - 1, day);
+        return dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      }
+      return input;
+    }
+    // Extract YYYY-MM-DD part if ISO with time or with space 'YYYY-MM-DD HH:MM:SS'
+    const datePart = (input.includes('T') ? input.split('T')[0] : input.split(' ')[0]);
+    const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      const [, y, m, d] = match;
+      // Build date using local timezone components to avoid UTC shift
+      const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+      return dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+    // Fallback: try native Date
+    const fallback = new Date(input);
+    if (!isNaN(fallback.getTime())) return fallback.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    return input;
+  } catch {
+    return input;
+  }
+};
 
 const initialForm: Omit<EventNewsItem, 'id'> = {
   title: '',
   description: '',
   date: '',
   imageUrl: '',
+  type: 'evento',
+  hour: '',
 };
 
 const EventsNewsAdmin: React.FC = () => {
@@ -15,12 +52,13 @@ const EventsNewsAdmin: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(initialForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
 
   const fetchItems = async () => {
     setLoading(true);
@@ -39,11 +77,11 @@ const EventsNewsAdmin: React.FC = () => {
     fetchItems();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
@@ -51,11 +89,7 @@ const EventsNewsAdmin: React.FC = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const newItem: EventNewsItem = {
-        id: Date.now().toString(),
-        ...form,
-      };
-      await createEventNews(newItem);
+      await createEventNews(form);
       setForm(initialForm);
       setShowCreateForm(false);
       fetchItems();
@@ -73,6 +107,8 @@ const EventsNewsAdmin: React.FC = () => {
       description: item.description,
       date: item.date,
       imageUrl: item.imageUrl || '',
+      type: item.type || 'evento',
+      hour: item.hour || ''
     });
     setShowEditModal(true);
   };
@@ -82,7 +118,7 @@ const EventsNewsAdmin: React.FC = () => {
     if (!editingId) return;
     setSubmitting(true);
     try {
-      await updateEventNews(parseInt(editingId), editForm);
+      await updateEventNews(editingId, editForm);
       setEditingId(null);
       setShowEditModal(false);
       fetchItems();
@@ -93,11 +129,11 @@ const EventsNewsAdmin: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!window.confirm('¿Estás seguro de eliminar este evento/noticia?')) return;
     setSubmitting(true);
     try {
-      await deleteEventNews(id);
+      await deleteEventNews(id.toString());
       fetchItems();
     } catch {
       setError('Error deleting event/news.');
@@ -112,17 +148,6 @@ const EventsNewsAdmin: React.FC = () => {
     item.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate statistics
-  const stats = {
-    total: items.length,
-    withImage: items.filter(item => item.imageUrl).length,
-    thisMonth: items.filter(item => {
-      const itemDate = new Date(item.date);
-      const now = new Date();
-      return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
-    }).length,
-    upcoming: items.filter(item => new Date(item.date) > new Date()).length,
-  };
 
   // Loading state
   if (loading) {
@@ -138,26 +163,19 @@ const EventsNewsAdmin: React.FC = () => {
 
   return (
     <div className="space-y-6 min-w-0">
-      {/* Header */}
+
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
-            <Calendar className="w-6 h-6 text-orange-600" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Eventos y Noticias</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Administra y publica eventos y noticias de ASONIPED</p>
-          </div>
-        </div>
-      </div>
-
-
-
-      {/* Search and Actions */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
           <h2 className="text-lg font-semibold text-gray-900">Eventos y Noticias</h2>
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+            {/* View Mode Toggle */}
+            <button
+              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
+            >
+              {viewMode === 'cards' ? <Table className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
+              {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
+            </button>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
@@ -173,7 +191,7 @@ const EventsNewsAdmin: React.FC = () => {
               className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nuevo Evento</span>
+              <span className="hidden sm:inline">Nuevo Evento/Noticia</span>
               <span className="sm:hidden">Nuevo</span>
             </button>
           </div>
@@ -198,7 +216,7 @@ const EventsNewsAdmin: React.FC = () => {
               </button>
             </div>
             <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
                   <input
@@ -221,6 +239,16 @@ const EventsNewsAdmin: React.FC = () => {
                     required
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hora</label>
+                  <input
+                    name="hour"
+                    value={form.hour}
+                    onChange={handleChange}
+                    type="time"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
@@ -235,12 +263,24 @@ const EventsNewsAdmin: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imagen (opcional)</label>
+               <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+               <select
+                 name="type"
+                 value={form.type}
+                 onChange={handleChange}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                 <option value="evento">Evento</option>
+                 <option value="noticia">Noticia</option>
+               </select>
+             </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imágen (opcional)</label>
                 <input
                   name="imageUrl"
                   value={form.imageUrl}
                   onChange={handleChange}
-                  placeholder="https://ejemplo.com/imagen.jpg"
+                  placeholder="https://ejemplo.com/imágen.jpg"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
@@ -274,165 +314,273 @@ const EventsNewsAdmin: React.FC = () => {
           </div>
         )}
 
-        {/* Events Table */}
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <div className="inline-block min-w-full align-middle">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imagen</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            className="h-12 w-12 object-cover rounded-lg border border-gray-200"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-                            <Image className="w-6 h-6 text-gray-400" />
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 max-w-[150px] truncate" title={item.title}>
-                          {item.title}
-                        </div>
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(item.date).toLocaleDateString()}
-                      </td>
-                      <td className="px-3 py-4">
-                        <div className="text-sm text-gray-900 max-w-[200px] truncate" title={item.description}>
-                          {item.description}
-                        </div>
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="flex items-center justify-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
-                          >
-                            <Edit className="w-3 h-3" />
-                            <span className="hidden sm:inline">Editar</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="flex items-center justify-center gap-1 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            <span className="hidden sm:inline">Eliminar</span>
-                          </button>
-                        </div>
-                      </td>
+       {/* Edit Form (ya no es modal) */}
+{showEditModal && (
+  <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <Edit className="w-5 h-5 text-orange-600 flex-shrink-0" />
+        <h3 className="text-lg font-semibold text-gray-900 truncate">Editar Evento o Noticia</h3>
+      </div>
+      <button
+        onClick={() => {
+          setShowEditModal(false);
+          setEditingId(null);
+        }}
+        className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+
+    <form onSubmit={handleUpdate} className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
+          <input
+            name="title"
+            value={editForm.title}
+            onChange={handleEditChange}
+            placeholder="Título del evento o noticia"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+          <input
+            name="date"
+            value={editForm.date}
+            onChange={handleEditChange}
+            type="date"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Hora</label>
+          <input
+            name="hour"
+            value={editForm.hour}
+            onChange={handleEditChange}
+            type="time"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+        <textarea
+          name="description"
+          value={editForm.description}
+          onChange={handleEditChange}
+          placeholder="Escribe una breve descripción..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          rows={3}
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+        <select
+          name="type"
+          value={editForm.type}
+          onChange={handleEditChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        >
+          <option value="evento">Evento</option>
+          <option value="noticia">Noticia</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imágen</label>
+        <input
+          name="imageUrl"
+          value={editForm.imageUrl}
+          onChange={handleEditChange}
+          placeholder="https://ejemplo.com/imágen.jpg"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {editForm.imageUrl && (
+          <img
+            src={editForm.imageUrl}
+            alt="Vista previa"
+            className="mt-3 w-full h-40 object-cover rounded-lg border"
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 mt-6">
+        <button
+          type="button"
+          onClick={() => {
+            setShowEditModal(false);
+            setEditingId(null);
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Guardando...' : 'Guardar Cambios'}
+        </button>
+      </div>
+    </form>
+  </div>
+)}
+
+        {/* Conditional Rendering: Table or Cards */}
+        {viewMode === 'table' ? (
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imágen</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredItems.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.title}
+                              className="h-12 w-12 object-cover rounded-lg border border-gray-200"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+                              <Image className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900 max-w-[150px] truncate" title={item.title}>
+                            {item.title}
+                          </div>
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatDisplayDate(item.date)}
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.hour ? formatTime12Hour(item.hour) : '—'}
+                        </td>
+                        <td className="px-3 py-4">
+                          <div className="text-sm text-gray-900 max-w-[200px] truncate" title={item.description}>
+                            {item.description}
+                          </div>
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            item.type === 'evento'
+                           ? 'bg-blue-100 text-blue-800'
+                           : 'bg-green-100 text-green-800'
+                          }`}>
+                           {item.type === 'evento' ? 'Evento' : 'Noticia'}
+                         </span>
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                              onClick={() => handleEdit(item)}
+                              className="flex items-center justify-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                            >
+                              <Edit className="w-3 h-3" />
+                              <span className="hidden sm:inline">Editar</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="flex items-center justify-center gap-1 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span className="hidden sm:inline">Eliminar</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredItems.map((item) => (
+              <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
+                {/* Image */}
+                <div className="relative h-48 bg-gray-100">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <Image className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="absolute top-3 right-3">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
+                      item.type === 'evento' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-green-100 text-green-800 border-green-200'
+                    }`}>
+                      {item.type === 'evento' ? 'Evento' : 'Noticia'}
+                    </span>
+                  </div>
+                </div>
+                {/* Content */}
+                <div className="p-6 flex flex-col flex-grow">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2" title={item.title}>{item.title}</h3>
+                  <div className="text-sm text-gray-600 mb-3">
+                    {formatDisplayDate(item.date)}
+                    {item.hour && (
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium">
+                        {formatTime12Hour(item.hour)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow" title={item.description}>{item.description}</p>
+                  <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
+                    <button
+                      onClick={() => handleEdit(item)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {filteredItems.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             {searchTerm ? 'No se encontraron eventos que coincidan con la búsqueda' : 'No hay eventos o noticias disponibles'}
           </div>
         )}
-      </div>
-
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Editar Evento/Noticia</h2>
-                <button
-                  onClick={() => { setShowEditModal(false); setEditingId(null); }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <form onSubmit={handleUpdate} className="space-y-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
-                    <input
-                      name="title"
-                      value={editForm.title}
-                      onChange={handleEditChange}
-                      placeholder="Título del evento"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-                    <input
-                      name="date"
-                      value={editForm.date}
-                      onChange={handleEditChange}
-                      type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                  <textarea
-                    name="description"
-                    value={editForm.description}
-                    onChange={handleEditChange}
-                    placeholder="Descripción del evento"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    required
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">URL de la Imagen (opcional)</label>
-                  <input
-                    name="imageUrl"
-                    value={editForm.imageUrl}
-                    onChange={handleEditChange}
-                    placeholder="https://ejemplo.com/imagen.jpg"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => { setShowEditModal(false); setEditingId(null); }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
-                  >
-                    {submitting ? 'Guardando...' : 'Guardar Cambios'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+     </div>
+  </div>
   );
 };
 

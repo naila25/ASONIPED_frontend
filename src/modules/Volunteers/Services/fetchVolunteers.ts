@@ -171,8 +171,7 @@ export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
 };
 
 // Add a new volunteer option (admin only)
-export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'> & { imageFile?: File | null }): Promise<{ message: string }> => {
-  const formData = new FormData();
+export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'>): Promise<{ message: string }> => {
   // Format date as DD/MM/YYYY if we received YYYY-MM-DD
   const date = (() => {
     const d = option.date;
@@ -182,33 +181,33 @@ export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'> & {
     }
     return d;
   })();
-  formData.append('title', option.title);
-  formData.append('description', option.description);
-  formData.append('date', date);
-  formData.append('location', option.location);
-  if (option.skills) formData.append('skills', option.skills);
-  if (option.tools) formData.append('tools', option.tools);
-  if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
-  if (option.imageFile) formData.append('image', option.imageFile);
-  
-  // Add new fields
-  if ((option as any).hour) formData.append('hour', (option as any).hour);
-  if ((option as any).spots) formData.append('spots', String((option as any).spots));
+
+  const requestData = {
+    title: option.title,
+    description: option.description,
+    date: date,
+    location: option.location,
+    skills: option.skills || '',
+    tools: option.tools || '',
+    imageUrl: option.imageUrl || '',
+    hour: (option as any).hour || '',
+    spots: (option as any).spots || 1,
+  };
 
   const res = await fetch(OPTIONS_API_URL, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
+      'Content-Type': 'application/json',
     },
-    body: formData,
+    body: JSON.stringify(requestData),
   });
   if (!res.ok) throw new Error('Failed to add volunteer option');
   return res.json();
 };
 
 // Update a volunteer option (admin only)
-export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOption, 'id'> & { imageFile?: File | null }): Promise<{ message: string }> => {
-  const formData = new FormData();
+export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOption, 'id'>): Promise<{ message: string }> => {
   // Format date as DD/MM/YYYY if we received YYYY-MM-DD
   const date = (() => {
     const d = option.date;
@@ -218,25 +217,26 @@ export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOp
     }
     return d;
   })();
-  formData.append('title', option.title);
-  formData.append('description', option.description);
-  formData.append('date', date);
-  formData.append('location', option.location);
-  if (option.skills) formData.append('skills', option.skills);
-  if (option.tools) formData.append('tools', option.tools);
-  if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
-  if (option.imageFile) formData.append('image', option.imageFile);
-  
-  // Add new fields
-  if ((option as any).hour) formData.append('hour', (option as any).hour);
-  if ((option as any).spots) formData.append('spots', String((option as any).spots));
+
+  const requestData = {
+    title: option.title,
+    description: option.description,
+    date: date,
+    location: option.location,
+    skills: option.skills || '',
+    tools: option.tools || '',
+    imageUrl: option.imageUrl || '',
+    hour: (option as any).hour || '',
+    spots: (option as any).spots || 1,
+  };
 
   const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
+      'Content-Type': 'application/json',
     },
-    body: formData,
+    body: JSON.stringify(requestData),
   });
   if (!res.ok) throw new Error('Failed to update volunteer option');
   return res.json();
