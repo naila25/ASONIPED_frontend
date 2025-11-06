@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { getToken } from '../../modules/Login/Services/auth';
+import { getAPIBaseURL } from './config';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -9,12 +10,12 @@ class SocketService {
    * Connect to Socket.io server with authentication
    */
   connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const token = getToken();
         
-        // Get backend URL from config
-        const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+        // Get backend URL from config (uses VITE_BACKEND_URL in production)
+        const backendURL = await getAPIBaseURL();
         
         // Configure connection options
         const connectionOptions: any = {

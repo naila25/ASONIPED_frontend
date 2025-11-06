@@ -8,15 +8,26 @@ export const BACKEND_CONFIG = {
   // Detectar automáticamente el entorno (con cache)
   getCurrentUrl: async () => {
     try {
-      // Usar cache si está disponible
-      const cachedUrl = simpleNetwork.getCurrentUrl();
-      if (cachedUrl && cachedUrl !== 'http://localhost:3000') {
-        return cachedUrl;
+      // En producción, usar variable de entorno VITE_BACKEND_URL
+      if (import.meta.env.VITE_BACKEND_URL) {
+        return import.meta.env.VITE_BACKEND_URL;
       }
 
-      // Detección automática del backend solo si es necesario
-      const backendUrl = await simpleNetwork.getBackendUrl();
-      return backendUrl;
+      // En desarrollo, usar detección automática
+      if (import.meta.env.DEV) {
+        // Usar cache si está disponible
+        const cachedUrl = simpleNetwork.getCurrentUrl();
+        if (cachedUrl && cachedUrl !== 'http://localhost:3000') {
+          return cachedUrl;
+        }
+
+        // Detección automática del backend solo si es necesario
+        const backendUrl = await simpleNetwork.getBackendUrl();
+        return backendUrl;
+      }
+
+      // Fallback a localhost si no hay configuración
+      return BACKEND_CONFIG.LOCAL;
     } catch (error) {
       console.warn('⚠️ Error en detección automática, usando localhost:', error);
       return BACKEND_CONFIG.LOCAL;
