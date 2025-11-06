@@ -2,7 +2,7 @@ import  { useState, useEffect } from 'react';
 import heroImage from '../../../assets/fondoasoniped.jpg';
 import { heroService, type HeroSection } from '../../Dashboards/Services/heroService';
 
-const HeroSection = () => {
+const HeroSectionComponent = () => {
   const [heroData, setHeroData] = useState<HeroSection | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -93,4 +93,4 @@ const HeroSection = () => {
   );
 };
 
-export default HeroSection;
+export default HeroSectionComponent;
