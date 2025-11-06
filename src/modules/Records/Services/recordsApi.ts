@@ -1195,8 +1195,8 @@ export const updateRecordAdmin = async (
     // Add files if any
     if (data.documentation_requirements?.documents) {
       data.documentation_requirements.documents.forEach((doc, index) => {
-        if (doc.file) {
-          formData.append(`document_${index}`, doc.file);
+        if ((doc as any).file) {
+          formData.append(`document_${index}`, (doc as any).file);
         }
       });
     }

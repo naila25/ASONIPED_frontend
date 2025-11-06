@@ -62,7 +62,7 @@ const AdminRecordEdit: React.FC = () => {
       
       // Redirect back to expedientes page after a short delay
       setTimeout(() => {
-        navigate({ to: '/admin/expedientes' });
+        navigate({ to: '..' as any });
       }, 2000);
     } catch (err) {
       console.error('Error updating record:', err);

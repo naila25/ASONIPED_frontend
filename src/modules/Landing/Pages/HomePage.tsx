@@ -1,6 +1,6 @@
-import HeroSection from "../Components/HeroSection";
+import type HeroSection from "../Components/HeroSection";
+import type DonationSection from "../../Donation/Components/donationSection";
 import AboutSection from "../Components/AboutSection";
-import DonationSection from "../../Donation/Components/donationSection";
 //import Testimonials from "../Components/Testimonials";
 import VolunteersSection from "../../Volunteers/Components/VolunteersSection";
 import PublicWorkshopsPage from "../../Workshops/Components/PublicWorkshopsPage";

@@ -39,7 +39,7 @@ export default function GuestAttendancePage() {
     try {
       setLoading(true);
       // Load ALL attendance records (both beneficiaries and guests)
-      const records = await attendanceRecordsApi.getByActivityTrack(selectedActivity.id);
+      const records = await attendanceRecordsApi.getByActivityTrack(selectedActivity.id!);
       setAttendanceRecords(records.data);
     } catch (err) {
       console.error('Error loading attendance records:', err);
@@ -75,8 +75,8 @@ export default function GuestAttendancePage() {
         activity_track_id: selectedActivity.id!,
         attendance_type: 'guest',
         full_name: formData.full_name.trim(),
-        cedula: formData.cedula.trim() || null,
-        phone: formData.phone.trim() || null,
+        cedula: formData.cedula.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
         attendance_method: 'manual_form',
         created_by: 1, // TODO: Get from auth context
       });
@@ -159,7 +159,7 @@ export default function GuestAttendancePage() {
               selectedActivity={selectedActivity || undefined}
               showCreateButton={true}
               onCreateActivity={() => {
-                navigate({ to: '/admin/attendance/activities' });
+                navigate({ to: '../activities' as any });
               }}
             />
           </div>

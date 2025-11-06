@@ -35,8 +35,8 @@ export function LandingSectionEditor({
   // Estado local con valores con id en values
   const [data, setData] = useState<SectionData>({
     ...initialData,
-    values: addIdToValues(initialData.values),
-  });
+    values: 'values' in initialData ? addIdToValues(initialData.values) : [],
+  } as SectionData);
 
   // Estado específico para hero section del backend
   const [heroData, setHeroData] = useState<HeroSection | null>(null);
@@ -188,8 +188,8 @@ export function LandingSectionEditor({
     if (section === 'hero' || section === 'about' || section === 'volunteering') return;
     setData({
       ...initialData,
-      values: addIdToValues(initialData.values),
-    });
+      values: 'values' in initialData ? addIdToValues(initialData.values) : [],
+    } as SectionData);
   }, [initialData, section]);
 
   // Cargar datos del hero/about/volunteers/donation desde el backend

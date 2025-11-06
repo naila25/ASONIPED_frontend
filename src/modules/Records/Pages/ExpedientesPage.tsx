@@ -413,7 +413,7 @@ const ExpedientesPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Solicitud de Expediente</h1>
               <p className="text-gray-600">Complete el formulario inicial para comenzar su proceso de expediente</p>
             </div>
-            <Phase1Form onSubmit={handlePhase1Submit} submitting={submitting} />
+            <Phase1Form onSubmit={handlePhase1Submit} loading={submitting} />
           </div>
         </div>
       </div>
@@ -520,7 +520,7 @@ const ExpedientesPage: React.FC = () => {
               <div className="mt-4">
                 <Phase1Form 
                   onSubmit={handlePhase1Submit} 
-                  submitting={submitting}
+                  loading={submitting}
                   currentRecord={record}
                   isModification={true}
                 />

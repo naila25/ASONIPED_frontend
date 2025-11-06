@@ -99,13 +99,24 @@ export const fetchWorkshopOptions = async (): Promise<WorkshopOption[]> => {
 
 // Add a new workshop option (admin only)
 export const addWorkshopOption = async (
-  option: Omit<WorkshopOption, 'id'> & { imageFile?: File | null }
+  option: Omit<WorkshopOption, 'id'> & { 
+    imageFile?: File | null;
+    date?: string;
+    description?: string;
+    location?: string;
+    skills?: string;
+    tools?: string;
+    imageUrl?: string;
+    time?: string;
+    capacity?: number;
+  }
 ): Promise<{ message: string }> => {
   const formData = new FormData();
 
   // Format date as DD/MM/YYYY if we received YYYY-MM-DD
   const date = (() => {
-    const d = option.date;
+    const d = (option as any).date;
+    if (!d) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
       const [y, m, day] = d.split('-');
       return `${day}/${m}/${y}`;
@@ -115,16 +126,16 @@ export const addWorkshopOption = async (
 
   // These properties must exist in WorkshopOption type!
   formData.append('title', option.title);
-  formData.append('description', option.description);
-  formData.append('date', date);
-  formData.append('location', option.location);
-  if (option.skills) formData.append('skills', option.skills);
-  if (option.tools) formData.append('tools', option.tools);
-  if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
+  if ((option as any).description) formData.append('description', (option as any).description);
+  if (date) formData.append('date', date);
+  if ((option as any).location) formData.append('location', (option as any).location);
+  if ((option as any).skills) formData.append('skills', (option as any).skills);
+  if ((option as any).tools) formData.append('tools', (option as any).tools);
+  if ((option as any).imageUrl) formData.append('imageUrl', (option as any).imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
-  if ('time' in option && option.time) formData.append('time', option.time);
-  if ('capacity' in option && option.capacity !== undefined)
-    formData.append('capacity', String(option.capacity));
+  if ((option as any).time) formData.append('time', (option as any).time);
+  if ((option as any).capacity !== undefined)
+    formData.append('capacity', String((option as any).capacity));
 
   const res = await fetch(OPTIONS_API_URL, {
     method: 'POST',
@@ -141,12 +152,23 @@ export const addWorkshopOption = async (
 // Update a workshop option (admin only)
 export const updateWorkshopOption = async (
   id: string,
-  option: Omit<WorkshopOption, 'id'> & { imageFile?: File | null }
+  option: Omit<WorkshopOption, 'id'> & { 
+    imageFile?: File | null;
+    date?: string;
+    description?: string;
+    location?: string;
+    skills?: string;
+    tools?: string;
+    imageUrl?: string;
+    time?: string;
+    capacity?: number;
+  }
 ): Promise<{ message: string }> => {
   const formData = new FormData();
 
   const date = (() => {
-    const d = option.date;
+    const d = (option as any).date;
+    if (!d) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
       const [y, m, day] = d.split('-');
       return `${day}/${m}/${y}`;
@@ -155,16 +177,16 @@ export const updateWorkshopOption = async (
   })();
 
   formData.append('title', option.title);
-  formData.append('description', option.description);
-  formData.append('date', date);
-  formData.append('location', option.location);
-  if (option.skills) formData.append('skills', option.skills);
-  if (option.tools) formData.append('tools', option.tools);
-  if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
+  if ((option as any).description) formData.append('description', (option as any).description);
+  if (date) formData.append('date', date);
+  if ((option as any).location) formData.append('location', (option as any).location);
+  if ((option as any).skills) formData.append('skills', (option as any).skills);
+  if ((option as any).tools) formData.append('tools', (option as any).tools);
+  if ((option as any).imageUrl) formData.append('imageUrl', (option as any).imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
-  if ('time' in option && option.time) formData.append('time', option.time);
-  if ('capacity' in option && option.capacity !== undefined)
-    formData.append('capacity', String(option.capacity));
+  if ((option as any).time) formData.append('time', (option as any).time);
+  if ((option as any).capacity !== undefined)
+    formData.append('capacity', String((option as any).capacity));
 
   const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
     method: 'PUT',
