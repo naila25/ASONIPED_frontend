@@ -15,15 +15,20 @@ interface CalendarProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
   onEventClick?: (event: CalendarEvent) => void;
+  onMonthChange?: (date: Date) => void;
+  currentMonth?: Date;
 }
 
 export const Calendar: React.FC<CalendarProps> = ({
   events,
   selectedDate,
   onDateSelect,
-  onEventClick
+  onEventClick,
+  onMonthChange,
+  currentMonth: controlledCurrentMonth
 }) => {
-  const [currentMonth, setCurrentMonth] = React.useState(new Date());
+  const [internalCurrentMonth, setInternalCurrentMonth] = React.useState(new Date());
+  const currentMonth = controlledCurrentMonth ?? internalCurrentMonth;
 
   // Get first day of month and number of days
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
@@ -69,16 +74,33 @@ export const Calendar: React.FC<CalendarProps> = ({
 
   // Navigate months
   const goToPreviousMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
+    if (controlledCurrentMonth) {
+      onMonthChange?.(newMonth);
+    } else {
+      setInternalCurrentMonth(newMonth);
+      onMonthChange?.(newMonth);
+    }
   };
 
   const goToNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+    if (controlledCurrentMonth) {
+      onMonthChange?.(newMonth);
+    } else {
+      setInternalCurrentMonth(newMonth);
+      onMonthChange?.(newMonth);
+    }
   };
 
   const goToToday = () => {
     const today = new Date();
-    setCurrentMonth(today);
+    if (controlledCurrentMonth) {
+      onMonthChange?.(today);
+    } else {
+      setInternalCurrentMonth(today);
+      onMonthChange?.(today);
+    }
     onDateSelect(today);
   };
 
@@ -115,23 +137,28 @@ export const Calendar: React.FC<CalendarProps> = ({
         <div className="flex items-center gap-4">
           <button
             onClick={goToPreviousMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 active:scale-95"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h2 className="text-xl font-semibold text-gray-900">
-            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-          </h2>
+          <div className="relative h-8 flex items-center">
+            <h2 
+              key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
+              className="text-xl font-semibold text-gray-900 transition-opacity duration-300"
+            >
+              {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+            </h2>
+          </div>
           <button
             onClick={goToNextMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 active:scale-95"
           >
             <ChevronRight className="w-5 h-5 text-gray-600" />
           </button>
         </div>
         <button
           onClick={goToToday}
-          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 active:scale-95"
         >
           <CalendarIcon className="w-4 h-4" />
           Hoy
@@ -161,9 +188,10 @@ export const Calendar: React.FC<CalendarProps> = ({
             <div
               key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${day}`}
               className={`
-                p-2 min-h-[80px] border border-gray-200 rounded-lg cursor-pointer transition-colors
+                p-2 min-h-[80px] border border-gray-200 rounded-lg cursor-pointer 
+                transition-all duration-200 ease-in-out
                 ${isTodayDate ? 'bg-blue-50 border-blue-300' : ''}
-                ${isSelectedDate ? 'bg-blue-100 border-blue-400' : 'hover:bg-gray-200'}
+                ${isSelectedDate ? 'bg-blue-100 border-blue-400' : 'hover:bg-gray-200 hover:border-gray-300'}
               `}
               onClick={() => {
                 const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
@@ -191,10 +219,10 @@ export const Calendar: React.FC<CalendarProps> = ({
                   <div
                     key={event.id}
                     className={`
-                      text-xs p-1 rounded truncate cursor-pointer
-                      ${event.type === 'workshop' ? 'bg-green-100 text-green-800' :
-                        event.type === 'volunteer' ? 'bg-purple-100 text-purple-800' :
-                        'bg-orange-100 text-orange-800'}
+                      text-xs p-1 rounded truncate cursor-pointer transition-all duration-200 hover:scale-105
+                      ${event.type === 'workshop' ? 'bg-green-100 text-green-800 hover:bg-green-200' :
+                        event.type === 'volunteer' ? 'bg-purple-100 text-purple-800 hover:bg-purple-200' :
+                        'bg-orange-100 text-orange-800 hover:bg-orange-200'}
                     `}
                     onClick={(e) => {
                       e.stopPropagation();

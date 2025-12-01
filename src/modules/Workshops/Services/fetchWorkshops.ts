@@ -1,9 +1,9 @@
 import type { Workshop, WorkshopOption } from '../Types/workshop';
 import { getAuthHeader } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_URL = `${API_BASE_URL}/workshops`;
-const OPTIONS_API_URL = `${API_BASE_URL}/workshops`;
+const getAPIUrl = () => `${getAPIBaseURLSync()}/workshops`;
+const getOptionsAPIUrl = () => `${getAPIBaseURLSync()}/workshops`;
 
 // Fetch a paginated list of workshops (optionally filtered)
 export const fetchWorkshops = async (
@@ -16,7 +16,7 @@ export const fetchWorkshops = async (
   if (titulo) params.append('titulo', titulo);
   if (ubicacion) params.append('ubicacion', ubicacion);
 
-  const res = await fetch(`${API_URL}?${params.toString()}`, {
+  const res = await fetch(`${getAPIUrl()}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -28,7 +28,7 @@ export const fetchWorkshops = async (
 
 // Add a new workshop
 export const addWorkshop = async (workshop: Omit<Workshop, 'id'>) => {
-  const res = await fetch(API_URL, {
+  const res = await fetch(getAPIUrl(), {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -45,7 +45,7 @@ export const updateWorkshop = async (
   id: number,
   data: Partial<Workshop>
 ): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${getAPIUrl()}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
@@ -59,7 +59,7 @@ export const updateWorkshop = async (
 
 // Delete a workshop (admin only)
 export const deleteWorkshop = async (id: number): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${getAPIUrl()}/${id}`, {
     method: 'DELETE',
     headers: getAuthHeader(),
   });
@@ -71,7 +71,7 @@ export const deleteWorkshop = async (id: number): Promise<{ message: string }> =
 export const enrollIntoWorkshopOption = async (
   optionId: string | number
 ): Promise<{ message: string; enrollmentId: string }> => {
-  const res = await fetch(`${API_URL}/enroll/${optionId}`, {
+  const res = await fetch(`${getAPIUrl()}/enroll/${optionId}`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -85,7 +85,7 @@ export const enrollIntoWorkshopOption = async (
 // Fetch all available workshop options
 export const fetchWorkshopOptions = async (): Promise<WorkshopOption[]> => {
   const params = new URLSearchParams({ _t: String(Date.now()) }); // Cache busting
-  const res = await fetch(`${OPTIONS_API_URL}?${params.toString()}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ export const addWorkshopOption = async (
   if ((option as any).capacity !== undefined)
     formData.append('capacity', String((option as any).capacity));
 
-  const res = await fetch(OPTIONS_API_URL, {
+  const res = await fetch(getOptionsAPIUrl(), {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -188,7 +188,7 @@ export const updateWorkshopOption = async (
   if ((option as any).capacity !== undefined)
     formData.append('capacity', String((option as any).capacity));
 
-  const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
@@ -202,7 +202,7 @@ export const updateWorkshopOption = async (
 
 // Delete a workshop option (admin only)
 export const deleteWorkshopOption = async (id: string): Promise<{ message: string }> => {
-  const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/${id}`, {
     method: 'DELETE',
     headers: getAuthHeader(),
   });
@@ -217,7 +217,7 @@ export const fetchWorkshopEnrollments = async (page = 1, limit = 10) => {
     limit: String(limit),
     _t: String(Date.now()), // Cache busting
   });
-  const res = await fetch(`${API_URL}/enrollments?${params.toString()}`, {
+  const res = await fetch(`${getAPIUrl()}/enrollments?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ export const fetchWorkshopEnrollments = async (page = 1, limit = 10) => {
 
 // Add a new workshop enrollment
 export const addWorkshopEnrollment = async (enrollmentData: any) => {
-  const res = await fetch(`${API_URL}/enrollments`, {
+  const res = await fetch(`${getAPIUrl()}/enrollments`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -248,7 +248,7 @@ export const updateWorkshopFormStatus = async (
   id: number, 
   status: string
 ): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/enrollments/${id}/status`, {
+  const res = await fetch(`${getAPIUrl()}/enrollments/${id}/status`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),

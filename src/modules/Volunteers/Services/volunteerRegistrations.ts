@@ -1,6 +1,5 @@
 import { getToken } from '../../Login/Services/auth';
-
-const API_BASE_URL = 'http://localhost:3000';
+import { getAPIBaseURL } from '../../../shared/Services/config';
 
 // Register for a volunteer option
 export const registerForVolunteer = async (volunteerOptionId: number, notes?: string): Promise<any> => {
@@ -9,6 +8,7 @@ export const registerForVolunteer = async (volunteerOptionId: number, notes?: st
     throw new Error('No authentication token found');
   }
 
+  const API_BASE_URL = await getAPIBaseURL();
   const response = await fetch(`${API_BASE_URL}/volunteer-registrations/register`, {
     method: 'POST',
     headers: {
@@ -36,6 +36,7 @@ export const cancelVolunteerRegistration = async (volunteerOptionId: number): Pr
     throw new Error('No authentication token found');
   }
 
+  const API_BASE_URL = await getAPIBaseURL();
   const response = await fetch(`${API_BASE_URL}/volunteer-registrations/cancel`, {
     method: 'POST',
     headers: {
@@ -62,6 +63,7 @@ export const getUserRegistrations = async (): Promise<any[]> => {
     throw new Error('No authentication token found');
   }
 
+  const API_BASE_URL = await getAPIBaseURL();
   const response = await fetch(`${API_BASE_URL}/volunteer-registrations/my-registrations`, {
     method: 'GET',
     headers: {
@@ -79,6 +81,7 @@ export const getUserRegistrations = async (): Promise<any[]> => {
 
 // Get available spots for a volunteer option
 export const getAvailableSpots = async (volunteerOptionId: number): Promise<any> => {
+  const API_BASE_URL = await getAPIBaseURL();
   const response = await fetch(`${API_BASE_URL}/volunteer-registrations/available-spots/${volunteerOptionId}`, {
     method: 'GET',
   });

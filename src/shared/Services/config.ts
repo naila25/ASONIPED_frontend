@@ -3,6 +3,17 @@ import { simpleNetwork } from './simpleNetworkConfig';
 // Obtener VITE_BACKEND_URL al inicio (se inyecta durante el build en Vercel)
 const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+// Debug: Log environment variable status
+if (typeof window !== 'undefined') {
+  console.log('🔍 Environment Debug:', {
+    VITE_BACKEND_URL: VITE_BACKEND_URL || 'NOT SET',
+    NODE_ENV: import.meta.env.MODE,
+    DEV: import.meta.env.DEV,
+    PROD: import.meta.env.PROD,
+    allEnvVars: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
+  });
+}
+
 // Configuración centralizada para las URLs del backend
 export const BACKEND_CONFIG = {
   // Para desarrollo local
@@ -59,13 +70,19 @@ if (VITE_BACKEND_URL) {
 export const getAPIBaseURL = async (): Promise<string> => {
   try {
     // PRIORIDAD 1: Si VITE_BACKEND_URL está disponible, usarlo inmediatamente (sin cache)
-    if (VITE_BACKEND_URL) {
-      if (_API_BASE_URL !== VITE_BACKEND_URL) {
-        _API_BASE_URL = VITE_BACKEND_URL;
+    // Re-verificar import.meta.env en caso de que se haya actualizado
+    const currentViteUrl = import.meta.env.VITE_BACKEND_URL || VITE_BACKEND_URL;
+    
+    if (currentViteUrl) {
+      console.log('✅ getAPIBaseURL: Usando VITE_BACKEND_URL:', currentViteUrl);
+      if (_API_BASE_URL !== currentViteUrl) {
+        _API_BASE_URL = currentViteUrl;
         _lastUpdate = Date.now();
       }
       return _API_BASE_URL;
     }
+    
+    console.warn('⚠️ getAPIBaseURL: VITE_BACKEND_URL no está disponible');
 
     // PRIORIDAD 2: Verificar cache solo si no estamos en producción
     const now = Date.now();
@@ -90,7 +107,31 @@ export const API_BASE_URL = VITE_BACKEND_URL || _API_BASE_URL;
 
 // Función helper para obtener API_BASE_URL actualizado (recomendado)
 export const getAPIBaseURLSync = (): string => {
-  return VITE_BACKEND_URL || _API_BASE_URL;
+  // If VITE_BACKEND_URL is set, use it (highest priority)
+  if (VITE_BACKEND_URL) {
+    return VITE_BACKEND_URL;
+  }
+  
+  // In browser environment, try to infer backend URL from current location
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin;
+    
+    // If we're in production (not localhost), try to infer backend URL
+    if (!currentOrigin.includes('localhost') && !currentOrigin.includes('127.0.0.1')) {
+      // In production, backend is typically on the same domain or a subdomain
+      // Try common patterns: if frontend is on vercel, backend might be on railway/heroku/etc
+      // For now, if _API_BASE_URL is not localhost, use it
+      if (_API_BASE_URL && !_API_BASE_URL.includes('localhost')) {
+        return _API_BASE_URL;
+      }
+      
+      // If we can't determine, log a warning but return the cached value
+      console.warn('⚠️ getAPIBaseURLSync: Could not determine production backend URL. Using cached value:', _API_BASE_URL);
+    }
+  }
+  
+  // Fallback to cached URL
+  return _API_BASE_URL;
 };
 
 // Función para cambiar manualmente la URL del backend (útil para debugging)

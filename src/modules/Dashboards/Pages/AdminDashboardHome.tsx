@@ -1,39 +1,130 @@
+import { useState, useEffect, useCallback } from "react";
 import {
   Users,
-  DollarSign,
   Calendar,
   FileText,
   GraduationCap,
   TrendingUp,
-  Settings,
+  Heart,
+  Clock,
+  MapPin,
 } from "lucide-react";
+import { getStatistics, getUpcomingCalendarActivities, getRecentActivities, type RecentActivity } from "../../../shared/Services/statistics.service";
+import { FaTicketAlt } from "react-icons/fa";
+import type { UserCalendarEvent } from "../Services/userDashboard.service";
 
-// Mock data - esto se reemplazará con datos reales de la API
-const mockStats = {
-  usuarios: { total: 0, activos: 0, nuevos: 0 },
-  eventos: { total: 0, proximos: 0, activos: 0 },
-  expedientes: { total: 0, pendientes: 0, aprobados: 0 },
-  talleres: { total: 0, activos: 0, inscritos: 0 },
-  voluntariado: { programas: 0, voluntarios: 0, horas: 0 }
-};
 
-const mockRecentActivities = [
-  { id: 1, title: "Expedientes nuevos", user: "null", time: "0", type: "expediente" },
-  { id: 3, title: "Taller completado", workshop: "null", time: "0", type: "taller" },
-  { id: 4, title: "Nuevo voluntario registrado", user: "null", time: "0", type: "voluntario" },
-  { id: 5, title: "Evento programado", event: "null", time: "0", type: "evento" },
-];
-
-const mockQuickActions = [
-  { title: "Revisar Expedientes", icon: FileText, color: "bg-blue-500", count: 0 },
-  { title: "Consulta sobre Donaciones", icon: DollarSign, color: "bg-green-500", count:0 },
-  { title: "Programar Evento", icon: Calendar, color: "bg-purple-500", count: 0 },
-  { title: "Administrar Talleres", icon: GraduationCap, color: "bg-orange-500", count: 0 },
-  { title: "Gestión de Usuarios", icon: Users, color: "bg-indigo-500", count: 0},
-  { title: "Configuración", icon: Settings, color: "bg-gray-500", count: 0 },
-];
 
 export default function AdminDashboardHome() {
+  const [stats, setStats] = useState({
+    usuarios: { total: 0, activos: 0, nuevos: 0 },
+    eventos: { total: 0, proximos: 0, activos: 0 },
+    expedientes: { total: 0, pendientes: 0, aprobados: 0 },
+    talleres: { total: 0, activos: 0, inscritos: 0 },
+    voluntariado: { programas: 0, voluntarios: 0, horas: 0 },
+    tickets: { total: 0 }
+  });
+  const [loading, setLoading] = useState(true);
+  const [calendarEvents, setCalendarEvents] = useState<UserCalendarEvent[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+
+  // Format a date string safely (handles DD/MM/YYYY and ISO/UTC without TZ shift)
+  const formatDisplayDate = (input: string): string => {
+    try {
+      if (!input) return '';
+      // Normalize any slash-based date as DD/MM/YYYY (project convention)
+      if (input.includes('/')) {
+        const parts = input.split('/');
+        if (parts.length === 3) {
+          const [dayStr, monthStr, y] = parts;
+          const day = parseInt(dayStr, 10);
+          const month = parseInt(monthStr, 10);
+          const dateObj = new Date(Number(y), month - 1, day);
+          return dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+        return input;
+      }
+      // Extract YYYY-MM-DD part if ISO with time or with space 'YYYY-MM-DD HH:MM:SS'
+      const datePart = (input.includes('T') ? input.split('T')[0] : input.split(' ')[0]);
+      const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (match) {
+        const [, y, m, d] = match;
+        const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+        return dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      }
+      // Fallback: try native Date
+      const fallback = new Date(input);
+      if (!isNaN(fallback.getTime())) return fallback.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      return input;
+    } catch {
+      return input;
+    }
+  };
+
+  // Format HH:MM (24h) to 12-hour AM/PM
+  const formatHour12 = (hhmm?: string): string => {
+    if (!hhmm) return '';
+    try {
+      const [h, m] = hhmm.split(':');
+      const d = new Date();
+      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return hhmm;
+    }
+  };
+
+  // Fetch upcoming activities for admin dashboard home (limited to 10)
+  const fetchUpcomingActivities = useCallback(async (): Promise<UserCalendarEvent[]> => {
+    try {
+      const activities = await getUpcomingCalendarActivities(10);
+      
+      // Transform to UserCalendarEvent format
+      return activities.map((activity) => ({
+        id: activity.id,
+        title: activity.title,
+        type: activity.type === 'event' ? 'attendance' : activity.type,
+        date: activity.date,
+        time: activity.time,
+        location: activity.location || undefined,
+        status: 'registered' as const
+      }));
+    } catch (error) {
+      console.error('Error fetching upcoming activities:', error);
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [statistics, activities, recent] = await Promise.all([
+          getStatistics(),
+          fetchUpcomingActivities(),
+          getRecentActivities(5)
+        ]);
+        
+        setStats({
+          usuarios: { total: statistics.users, activos: 0, nuevos: 0 },
+          eventos: { total: statistics.events, proximos: 0, activos: 0 },
+          expedientes: { total: statistics.beneficiaries, pendientes: 0, aprobados: 0 },
+          talleres: { total: statistics.workshops, activos: 0, inscritos: 0 },
+          voluntariado: { programas: 0, voluntarios: statistics.volunteers, horas: 0 },
+          tickets: { total: statistics.tickets || 0 }
+        });
+        
+        setCalendarEvents(activities);
+        setRecentActivities(recent);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [fetchUpcomingActivities]);
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -53,8 +144,10 @@ export default function AdminDashboardHome() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Usuarios</p>
-              <p className="text-2xl font-bold text-gray-900">{mockStats.usuarios.total}</p>
-              <p className="text-xs text-gray-500">+{mockStats.usuarios.nuevos} nuevos</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? "0" : stats.usuarios.total}
+              </p>
+              <p className="text-xs text-gray-500">Total en el sistema</p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
               <Users className="w-6 h-6 text-blue-600" />
@@ -67,8 +160,10 @@ export default function AdminDashboardHome() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Eventos</p>
-              <p className="text-2xl font-bold text-gray-900">{mockStats.eventos.total}</p>
-              <p className="text-xs text-gray-500">{mockStats.eventos.proximos} próximos</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? "0" : stats.eventos.total}
+              </p>
+              <p className="text-xs text-gray-500">Total eventos/noticias</p>
             </div>
             <div className="p-3 bg-purple-100 rounded-lg">
               <Calendar className="w-6 h-6 text-purple-600" />
@@ -81,8 +176,10 @@ export default function AdminDashboardHome() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Expedientes</p>
-              <p className="text-2xl font-bold text-gray-900">{mockStats.expedientes.total}</p>
-              <p className="text-xs text-gray-500">{mockStats.expedientes.pendientes} pendientes</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? "0" : stats.expedientes.total}
+              </p>
+              <p className="text-xs text-gray-500">Total expedientes</p>
             </div>
             <div className="p-3 bg-orange-100 rounded-lg">
               <FileText className="w-6 h-6 text-orange-600" />
@@ -95,8 +192,10 @@ export default function AdminDashboardHome() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Talleres</p>
-              <p className="text-2xl font-bold text-gray-900">{mockStats.talleres.total}</p>
-              <p className="text-xs text-gray-500">{mockStats.talleres.inscritos} inscritos</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? "0" : stats.talleres.total}
+              </p>
+              <p className="text-xs text-gray-500">Total talleres</p>
             </div>
             <div className="p-3 bg-indigo-100 rounded-lg">
               <GraduationCap className="w-6 h-6 text-indigo-600" />
@@ -109,116 +208,160 @@ export default function AdminDashboardHome() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Voluntariado</p>
-              <p className="text-2xl font-bold text-gray-900">{mockStats.voluntariado.voluntarios}</p>
-              <p className="text-xs text-gray-500">{mockStats.voluntariado.horas}h servicio</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? "0" : stats.voluntariado.voluntarios}
+              </p>
+              <p className="text-xs text-gray-500">Total voluntariado</p>
             </div>
             <div className="p-3 bg-teal-100 rounded-lg">
               <TrendingUp className="w-6 h-6 text-teal-600" />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mockQuickActions.map((action, index) => (
-            <button
-              key={index}
-              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${action.color}`}>
-                  <action.icon className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-medium text-gray-700">{action.title}</span>
-              </div>
-              {action.count > 0 && (
-                <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {action.count}
-                </span>
-              )}
-            </button>
-          ))}
+            {/* Tickets */}
+        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-teal-500">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Tickets</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? "0" : stats.tickets.total}
+              </p>
+              <p className="text-xs text-gray-500">Tickets abiertos</p>
+            </div>
+            <div className="p-3 bg-teal-100 rounded-lg">
+              <FaTicketAlt className="w-6 h-6 text-teal-600" />
+            </div>
+          </div>
         </div>
       </div>
+      
+  
 
       {/* Recent Activities and System Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activities */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Actividades Recientes</h2>
-          <div className="space-y-4">
-            {mockRecentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                <div className={`p-2 rounded-lg ${
-                  activity.type === 'expediente' ? 'bg-blue-100' :
-                  activity.type === 'donacion' ? 'bg-green-100' :
-                  activity.type === 'taller' ? 'bg-orange-100' :
-                  activity.type === 'voluntario' ? 'bg-purple-100' :
-                  'bg-indigo-100'
-                }`}>
-                  {activity.type === 'expediente' ? (
-                    <FileText className="w-4 h-4 text-blue-600" />
-                  ) : activity.type === 'donacion' ? (
-                    <DollarSign className="w-4 h-4 text-green-600" />
-                  ) : activity.type === 'taller' ? (
-                    <GraduationCap className="w-4 h-4 text-orange-600" />
-                  ) : activity.type === 'voluntario' ? (
-                    <Users className="w-4 h-4 text-purple-600" />
-                  ) : (
-                    <Calendar className="w-4 h-4 text-indigo-600" />
-                  )}
+          {loading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg animate-pulse">
+                  <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">{activity.title}</p>
-                  <p className="text-sm text-gray-500">
-                    {activity.user && `${activity.user} • `}
-                    {activity.workshop && `${activity.workshop} • `}
-                    {activity.event && `${activity.event} • `}
-                    {activity.time}
-                  </p>
+              ))}
+            </div>
+          ) : recentActivities.length > 0 ? (
+            <div className="space-y-4">
+              {recentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                  <div className={`p-2 rounded-lg ${
+                    activity.type === 'expediente' ? 'bg-blue-100' :
+                    activity.type === 'ticket' ? 'bg-green-100' :
+                    activity.type === 'taller' ? 'bg-orange-100' :
+                    activity.type === 'voluntario' ? 'bg-purple-100' :
+                    'bg-indigo-100'
+                  }`}>
+                    {activity.type === 'expediente' ? (
+                      <FileText className="w-4 h-4 text-blue-600" />
+                    ) : activity.type === 'ticket' ? (
+                      <FaTicketAlt className="w-4 h-4 text-green-600" />
+                    ) : activity.type === 'taller' ? (
+                      <GraduationCap className="w-4 h-4 text-orange-600" />
+                    ) : activity.type === 'voluntario' ? (
+                      <Heart className="w-4 h-4 text-purple-600" />
+                    ) : (
+                      <Calendar className="w-4 h-4 text-indigo-600" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{activity.title}</p>
+                    <p className="text-sm text-gray-500">
+                      {activity.user && `${activity.user} • `}
+                      {activity.workshop && `${activity.workshop} • `}
+                      {activity.event && `${activity.event} • `}
+                      {activity.time}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No hay actividades recientes</p>
+            </div>
+          )}
         </div>
 
-        {/* System Status */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Estado del Sistema</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <span className="font-medium text-gray-900">Servidor Web</span>
-              </div>
-              <span className="text-sm text-red-600">Desconectado</span>
+         {/* Calendar Widget */}
+         <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Próximas Actividades</h2>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg animate-pulse">
+                  <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="font-medium text-gray-900">Base de Datos</span>
-              </div>
-              <span className="text-sm text-green-600">Conectado</span>
+          ) : calendarEvents.length > 0 ? (
+            <div className="space-y-3">
+              {calendarEvents.slice(0, 4).map((event) => (
+                <div key={event.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className={`p-2 rounded-lg ${
+                    event.type === 'workshop' ? 'bg-green-100' :
+                    event.type === 'volunteer' ? 'bg-purple-100' :
+                    'bg-orange-100'
+                  }`}>
+                    {event.type === 'workshop' ? (
+                      <GraduationCap className="w-4 h-4 text-green-600" />
+                    ) : event.type === 'volunteer' ? (
+                      <Heart className="w-4 h-4 text-purple-600" />
+                    ) : (
+                      <Calendar className="w-4 h-4 text-orange-600" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{event.title}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Clock className="w-3 h-3" />
+                      <span>{formatDisplayDate(event.date)}</span>
+                      <span>• {formatHour12(event.time)}</span>
+                    </div>
+                    {event.location && (
+                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{event.location}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {calendarEvents.length > 4 && (
+                <div className="text-center pt-2">
+                  <button className="text-sm text-blue-600 hover:text-blue-800">
+                    Ver todas las actividades ({calendarEvents.length})
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <span className="font-medium text-gray-900">Almacenamiento</span>
-              </div>
-              <span className="text-sm text-yellow-600">0% usado</span>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>No hay actividades próximas</p>
+              <p className="text-sm text-gray-400 mt-2">Crea talleres, voluntariado o eventos</p>
             </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="font-medium text-gray-900">Backup</span>
-              </div>
-              <span className="text-sm text-green-600">Actualizado</span>
-            </div>
-          </div>
+          )}
         </div>
+        
       </div>
     </div>
   );

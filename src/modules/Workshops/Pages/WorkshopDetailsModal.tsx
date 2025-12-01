@@ -5,6 +5,7 @@ import { FaCalendarAlt, FaClock, FaUsers, FaTools, FaRegLightbulb } from "react-
 import { MdLocationOn, MdDescription } from "react-icons/md";
 import { registerForWorkshop, cancelWorkshopEnrollment, getAvailableSpots } from '../Services/workshopEnrollments';
 import { getToken } from '../../Login/Services/auth';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 interface Props {
   isOpen: boolean;
@@ -143,7 +144,7 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                 if (!originalUrl) return '';
                 if (originalUrl.startsWith('blob:')) return '';
                 if (originalUrl.startsWith('http')) return originalUrl;
-                return `http://localhost:3000${originalUrl}`;
+                return `${getAPIBaseURLSync()}${originalUrl}`;
               })()}
               alt={workshop.titulo}
               className="w-full h-48 object-cover rounded"

@@ -18,7 +18,7 @@ export interface DonationResponse {
   ticketType?: string;
 }
 
-const API_BASE_URL = 'http://localhost:3000';
+import { getAPIBaseURL } from '../../../shared/Services/config';
 
 export const submitDonation = async (donationData: DonationFormData, isAnonymous: boolean = false): Promise<DonationResponse> => {
   try {
@@ -52,6 +52,7 @@ export const submitDonation = async (donationData: DonationFormData, isAnonymous
       headers['Authorization'] = `Bearer ${token}`;
     }
     
+    const API_BASE_URL = await getAPIBaseURL();
     const response = await fetch(`${API_BASE_URL}/donations`, {
       method: 'POST',
       headers,

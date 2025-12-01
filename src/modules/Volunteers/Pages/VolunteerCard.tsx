@@ -8,6 +8,7 @@ import { FaRegCalendarAlt, FaCheckCircle, FaArrowRight, FaClock, FaUsers } from 
 import { MdLocationOn } from "react-icons/md";
 import { submitVolunteerProposal } from "../Services/fetchVolunteers";
 import { formatTime12Hour } from "../../../shared/Utils/timeUtils";
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 interface VolunteerCardProps {
   id: string;
@@ -41,7 +42,7 @@ const VolunteerCard = ({
   is_registered,
 }: VolunteerCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const displayImageUrl = imageUrl?.startsWith('http') ? imageUrl : `http://localhost:3000${imageUrl}`;
+  const displayImageUrl = imageUrl?.startsWith('http') ? imageUrl : `${getAPIBaseURLSync()}${imageUrl}`;
 
   return (
     <>
@@ -675,7 +676,7 @@ const Voluntariados = () => {
               </div>
             </div>
 
-            {/* Texto explicativo antes de adjuntar */}
+            {/* Texto explicativo antes de adjuntar 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Documento adjunto (Opcional)
@@ -723,6 +724,7 @@ const Voluntariados = () => {
               )}
               </div>
             </div>
+            */}
 
             <button
               type="submit"

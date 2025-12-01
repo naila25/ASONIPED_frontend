@@ -1,5 +1,5 @@
 import { getAuthHeader } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 import type {
   ActivityTrack,
   ActivityTrackWithStats,
@@ -15,7 +15,7 @@ import type {
   DashboardStats
 } from '../Types/attendanceNew';
 
-const API_URL = `${API_BASE_URL}/api/attendance`;
+const API_URL = `${getAPIBaseURLSync()}/api/attendance`;
 
 // Activity Tracks API
 export const activityTracksApi = {
@@ -542,7 +542,7 @@ export const recordsApi = {
   // Generate attendance QR data for a record
   generateAttendanceQR: async (recordId: number): Promise<{ qrData: QRScanData; record: any }> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/records/${recordId}/attendance-qr`, {
+      const response = await fetch(`${getAPIBaseURLSync()}/records/${recordId}/attendance-qr`, {
         headers: {
           ...getAuthHeader(),
           'Content-Type': 'application/json',

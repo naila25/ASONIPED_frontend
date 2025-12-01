@@ -1,6 +1,7 @@
 import { getToken } from '../../Login/Services/auth';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_BASE_URL = 'http://localhost:3000/api/hero-section';
+const getAPIBaseURL = () => getAPIBaseURLSync() + '/api/hero-section';
 
 export interface HeroSection {
   id?: number;
@@ -27,7 +28,7 @@ interface HeroSectionBackend {
 export const heroService = {
   // Get all hero sections
   async getAll(): Promise<HeroSection[]> {
-    const response = await fetch(`${API_BASE_URL}`);
+    const response = await fetch(`${getAPIBaseURL()}`);
     if (!response.ok) {
       throw new Error('Failed to fetch hero sections');
     }
@@ -41,7 +42,7 @@ export const heroService = {
 
   // Get single hero section by ID
   async getById(id: number): Promise<HeroSection> {
-    const response = await fetch(`${API_BASE_URL}/${id}`);
+    const response = await fetch(`${getAPIBaseURL()}/${id}`);
     if (!response.ok) {
       throw new Error('Failed to fetch hero section');
     }
@@ -71,7 +72,7 @@ export const heroService = {
       color_boton_derecho: section.color_boton_derecho,
     };
 
-    const response = await fetch(`${API_BASE_URL}`, {
+    const response = await fetch(`${getAPIBaseURL()}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,7 +105,7 @@ export const heroService = {
       color_boton_derecho: section.color_boton_derecho,
     };
 
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
+    const response = await fetch(`${getAPIBaseURL()}/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -126,7 +127,7 @@ export const heroService = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
+    const response = await fetch(`${getAPIBaseURL()}/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

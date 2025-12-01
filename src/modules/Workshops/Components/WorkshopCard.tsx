@@ -1,4 +1,5 @@
 import type { Workshop } from '../Types/workshop';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 interface Props {
   workshop: Workshop;
@@ -17,7 +18,7 @@ export const WorkshopCard = ({ workshop, onSelect }: Props) => {
           if (!originalUrl) return '';
           if (originalUrl.startsWith('blob:')) return '';
           if (originalUrl.startsWith('http')) return originalUrl;
-          return `http://localhost:3000${originalUrl}`;
+          return `${getAPIBaseURLSync()}${originalUrl}`;
         })()}
         alt={workshop.titulo}
         className="w-full h-44 object-cover rounded-lg mb-4"

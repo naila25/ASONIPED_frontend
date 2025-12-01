@@ -6,6 +6,7 @@ import { FaTools, FaRegLightbulb, FaRegCalendarAlt, FaClock, FaUsers } from "rea
 import { MdLocationOn, MdDescription } from "react-icons/md";  
 import { getToken } from '../../Login/Services/auth';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 // Modal for displaying volunteer opportunity details and registration form
 interface VolunteerModalProps {
@@ -141,7 +142,7 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
 
               <div className="space-y-4">
                 <img
-                  src={volunteer.imageUrl?.startsWith('http') ? volunteer.imageUrl : `http://localhost:3000${volunteer.imageUrl}`}
+                  src={volunteer.imageUrl?.startsWith('http') ? volunteer.imageUrl : `${getAPIBaseURLSync()}${volunteer.imageUrl}`}
                   alt={volunteer.title}
                   className="w-full h-48 object-cover rounded"
                 />

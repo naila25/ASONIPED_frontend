@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminFetchAllProposals, adminSetProposalStatus } from '../Services/fetchVolunteers';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 import { 
   FileText, 
   User, 
@@ -326,7 +326,7 @@ export default function VolunteerProposalsAdmin() {
                       <p className="text-xs text-gray-500 uppercase tracking-wide">Documento</p>
                       {proposal.document_path ? (
                         <a
-                          href={proposal.document_path.startsWith('/uploads') ? `${API_BASE_URL}${proposal.document_path}` : proposal.document_path}
+                          href={proposal.document_path.startsWith('/uploads') ? `${getAPIBaseURLSync()}${proposal.document_path}` : proposal.document_path}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
