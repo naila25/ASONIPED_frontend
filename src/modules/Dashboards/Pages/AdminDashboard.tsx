@@ -8,7 +8,7 @@ import {
   GraduationCap,
   TrendingUp,
   Settings,
-  Bell,
+  //Bell,
   User,
   MessageSquare,
   Edit,
@@ -52,13 +52,14 @@ const navLinks = [
   { to: "/admin/tickets", label: "Tickets", icon: MessageSquare },
   { to: "/admin/events-news", label: "Eventos", icon: Calendar },
   { to: "/admin/landing", label: "Gestión del Landing", icon: Edit},
+  { to: "/admin/calendar-activities", label: "Calendario de Actividades", icon: Calendar },
   { to: "/admin/users", label: "Gestión de Usuarios", icon: Settings },
   
 ];
 
 export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifications] = useState(0);
+  //const [notifications] = useState(0);
   const [username, setUsername] = useState<string | null>(null);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
@@ -206,7 +207,7 @@ export default function AdminDashboard() {
 
             {/* Right side - Notifications and User */}
             <div className="flex items-center gap-4">
-              {/* Notifications */}
+              {/* Notifications (disabled for now)
               <button className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors">
                 <Bell className="w-5 h-5" />
                 {notifications > 0 && (
@@ -215,6 +216,7 @@ export default function AdminDashboard() {
                   </span>
                 )}
               </button>
+              */}
 
               {/* User menu */}
               <div className="flex items-center gap-2">

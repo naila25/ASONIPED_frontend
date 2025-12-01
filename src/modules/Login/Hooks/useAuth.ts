@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getToken } from '../Services/auth';
+import { getAPIBaseURL } from '../../../shared/Services/config';
 
 interface User {
   id: number;
@@ -23,7 +24,8 @@ export const useAuth = () => {
           const payload = JSON.parse(atob(token.split('.')[1]));
           
           // Luego obtener el perfil completo del usuario
-          const response = await fetch('http://localhost:3000/users/profile', {
+          const baseUrl = await getAPIBaseURL();
+          const response = await fetch(`${baseUrl}/users/profile`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

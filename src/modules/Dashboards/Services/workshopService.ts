@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:3000/workshops';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
+
+const getAPIBaseURL = () => getAPIBaseURLSync() + '/workshops';
 
 export interface LandingWorkshop {
   id?: number;
@@ -13,17 +15,17 @@ export interface LandingWorkshop {
 
 export const landingWorkshopService = {
   async getAll(): Promise<LandingWorkshop[]> {
-    const res = await fetch(`${API_BASE_URL}`);
+    const res = await fetch(`${getAPIBaseURL()}`);
     if (!res.ok) throw new Error('Failed to fetch workshops');
     return res.json();
   },
   async getById(id: number): Promise<LandingWorkshop> {
-    const res = await fetch(`${API_BASE_URL}/${id}`);
+    const res = await fetch(`${getAPIBaseURL()}/${id}`);
     if (!res.ok) throw new Error('Failed to fetch workshop');
     return res.json();
   },
   async create(payload: Omit<LandingWorkshop, 'id'>): Promise<{ message: string; id: number }> {
-    const res = await fetch(`${API_BASE_URL}`, {
+    const res = await fetch(`${getAPIBaseURL()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -35,7 +37,7 @@ export const landingWorkshopService = {
     return res.json();
   },
   async update(id: number, payload: Omit<LandingWorkshop, 'id'>): Promise<{ message: string }> {
-    const res = await fetch(`${API_BASE_URL}/${id}`, {
+    const res = await fetch(`${getAPIBaseURL()}/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -47,7 +49,7 @@ export const landingWorkshopService = {
     return res.json();
   },
   async delete(id: number): Promise<{ message: string }> {
-    const res = await fetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${getAPIBaseURL()}/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete workshop');
     return res.json();
   },

@@ -1,9 +1,9 @@
 import type { Volunteer, VolunteerOption, VolunteerEnrollment, VolunteerProposal } from '../Types/volunteer';
 import { getAuthHeader } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_URL = `${API_BASE_URL}/volunteers`;
-const OPTIONS_API_URL = `${API_BASE_URL}/volunteer-options`;
+const getAPIUrl = () => `${getAPIBaseURLSync()}/volunteers`;
+const getOptionsAPIUrl = () => `${getAPIBaseURLSync()}/volunteer-options`;
 
 // Fetch a paginated list of volunteers (optionally filtered)
 export const fetchVolunteers = async (page = 1, limit = 10, status?: string, name?: string): Promise<{ volunteers: Volunteer[]; total: number; page: number; limit: number }> => {
@@ -11,7 +11,7 @@ export const fetchVolunteers = async (page = 1, limit = 10, status?: string, nam
   if (status) params.append('status', status);
   if (name) params.append('name', name);
 
-  const res = await fetch(`${API_URL}?${params.toString()}`, {
+  const res = await fetch(`${getAPIUrl()}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -23,7 +23,7 @@ export const fetchVolunteers = async (page = 1, limit = 10, status?: string, nam
 
 // Add a new volunteer
 export const addVolunteer = async (volunteer: Volunteer) => {
-  const res = await fetch(API_URL, {
+  const res = await fetch(getAPIUrl(), {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -37,7 +37,7 @@ export const addVolunteer = async (volunteer: Volunteer) => {
 
 // Update an existing volunteer (admin only)
 export const updateVolunteer = async (id: number, data: Partial<Volunteer>): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${getAPIUrl()}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
@@ -51,7 +51,7 @@ export const updateVolunteer = async (id: number, data: Partial<Volunteer>): Pro
 
 // Delete a volunteer (admin only)
 export const deleteVolunteer = async (id: number): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${getAPIUrl()}/${id}`, {
     method: 'DELETE',
     headers: getAuthHeader(),
   });
@@ -61,7 +61,7 @@ export const deleteVolunteer = async (id: number): Promise<{ message: string }> 
 
 // Enroll the current user into a volunteer option using account data
 export const enrollIntoVolunteerOption = async (optionId: string | number): Promise<{ message: string; volunteerId: number }> => {
-  const res = await fetch(`${API_URL}/enroll/${optionId}`, {
+  const res = await fetch(`${getAPIUrl()}/enroll/${optionId}`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -74,7 +74,7 @@ export const enrollIntoVolunteerOption = async (optionId: string | number): Prom
 
 // Get current user's volunteer enrollments
 export const fetchMyVolunteerEnrollments = async (): Promise<{ enrollments: VolunteerEnrollment[] }> => {
-  const res = await fetch(`${API_URL}/me`, {
+  const res = await fetch(`${getAPIUrl()}/me`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export const fetchMyVolunteerEnrollments = async (): Promise<{ enrollments: Volu
 
 // ----- Proposals API -----
 export const submitVolunteerProposal = async (formData: FormData): Promise<{ message: string }> => {
-  const res = await fetch(`${OPTIONS_API_URL}/proposals`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/proposals`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -99,7 +99,7 @@ export const submitVolunteerProposal = async (formData: FormData): Promise<{ mes
 };
 
 export const fetchMyVolunteerProposals = async (): Promise<{ proposals: VolunteerProposal[] }> => {
-  const res = await fetch(`${OPTIONS_API_URL}/proposals/mine`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/proposals/mine`, {
     headers: {
       ...getAuthHeader(),
     },
@@ -109,7 +109,7 @@ export const fetchMyVolunteerProposals = async (): Promise<{ proposals: Voluntee
 };
 
 export const adminFetchAllProposals = async (): Promise<{ proposals: VolunteerProposal[] }> => {
-  const res = await fetch(`${OPTIONS_API_URL}/proposals`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/proposals`, {
     headers: {
       ...getAuthHeader(),
     },
@@ -119,7 +119,7 @@ export const adminFetchAllProposals = async (): Promise<{ proposals: VolunteerPr
 };
 
 export const adminSetProposalStatus = async (id: number, status: 'approved' | 'rejected' | 'filed', note?: string): Promise<{ message: string }> => {
-  const res = await fetch(`${OPTIONS_API_URL}/proposals/${id}/status`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/proposals/${id}/status`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -133,7 +133,7 @@ export const adminSetProposalStatus = async (id: number, status: 'approved' | 'r
 
 // User: unenroll from a volunteer option
 export const unenrollFromVolunteerOption = async (volunteerId: number): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/unenroll/${volunteerId}`, {
+  const res = await fetch(`${getAPIUrl()}/unenroll/${volunteerId}`, {
     method: 'DELETE',
     headers: {
       ...getAuthHeader(),
@@ -145,7 +145,7 @@ export const unenrollFromVolunteerOption = async (volunteerId: number): Promise<
 
 // User: delete own proposal
 export const deleteMyProposal = async (proposalId: number): Promise<{ message: string }> => {
-  const res = await fetch(`${OPTIONS_API_URL}/proposals/${proposalId}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/proposals/${proposalId}`, {
     method: 'DELETE',
     headers: {
       ...getAuthHeader(),
@@ -158,7 +158,7 @@ export const deleteMyProposal = async (proposalId: number): Promise<{ message: s
 // Fetch all available volunteer options
 export const fetchVolunteerOptions = async (): Promise<VolunteerOption[]> => {
   const params = new URLSearchParams({ _t: String(Date.now()) }); // Cache busting
-  const res = await fetch(`${OPTIONS_API_URL}?${params.toString()}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -194,7 +194,7 @@ export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'>): P
     spots: (option as any).spots || 1,
   };
 
-  const res = await fetch(OPTIONS_API_URL, {
+  const res = await fetch(getOptionsAPIUrl(), {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -230,7 +230,7 @@ export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOp
     spots: (option as any).spots || 1,
   };
 
-  const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
@@ -244,7 +244,7 @@ export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOp
 
 // Delete a volunteer option (admin only)
 export const deleteVolunteerOption = async (id: number): Promise<{ message: string }> => {
-  const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/${id}`, {
     method: 'DELETE',
     headers: getAuthHeader(),
   });
@@ -259,7 +259,7 @@ export const fetchVolunteerForms = async (page = 1, limit = 10) => {
     limit: String(limit),
     _t: String(Date.now()) // Cache busting
   });
-  const res = await fetch(`${API_URL}?${params.toString()}`, {
+  const res = await fetch(`${getAPIUrl()}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -273,7 +273,7 @@ export const fetchVolunteerForms = async (page = 1, limit = 10) => {
 
 // Add a new volunteer form
 export const addVolunteerForm = async (form: Volunteer) => {
-  const res = await fetch(API_URL, {
+  const res = await fetch(getAPIUrl(), {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -287,7 +287,7 @@ export const addVolunteerForm = async (form: Volunteer) => {
 
 // Update the status of a volunteer form
 export const updateVolunteerFormStatus = async (id: number, status: 'pending' | 'approved' | 'rejected') => {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${getAPIUrl()}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),

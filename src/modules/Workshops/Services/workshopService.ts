@@ -2,13 +2,13 @@ import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import type { Workshop } from './workshop';
 import { getAuthHeader } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const BACKEND_URL = API_BASE_URL;
+const getBackendUrl = () => getAPIBaseURLSync();
 
 // Obtener todos los workshops (GET)
 export const getAllWorkshops = async (): Promise<Workshop[]> => {
-  const { data } = await axios.get(`${BACKEND_URL}/workshops`, {
+  const { data } = await axios.get(`${getBackendUrl()}/workshops`, {
     headers: getAuthHeader()
   });
   return data;
@@ -16,7 +16,7 @@ export const getAllWorkshops = async (): Promise<Workshop[]> => {
 
 // Crear un nuevo workshop (POST)
 export const createWorkshop = async (workshop: Omit<Workshop, 'id'>): Promise<Workshop> => {
-  const { data } = await axios.post(`${BACKEND_URL}/workshops`, workshop, {
+  const { data } = await axios.post(`${getBackendUrl()}/workshops`, workshop, {
     headers: getAuthHeader()
   });
   return data;
@@ -24,7 +24,7 @@ export const createWorkshop = async (workshop: Omit<Workshop, 'id'>): Promise<Wo
 
 // Actualizar un workshop (PUT)
 export const updateWorkshop = async (id: number, workshop: Partial<Workshop>): Promise<Workshop> => {
-  const { data } = await axios.put(`${BACKEND_URL}/workshops/${id}`, workshop, {
+  const { data } = await axios.put(`${getBackendUrl()}/workshops/${id}`, workshop, {
     headers: getAuthHeader()
   });
   return data;
@@ -32,7 +32,7 @@ export const updateWorkshop = async (id: number, workshop: Partial<Workshop>): P
 
 // Eliminar un workshop (DELETE)
 export const deleteWorkshop = async (id: number): Promise<{ message: string }> => {
-  const { data } = await axios.delete(`${BACKEND_URL}/workshops/${id}`, {
+  const { data } = await axios.delete(`${getBackendUrl()}/workshops/${id}`, {
     headers: getAuthHeader()
   });
   return data;
@@ -42,7 +42,7 @@ export const deleteWorkshop = async (id: number): Promise<{ message: string }> =
 export const useCreateWorkshop = () =>
   useMutation({
     mutationFn: async (workshop: Omit<Workshop, 'id'>) => {
-      const response = await axios.post(`${BACKEND_URL}/workshops`, workshop, {
+      const response = await axios.post(`${getBackendUrl()}/workshops`, workshop, {
         headers: getAuthHeader()
       });
       return response.data;

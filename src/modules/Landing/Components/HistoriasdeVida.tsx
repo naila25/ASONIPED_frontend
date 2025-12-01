@@ -11,21 +11,21 @@ const historias: Historia[] = [
   {
     nombre: "María Vargas",
     historia:
-      "María comparte su experiencia de vida, marcada por retos que transformó en aprendizajes. Gracias al acompañamiento de ASONIDEP, encontró nuevas oportunidades para crecer y sentirse valorada.",
+      "María comparte su experiencia de vida, marcada por retos que transformó en aprendizajes. Gracias al acompañamiento de ASONIPED, encontró nuevas oportunidades para crecer y sentirse valorada.",
     esVideo: true,
     videoUrl: "https://www.youtube.com/embed/ndMKprbFulc",
   },
   {
     nombre: "Freyzon Patterson",
     historia:
-      "Freyzon nos cuenta cómo, a través de la perseverancia y el apoyo recibido, logró superar dificultades y hoy inspira a otros con su historia de resiliencia dentro de ASONIDEP.",
+      "Freyzon nos cuenta cómo, a través de la perseverancia y el apoyo recibido, logró superar dificultades y hoy inspira a otros con su historia de resiliencia dentro de ASONIPED.",
     esVideo: true,
     videoUrl: "https://www.youtube.com/embed/Q2ddfSFGBaQ",
   },
   {
     nombre: "Ana García",
     historia:
-      "Ana relata cómo el acompañamiento y la inclusión que encontró en ASONIDEP cambiaron su perspectiva de vida, dándole la fuerza para soñar y alcanzar nuevas metas.",
+      "Ana relata cómo el acompañamiento y la inclusión que encontró en ASONIPED cambiaron su perspectiva de vida, dándole la fuerza para soñar y alcanzar nuevas metas.",
     esVideo: true,
     videoUrl: "https://www.youtube.com/embed/aTteFansSCc",
   },
@@ -34,7 +34,7 @@ const historias: Historia[] = [
 // Componente principal
 const HistoriasdeVida = () => {
   return (
-    <section className="max-w-7xl mx-auto px-6 py-10 text-center mt-20">
+    <section className="max-w-7xl mx-auto px-6 py-10 text-center mt-10">
       {/* Título principal */}
       <h2 className= "text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide ">
         Testimonios de Vida
@@ -42,7 +42,7 @@ const HistoriasdeVida = () => {
 
       {/* Subtítulo */}
       <p className="text-neutral-700 mb-12 max-w-3xl mx-auto">
-        “Descubre cómo la voz de quienes forman parte de ASONIDEP refleja esperanza, inclusión y superación, a través de experiencias que inspiran y motivan a toda nuestra comunidad.”
+        “Descubre cómo la voz de quienes forman parte de ASONIPED refleja esperanza, inclusión y superación, a través de experiencias que inspiran y motivan a toda nuestra comunidad.”
       </p>
 
       {/* Grid de historias */}

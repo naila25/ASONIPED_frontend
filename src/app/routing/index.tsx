@@ -1,4 +1,4 @@
-import { createRouter, createRootRoute, createRoute, Router } from '@tanstack/react-router';
+import { createRouter, createRootRoute, createRoute } from '@tanstack/react-router';
 import { lazy } from 'react';
 import App from '../../App';
 import Home from '../../modules/Landing/Pages/HomePage';
@@ -26,6 +26,7 @@ import VoluntariadoPage from '../../modules/Volunteers/Pages/VoluntariadoPage';
 import UserWorkshopsPage from '../../modules/Workshops/Pages/UserWorkshopsPage';
 import MensajesPage from '../../modules/Tickets/Pages/MensajesPage';
 import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
+import AdminCalendarioPage from '../../modules/Dashboards/Pages/AdminCalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
@@ -317,7 +318,13 @@ const GestionLandingRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'landing',
   component: GestionLanding,
-})
+});
+
+const adminCalendarioRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'calendar-activities',
+  component: AdminCalendarioPage,
+});
 
 // Route tree construction
 const routeTree = rootRoute.addChildren([
@@ -354,7 +361,8 @@ const routeTree = rootRoute.addChildren([
       
       userManagementRoute,
       adminTicketsRoute,
-      GestionLandingRoute
+      GestionLandingRoute,
+      adminCalendarioRoute
     ]),
     userDashboardRoute.addChildren([
       userHomeRoute,

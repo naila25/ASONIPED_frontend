@@ -3,6 +3,7 @@ import { fetchMyVolunteerProposals, deleteMyProposal } from "../Services/fetchVo
 import { getUserRegistrations, cancelVolunteerRegistration } from "../Services/volunteerRegistrations";
 import { FaRegCalendarAlt, FaMapMarkerAlt, FaUserCheck, FaClock, FaFileAlt, FaDownload, FaTimes, FaUsers } from "react-icons/fa";
 import { formatTime12Hour } from "../../../shared/Utils/timeUtils";
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 interface VolunteerRegistration {
   id: number;
@@ -161,7 +162,7 @@ export default function VoluntariadoPage() {
     // If the path already includes the full URL, return as is
     if (documentPath.startsWith('http')) return documentPath;
     // Otherwise, prepend the API base URL
-    return `http://localhost:3000${documentPath}`;
+    return `${getAPIBaseURLSync()}${documentPath}`;
   };
 
   const getFileName = (documentPath: string) => {
@@ -212,7 +213,7 @@ export default function VoluntariadoPage() {
                 {registration.volunteer_option.imageUrl && (
                   <div className="lg:w-80 h-64 lg:h-auto">
                     <img 
-                      src={registration.volunteer_option.imageUrl?.startsWith('http') ? registration.volunteer_option.imageUrl : `http://localhost:3000${registration.volunteer_option.imageUrl}`} 
+                      src={registration.volunteer_option.imageUrl?.startsWith('http') ? registration.volunteer_option.imageUrl : `${getAPIBaseURLSync()}${registration.volunteer_option.imageUrl}`} 
                       alt={registration.volunteer_option.title} 
                       className="w-full h-full object-cover" 
                     />

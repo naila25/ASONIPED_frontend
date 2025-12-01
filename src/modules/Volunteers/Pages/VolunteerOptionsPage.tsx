@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchVolunteerOptions, addVolunteerOption, deleteVolunteerOption, updateVolunteerOption } from '../Services/fetchVolunteers';
 import type { VolunteerOption } from '../Types/volunteer';
 import {  Search, Plus, Edit, Trash2, Calendar, MapPin, Image, FileText, Table, Grid3X3, Clock, Users } from 'lucide-react';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 // Admin page for managing volunteer options (CRUD)
 const VolunteerOptionsPage = () => {
@@ -552,7 +553,7 @@ const VolunteerOptionsPage = () => {
                       <tr key={option.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
                         <td className="px-4 py-3 align-top">
                           <img
-                            src={option.imageUrl?.startsWith('http') ? option.imageUrl : `http://localhost:3000${option.imageUrl}`}
+                            src={option.imageUrl?.startsWith('http') ? option.imageUrl : `${getAPIBaseURLSync()}${option.imageUrl}`}
                             alt={option.title}
                             className="h-11 w-11 object-cover rounded-md border border-gray-200"
                           />
@@ -636,7 +637,7 @@ const VolunteerOptionsPage = () => {
                 <div className="relative h-48 bg-gray-100 flex-shrink-0">
                   {option.imageUrl ? (
                     <img
-                      src={option.imageUrl.startsWith('http') ? option.imageUrl : `http://localhost:3000${option.imageUrl}`}
+                      src={option.imageUrl.startsWith('http') ? option.imageUrl : `${getAPIBaseURLSync()}${option.imageUrl}`}
                       alt={option.title}
                       className="w-full h-full object-cover"
                     />

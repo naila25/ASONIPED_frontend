@@ -1,8 +1,8 @@
 import type { Attendance } from '../Types/attendance'; 
 import { getAuthHeader } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_URL = `${API_BASE_URL}/attendance`;
+const API_URL = `${getAPIBaseURLSync()}/attendance`;
 
 export const fetchAttendance = async (): Promise<Attendance[]> => {
   try {

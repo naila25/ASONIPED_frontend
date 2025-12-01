@@ -25,30 +25,7 @@ export class SimpleNetworkConfig {
     const hostname = window.location.hostname;
     const port = '3000'; // Puerto del backend
 
-    // Si estamos en localhost, probar IPs comunes en paralelo
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      const commonIPs = [
-        '192.168.1.100',
-        '192.168.1.101', 
-        '192.168.0.100',
-        '192.168.0.101',
-        '10.0.0.100',
-        '10.0.0.101'
-      ];
-
-      console.log(`🔍 Probando conexiones en paralelo...`);
-      
-      // Probar todas las IPs en paralelo con timeout reducido
-      const url = await this.testConnectionsInParallel(commonIPs, port);
-      if (url) {
-        this.currentBackendUrl = url;
-        this.lastDetectionTime = Date.now();
-        console.log(`✅ Backend encontrado en: ${url}`);
-        return url;
-      }
-    }
-
-    // Si no encontramos nada, usar la IP del host actual
+    // Health check disabled - usar directamente localhost o IP del host
     const url = `http://${hostname}:${port}`;
     console.log(`🌐 Usando IP del host actual: ${url}`);
     this.currentBackendUrl = url;
@@ -58,11 +35,10 @@ export class SimpleNetworkConfig {
 
   // Probar conexiones en paralelo con timeout optimizado
   private async testConnectionsInParallel(ips: string[], port: string): Promise<string | null> {
-    const timeout = 800; // Reducido de 2000ms a 800ms
     const promises = ips.map(async (ip) => {
       const url = `http://${ip}:${port}`;
       try {
-        const isConnected = await this.testConnection(url, timeout);
+        const isConnected = await this.testConnection();
         return isConnected ? url : null;
       } catch {
         return null;
@@ -86,22 +62,9 @@ export class SimpleNetworkConfig {
   }
 
   // Probar conexión simple con timeout personalizable
-  private async testConnection(url: string, timeout: number = 800): Promise<boolean> {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      await fetch(`${url}/health`, {
-        method: 'GET',
-        signal: controller.signal,
-        mode: 'no-cors'
-      });
-
-      clearTimeout(timeoutId);
-      return true;
-    } catch {
-      return false;
-    }
+  private async testConnection(): Promise<boolean> {
+    // Health check disabled - return false to skip automatic detection
+    return false;
   }
 
   // Verificar si el cache es válido

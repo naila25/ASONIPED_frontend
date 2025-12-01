@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { WorkshopDetailsModal } from "../../Workshops/Pages/WorkshopDetailsModal";
 import { getAllWorkshops } from "../Services/workshopService";
 import type { Workshop } from "../Services/workshop";
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 export default function PublicWorkshopsPage() {
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
@@ -85,7 +86,7 @@ export default function PublicWorkshopsPage() {
                   <div className="h-[220px]">
                     {workshop.imagen && !workshop.imagen.startsWith('blob:') ? (
                       <img
-                        src={workshop.imagen.startsWith('http') ? workshop.imagen : `http://localhost:3000${workshop.imagen}`}
+                        src={workshop.imagen.startsWith('http') ? workshop.imagen : `${getAPIBaseURLSync()}${workshop.imagen}`}
                         alt={workshop.titulo}
                       className="w-full h-full object-cover"
                       onError={(e) => {

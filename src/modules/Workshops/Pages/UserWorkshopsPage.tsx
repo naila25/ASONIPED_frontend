@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getUserEnrollments, cancelWorkshopEnrollment } from "../Services/workshopEnrollments";
 import { FaRegCalendarAlt, FaMapMarkerAlt, FaUserCheck, FaClock, FaTools, FaRegLightbulb, FaTimes, FaUsers } from "react-icons/fa";
 import { formatTime12Hour } from "../../../shared/Utils/timeUtils";
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 interface WorkshopEnrollment {
   id: number;
@@ -154,7 +155,7 @@ export default function UserWorkshopsPage() {
                         if (!originalUrl) return '';
                         if (originalUrl.startsWith('blob:')) return '';
                         if (originalUrl.startsWith('http')) return originalUrl;
-                        return `http://localhost:3000${originalUrl}`;
+                        return `${getAPIBaseURLSync()}${originalUrl}`;
                       })()}
                       alt={enrollment.workshop_titulo} 
                       className="w-full h-full object-cover" 
