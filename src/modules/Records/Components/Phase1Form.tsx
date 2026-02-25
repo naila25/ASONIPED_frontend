@@ -490,6 +490,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -526,9 +527,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
             </p>
             {fullNameError && <p className="text-xs text-red-500 mt-1">{fullNameError}</p>}
           </div>
-        </div>
-
-        <div>
+          <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Tipo de Discapacidad *
           </label>
@@ -549,8 +548,6 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
             <option value="multiple">Discapacidad Múltiple</option>
           </select>
         </div>
-
-
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -695,6 +692,8 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
             {birthPlaceCharsLeft} caracteres restantes (máximo 40)
           </p>
           {birthPlaceError && <p className="text-xs text-red-500 mt-1">{birthPlaceError}</p>}
+        </div>
+      
         </div>
 
         <div>

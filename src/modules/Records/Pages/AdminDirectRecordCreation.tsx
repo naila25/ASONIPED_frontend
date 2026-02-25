@@ -132,8 +132,8 @@ const AdminDirectRecordCreation: React.FC = () => {
 
   // Main form state
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-8 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 min-w-0">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -228,7 +228,7 @@ const AdminDirectRecordCreation: React.FC = () => {
         )}
 
         {/* Form */}
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white rounded-lg shadow-sm min-w-0 overflow-x-hidden">
           <Phase3Form
             key={formKey}
             onSubmit={handleSubmit}
