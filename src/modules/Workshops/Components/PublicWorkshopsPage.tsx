@@ -48,10 +48,10 @@ export default function PublicWorkshopsPage() {
     <div className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-6">
         {/* Título principal */}
-        <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-justify tracking-wide mb-5">
+        <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mb-5">
           Nuestros talleres
         </h2>
-        <p className="text-neutral-700 text-justify mb-10">
+        <p className="text-neutral-700 text-center mb-10">
           Descubre nuestros espacios de aprendizaje y creatividad.
         </p>
 

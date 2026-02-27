@@ -66,7 +66,7 @@ const AboutSection = () => {
       </div>
 
       {/* Imagen (lado derecho con forma curva) */}
-      <div className="w-full lg:w-1/2 relative mt-10 lg:mt-0">
+      <div className="hidden lg:block w-full lg:w-1/2 relative mt-10 lg:mt-0">
         <div className="w-full h-[350px] lg:h-[500px] overflow-hidden rounded-l-[200px]">
           <img
             src={image}
