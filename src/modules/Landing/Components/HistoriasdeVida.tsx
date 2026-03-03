@@ -46,9 +46,10 @@ const HistoriasdeVida = () => {
       </p>
 
       {/* Grid de historias */}
-      <div className="grid md:grid-cols-3 gap-10">
+      <div className="md:grid md:grid-cols-3 md:gap-10 flex md:flex-none overflow-x-auto md:overflow-visible snap-x snap-mandatory scrollbar-hide">
   {historias.map((historia, index) => (
-    <div key={index}>
+
+    <div key={index} className="min-w-full md:min-w-0 snap-center px-2 md:px-0">
       {/* Video con borde simple */}
       <div className="w-full h-52 border border-gray-300 rounded-md overflow-hidden mb-3">
         {historia.esVideo && historia.videoUrl ? (
