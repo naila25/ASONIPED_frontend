@@ -84,6 +84,19 @@ const WorkshopOptionsPage: React.FC = () => {
     setZoomLevel(zoom);
   };
 
+  // Format HH:MM (24h) to 12-hour AM/PM for display
+  const formatHour12 = (hhmm?: string): string => {
+    if (!hhmm) return '';
+    try {
+      const [h, m] = hhmm.split(':');
+      const d = new Date();
+      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return hhmm;
+    }
+  };
+
   // Get character limit based on zoom level
   const getCharacterLimit = (baseLimit: number) => {
     if (zoomLevel <= 0.8) return Math.floor(baseLimit * 1.5); // More characters at lower zoom
@@ -103,7 +116,29 @@ const WorkshopOptionsPage: React.FC = () => {
     try {
       setLoading(true);
       const list = await getAllWorkshops();
-      setOptions(list);
+      // Sort newest first by date (supports YYYY-MM-DD and DD/MM/YYYY)
+      const getTime = (d: string) => {
+        try {
+          if (!d) return -Infinity;
+          if (d.includes('/')) {
+            const [day, month, year] = d.split('/');
+            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
+          }
+          const datePart = (d.includes('T') ? d.split('T')[0] : d.split(' ')[0]);
+          const m = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (m) return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3])).getTime();
+          const f = new Date(d);
+          return isNaN(f.getTime()) ? -Infinity : f.getTime();
+        } catch { return -Infinity; }
+      };
+      const sorted = [...list].sort((a, b) => {
+        const tb = getTime(b.fecha as unknown as string);
+        const ta = getTime(a.fecha as unknown as string);
+        if (tb !== ta) return tb - ta;
+        // Tie-breaker by id desc if available
+        return (b.id || 0) - (a.id || 0);
+      });
+      setOptions(sorted);
       setError(null);
     } catch {
       setError('No se pudieron cargar las opciones');
@@ -597,7 +632,7 @@ const WorkshopOptionsPage: React.FC = () => {
                         <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
                           <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={opt.hora || 'No especificada'}>
                             <Clock className="w-3 h-3 mr-1" />
-                            {opt.hora ? opt.hora.substring(0, 5) : '—'}
+                            {opt.hora ? formatHour12(opt.hora) : '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
@@ -690,7 +725,7 @@ const WorkshopOptionsPage: React.FC = () => {
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Clock className="w-4 h-4 text-gray-400" />
                           <span className="font-medium">Hora:</span>
-                          <span>{opt.hora.substring(0, 5)}</span>
+                          <span>{formatHour12(opt.hora)}</span>
                         </div>
                       )}
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAuthHeader } from '../../Login/Services/auth';
+import { getAPIBaseURL } from '../../../shared/Services/config';
 
 interface DonationContact {
   id: number;
@@ -29,7 +30,8 @@ const DonationForms = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('http://localhost:3000/donations', {
+        const baseUrl = await getAPIBaseURL();
+        const response = await fetch(`${baseUrl}/donations`, {
           headers: getAuthHeader()
         });
         
@@ -52,7 +54,8 @@ const DonationForms = () => {
     if (!window.confirm('¿Estás seguro de que deseas eliminar esta solicitud?')) return;
     
     try {
-      const response = await fetch(`http://localhost:3000/donations/${id}`, {
+      const baseUrl = await getAPIBaseURL();
+      const response = await fetch(`${baseUrl}/donations/${id}`, {
         method: 'DELETE',
         headers: getAuthHeader()
       });

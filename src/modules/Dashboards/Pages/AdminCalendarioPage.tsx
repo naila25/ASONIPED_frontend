@@ -1,73 +1,106 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Clock, MapPin, GraduationCap, Heart, Calendar as CalendarIcon } from "lucide-react";
-import { getUserCalendarEvents } from '../Services/userDashboard.service';
-import { fetchMyVolunteerProposals } from '../../Volunteers/Services/fetchVolunteers';
-import type { UserCalendarEvent } from '../Services/userDashboard.service';
+import { getCalendarActivitiesByMonth } from '../../../shared/Services/statistics.service';
 import Calendar from '../../../shared/Components/Calendar';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
 
-type VolunteerProposalBrief = {
-  id: number;
-  title?: string;
-  status?: string;
-  date?: string;
-  created_at?: string;
-  hour?: string;
+interface CalendarEvent {
+  id: string;
+  title: string;
+  type: 'workshop' | 'volunteer' | 'attendance';
+  date: string;
+  time: string;
   location?: string;
-};
+  status: 'registered';
+}
 
-export default function CalendarioPage() {
-  const [events, setEvents] = useState<UserCalendarEvent[]>([]);
+export default function AdminCalendarioPage() {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // Format date string to YYYY-MM-DD format
+  const normalizeDate = useCallback((dateStr: string): string => {
+    if (!dateStr) return '';
+    
+    try {
+      // Handle DD/MM/YYYY format
+      if (dateStr.includes('/')) {
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      
+      // Handle YYYY-MM-DD format (already correct)
+      if (dateStr.includes('-')) {
+        return dateStr.slice(0, 10);
+      }
+      
+      // Fallback: try to parse as Date
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+      
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  }, []);
+
+  // Fetch activities for the current month
   useEffect(() => {
     const loadEvents = async () => {
       try {
+        setIsTransitioning(true);
+        // Small delay to allow smooth transition animation
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
         setLoading(true);
-        const [eventsData, proposalsRes] = await Promise.all([
-          getUserCalendarEvents(),
-          fetchMyVolunteerProposals()
-        ]);
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth() + 1; // getMonth() returns 0-11
+        
+        const activities = await getCalendarActivitiesByMonth(year, month);
 
-        const approvedProposalEvents = (proposalsRes?.proposals as VolunteerProposalBrief[] || [])
-          .filter((p) => p.status === 'approved')
-          .map((p) => {
-            const rawDate = (p.date || p.created_at || new Date().toISOString()).toString();
-            // Normalize DD/MM/YYYY -> YYYY-MM-DD for date equality checks
-            const isoDate = rawDate.includes('/')
-              ? (() => { const [d,m,y] = rawDate.split('/'); return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; })()
-              : rawDate.slice(0,10);
-            return {
-              id: `proposal-${p.id}`,
-              title: p.title || 'Propuesta de voluntariado',
-              type: 'volunteer' as const,
-              date: isoDate as string,
-              time: (typeof p.hour === 'string' && p.hour) ? p.hour : '00:00',
-              location: p.location as string | undefined,
-              status: 'registered' as const,
-            };
-          });
+        // Transform activities to match Calendar component format
+        const transformedEvents: CalendarEvent[] = activities.map((activity) => {
+          const normalizedDate = normalizeDate(activity.date);
+          
+          return {
+            id: `${normalizedDate}-${activity.id}`,
+            title: activity.title,
+            type: (activity.type === 'event' ? 'attendance' : activity.type) as CalendarEvent['type'],
+            date: normalizedDate,
+            time: activity.time || '10:00',
+            location: activity.location || undefined,
+            status: 'registered' as const
+          };
+        });
 
-        setEvents([...(eventsData || []), ...approvedProposalEvents]);
+        setEvents(transformedEvents);
       } catch (error) {
-        console.error('Error loading calendar events:', error);
+        console.error('Error loading calendar activities:', error);
       } finally {
         setLoading(false);
+        setIsTransitioning(false);
       }
     };
 
     loadEvents();
-  }, []);
+  }, [currentMonth, normalizeDate]);
 
-  // Convert UserCalendarEvent to CalendarEvent format
+  // Convert to CalendarEvent format
   const calendarEvents = events.map(event => ({
-    id: `${event.date}-${event.id}`,
+    id: event.id,
     title: event.title,
     type: event.type,
     time: event.time,
     location: event.location,
-    status: (event.status === 'enrolled' ? 'registered' : event.status) as 'registered' | 'completed' | 'cancelled'
+    status: event.status
   }));
 
   // Get events for selected date
@@ -81,7 +114,7 @@ export default function CalendarioPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Calendario de Actividades</h1>
-            <p className="text-gray-600">Visualiza todas tus actividades y eventos programados</p>
+            <p className="text-gray-600">Visualiza todas las actividades del sistema</p>
           </div>
         </div>
       </div>
@@ -89,24 +122,15 @@ export default function CalendarioPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar */}
         <div className="lg:col-span-2">
-          {loading ? (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="animate-pulse">
-                <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
-                <div className="grid grid-cols-7 gap-1">
-                  {Array.from({ length: 35 }).map((_, i) => (
-                    <div key={i} className="h-20 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
+          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
             <Calendar
               events={calendarEvents}
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
+              onMonthChange={setCurrentMonth}
+              currentMonth={currentMonth}
             />
-          )}
+          </div>
         </div>
 
         {/* Events List */}
@@ -169,17 +193,6 @@ export default function CalendarioPage() {
                         )}
                       </div>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      event.status === 'registered' ? 'bg-blue-100 text-blue-800' :
-                      event.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      event.status === 'enrolled' ? 'bg-green-100 text-green-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {event.status === 'registered' ? 'Inscrito' :
-                       event.status === 'completed' ? 'Completado' :
-                       event.status === 'enrolled' ? 'Inscrito' :
-                       'Cancelado'}
-                    </div>
                   </div>
                 ))}
               </div>
@@ -187,7 +200,7 @@ export default function CalendarioPage() {
               <div className="text-center py-12 text-gray-500">
                 <CalendarIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No hay actividades</h3>
-                <p className="text-gray-500">No tienes actividades programadas para esta fecha</p>
+                <p className="text-gray-500">No hay actividades programadas para esta fecha</p>
               </div>
             )}
           </div>

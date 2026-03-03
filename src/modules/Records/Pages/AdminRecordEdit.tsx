@@ -62,7 +62,7 @@ const AdminRecordEdit: React.FC = () => {
       
       // Redirect back to expedientes page after a short delay
       setTimeout(() => {
-        navigate({ to: '/admin/expedientes' });
+        navigate({ to: '..' as any });
       }, 2000);
     } catch (err) {
       console.error('Error updating record:', err);
@@ -74,7 +74,7 @@ const AdminRecordEdit: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate({ to: '/admin/expedientes' });
+    navigate({ to: '..' as any });
   };
 
   if (loading) {
@@ -164,8 +164,8 @@ const AdminRecordEdit: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-8 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 min-w-0">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -258,7 +258,7 @@ const AdminRecordEdit: React.FC = () => {
         )}
 
         {/* Form */}
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white rounded-lg shadow-sm min-w-0 overflow-x-hidden">
           <Phase3Form
             onSubmit={handleSave}
             loading={saving}

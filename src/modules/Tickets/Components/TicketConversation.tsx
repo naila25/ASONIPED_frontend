@@ -26,6 +26,8 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messageListenerRef = useRef<((message: any) => void) | null>(null);
+  const recentlySentMessagesRef = useRef<Set<string>>(new Set());
 
   const loadMessages = useCallback(async () => {
     try {
@@ -49,42 +51,88 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     }
   };
 
-  const setupSocketConnection = useCallback(async () => {
-    try {
-      await socketService.connect();
-      setIsConnected(true);
-      
-      // Join ticket room
-      socketService.joinTicketRoom(ticket.id);
-      
-      // Listen for new messages
-      socketService.onMessageReceived((message) => {
-        setMessages(prev => [...prev, message]);
-      });
-      
-    } catch (error) {
-      console.error('Failed to connect to Socket.io:', error);
-      setIsConnected(false);
-    }
-  }, [ticket.id]);
-
-  const cleanupSocketConnection = useCallback(() => {
-    socketService.leaveTicketRoom(ticket.id);
-    socketService.removeAllListeners();
-    socketService.disconnect();
-    setIsConnected(false);
-  }, [ticket.id]);
-
-
-
+  // Load messages separately from socket setup
   useEffect(() => {
     loadMessages();
-    setupSocketConnection();
-    
-    return () => {
-      cleanupSocketConnection();
+  }, [loadMessages]);
+
+  // Setup WebSocket connection separately
+  useEffect(() => {
+    const setupSocketConnection = async () => {
+      try {
+        await socketService.connect();
+        setIsConnected(true);
+        
+        // Join ticket room
+        socketService.joinTicketRoom(ticket.id);
+        
+        // Create message handler with improved duplicate detection
+        const messageHandler = (message: any) => {
+          // For messages from current user, check if this is a recently sent message
+          if (user && message.sender_id === user.id) {
+            // Check if we recently sent a message with this content
+            const messageContentKey = `${message.message}-${message.sender_id}`;
+            let foundMatch = false;
+            
+            // Check all recently sent message keys
+            recentlySentMessagesRef.current.forEach(key => {
+              if (key.startsWith(messageContentKey)) {
+                foundMatch = true;
+                recentlySentMessagesRef.current.delete(key);
+              }
+            });
+            
+            if (foundMatch) {
+              return; // Skip this message as it was just sent by us
+            }
+          }
+          
+          // Check if message already exists to prevent duplicates
+          setMessages(prev => {
+            const messageExists = prev.some(msg => {
+              // More robust duplicate check: compare message content, sender ID, and timestamp
+              const msgTimestamp = new Date(msg.timestamp).getTime();
+              const newTimestamp = new Date(message.timestamp || new Date()).getTime();
+              const timeDiff = Math.abs(msgTimestamp - newTimestamp);
+              
+              return msg.message === message.message && 
+                     msg.sender_id === message.sender_id &&
+                     timeDiff < 2000; // Within 2 seconds = likely duplicate
+            });
+            
+            if (messageExists) {
+              return prev;
+            }
+            
+            return [...prev, message];
+          });
+        };
+        
+        // Store the handler reference
+        messageListenerRef.current = messageHandler;
+        
+        // Register the listener
+        socketService.onMessageReceived(messageHandler);
+        
+      } catch (error) {
+        console.error('Failed to connect to Socket.io:', error);
+        setIsConnected(false);
+      }
     };
-  }, [ticket.id, loadMessages, setupSocketConnection, cleanupSocketConnection]);
+
+    setupSocketConnection();
+
+    // Cleanup function
+    return () => {
+      socketService.leaveTicketRoom(ticket.id);
+      if (messageListenerRef.current) {
+        socketService.removeListener('message_received');
+        messageListenerRef.current = null;
+      }
+      // Clear recently sent messages when component unmounts
+      recentlySentMessagesRef.current.clear();
+    };
+  }, [ticket.id, user?.id]); // Removed loadMessages, setupSocketConnection, cleanupSocketConnection from dependencies
 
   useEffect(() => {
     scrollToBottom();
@@ -105,35 +153,48 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     
     if (!newMessage.trim() || !user) return;
 
+    const messageText = newMessage.trim();
+    const messageData = {
+      module_type: 'donations' as const,
+      module_id: ticket.id,
+      sender_id: user.id,
+      message: messageText
+    };
+
     try {
       setSending(true);
-      
-      // Create message object
-      const messageData = {
-        module_type: 'donations' as const,
-        module_id: ticket.id,
-        sender_id: user.id,
-        message: newMessage.trim()
-      };
+      setNewMessage('');
 
-      // Send via API first
-      await sendMessage(messageData);
+      // Create a unique key for this message to prevent duplicate handling
+      const messageTimestamp = new Date().toISOString();
+      const messageKey = `${messageText}-${user.id}-${messageTimestamp}`;
       
-      // Reload messages to ensure admin message appears
-      await loadMessages();
+      // Add to recently sent messages to prevent duplicate from WebSocket broadcast
+      recentlySentMessagesRef.current.add(messageKey);
+      
+      // Remove from recently sent after 3 seconds (enough time for broadcast)
+      setTimeout(() => {
+        recentlySentMessagesRef.current.delete(messageKey);
+      }, 3000);
 
-      // Send via Socket.io for real-time delivery
+      // Send via WebSocket for real-time delivery
+      let messageSentViaWebSocket = false;
       if (isConnected) {
         socketService.sendMessage(ticket.id, {
           ...messageData,
           sender_name: user.full_name || 'Usuario',
-          timestamp: new Date().toISOString()
+          timestamp: messageTimestamp
         });
+        messageSentViaWebSocket = true;
       }
 
-      setNewMessage('');
+      // Always send via API for persistence
+      await sendMessage(messageData);
       
-
+      // Only reload messages if WebSocket failed, to prevent duplicates
+      if (!messageSentViaWebSocket) {
+        await loadMessages();
+      }
       
       if (onTicketUpdate) {
         onTicketUpdate();

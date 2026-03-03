@@ -1,8 +1,9 @@
 // ASONIPED_frontend/src/modules/Dashboards/Services/donationService.ts
 import { getToken } from '../../Login/Services/auth';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_BASE_URL_HEADER = 'http://localhost:3000/api/landing-donaciones-component';
-const API_BASE_URL_CARDS = 'http://localhost:3000/api/landing-donaciones-card';
+const getAPIBaseURLHeader = () => getAPIBaseURLSync() + '/api/landing-donaciones-component';
+const getAPIBaseURLCards = () => getAPIBaseURLSync() + '/api/landing-donaciones-card';
 
 export interface DonationHeader {
   id?: number;
@@ -33,7 +34,7 @@ export const donationService = {
 
   // HEADER
   async getHeader(): Promise<DonationHeader> {
-    const response = await fetch(`${API_BASE_URL_HEADER}`);
+    const response = await fetch(`${getAPIBaseURLHeader()}`);
     if (!response.ok) throw new Error('Failed to fetch Donation header');
     const data = await response.json();
     return Array.isArray(data) ? data[0] : data;
@@ -45,7 +46,7 @@ export const donationService = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL_HEADER}`, {
+    const response = await fetch(`${getAPIBaseURLHeader()}`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ export const donationService = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL_HEADER}/${header.id}`, {
+    const response = await fetch(`${getAPIBaseURLHeader()}/${header.id}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -79,25 +80,25 @@ export const donationService = {
 
   // CARDS
   async getCards(): Promise<DonationsCard[]> {
-    const response = await fetch(`${API_BASE_URL_CARDS}`);
+    const response = await fetch(`${getAPIBaseURLCards()}`);
     if (!response.ok) throw new Error('Failed to fetch Donation cards');
     const cards = await response.json();
     // Construct full URLs for images
     return cards.map((card: DonationsCard) => ({
       ...card,
       URL_imagen: card.URL_imagen ? 
-        (card.URL_imagen.startsWith('http') ? card.URL_imagen : `http://localhost:3000${card.URL_imagen}`) 
+        (card.URL_imagen.startsWith('http') ? card.URL_imagen : `${getAPIBaseURLSync()}${card.URL_imagen}`) 
         : card.URL_imagen
     }));
   },
 
   async getCardById(id: number): Promise<DonationsCard> {
-    const response = await fetch(`${API_BASE_URL_CARDS}/${id}`);
+    const response = await fetch(`${getAPIBaseURLCards()}/${id}`);
     if (!response.ok) throw new Error('Failed to fetch Donation card');
     const card = await response.json();
     // Construct full URL for the image if provided
     if (card.URL_imagen && !card.URL_imagen.startsWith('http')) {
-      card.URL_imagen = `http://localhost:3000${card.URL_imagen}`;
+      card.URL_imagen = `${getAPIBaseURLSync()}${card.URL_imagen}`;
     }
     return card;
   },
@@ -115,7 +116,7 @@ export const donationService = {
     formData.append('color_boton', card.color_boton);
     if (file) formData.append('imagen', file);
 
-    const response = await fetch(`${API_BASE_URL_CARDS}`, {
+    const response = await fetch(`${getAPIBaseURLCards()}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -126,7 +127,7 @@ export const donationService = {
     const result = await response.json();
     // Construct full URL for the image if provided
     if (result.URL_imagen && !result.URL_imagen.startsWith('http')) {
-      result.URL_imagen = `http://localhost:3000${result.URL_imagen}`;
+      result.URL_imagen = `${getAPIBaseURLSync()}${result.URL_imagen}`;
     }
     return result;
   },
@@ -145,7 +146,7 @@ export const donationService = {
     if (file) formData.append('imagen', file);
     if (card.URL_imagen && !file) formData.append('URL_imagen', card.URL_imagen);
 
-    const response = await fetch(`${API_BASE_URL_CARDS}/${id}`, {
+    const response = await fetch(`${getAPIBaseURLCards()}/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -156,7 +157,7 @@ export const donationService = {
     const result = await response.json();
     // Construct full URL for the image if provided
     if (result.URL_imagen && !result.URL_imagen.startsWith('http')) {
-      result.URL_imagen = `http://localhost:3000${result.URL_imagen}`;
+      result.URL_imagen = `${getAPIBaseURLSync()}${result.URL_imagen}`;
     }
     return result;
   },
@@ -167,7 +168,7 @@ export const donationService = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL_CARDS}/${id}`, {
+    const response = await fetch(`${getAPIBaseURLCards()}/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

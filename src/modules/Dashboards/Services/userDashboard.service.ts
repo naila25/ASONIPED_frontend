@@ -17,7 +17,7 @@ export interface UserCalendarEvent {
   date: string;
   time: string;
   location?: string;
-  status: 'registered' | 'completed' | 'cancelled';
+  status: 'registered' | 'completed' | 'cancelled' | 'enrolled';
 }
 
 export interface UserStats {

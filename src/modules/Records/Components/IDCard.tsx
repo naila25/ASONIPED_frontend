@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import type { RecordWithDetails } from '../Types/records';
 import { buildAttendanceQrData } from '../Utils/idCard';
 import logo from '../../../assets/logoasoniped.png';
+import { getAPIBaseURLSync, getAPIBaseURL } from '../../../shared/Services/config';
+import { getToken } from '../../../modules/Login/Services/auth';
 
 type IDCardProps = {
   record: RecordWithDetails;
@@ -46,47 +48,118 @@ const IDCard: React.FC<IDCardProps> = ({ record, qrUrl, className }) => {
   const bloodType = medicalAdditional?.blood_type || '';
   const diseases = medicalAdditional?.diseases || (disability?.medical_conditions ?? '') || '';
 
-  // Get passport photo from record documents
-  const passportPhoto = useMemo(() => {
+  const [backendUrl, setBackendUrl] = useState<string>('');
+  const [passportPhotoBlob, setPassportPhotoBlob] = useState<string | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
+
+  // Fetch backend URL asynchronously to ensure correct production URL
+  useEffect(() => {
+    const fetchBackendUrl = async () => {
+      try {
+        const url = await getAPIBaseURL();
+        setBackendUrl(url);
+      } catch (error) {
+        console.error('Error fetching backend URL:', error);
+        // Fallback to sync version
+        setBackendUrl(getAPIBaseURLSync());
+      }
+    };
+    fetchBackendUrl();
+  }, []);
+
+  // Get passport photo document
+  const photoDoc = useMemo(() => {
     if (!record.documents || record.documents.length === 0) {
       return null;
     }
 
     // Look for passport photo in documents
-    const photoDoc = record.documents.find(doc => {
+    return record.documents.find(doc => {
       return doc.document_type === 'photo' ||
         doc.original_name?.toLowerCase().includes('foto') ||
         doc.original_name?.toLowerCase().includes('passport') ||
         doc.original_name?.toLowerCase().includes('pasaporte');
     });
-
-    if (!photoDoc) {
-      return null;
-    }
-
-    // Prefer a backend-proxied Google Drive URL using the file id
-    const driveId = (photoDoc as any).google_drive_id as string | undefined;
-    if (driveId) {
-      return `http://localhost:3000/admin/google-drive/image/${driveId}`;
-    }
-
-    // If we only have a google_drive_url, try to extract the id
-    const url = (photoDoc as any).google_drive_url as string | undefined;
-    if (url) {
-      // Try common patterns: /file/d/<id>/view or ...?id=<id>
-      const matchPath = url.match(/\/d\/([^/]+)/);
-      const matchQuery = url.match(/[?&]id=([^&]+)/);
-      const extractedId = (matchPath && matchPath[1]) || (matchQuery && matchQuery[1]);
-      if (extractedId) {
-        return `http://localhost:3000/admin/google-drive/image/${extractedId}`;
-      }
-      // Fallback to provided url (may not render in <img> if it is a viewer link)
-      return url;
-    }
-
-    // Final fallback to local/server file_path
-    return (photoDoc as any).file_path || null;
   }, [record.documents]);
+
+  // Fetch image with authentication and convert to blob URL
+  useEffect(() => {
+    if (!photoDoc || !backendUrl) return;
+
+    const fetchImage = async () => {
+      try {
+        // Cleanup previous blob URL if exists
+        if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
+          URL.revokeObjectURL(blobUrlRef.current);
+          blobUrlRef.current = null;
+        }
+
+        // Get the Google Drive file ID
+        const photoDocAny = photoDoc as { google_drive_id?: string; google_drive_url?: string; file_path?: string };
+        let driveId: string | undefined = photoDocAny.google_drive_id;
+        
+        if (!driveId) {
+          // Try to extract from google_drive_url
+          const url = photoDocAny.google_drive_url;
+          if (url) {
+            const matchPath = url.match(/\/d\/([^/]+)/);
+            const matchQuery = url.match(/[?&]id=([^&]+)/);
+            driveId = (matchPath && matchPath[1]) || (matchQuery && matchQuery[1]) || undefined;
+          }
+        }
+
+        // If we have a drive ID, fetch via authenticated endpoint
+        if (driveId) {
+          const baseUrl = backendUrl || getAPIBaseURLSync();
+          const imageUrl = `${baseUrl}/admin/google-drive/image/${driveId}`;
+          
+          // Get auth token
+          const token = getToken();
+          
+          // Fetch image with authentication
+          const response = await fetch(imageUrl, {
+            method: 'GET',
+            credentials: 'include', // Include cookies
+            headers: {
+              'Authorization': token ? `Bearer ${token}` : '',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to load image: ${response.status}`);
+          }
+
+          // Convert to blob and create blob URL
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          blobUrlRef.current = blobUrl;
+          setPassportPhotoBlob(blobUrl);
+        } else {
+          // Fallback to file_path if available
+          const filePath = photoDocAny.file_path;
+          if (filePath) {
+            setPassportPhotoBlob(filePath);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading passport photo:', error);
+        setPassportPhotoBlob(null);
+      }
+    };
+
+    fetchImage();
+    
+    // Cleanup: revoke blob URL when component unmounts or photo changes
+    return () => {
+      if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, [photoDoc, backendUrl]);
+
+  // Use blob URL or fallback
+  const passportPhoto = passportPhotoBlob;
 
   // Fallback QR if not provided (simple, service-based generator)
   const qrImageSrc = qrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
