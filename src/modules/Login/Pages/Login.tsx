@@ -42,7 +42,9 @@ const AdminLogin = () => {
     users: 0,
     volunteers: 0,
     workshops: 0,
-    beneficiaries: 0
+    beneficiaries: 0,
+    events: 0,
+    tickets: 0
   });
   // const navigate = useNavigate();
 
@@ -246,14 +248,15 @@ const AdminLogin = () => {
                           Reintentar
                         </button>
                         <button
-                          onClick={() => {
-                            const ip = prompt('Ingresa la IP del servidor (ej: 192.168.1.100):');
-                                                         if (ip) {
-                               import('../../../shared/Services/simpleNetworkConfig').then(({ simpleNetwork }) => {
-                                 simpleNetwork.setBackendUrl(`http://${ip}:3000`);
-                                 setError('IP configurada. Intenta iniciar sesión nuevamente.');
-                               });
-                             }
+                          onClick={async () => {
+                            const input = prompt('Ingresa la IP del servidor (ej: 192.168.1.100 o 192.168.1.100:3000):');
+                            if (input) {
+                              // Si el usuario incluye el puerto, usarlo; si no, usar 3000 por defecto para desarrollo local
+                              const url = input.includes(':') ? `http://${input}` : `http://${input}:3000`;
+                              const { simpleNetwork } = await import('../../../shared/Services/simpleNetworkConfig');
+                              simpleNetwork.setBackendUrl(url);
+                              setError('IP configurada. Intenta iniciar sesión nuevamente.');
+                            }
                           }}
                           className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs transition-colors"
                         >

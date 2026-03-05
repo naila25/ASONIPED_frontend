@@ -11,7 +11,7 @@ const initialForm: Omit<Workshop, 'id'> = {
   titulo: '',
   ubicacion: '',
   descripcion: '',
-  materiales: '',
+  materiales: [],
   aprender: '',
   imagen: '',
   fecha: '',

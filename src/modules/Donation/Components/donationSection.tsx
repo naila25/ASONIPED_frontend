@@ -2,7 +2,7 @@ import  { useState, useEffect } from 'react';
 import { donationService, type DonationSection } from '../../Dashboards/Services/donationService';
 import fallbackImg from '../../../assets/fondoasoniped.jpg';
 
-const DonationSection = () => {
+const DonationSectionComponent = () => {
   const [donationData, setDonationData] = useState<DonationSection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,4 +146,4 @@ const DonationSection = () => {
   );
 };
 
-export default DonationSection;
+export default DonationSectionComponent;

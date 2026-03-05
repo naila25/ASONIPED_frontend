@@ -1,6 +1,7 @@
 import { getToken } from '../../Login/Services/auth';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_BASE_URL = 'http://localhost:3000/api/about-section';
+const getAPIBaseURL = () => getAPIBaseURLSync() + '/api/about-section';
 
 export interface AboutSection {
   id?: number;
@@ -13,7 +14,7 @@ export interface AboutSection {
 
 export const aboutService = {
   async getAll(): Promise<AboutSection[]> {
-    const response = await fetch(`${API_BASE_URL}`);
+    const response = await fetch(`${getAPIBaseURL()}`);
     if (!response.ok) {
       throw new Error('Failed to fetch about sections');
     }
@@ -21,7 +22,7 @@ export const aboutService = {
   },
 
   async getById(id: number): Promise<AboutSection> {
-    const response = await fetch(`${API_BASE_URL}/${id}`);
+    const response = await fetch(`${getAPIBaseURL()}/${id}`);
     if (!response.ok) {
       throw new Error('Failed to fetch about section');
     }
@@ -34,7 +35,7 @@ export const aboutService = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}`, {
+    const response = await fetch(`${getAPIBaseURL()}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +56,7 @@ export const aboutService = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
+    const response = await fetch(`${getAPIBaseURL()}/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -76,7 +77,7 @@ export const aboutService = {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
+    const response = await fetch(`${getAPIBaseURL()}/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

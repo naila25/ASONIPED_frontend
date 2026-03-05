@@ -1,9 +1,9 @@
 import type { Workshop, WorkshopOption } from '../Types/workshop';
 import { getAuthHeader } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_URL = `${API_BASE_URL}/workshops`;
-const OPTIONS_API_URL = `${API_BASE_URL}/workshops`;
+const getAPIUrl = () => `${getAPIBaseURLSync()}/workshops`;
+const getOptionsAPIUrl = () => `${getAPIBaseURLSync()}/workshops`;
 
 // Fetch a paginated list of workshops (optionally filtered)
 export const fetchWorkshops = async (
@@ -16,7 +16,7 @@ export const fetchWorkshops = async (
   if (titulo) params.append('titulo', titulo);
   if (ubicacion) params.append('ubicacion', ubicacion);
 
-  const res = await fetch(`${API_URL}?${params.toString()}`, {
+  const res = await fetch(`${getAPIUrl()}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -28,7 +28,7 @@ export const fetchWorkshops = async (
 
 // Add a new workshop
 export const addWorkshop = async (workshop: Omit<Workshop, 'id'>) => {
-  const res = await fetch(API_URL, {
+  const res = await fetch(getAPIUrl(), {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -45,7 +45,7 @@ export const updateWorkshop = async (
   id: number,
   data: Partial<Workshop>
 ): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${getAPIUrl()}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
@@ -59,7 +59,7 @@ export const updateWorkshop = async (
 
 // Delete a workshop (admin only)
 export const deleteWorkshop = async (id: number): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${getAPIUrl()}/${id}`, {
     method: 'DELETE',
     headers: getAuthHeader(),
   });
@@ -71,7 +71,7 @@ export const deleteWorkshop = async (id: number): Promise<{ message: string }> =
 export const enrollIntoWorkshopOption = async (
   optionId: string | number
 ): Promise<{ message: string; enrollmentId: string }> => {
-  const res = await fetch(`${API_URL}/enroll/${optionId}`, {
+  const res = await fetch(`${getAPIUrl()}/enroll/${optionId}`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -85,7 +85,7 @@ export const enrollIntoWorkshopOption = async (
 // Fetch all available workshop options
 export const fetchWorkshopOptions = async (): Promise<WorkshopOption[]> => {
   const params = new URLSearchParams({ _t: String(Date.now()) }); // Cache busting
-  const res = await fetch(`${OPTIONS_API_URL}?${params.toString()}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -99,13 +99,24 @@ export const fetchWorkshopOptions = async (): Promise<WorkshopOption[]> => {
 
 // Add a new workshop option (admin only)
 export const addWorkshopOption = async (
-  option: Omit<WorkshopOption, 'id'> & { imageFile?: File | null }
+  option: Omit<WorkshopOption, 'id'> & { 
+    imageFile?: File | null;
+    date?: string;
+    description?: string;
+    location?: string;
+    skills?: string;
+    tools?: string;
+    imageUrl?: string;
+    time?: string;
+    capacity?: number;
+  }
 ): Promise<{ message: string }> => {
   const formData = new FormData();
 
   // Format date as DD/MM/YYYY if we received YYYY-MM-DD
   const date = (() => {
-    const d = option.date;
+    const d = (option as any).date;
+    if (!d) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
       const [y, m, day] = d.split('-');
       return `${day}/${m}/${y}`;
@@ -115,18 +126,18 @@ export const addWorkshopOption = async (
 
   // These properties must exist in WorkshopOption type!
   formData.append('title', option.title);
-  formData.append('description', option.description);
-  formData.append('date', date);
-  formData.append('location', option.location);
-  if (option.skills) formData.append('skills', option.skills);
-  if (option.tools) formData.append('tools', option.tools);
-  if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
+  if ((option as any).description) formData.append('description', (option as any).description);
+  if (date) formData.append('date', date);
+  if ((option as any).location) formData.append('location', (option as any).location);
+  if ((option as any).skills) formData.append('skills', (option as any).skills);
+  if ((option as any).tools) formData.append('tools', (option as any).tools);
+  if ((option as any).imageUrl) formData.append('imageUrl', (option as any).imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
-  if ('time' in option && option.time) formData.append('time', option.time);
-  if ('capacity' in option && option.capacity !== undefined)
-    formData.append('capacity', String(option.capacity));
+  if ((option as any).time) formData.append('time', (option as any).time);
+  if ((option as any).capacity !== undefined)
+    formData.append('capacity', String((option as any).capacity));
 
-  const res = await fetch(OPTIONS_API_URL, {
+  const res = await fetch(getOptionsAPIUrl(), {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -141,12 +152,23 @@ export const addWorkshopOption = async (
 // Update a workshop option (admin only)
 export const updateWorkshopOption = async (
   id: string,
-  option: Omit<WorkshopOption, 'id'> & { imageFile?: File | null }
+  option: Omit<WorkshopOption, 'id'> & { 
+    imageFile?: File | null;
+    date?: string;
+    description?: string;
+    location?: string;
+    skills?: string;
+    tools?: string;
+    imageUrl?: string;
+    time?: string;
+    capacity?: number;
+  }
 ): Promise<{ message: string }> => {
   const formData = new FormData();
 
   const date = (() => {
-    const d = option.date;
+    const d = (option as any).date;
+    if (!d) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
       const [y, m, day] = d.split('-');
       return `${day}/${m}/${y}`;
@@ -155,18 +177,18 @@ export const updateWorkshopOption = async (
   })();
 
   formData.append('title', option.title);
-  formData.append('description', option.description);
-  formData.append('date', date);
-  formData.append('location', option.location);
-  if (option.skills) formData.append('skills', option.skills);
-  if (option.tools) formData.append('tools', option.tools);
-  if (option.imageUrl) formData.append('imageUrl', option.imageUrl);
+  if ((option as any).description) formData.append('description', (option as any).description);
+  if (date) formData.append('date', date);
+  if ((option as any).location) formData.append('location', (option as any).location);
+  if ((option as any).skills) formData.append('skills', (option as any).skills);
+  if ((option as any).tools) formData.append('tools', (option as any).tools);
+  if ((option as any).imageUrl) formData.append('imageUrl', (option as any).imageUrl);
   if (option.imageFile) formData.append('image', option.imageFile);
-  if ('time' in option && option.time) formData.append('time', option.time);
-  if ('capacity' in option && option.capacity !== undefined)
-    formData.append('capacity', String(option.capacity));
+  if ((option as any).time) formData.append('time', (option as any).time);
+  if ((option as any).capacity !== undefined)
+    formData.append('capacity', String((option as any).capacity));
 
-  const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),
@@ -180,7 +202,7 @@ export const updateWorkshopOption = async (
 
 // Delete a workshop option (admin only)
 export const deleteWorkshopOption = async (id: string): Promise<{ message: string }> => {
-  const res = await fetch(`${OPTIONS_API_URL}/${id}`, {
+  const res = await fetch(`${getOptionsAPIUrl()}/${id}`, {
     method: 'DELETE',
     headers: getAuthHeader(),
   });
@@ -195,7 +217,7 @@ export const fetchWorkshopEnrollments = async (page = 1, limit = 10) => {
     limit: String(limit),
     _t: String(Date.now()), // Cache busting
   });
-  const res = await fetch(`${API_URL}/enrollments?${params.toString()}`, {
+  const res = await fetch(`${getAPIUrl()}/enrollments?${params.toString()}`, {
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
@@ -209,7 +231,7 @@ export const fetchWorkshopEnrollments = async (page = 1, limit = 10) => {
 
 // Add a new workshop enrollment
 export const addWorkshopEnrollment = async (enrollmentData: any) => {
-  const res = await fetch(`${API_URL}/enrollments`, {
+  const res = await fetch(`${getAPIUrl()}/enrollments`, {
     method: 'POST',
     headers: {
       ...getAuthHeader(),
@@ -226,7 +248,7 @@ export const updateWorkshopFormStatus = async (
   id: number, 
   status: string
 ): Promise<{ message: string }> => {
-  const res = await fetch(`${API_URL}/enrollments/${id}/status`, {
+  const res = await fetch(`${getAPIUrl()}/enrollments/${id}/status`, {
     method: 'PUT',
     headers: {
       ...getAuthHeader(),

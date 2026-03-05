@@ -6,6 +6,16 @@ export const apiRequest = async (url: string, options: RequestInit = {}): Promis
   const base = await getAPIBaseURL();
   const fullUrl = url.startsWith('http') ? url : `${base}${url}`;
   
+  // Debug logging
+  if (url.includes('/statistics') || url.includes('/users/')) {
+    console.log('🌐 apiRequest:', {
+      url,
+      base,
+      fullUrl,
+      viteBackendUrl: import.meta.env.VITE_BACKEND_URL || 'NOT SET'
+    });
+  }
+  
   const response = await fetch(fullUrl, {
     ...options,
     headers: {

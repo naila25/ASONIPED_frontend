@@ -71,7 +71,7 @@ const EventsNews: React.FC = () => {
                  .join(' ') + (latestItems[currentIndex].description.split(' ').length > 30 ? '...' : '')}
               </p>
               <Link
-                to={`/events-news/${latestItems[currentIndex].id}`}
+                to={`/events-news/${latestItems[currentIndex].id}` as any}
                 className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
               >
                 Leer más

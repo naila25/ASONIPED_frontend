@@ -1,13 +1,13 @@
 // Utility functions for interacting with JsonBin for EventNewsItem CRUD
 import type { EventNewsItem } from '../Types/eventsNews';
 import { getAuthHeader } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_URL = `${API_BASE_URL}/events-news`;
+const getAPIUrl = () => `${getAPIBaseURLSync()}/events-news`;
 
 export const fetchEventsNews = async () => {
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch(getAPIUrl(), {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -22,7 +22,7 @@ export const fetchEventsNews = async () => {
 
 export const createEventNews = async (data: Omit<EventNewsItem, 'id'>) => {
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetch(getAPIUrl(), {
       method: 'POST',
       headers: {
         ...getAuthHeader(),
@@ -40,7 +40,7 @@ export const createEventNews = async (data: Omit<EventNewsItem, 'id'>) => {
 
 export const updateEventNews = async (id: number, data: Partial<EventNewsItem>) => {
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(`${getAPIUrl()}/${id}`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -57,7 +57,7 @@ export const updateEventNews = async (id: number, data: Partial<EventNewsItem>) 
 };
 
 export async function deleteEventNews(id: string): Promise<void> {
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${getAPIUrl()}/${id}`, {
     method: 'DELETE',
     headers: {
       ...getAuthHeader(),

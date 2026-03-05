@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getAuthHeader } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 export interface WorkshopEnrollment {
   id: number;
@@ -13,7 +13,7 @@ export interface WorkshopEnrollment {
 }
 
 export const getAllEnrollments = async (): Promise<WorkshopEnrollment[]> => {
-  const { data } = await axios.get(`${API_BASE_URL}/enrollments`, {
+  const { data } = await axios.get(`${getAPIBaseURLSync()}/enrollments`, {
     headers: getAuthHeader()
   });
   return data;

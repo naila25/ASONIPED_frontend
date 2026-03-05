@@ -1,5 +1,5 @@
 import { getAuthHeader, getToken } from '../../Login/Services/auth';
-import { API_BASE_URL } from '../../../shared/Services/config';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 import type { 
   Record, 
   RecordWithDetails, 
@@ -9,7 +9,7 @@ import type {
   RecordStats
 } from '../Types/records';
 
-const API_URL = `${API_BASE_URL}/records`;
+const getAPIUrl = () => `${getAPIBaseURLSync()}/records`;
 
 // ===== SERVICIOS BÁSICOS =====
 
@@ -21,7 +21,7 @@ export const getUserRecord = async (): Promise<RecordWithDetails | null> => {
     console.log('Auth header:', authHeader);
     console.log('Token:', getToken());
     
-    const response = await fetch(`${API_URL}/my-record`, {
+    const response = await fetch(`${getAPIUrl()}/my-record`, {
       headers: {
         ...authHeader,
         'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ export const createInitialRecord = async (phase1Data: Phase1Data): Promise<Recor
     console.log('Request body:', requestBody);
     console.log('Auth header:', getAuthHeader());
     
-    const response = await fetch(`${API_URL}`, {
+    const response = await fetch(`${getAPIUrl()}`, {
       method: 'POST',
       headers: {
         ...getAuthHeader(),
@@ -198,7 +198,7 @@ export const completeRecord = async (
 
     const xhrResponse: any = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('PUT', `${API_URL}/${recordId}/complete`);
+      xhr.open('PUT', `${getAPIUrl()}/${recordId}/complete`);
 
       // Agregar encabezados de autenticación si existen
       if (token) {
@@ -334,7 +334,7 @@ export const createAdminDirectRecord = async (
 
     const xhrResponse: any = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${API_URL}/admin-direct`);
+      xhr.open('POST', `${getAPIUrl()}/admin-direct`);
 
       // Agregar encabezados de autenticación si existen
       if (token) {
@@ -403,7 +403,7 @@ export const getGeographicAnalytics = async (): Promise<Array<{
   created_at: string;
 }>> => {
   try {
-    const response = await fetch(`${API_URL}/geographic-analytics`, {
+    const response = await fetch(`${getAPIUrl()}/geographic-analytics`, {
       method: 'GET',
       headers: {
         ...getAuthHeader(),
@@ -454,7 +454,7 @@ export const getDisabilityAnalytics = async (): Promise<Array<{
   } | null;
 }>> => {
   try {
-    const response = await fetch(`${API_URL}/disability-analytics`, {
+    const response = await fetch(`${getAPIUrl()}/disability-analytics`, {
       method: 'GET',
       headers: {
         ...getAuthHeader(),
@@ -475,8 +475,8 @@ export const getDisabilityAnalytics = async (): Promise<Array<{
 
 export const getDemographicRecords = async (limit: number = 1000): Promise<any[]> => {
   try {
-    // API_URL already points to /records base; do not append /records again
-    const response = await fetch(`${API_URL}?page=1&limit=${limit}`, {
+    // getAPIUrl() already points to /records base; do not append /records again
+    const response = await fetch(`${getAPIUrl()}?page=1&limit=${limit}`, {
       method: 'GET',
       headers: {
         ...getAuthHeader(),
@@ -512,7 +512,7 @@ export const getFamilyAnalytics = async (): Promise<Array<{
   } | null;
 }>> => {
   try {
-    const response = await fetch(`${API_URL}/family-analytics`, {
+    const response = await fetch(`${getAPIUrl()}/family-analytics`, {
       method: 'GET',
       headers: {
         ...getAuthHeader(),
@@ -548,7 +548,7 @@ export const getRecords = async (
     if (search) params.append('search', search);
     if (creator) params.append('creator', creator);
     
-    const response = await fetch(`${API_URL}?${params.toString()}`, {
+    const response = await fetch(`${getAPIUrl()}?${params.toString()}`, {
       headers: {
         ...getAuthHeader(),
         'Content-Type': 'application/json',
@@ -571,7 +571,7 @@ export const getRecordById = async (id: number): Promise<RecordWithDetails> => {
   try {
     console.log('=== GET RECORD BY ID ===');
     console.log('Record ID:', id);
-    console.log('API URL:', `${API_URL}/${id}`);
+    console.log('API URL:', `${getAPIUrl()}/${id}`);
     console.log('Auth header:', getAuthHeader());
     
     const { authenticatedRequest } = await import('../../../shared/Services/api.service');
@@ -600,7 +600,7 @@ export const getRecordById = async (id: number): Promise<RecordWithDetails> => {
 // Aprobar fase 1
 export const approvePhase1 = async (recordId: number, comment?: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/${recordId}/approve-phase1`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}/approve-phase1`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -621,7 +621,7 @@ export const approvePhase1 = async (recordId: number, comment?: string): Promise
 // Rechazar fase 1
 export const rejectPhase1 = async (recordId: number, comment: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/${recordId}/reject-phase1`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}/reject-phase1`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -642,7 +642,7 @@ export const rejectPhase1 = async (recordId: number, comment: string): Promise<v
 // Solicitar modificación de fase 1
 export const requestPhase1Modification = async (recordId: number, comment?: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/${recordId}/request-modification`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}/request-modification`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -678,10 +678,9 @@ export const requestPhase3Modification = async (
     console.log('Documents to replace type:', typeof documentsToReplace);
     console.log('Documents to replace length:', documentsToReplace?.length);
     
-    const requestUrl = `${API_URL}/${recordId}/request-phase3-modification`;
+    const requestUrl = `${getAPIUrl()}/${recordId}/request-phase3-modification`;
     console.log('Request URL:', requestUrl);
-    console.log('API_URL:', API_URL);
-    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('API URL:', getAPIUrl());
     const authHeader = getAuthHeader();
     console.log('Auth header:', authHeader);
     console.log('Full request details:', {
@@ -731,7 +730,7 @@ export const requestPhase3Modification = async (
 // Update phase 1 data (for modifications)
 export const updatePhase1Data = async (recordId: number, personalData: any): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/${recordId}/update-phase1`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}/update-phase1`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -752,7 +751,7 @@ export const updatePhase1Data = async (recordId: number, personalData: any): Pro
 // Aprobar expediente completo
 export const approveRecord = async (recordId: number, comment?: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/${recordId}/approve`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}/approve`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -773,7 +772,7 @@ export const approveRecord = async (recordId: number, comment?: string): Promise
 // Rechazar expediente completo
 export const rejectRecord = async (recordId: number, comment: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/${recordId}/reject`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}/reject`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -799,7 +798,7 @@ export const addNote = async (recordId: number, note: string, type: string = 'ac
     console.log('Note:', note);
     console.log('Type:', type);
     
-    const response = await fetch(`${API_URL}/${recordId}/notes`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}/notes`, {
       method: 'POST',
       headers: {
         ...getAuthHeader(),
@@ -829,7 +828,7 @@ export const updateNote = async (noteId: number, note: string, type?: string): P
     console.log('Note:', note);
     console.log('Type:', type);
     
-    const response = await fetch(`${API_URL}/notes/${noteId}`, {
+    const response = await fetch(`${getAPIUrl()}/notes/${noteId}`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -857,7 +856,7 @@ export const deleteNote = async (noteId: number): Promise<void> => {
     console.log('=== ELIMINANDO COMENTARIO ===');
     console.log('Note ID:', noteId);
     
-    const response = await fetch(`${API_URL}/notes/${noteId}`, {
+    const response = await fetch(`${getAPIUrl()}/notes/${noteId}`, {
       method: 'DELETE',
       headers: {
         ...getAuthHeader(),
@@ -883,7 +882,7 @@ export const deleteRecord = async (recordId: number): Promise<void> => {
     console.log('=== ELIMINANDO EXPEDIENTE ===');
     console.log('Record ID:', recordId);
     
-    const response = await fetch(`${API_URL}/${recordId}`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}`, {
       method: 'DELETE',
       headers: {
         ...getAuthHeader(),
@@ -906,7 +905,7 @@ export const deleteRecord = async (recordId: number): Promise<void> => {
 // Obtener estadísticas (admin)
 export const getRecordStats = async (): Promise<RecordStats> => {
   try {
-    const response = await fetch(`${API_URL}/stats`, {
+    const response = await fetch(`${getAPIUrl()}/stats`, {
       headers: {
         ...getAuthHeader(),
         'Content-Type': 'application/json',
@@ -934,7 +933,7 @@ export const checkCedulaAvailability = async (cedula: string, excludeRecordId?: 
       params.append('excludeRecordId', excludeRecordId.toString());
     }
     
-    const response = await fetch(`${API_URL}/check-cedula-availability/${cedula}?${params.toString()}`, {
+    const response = await fetch(`${getAPIUrl()}/check-cedula-availability/${cedula}?${params.toString()}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -1014,7 +1013,7 @@ export const updatePhase3Data = async (
 
     const xhrResponse: any = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('PUT', `${API_URL}/${recordId}/update-phase3`);
+      xhr.open('PUT', `${getAPIUrl()}/${recordId}/update-phase3`);
 
       if (token) {
         xhr.setRequestHeader('Authorization', token);
@@ -1083,7 +1082,7 @@ export const replaceDocument = async (
 
     const xhrResponse: any = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('PUT', `${API_URL.replace('/records', '/documents')}/${recordId}/documents/${documentId}/replace`);
+      xhr.open('PUT', `${getAPIUrl().replace('/records', '/documents')}/${recordId}/documents/${documentId}/replace`);
 
       if (token) {
         xhr.setRequestHeader('Authorization', token);
@@ -1137,7 +1136,7 @@ export const replaceDocument = async (
 // Obtener notificaciones del usuario
 export const getUserNotifications = async (): Promise<unknown[]> => {
   try {
-    const response = await fetch(`${API_URL}/notifications`, {
+    const response = await fetch(`${getAPIUrl()}/notifications`, {
       headers: {
         ...getAuthHeader(),
         'Content-Type': 'application/json',
@@ -1158,7 +1157,7 @@ export const getUserNotifications = async (): Promise<unknown[]> => {
 // Marcar notificación como leída
 export const markNotificationAsRead = async (notificationId: number): Promise<void> => {
   try {
-    const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
+    const response = await fetch(`${getAPIUrl()}/notifications/${notificationId}/read`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),
@@ -1195,8 +1194,8 @@ export const updateRecordAdmin = async (
     // Add files if any
     if (data.documentation_requirements?.documents) {
       data.documentation_requirements.documents.forEach((doc, index) => {
-        if (doc.file) {
-          formData.append(`document_${index}`, doc.file);
+        if ((doc as any).file) {
+          formData.append(`document_${index}`, (doc as any).file);
         }
       });
     }
@@ -1208,7 +1207,7 @@ export const updateRecordAdmin = async (
     const xhrResponse: any = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       
-      xhr.open('PUT', `${API_URL}/${recordId}/admin-edit`);
+      xhr.open('PUT', `${getAPIUrl()}/${recordId}/admin-edit`);
       
       if (token) {
         xhr.setRequestHeader('Authorization', token);
@@ -1268,7 +1267,7 @@ export const handoverRecordToUser = async (
     console.log('Record ID:', recordId);
     console.log('User ID:', userId);
 
-    const response = await fetch(`${API_URL}/${recordId}/handover`, {
+    const response = await fetch(`${getAPIUrl()}/${recordId}/handover`, {
       method: 'PUT',
       headers: {
         ...getAuthHeader(),

@@ -1,4 +1,4 @@
-import { createRouter, createRootRoute, createRoute, Router } from '@tanstack/react-router';
+import { createRouter, createRootRoute, createRoute } from '@tanstack/react-router';
 import { lazy } from 'react';
 import App from '../../App';
 import Home from '../../modules/Landing/Pages/HomePage';
@@ -26,6 +26,7 @@ import VoluntariadoPage from '../../modules/Volunteers/Pages/VoluntariadoPage';
 import UserWorkshopsPage from '../../modules/Workshops/Pages/UserWorkshopsPage';
 import MensajesPage from '../../modules/Tickets/Pages/MensajesPage';
 import CalendarioPage from '../../modules/Dashboards/Pages/CalendarioPage';
+import AdminCalendarioPage from '../../modules/Dashboards/Pages/AdminCalendarioPage';
 import PerfilPage from '../../modules/Dashboards/Pages/PerfilPage';
 import SoportePage from '../../modules/Tickets/Pages/SoportePage';
 import GestionLanding from '../../modules/Dashboards/Pages/GestionLanding';
@@ -317,7 +318,13 @@ const GestionLandingRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'landing',
   component: GestionLanding,
-})
+});
+
+const adminCalendarioRoute = createRoute({
+  getParentRoute: () => adminDashboardRoute,
+  path: 'calendar-activities',
+  component: AdminCalendarioPage,
+});
 
 // Route tree construction
 const routeTree = rootRoute.addChildren([
@@ -354,7 +361,8 @@ const routeTree = rootRoute.addChildren([
       
       userManagementRoute,
       adminTicketsRoute,
-      GestionLandingRoute
+      GestionLandingRoute,
+      adminCalendarioRoute
     ]),
     userDashboardRoute.addChildren([
       userHomeRoute,
@@ -371,27 +379,23 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 
-let router: Router<typeof routeTree> | undefined;
-
-if (!router) {
-  router = createRouter({
-    routeTree,
-    defaultPreload: 'intent',
-    defaultPreloadStaleTime: 0,
-    defaultErrorComponent: ({ error }) => (
-      <div className="text-center p-4">
-        <h1 className="text-2xl font-bold text-red-600">Error</h1>
-        <p className="text-gray-700">{error.message}</p>
-      </div>
-    ),
-    defaultNotFoundComponent: () => (
-      <div className="text-center p-4">
-        <h1 className="text-2xl font-bold text-red-600">Page Not Found</h1>
-        <p className="text-gray-700">The page you're looking for doesn't exist.</p>
-      </div>
-    )
-  });
-}
+const router = createRouter({
+  routeTree,
+  defaultPreload: 'intent',
+  defaultPreloadStaleTime: 0,
+  defaultErrorComponent: ({ error }) => (
+    <div className="text-center p-4">
+      <h1 className="text-2xl font-bold text-red-600">Error</h1>
+      <p className="text-gray-700">{error.message}</p>
+    </div>
+  ),
+  defaultNotFoundComponent: () => (
+    <div className="text-center p-4">
+      <h1 className="text-2xl font-bold text-red-600">Page Not Found</h1>
+      <p className="text-gray-700">The page you're looking for doesn't exist.</p>
+    </div>
+  )
+});
 
 export { router };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchVolunteerOptions, addVolunteerOption, deleteVolunteerOption, updateVolunteerOption } from '../Services/fetchVolunteers';
 import type { VolunteerOption } from '../Types/volunteer';
 import {  Search, Plus, Edit, Trash2, Calendar, MapPin, Image, FileText, Table, Grid3X3, Clock, Users } from 'lucide-react';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
 // Admin page for managing volunteer options (CRUD)
 const VolunteerOptionsPage = () => {
@@ -29,6 +30,19 @@ const VolunteerOptionsPage = () => {
   // Pagination state for card view
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+
+  // Format HH:MM (24h) to 12-hour AM/PM for display
+  const formatHour12 = (hhmm?: string): string => {
+    if (!hhmm) return '';
+    try {
+      const [h, m] = hhmm.split(':');
+      const d = new Date();
+      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return hhmm;
+    }
+  };
 
   // Load volunteer options on mount
   useEffect(() => {
@@ -102,11 +116,21 @@ const VolunteerOptionsPage = () => {
   // Start editing an existing option
   const handleEdit = (option: VolunteerOption) => {
     setEditingId(option.id);
+    // Normalize DD/MM/YYYY to YYYY-MM-DD for date input compatibility
+    const toISO = (d: string) => {
+      try {
+        if (d && d.includes('/')) {
+          const [day, month, year] = d.split('/');
+          if (day && month && year) return `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+        }
+      } catch {}
+      return d;
+    };
     setForm({
       title: option.title,
       description: option.description,
       imageUrl: option.imageUrl,
-      date: option.date,
+      date: toISO(option.date),
       location: option.location,
       skills: option.skills || '',
       tools: option.tools || '',
@@ -529,7 +553,7 @@ const VolunteerOptionsPage = () => {
                       <tr key={option.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
                         <td className="px-4 py-3 align-top">
                           <img
-                            src={option.imageUrl?.startsWith('http') ? option.imageUrl : `http://localhost:3000${option.imageUrl}`}
+                            src={option.imageUrl?.startsWith('http') ? option.imageUrl : `${getAPIBaseURLSync()}${option.imageUrl}`}
                             alt={option.title}
                             className="h-11 w-11 object-cover rounded-md border border-gray-200"
                           />
@@ -562,7 +586,7 @@ const VolunteerOptionsPage = () => {
                         <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
                           <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={(option as unknown as { hour?: string }).hour || 'No especificada'}>
                             <Clock className="w-3 h-3 mr-1" />
-                            {(option as unknown as { hour?: string }).hour || '—'}
+                            {formatHour12((option as unknown as { hour?: string }).hour) || '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
@@ -613,7 +637,7 @@ const VolunteerOptionsPage = () => {
                 <div className="relative h-48 bg-gray-100 flex-shrink-0">
                   {option.imageUrl ? (
                     <img
-                      src={option.imageUrl.startsWith('http') ? option.imageUrl : `http://localhost:3000${option.imageUrl}`}
+                      src={option.imageUrl.startsWith('http') ? option.imageUrl : `${getAPIBaseURLSync()}${option.imageUrl}`}
                       alt={option.title}
                       className="w-full h-full object-cover"
                     />
@@ -675,7 +699,7 @@ const VolunteerOptionsPage = () => {
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Clock className="w-4 h-4 text-gray-400" />
                       <span className="font-medium">Hora:</span>
-                      <span>{(option as unknown as { hour?: string }).hour}</span>
+                      <span>{formatHour12((option as unknown as { hour?: string }).hour)}</span>
                     </div>
                   )}
 

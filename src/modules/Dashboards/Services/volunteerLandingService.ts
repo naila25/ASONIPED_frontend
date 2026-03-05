@@ -1,6 +1,7 @@
 import { getToken } from '../../Login/Services/auth';
+import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-const API_BASE_URL = 'http://localhost:3000/api/landing-volunteer';
+const getAPIBaseURL = () => getAPIBaseURLSync() + '/api/landing-volunteer';
 
 export interface LandingVolunteer {
   id?: number;
@@ -14,12 +15,12 @@ export interface LandingVolunteer {
 
 export const volunteerLandingService = {
   async getAll(): Promise<LandingVolunteer[]> {
-    const res = await fetch(`${API_BASE_URL}`);
+    const res = await fetch(`${getAPIBaseURL()}`);
     if (!res.ok) throw new Error('Failed to fetch volunteers');
     return res.json();
   },
   async getById(id: number): Promise<LandingVolunteer> {
-    const res = await fetch(`${API_BASE_URL}/${id}`);
+    const res = await fetch(`${getAPIBaseURL()}/${id}`);
     if (!res.ok) throw new Error('Failed to fetch volunteer');
     return res.json();
   },
@@ -29,7 +30,7 @@ export const volunteerLandingService = {
       throw new Error('No authentication token found');
     }
 
-    const res = await fetch(`${API_BASE_URL}`, {
+    const res = await fetch(`${getAPIBaseURL()}`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -49,7 +50,7 @@ export const volunteerLandingService = {
       throw new Error('No authentication token found');
     }
 
-    const res = await fetch(`${API_BASE_URL}/${id}`, {
+    const res = await fetch(`${getAPIBaseURL()}/${id}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -69,7 +70,7 @@ export const volunteerLandingService = {
       throw new Error('No authentication token found');
     }
 
-    const res = await fetch(`${API_BASE_URL}/${id}`, { 
+    const res = await fetch(`${getAPIBaseURL()}/${id}`, { 
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
