@@ -73,9 +73,9 @@ const DonationSectionComponent = () => {
         </p>
 
         {/* Tarjetas de inversión del dinero */}
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+        <div className="max-w-6xl mx-auto flex md:grid md:grid-cols-3 gap-12 mb-12 overflow-x-auto snap-x snap-mandatory">
           {data.cards.map((card, idx) => (
-            <div key={idx} className="bg-white shadow-2xl rounded-xl overflow-hidden flex flex-col">
+            <div key={idx} className="min-w-full md:min-w-0 snap-center bg-white shadow-2xl rounded-xl overflow-hidden flex flex-col">
               <img
                 src={card.URL_imagen || fallbackImg}
                 alt={card.titulo_card}
@@ -116,9 +116,9 @@ const DonationSectionComponent = () => {
       </p>
 
       {/* Tarjetas de inversión del dinero */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+      <div className="max-w-6xl mx-auto flex md:grid md:grid-cols-3 gap-12 mb-12 overflow-x-auto snap-x snap-mandatory">
         {(data?.cards || fallbackData.cards).map((card, idx) => (
-          <div key={idx} className="bg-white shadow-2xl rounded-xl overflow-hidden flex flex-col">
+          <div key={idx} className="min-w-full md:min-w-0 snap-center bg-white shadow-2xl rounded-xl overflow-hidden flex flex-col">
             <img
               src={card.URL_imagen || fallbackImg}
               alt={card.titulo_card}
