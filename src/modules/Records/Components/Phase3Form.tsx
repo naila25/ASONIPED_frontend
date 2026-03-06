@@ -52,7 +52,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [secondaryPhoneCharsLeft, setSecondaryPhoneCharsLeft] = useState(9);
 
   const [cedulaError, setCedulaError] = useState('');
-  const [cedulaCharsLeft, setCedulaCharsLeft] = useState(9);
+  const [cedulaCharsLeft, setCedulaCharsLeft] = useState(13);
 
   const [birthPlaceError, setBirthPlaceError] = useState('');
   const [birthPlaceCharsLeft, setBirthPlaceCharsLeft] = useState(20);
@@ -67,7 +67,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [motherNameCharsLeft, setMotherNameCharsLeft] = useState(40);
 
   const [motherCedulaError, setMotherCedulaError] = useState('');
-  const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(9);
+  const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(13);
 
   const [motherOccupationError, setMotherOccupationError] = useState('');
   const [motherOccupationCharsLeft, setMotherOccupationCharsLeft] = useState(40);
@@ -80,7 +80,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [fatherNameCharsLeft, setFatherNameCharsLeft] = useState(40);
 
   const [fatherCedulaError, setFatherCedulaError] = useState('');
-  const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(9);
+  const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(13);
 
   const [fatherOccupationError, setFatherOccupationError] = useState('');
   const [fatherOccupationCharsLeft, setFatherOccupationCharsLeft] = useState(40);
@@ -94,7 +94,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [responsibleNameCharsLeft, setResponsibleNameCharsLeft] = useState(40);
 
   const [responsibleCedulaError, setResponsibleCedulaError] = useState('');
-  const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(9);
+  const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(13);
 
   const [responsibleOccupationError, setResponsibleOccupationError] = useState('');
   const [responsibleOccupationCharsLeft, setResponsibleOccupationCharsLeft] = useState(40);
@@ -109,6 +109,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // observaciones generales
   const [generalObservationsError, setGeneralObservationsError] = useState('');
   const [generalObservationsCharsLeft, setGeneralObservationsCharsLeft] = useState(200);
+  const [documentsStepError, setDocumentsStepError] = useState('');
 
   // Helper function to check if a section needs modification
   const needsModification = (sectionName: string): boolean => {
@@ -520,8 +521,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     { key: 'constancia_pension_ccss', label: 'Constancia de Pensión CCSS', required: false },
     { key: 'constancia_pension_alimentaria', label: 'Constancia de Pensión Alimentaria', required: false },
     { key: 'constancia_estudio', label: 'Constancia de Estudio (En caso de solicitante este en estudio)', required: false },
-    { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false },
-    { key: 'informacion_pago', label: 'Información de Pago', required: true }
+    { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
   ], []);
 
   // Initialize document status based on existing documents
@@ -644,6 +644,21 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       [section]: {
         ...prev[section],
         [field]: value
+      }
+    }));
+  };
+
+  const updateDocumentStatus = (
+    documentType: string,
+    status: 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica'
+  ) => {
+    setForm(prev => ({
+      ...prev,
+      documentation_requirements: {
+        ...prev.documentation_requirements,
+        documents: prev.documentation_requirements.documents.map(doc =>
+          doc.document_type === documentType ? { ...doc, status } : doc
+        )
       }
     }));
   };
@@ -813,8 +828,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       ok = false;
     } else setSecondaryPhoneError('');
     const cedula = form.complete_personal_data.cedula;
-    if (!/^\d+$/.test(cedula) || cedula.length > 9 || cedula.length === 0) {
-      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' : cedula.length > 9 ? 'Máximo 9 caracteres.' : 'Solo se permiten números.');
+    if (!/^\d+$/.test(cedula) || cedula.length === 0) {
+      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' : 'Solo se permiten números.');
+    } else if (cedula.length < 9 || cedula.length > 13) {
+      setCedulaError(cedula.length < 9 ? 'Mínimo 9 dígitos.' : 'Máximo 13 caracteres.');
       ok = false;
     } else setCedulaError('');
     const birthPlace = form.complete_personal_data.birth_place;
@@ -837,8 +854,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     let ok = true;
     if (showParents) {
       const mCed = form.family_information.mother_cedula;
-      if (mCed && (mCed.length !== 9 || !/^\d+$/.test(mCed))) {
-        setMotherCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (mCed && (!/^\d+$/.test(mCed) || mCed.length < 9 || mCed.length > 13)) {
+        setMotherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         ok = false;
       } else setMotherCedulaError('');
       const mName = form.family_information.mother_name;
@@ -857,8 +874,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         ok = false;
       } else setMotherPhoneError('');
       const fCed = form.family_information.father_cedula;
-      if (fCed && (fCed.length !== 9 || !/^\d+$/.test(fCed))) {
-        setFatherCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (fCed && (!/^\d+$/.test(fCed) || fCed.length < 9 || fCed.length > 13)) {
+        setFatherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         ok = false;
       } else setFatherCedulaError('');
       const fName = form.family_information.father_name;
@@ -884,8 +901,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     } else setResponsibleNameError('');
     if (showLegalGuardian) {
       const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula;
-      if (rCed && (rCed.length !== 9 || !/^\d+$/.test(rCed))) {
-        setResponsibleCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (rCed && (!/^\d+$/.test(rCed) || rCed.length < 9 || rCed.length > 13)) {
+        setResponsibleCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         ok = false;
       } else setResponsibleCedulaError('');
     }
@@ -912,6 +929,23 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     return true;
   };
 
+  const validateStepDocuments = (): boolean => {
+    // No permitir avanzar si hay documentos requeridos en estado "pendiente"
+    const hasPendingRequired = documentTypes.some(doc => {
+      if (!doc.required) return false;
+      const status = form.documentation_requirements.documents.find(d => d.document_type === doc.key)?.status || 'pendiente';
+      return status === 'pendiente';
+    });
+
+    if (hasPendingRequired) {
+      setDocumentsStepError('Por favor, actualice el estado de todos los documentos requeridos. Ninguno puede quedar en "Pendiente" antes de continuar.');
+      return false;
+    }
+
+    setDocumentsStepError('');
+    return true;
+  };
+
   const validateStepSocioeconomic = (): boolean => {
     return true;
   };
@@ -921,11 +955,15 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     if (currentStep === 1 && !validateStepFamily()) return;
     if (currentStep === 2 && !validateStepDisability()) return;
     if (currentStep === 3 && !validateStepSocioeconomic()) return;
+    if (currentStep === 4 && !validateStepDocuments()) return;
     setCurrentStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
+    // Scroll to top when changing steps so the user sees the start of the next section
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const goToPrevStep = () => {
     setCurrentStep(s => Math.max(s - 1, 0));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -969,10 +1007,11 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
     // Cédula
     const cedula = form.complete_personal_data.cedula;
-    if (!/^\d+$/.test(cedula) || cedula.length > 9 || cedula.length === 0) {
-      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' :
-        cedula.length > 9 ? 'Máximo 9 caracteres.' :
-          'Solo se permiten números.');
+    if (!/^\d+$/.test(cedula) || cedula.length === 0) {
+      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' : 'Solo se permiten números.');
+      hasErrors = true;
+    } else if (cedula.length < 9 || cedula.length > 13) {
+      setCedulaError(cedula.length < 9 ? 'Mínimo 9 dígitos.' : 'Máximo 13 caracteres.');
       hasErrors = true;
     }
 
@@ -1007,8 +1046,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     if (showParents) {
       // Madre
       const mCed = form.family_information.mother_cedula;
-      if (mCed && (mCed.length !== 9 || !/^\d+$/.test(mCed))) {
-        setMotherCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (mCed && (!/^\d+$/.test(mCed) || mCed.length < 9 || mCed.length > 13)) {
+        setMotherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         hasFamilyErrors = true;
       }
 
@@ -1036,8 +1075,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
       // Padre
       const fCed = form.family_information.father_cedula;
-      if (fCed && (fCed.length !== 9 || !/^\d+$/.test(fCed))) {
-        setFatherCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (fCed && (!/^\d+$/.test(fCed) || fCed.length < 9 || fCed.length > 13)) {
+        setFatherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         hasFamilyErrors = true;
       }
 
@@ -1082,8 +1121,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     // Cédula del Encargado Legal
     if (showLegalGuardian) {
       const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula;
-      if (rCed && (rCed.length !== 9 || !/^\d+$/.test(rCed))) {
-        setResponsibleCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (rCed && (!/^\d+$/.test(rCed) || rCed.length < 9 || rCed.length > 13)) {
+        setResponsibleCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         hasErrors = true;
       }
     }
@@ -1121,9 +1160,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
     // Observaciones Generales
     const generalObs = form.documentation_requirements.general_observations;
-    if (generalObs && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(generalObs) || generalObs.length > 200)) {
+    if (generalObs && (!/^[0-9a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(generalObs) || generalObs.length > 200)) {
       setGeneralObservationsError(
-        generalObs.length > 200 ? 'Máximo 200 caracteres.' : 'No se permiten números.'
+        generalObs.length > 200 ? 'Máximo 200 caracteres.' : 'Solo se permiten letras, números y signos de puntuación básicos.'
       );
       hasErrors = true;
     }
@@ -1356,7 +1395,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 onChange={(e) => {
                   const rawValue = e.target.value;
                   const isValid = /^\d*$/.test(rawValue); // Solo dígitos o vacío
-                  const isLengthValid = rawValue.length <= 9;
+                  const isLengthValid = rawValue.length <= 13;
 
                   if (!isValid) {
                     setCedulaError('Solo se permiten números.');
@@ -1365,22 +1404,24 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   }
 
                   if (!isLengthValid) {
-                    setCedulaError('Máximo 9 caracteres.');
+                    setCedulaError('Máximo 13 caracteres.');
                     return;
                   }
 
                   // Si todo es válido, limpiamos el error y actualizamos
                   setCedulaError('');
                   handleChange('complete_personal_data', 'cedula', rawValue);
-                  setCedulaCharsLeft(9 - rawValue.length);
+                  setCedulaCharsLeft(13 - rawValue.length);
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${cedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {cedulaCharsLeft} caracteres restantes (máximo 9)
-              </p>
+              {form.complete_personal_data.cedula.length < 9 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {cedulaCharsLeft} caracteres restantes (entre 9 y 13 dígitos)
+                </p>
+              )}
               {cedulaError && <p className="text-xs text-red-500 mt-1">{cedulaError}</p>}
             </div>
             <div>
@@ -1732,25 +1773,27 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     value={form.family_information.mother_cedula}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, '');
-                      if (value.length > 9) return;
+                      if (value.length > 13) return;
 
-                      if (value.length > 9) {
-                        setMotherCedulaError('Máximo 9 caracteres.');
+                      if (value.length > 13) {
+                        setMotherCedulaError('Máximo 13 caracteres.');
                         return;
                       }
 
                       setMotherCedulaError('');
                       handleChange('family_information', 'mother_cedula', value);
-                      setMotherCedulaCharsLeft(9 - value.length);
+                      setMotherCedulaCharsLeft(13 - value.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${motherCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     placeholder='Opcional'
                   />
+                  {form.family_information.mother_cedula.length < 9 && form.family_information.mother_cedula.length > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {motherCedulaCharsLeft} caracteres restantes (máx. 9)
+                    {motherCedulaCharsLeft} caracteres restantes (entre 9 y 13)
                   </p>
-                  {motherCedulaError && <p className="text-xs text-red-500 mt-1">{motherCedulaError}</p>}
+                )}
+                {motherCedulaError && <p className="text-xs text-red-500 mt-1">{motherCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1869,25 +1912,27 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     value={form.family_information.father_cedula}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, '');
-                      if (value.length > 9) return;
+                      if (value.length > 13) return;
 
-                      if (value.length > 9) {
-                        setFatherCedulaError('Máximo 9 caracteres.');
+                      if (value.length > 13) {
+                        setFatherCedulaError('Máximo 13 caracteres.');
                         return;
                       }
 
                       setFatherCedulaError('');
                       handleChange('family_information', 'father_cedula', value);
-                      setFatherCedulaCharsLeft(9 - value.length);
+                      setFatherCedulaCharsLeft(13 - value.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fatherCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     placeholder='Opcional'
                   />
+                  {form.family_information.father_cedula.length < 9 && form.family_information.father_cedula.length > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {fatherCedulaCharsLeft} caracteres restantes (máx. 9)
+                    {fatherCedulaCharsLeft} caracteres restantes (entre 9 y 13)
                   </p>
-                  {fatherCedulaError && <p className="text-xs text-red-500 mt-1">{fatherCedulaError}</p>}
+                )}
+                {fatherCedulaError && <p className="text-xs text-red-500 mt-1">{fatherCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2007,26 +2052,31 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     value={(form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula ?? ''}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, ''); // Elimina todo lo que no sea número
-                      if (value.length > 9) return; // Bloquea si ya tiene 9 dígitos
+                      if (value.length > 13) return; // Bloquea si ya tiene 13 dígitos (máx.)
 
                       if (value.length > 0 && value.length < 9) {
-                        setResponsibleCedulaError('Debe tener 9 dígitos.');
-                      } else if (value.length > 9) {
-                        setResponsibleCedulaError('Máximo 9 caracteres.');
+                        setResponsibleCedulaError('Debe tener entre 9 y 13 dígitos.');
+                      } else if (value.length > 13) {
+                        setResponsibleCedulaError('Máximo 13 caracteres.');
                       } else {
                         setResponsibleCedulaError('');
                       }
 
                       handleChange('family_information', 'responsible_cedula', value);
-                      setResponsibleCedulaCharsLeft(9 - value.length);
+                      setResponsibleCedulaCharsLeft(13 - value.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${responsibleCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                   />
+                  {(() => {
+                  const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula ?? '';
+                  return rCed.length > 0 && rCed.length < 9;
+                })() && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {responsibleCedulaCharsLeft} caracteres restantes (máximo 9)
+                    {responsibleCedulaCharsLeft} caracteres restantes (entre 9 y 13 dígitos)
                   </p>
-                  {responsibleCedulaError && <p className="text-xs text-red-500 mt-1">{responsibleCedulaError}</p>}
+                )}
+                {responsibleCedulaError && <p className="text-xs text-red-500 mt-1">{responsibleCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2619,6 +2669,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         {/* Subida de Documentos - compact on mobile */}
         <div className="border border-gray-200 rounded-lg p-3 sm:p-6">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Documentos Requeridos</h3>
+
+          {documentsStepError && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm text-red-700">
+              {documentsStepError}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 sm:gap-2">
             {documentTypes.map((doc) => {
               const documentStatus = form.documentation_requirements.documents.find(d => d.document_type === doc.key)?.status || 'pendiente';
@@ -2633,9 +2689,19 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   <div className="flex sm:hidden flex-col gap-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-medium text-gray-700 truncate min-w-0 flex-1">{doc.label}{doc.required ? ' *' : ''}</span>
-                      <span className={`px-1.5 py-0.5 text-[10px] rounded-full flex-shrink-0 ${documentStatus === 'entregado' ? 'bg-green-100 text-green-800' : documentStatus === 'en_tramite' ? 'bg-yellow-100 text-yellow-800' : documentStatus === 'no_aplica' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800'}`}>
-                        {documentStatus === 'entregado' ? 'OK' : documentStatus === 'en_tramite' ? 'Trámite' : documentStatus === 'no_aplica' ? 'N/A' : 'Pend.'}
-                      </span>
+                      <select
+                        className="text-[10px] border border-gray-300 rounded px-1.5 py-0.5 bg-white flex-shrink-0"
+                        value={documentStatus}
+                        onChange={(e) => {
+                          const status = e.target.value as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
+                          updateDocumentStatus(doc.key, status);
+                        }}
+                      >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="entregado">Entregado</option>
+                        <option value="en_tramite">En trámite</option>
+                        <option value="no_aplica">No aplica</option>
+                      </select>
                       <button type="button" onClick={() => fileInputRefs.current[doc.key]?.click()} className="flex-shrink-0 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded min-h-[36px] touch-manipulation">
                         Elegir archivo
                       </button>
@@ -2660,15 +2726,25 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     {documentStatus === 'entregado' && !hasFile && (
                       <div className="mb-2 p-2 bg-green-100 border border-green-300 rounded text-sm text-green-800 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4" />
-                        <span>Documento ya subido anteriormente</span>
+                        <span>Documento entregado en ASONIPED.</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-gray-700">{doc.label} {doc.required && <span className="text-red-500">*</span>}</label>
-                        <span className={`px-2 py-1 text-xs rounded-full ${documentStatus === 'entregado' ? 'bg-green-100 text-green-800' : documentStatus === 'en_tramite' ? 'bg-yellow-100 text-yellow-800' : documentStatus === 'no_aplica' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800'}`}>
-                          {documentStatus === 'entregado' ? 'Entregado' : documentStatus === 'en_tramite' ? 'En trámite' : documentStatus === 'no_aplica' ? 'No aplica' : 'Pendiente'}
-                        </span>
+                        <select
+                          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                          value={documentStatus}
+                          onChange={(e) => {
+                            const status = e.target.value as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
+                            updateDocumentStatus(doc.key, status);
+                          }}
+                        >
+                          <option value="pendiente">Pendiente</option>
+                          <option value="entregado">Entregado</option>
+                          <option value="en_tramite">En trámite</option>
+                          <option value="no_aplica">No aplica</option>
+                        </select>
                       </div>
                       {hasFile && (
                         <button type="button" onClick={() => handleDocumentChange(doc.key, null)} className="text-red-500 hover:text-red-700">
@@ -2729,59 +2805,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             <p className="text-xs text-blue-700 mt-2">Subir comprobante en Documentos requeridos.</p>
           </div>
 
-          {/* Lista de documentos requeridos */}
-          <h4 className="font-medium text-gray-900 mb-3">Documentos Requeridos</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
-            {[
-              { key: 'dictamen_medico', label: 'Dictamen Médico', required: true },
-              { key: 'constancia_nacimiento', label: 'Constancia de Nacimiento', required: true },
-              { key: 'copia_cedula', label: 'Copia de Cédula (solicitante)', required: true },
-              { key: 'copias_cedulas_familia', label: 'Copias de Cédulas (familia)', required: true },
-              { key: 'foto_pasaporte', label: 'Foto Tamaño Pasaporte', required: true },
-              { key: 'constancia_pension_ccss', label: 'Constancia de Pensión CCSS', required: false },
-              { key: 'constancia_pension_alimentaria', label: 'Constancia de Pensión Alimentaria', required: false },
-              { key: 'constancia_estudio', label: 'Constancia de Estudio (En caso de solicitante este en estudio)', required: false },
-              { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
-            ].map((req) => (
-              <div key={req.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 p-2.5 sm:p-3 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${req.required ? 'bg-red-500' : 'bg-gray-400'}`} aria-hidden />
-                  <label className="text-xs sm:text-sm text-gray-700 truncate" title={req.label}>
-                    {req.label} {req.required && <span className="text-red-500">*</span>}
-                  </label>
-                </div>
-                <select
-                  className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1.5 sm:px-3 sm:py-1 bg-white w-full sm:w-auto sm:min-w-[100px] flex-shrink-0 min-h-[40px] touch-manipulation"
-                  onChange={(e) => {
-                    const status = e.target.value as 'entregado' | 'pendiente' | 'en_tramite' | 'no_aplica';
-                    const existingDoc = form.documentation_requirements.documents.find(doc => doc.document_type === req.key);
-
-                    if (existingDoc) {
-                      const updatedDocs = form.documentation_requirements.documents.map(doc =>
-                        doc.document_type === req.key ? { ...doc, status } : doc
-                      );
-                      handleChange('documentation_requirements', 'documents', updatedDocs);
-                    } else {
-                      const newDoc: RequiredDocument = {
-                        document_type: req.key as RequiredDocument['document_type'],
-                        status,
-                        observations: ''
-                      };
-                      const updatedDocs = [...form.documentation_requirements.documents, newDoc];
-                      handleChange('documentation_requirements', 'documents', updatedDocs);
-                    }
-                  }}
-                  value={form.documentation_requirements.documents.find(doc => doc.document_type === req.key)?.status || 'pendiente'}
-                >
-                  <option value="pendiente">Pendiente</option>
-                  <option value="entregado">Entregado</option>
-                  <option value="en_tramite">En trámite</option>
-                  <option value="no_aplica">No aplica</option>
-                </select>
-              </div>
-            ))}
-          </div>
-
           {/* Resumen de documentos */}
           <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
             <h4 className="font-medium text-gray-900 mb-3">Resumen de Documentación</h4>
@@ -2815,12 +2838,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               value={form.documentation_requirements.general_observations}
               onChange={(e) => {
                 const value = e.target.value;
-                // Solo permitir letras, espacios, signos de puntuación básicos (sin números)
-                const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(value);
+                // Permitir letras, números, espacios y signos de puntuación básicos
+                const isValid = /^[0-9a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(value);
                 const length = value.length;
 
                 if (!isValid) {
-                  setGeneralObservationsError('No se permiten números.');
+                  setGeneralObservationsError('Solo se permiten letras, números y signos de puntuación básicos.');
                   return;
                 }
 
