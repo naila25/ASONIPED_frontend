@@ -28,8 +28,7 @@ const AboutSection = () => {
     about?.descripcion ??
     "Desde 1989, ASONIPED ha trabajado para transformar la vida de personas con discapacidad en la región de Nicoya.";
   const buttonText = about?.texto_boton ?? "Conócenos Más";
-  const buttonColor = about?.color_boton ?? "#3b82f6"; // azul predeterminado
-
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
@@ -57,8 +56,7 @@ const AboutSection = () => {
         <div className="mt-8 flex justify-center lg:justify-center">
           <a
             href="/conocenos"
-            className="text-white py-3 px-6  rounded-full border text-sm hover:opacity-90 transition"
-            style={{ borderColor: buttonColor, color: buttonColor }}
+            className="inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 transition-colors"
           >
             {buttonText}
           </a>

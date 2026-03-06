@@ -34,21 +34,21 @@ const DonationSectionComponent = () => {
         descripcion_card: "Creamos experiencias recreativas para que los chicos disfruten y creen recuerdos inolvidables fuera del aula.",
         URL_imagen: fallbackImg,
         texto_boton: "Quiero donar",
-        color_boton: "#ff6600"
+        color_boton: "#f97316"
       },
       {
         titulo_card: "Compra de pupitres",
         descripcion_card: "Renovamos el mobiliario para garantizar un espacio cómodo y digno para estudiar.",
         URL_imagen: fallbackImg,
         texto_boton: "Quiero donar",
-        color_boton: "#ff6600"
+        color_boton: "#f97316"
       },
       {
         titulo_card: "Mantenimiento institucional",
         descripcion_card: "Contribuyes al buen funcionamiento de ASONIPED, asegurando espacios limpios y adecuados.",
         URL_imagen: fallbackImg,
         texto_boton: "Quiero donar",
-        color_boton: "#ff6600"
+        color_boton: "#f97316"
       }
     ]
   };
@@ -89,9 +89,7 @@ const DonationSectionComponent = () => {
                 <a
                   href="/donaciones/formulario"
                   className="mt-auto bg-orange-500 text-white py-2 px-4 rounded-full border hover:bg-orange-600 transition"
-                  style={{
-                    backgroundColor: card.color_boton,
-                  }}
+                  
                 >
                   {card.texto_boton}
                 </a>
@@ -132,9 +130,6 @@ const DonationSectionComponent = () => {
               <a
                 href="/donaciones/formulario"
                 className="mt-auto bg-orange-500 text-white py-2 px-4 rounded-full border hover:bg-orange-600 transition"
-                style={{
-                  backgroundColor: card.color_boton,
-                }}
               >
                 {card.texto_boton}
               </a>
