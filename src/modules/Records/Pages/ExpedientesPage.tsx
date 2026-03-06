@@ -477,18 +477,22 @@ const ExpedientesPage: React.FC = () => {
           );
         })()}
         
-        {/* Estado del expediente */}
-        <div className="mt-6">
-          {(() => {
-            // Igualmente, sobreescribimos la fase mostrada en el componente de estado
-            const phaseOverride =
-              record.phase === 'phase2' && record.status === 'approved' && showPhase3Form
-                ? 'phase3'
-                : record.phase;
-            const recordForStatus = { ...record, phase: phaseOverride } as typeof record;
-            return <RecordStatus record={recordForStatus} />;
-          })()}
-        </div>
+        {/* Estado del expediente: ocultar cuando el usuario está llenando el formulario de Fase 3 */}
+        {!(showPhase3Form && (
+          (record.phase === 'phase2' && record.status === 'approved') ||
+          (record.phase === 'phase3' && record.status === 'needs_modification')
+        )) && (
+          <div className="mt-6">
+            {(() => {
+              const phaseOverride =
+                record.phase === 'phase2' && record.status === 'approved' && showPhase3Form
+                  ? 'phase3'
+                  : record.phase;
+              const recordForStatus = { ...record, phase: phaseOverride } as typeof record;
+              return <RecordStatus record={recordForStatus} />;
+            })()}
+          </div>
+        )}
 
         {/* Contenido específico según la fase */}
         {record.phase === 'phase1' && record.status === 'pending' && (
