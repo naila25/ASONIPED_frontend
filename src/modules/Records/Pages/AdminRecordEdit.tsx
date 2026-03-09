@@ -60,9 +60,9 @@ const AdminRecordEdit: React.FC = () => {
       console.log('Record updated successfully');
       setSuccess(true);
       
-      // Redirect back to expedientes page after a short delay
+      // Redirect back to expedientes list (avoid going to /admin/expedientes/editar which 404s)
       setTimeout(() => {
-        navigate({ to: '..' as any });
+        navigate({ to: '/admin/expedientes' });
       }, 2000);
     } catch (err) {
       console.error('Error updating record:', err);
@@ -74,7 +74,7 @@ const AdminRecordEdit: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate({ to: '..' as any });
+    navigate({ to: '/admin/expedientes' });
   };
 
   if (loading) {

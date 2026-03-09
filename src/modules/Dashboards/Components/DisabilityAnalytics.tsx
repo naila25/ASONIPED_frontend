@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, User, Eye, Ear, Brain, Activity, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Heart, User, Eye, Ear, Brain, Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { getDisabilityAnalytics } from '../../Records/Services/recordsApi';
 
 interface DisabilityRecord {
@@ -37,6 +37,7 @@ const DisabilityAnalytics: React.FC = () => {
   const [records, setRecords] = useState<DisabilityRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   useEffect(() => {
     const fetchDisabilityData = async () => {
@@ -252,37 +253,35 @@ const DisabilityAnalytics: React.FC = () => {
   const limitations = getLimitationsAnalysis();
   const certificateStatus = getCertificateStatus();
 
-  return (
-    <div className="space-y-6">
+  const totalCertificates = certificateStatus.withCertificate + certificateStatus.withoutCertificate + certificateStatus.inProcess;
+  const certProgress = totalCertificates > 0 ? (certificateStatus.withCertificate / totalCertificates) * 100 : 0;
+
+  const fullContent = (
+    <>
       {/* Disability Type Distribution */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Activity className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Distribución por Tipo de Discapacidad</h3>
+      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <Activity className="w-5 h-5 text-gray-600 flex-shrink-0" />
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Distribución por Tipo de Discapacidad</h3>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 min-w-0">
           {disabilityTypes.map(({ type, count }) => {
             const Icon = getDisabilityIcon(type);
-            const maxCount = Math.max(...disabilityTypes.map(d => d.count));
+            const maxCount = Math.max(...disabilityTypes.map(d => d.count), 1);
             const percentage = Math.round((count / maxCount) * 100);
-            
             return (
-              <div key={type} className="p-4 border border-gray-200 rounded-lg">
+              <div key={type} className="p-4 border border-gray-200 rounded-lg min-w-0">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
+                  <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                     <Icon className="w-5 h-5 text-blue-600" />
                   </div>
-                  <div>
-                    <div className="font-medium text-gray-900">{type}</div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900 truncate">{type}</div>
                     <div className="text-sm text-gray-500">{count} beneficiarios</div>
                   </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${percentage}%` }}
-                  ></div>
+                <div className="w-full bg-gray-200 rounded-full h-2 min-w-0">
+                  <div className="bg-blue-500 h-2 rounded-full transition-all duration-300" style={{ width: `${percentage}%` }} />
                 </div>
               </div>
             );
@@ -291,40 +290,31 @@ const DisabilityAnalytics: React.FC = () => {
       </div>
 
       {/* Insurance and Origin Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Insurance Distribution */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Shield className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Tipos de Seguro</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 min-w-0">
+        <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-3 mb-4 md:mb-6">
+            <Shield className="w-5 h-5 text-gray-600 flex-shrink-0" />
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">Tipos de Seguro</h3>
           </div>
-          
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-0">
             {insuranceTypes.map(({ type, count }) => (
-              <div key={type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">{type}</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  {count}
-                </span>
+              <div key={type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-2 min-w-0">
+                <span className="text-sm font-medium text-gray-700 truncate">{type}</span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">{count}</span>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Disability Origin */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <AlertTriangle className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Origen de la Discapacidad</h3>
+        <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-3 mb-4 md:mb-6">
+            <AlertTriangle className="w-5 h-5 text-gray-600 flex-shrink-0" />
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">Origen de la Discapacidad</h3>
           </div>
-          
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-0">
             {disabilityOrigins.map(({ origin, count }) => (
-              <div key={origin} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-700">{origin}</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                  {count}
-                </span>
+              <div key={origin} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-2 min-w-0">
+                <span className="text-sm font-medium text-gray-700 truncate">{origin}</span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 flex-shrink-0">{count}</span>
               </div>
             ))}
           </div>
@@ -332,18 +322,17 @@ const DisabilityAnalytics: React.FC = () => {
       </div>
 
       {/* Equipment Needs */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Activity className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Necesidades de Equipamiento</h3>
+      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <Activity className="w-5 h-5 text-gray-600 flex-shrink-0" />
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Necesidades de Equipamiento</h3>
         </div>
-        
         {equipmentNeeds.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
             {equipmentNeeds.map(({ equipment, count }) => (
-              <div key={equipment} className="p-4 border border-gray-200 rounded-lg text-center">
+              <div key={equipment} className="p-4 border border-gray-200 rounded-lg text-center min-w-0">
                 <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
-                <div className="text-sm text-gray-600">{equipment}</div>
+                <div className="text-sm text-gray-600 truncate">{equipment}</div>
               </div>
             ))}
           </div>
@@ -357,22 +346,18 @@ const DisabilityAnalytics: React.FC = () => {
       </div>
 
       {/* Medical Information */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Blood Type Distribution */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Heart className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Distribución de Tipos de Sangre</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 min-w-0">
+        <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-3 mb-4 md:mb-6">
+            <Heart className="w-5 h-5 text-gray-600 flex-shrink-0" />
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">Distribución de Tipos de Sangre</h3>
           </div>
-          
           {bloodTypes.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-3 min-w-0">
               {bloodTypes.map(({ bloodType, count }) => (
-                <div key={bloodType} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                  <span className="text-sm font-medium text-gray-700">{bloodType}</span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    {count}
-                  </span>
+                <div key={bloodType} className="flex items-center justify-between p-3 bg-red-50 rounded-lg gap-2 min-w-0">
+                  <span className="text-sm font-medium text-gray-700 truncate">{bloodType}</span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 flex-shrink-0">{count}</span>
                 </div>
               ))}
             </div>
@@ -384,55 +369,42 @@ const DisabilityAnalytics: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* Certificate Status */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Shield className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Estado de Certificados</h3>
+        <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-3 mb-4 md:mb-6">
+            <Shield className="w-5 h-5 text-gray-600 flex-shrink-0" />
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">Estado de Certificados</h3>
           </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+          <div className="space-y-4 min-w-0">
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg gap-2 min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                 <span className="text-sm font-medium text-gray-700">Con Certificado</span>
               </div>
-              <span className="text-lg font-bold text-green-600">{certificateStatus.withCertificate}</span>
+              <span className="text-lg font-bold text-green-600 flex-shrink-0">{certificateStatus.withCertificate}</span>
             </div>
-            
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Activity className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg gap-2 min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <Activity className="w-5 h-5 text-blue-600 flex-shrink-0" />
                 <span className="text-sm font-medium text-gray-700">En Trámite</span>
               </div>
-              <span className="text-lg font-bold text-blue-600">{certificateStatus.inProcess}</span>
+              <span className="text-lg font-bold text-blue-600 flex-shrink-0">{certificateStatus.inProcess}</span>
             </div>
-            
-            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-orange-600" />
+            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg gap-2 min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0" />
                 <span className="text-sm font-medium text-gray-700">Sin Certificado</span>
               </div>
-              <span className="text-lg font-bold text-orange-600">{certificateStatus.withoutCertificate}</span>
+              <span className="text-lg font-bold text-orange-600 flex-shrink-0">{certificateStatus.withoutCertificate}</span>
             </div>
           </div>
-          
-          {certificateStatus.withCertificate + certificateStatus.withoutCertificate + certificateStatus.inProcess > 0 && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
+          {totalCertificates > 0 && (
+            <div className="mt-4 min-w-0">
+              <div className="flex items-center justify-between mb-2 gap-2">
                 <span className="text-sm text-gray-600">Progreso de Certificación</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {Math.round((certificateStatus.withCertificate / (certificateStatus.withCertificate + certificateStatus.withoutCertificate + certificateStatus.inProcess)) * 100)}%
-                </span>
+                <span className="text-sm font-medium text-gray-900 flex-shrink-0">{Math.round(certProgress)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${(certificateStatus.withCertificate / (certificateStatus.withCertificate + certificateStatus.withoutCertificate + certificateStatus.inProcess)) * 100}%`
-                  }}
-                ></div>
+              <div className="w-full bg-gray-200 rounded-full h-2 min-w-0">
+                <div className="bg-green-500 h-2 rounded-full transition-all duration-300" style={{ width: `${certProgress}%` }} />
               </div>
             </div>
           )}
@@ -440,19 +412,18 @@ const DisabilityAnalytics: React.FC = () => {
       </div>
 
       {/* Limitations Analysis */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <AlertTriangle className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Limitaciones Permanentes</h3>
+      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <AlertTriangle className="w-5 h-5 text-gray-600 flex-shrink-0" />
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Limitaciones Permanentes</h3>
         </div>
-        
         {limitations.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
             {limitations.map(({ limitation, count }) => (
-              <div key={limitation} className="p-4 border border-gray-200 rounded-lg">
+              <div key={limitation} className="p-4 border border-gray-200 rounded-lg min-w-0">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
-                  <div className="text-sm text-gray-600">{limitation}</div>
+                  <div className="text-sm text-gray-600 truncate">{limitation}</div>
                 </div>
               </div>
             ))}
@@ -464,6 +435,77 @@ const DisabilityAnalytics: React.FC = () => {
             <p className="text-xs text-gray-400 mt-2">Esta información se recopila durante el proceso de registro.</p>
           </div>
         )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-w-0 overflow-x-hidden space-y-4 md:space-y-6">
+      {/* Mobile: compact summary + expand */}
+      <div className="md:hidden min-w-0">
+        {!mobileExpanded ? (
+          <div className="bg-white rounded-lg shadow-sm p-4 min-w-0 overflow-hidden">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Resumen discapacidad</h3>
+            <div className="mb-3">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Por tipo</p>
+              <div className="grid grid-cols-2 gap-2">
+                {disabilityTypes.slice(0, 4).map(({ type, count }) => (
+                  <div key={type} className="flex items-center justify-between gap-1.5 p-2 bg-gray-50 rounded">
+                    <span className="text-xs text-gray-700 truncate">{type}</span>
+                    <span className="text-xs font-semibold text-gray-900 flex-shrink-0">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mb-3">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Certificados</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                <div className="text-center p-2 bg-green-50 rounded">
+                  <p className="text-sm font-bold text-green-600">{certificateStatus.withCertificate}</p>
+                  <p className="text-[10px] text-green-700 uppercase">Con</p>
+                </div>
+                <div className="text-center p-2 bg-blue-50 rounded">
+                  <p className="text-sm font-bold text-blue-600">{certificateStatus.inProcess}</p>
+                  <p className="text-[10px] text-blue-700 uppercase">Trámite</p>
+                </div>
+                <div className="text-center p-2 bg-orange-50 rounded">
+                  <p className="text-sm font-bold text-orange-600">{certificateStatus.withoutCertificate}</p>
+                  <p className="text-[10px] text-orange-700 uppercase">Sin</p>
+                </div>
+              </div>
+            </div>
+            <div className="mb-4 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600">
+              {insuranceTypes.length > 0 && <span>Seguros: <strong className="text-gray-900">{insuranceTypes.length} tipos</strong></span>}
+              {equipmentNeeds.length > 0 && <span>Equipos: <strong className="text-gray-900">{equipmentNeeds.length} tipos</strong></span>}
+              {limitations.length > 0 && <span>Limitaciones: <strong className="text-gray-900">{limitations.length} tipos</strong></span>}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileExpanded(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg"
+            >
+              Ver análisis detallado
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <>
+            {fullContent}
+            <button
+              type="button"
+              onClick={() => setMobileExpanded(false)}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg"
+            >
+              Ocultar detalle
+              <ChevronUp className="w-4 h-4" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Desktop: full content */}
+      <div className="hidden md:block min-w-0 space-y-6">
+        {fullContent}
       </div>
     </div>
   );
