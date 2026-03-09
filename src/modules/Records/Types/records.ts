@@ -215,6 +215,8 @@ export interface RecordNote {
   record_id: number;
   note: string;
   type: 'note' | 'activity' | 'milestone';
+  // Optional denormalized creator name for display purposes
+  created_by_name?: string;
   created_by?: number;
   created_at?: string;
 }

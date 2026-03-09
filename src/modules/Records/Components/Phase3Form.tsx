@@ -524,80 +524,60 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
   ], []);
 
-  // Initialize document status based on existing documents
+  // Initialize document status from saved document_statuses and/or uploaded files
   useEffect(() => {
-    // Always initialize documents array, even if no existing documents
+    const documentStatusMap = new Map<string, string>();
+
+    // 1) Restore statuses saved from dropdown (Entregado, En trámite, No aplica, Pendiente)
+    const savedStatuses = currentRecord?.registration_requirements?.document_statuses;
+    if (savedStatuses) {
+      const list = typeof savedStatuses === 'string' ? JSON.parse(savedStatuses) : savedStatuses;
+      if (Array.isArray(list)) {
+        list.forEach((item: { document_type?: string; status?: string }) => {
+          if (item.document_type && item.status) {
+            documentStatusMap.set(item.document_type, item.status);
+          }
+        });
+      }
+    }
+
+    // 2) Override with 'entregado' for any document type that has an uploaded file
+    if (currentRecord?.documents && currentRecord.documents.length > 0) {
+      currentRecord.documents.forEach((doc: { document_type?: string; file_name?: string }) => {
+        const formDocumentType = mapBackendDocumentType(doc.document_type || '', doc.file_name);
+        if (formDocumentType) {
+          documentStatusMap.set(formDocumentType, 'entregado');
+        }
+        if ((doc.document_type as string) === 'payment_info') {
+          documentStatusMap.set('informacion_pago', 'entregado');
+        }
+      });
+    }
+
+    const updatedDocuments = documentTypes.map(doc => ({
+      document_type: doc.key as RequiredDocument['document_type'],
+      status: (documentStatusMap.get(doc.key) as RequiredDocument['status']) || 'pendiente',
+      observations: ''
+    }));
+
+    const isPaymentPaid = documentStatusMap.get('informacion_pago') === 'entregado';
+    // Load affiliation_fee_paid and general_observations from API (registration_requirements);
+    // API returns registration_requirements, not documentation_requirements
+    const rr = currentRecord?.registration_requirements;
+    const affiliationFromApi = rr?.affiliation_fee_paid !== undefined && rr?.affiliation_fee_paid !== null
+      ? Boolean(rr.affiliation_fee_paid)
+      : undefined;
+    const generalObsFromApi = rr?.general_observations != null ? String(rr.general_observations) : undefined;
+
     setForm(prev => ({
       ...prev,
       documentation_requirements: {
         ...prev.documentation_requirements,
-        documents: documentTypes.map(doc => ({
-          document_type: doc.key as RequiredDocument['document_type'],
-          status: 'pendiente',
-          observations: ''
-        }))
+        documents: updatedDocuments,
+        affiliation_fee_paid: affiliationFromApi ?? prev.documentation_requirements.affiliation_fee_paid ?? isPaymentPaid,
+        general_observations: generalObsFromApi ?? prev.documentation_requirements.general_observations ?? ''
       }
     }));
-
-    // If there are existing documents, update their status
-    console.log('=== CHECKING FOR EXISTING DOCUMENTS ===');
-    console.log('Current record:', currentRecord);
-    console.log('Current record documents:', currentRecord?.documents);
-    console.log('Documents length:', currentRecord?.documents?.length || 0);
-
-    if (currentRecord?.documents && currentRecord.documents.length > 0) {
-      const existingDocuments = currentRecord.documents;
-      console.log('=== LOADING EXISTING DOCUMENTS ===');
-      console.log('Existing documents:', existingDocuments);
-
-      // Create a mapping of document types to their status
-      const documentStatusMap = new Map();
-      existingDocuments.forEach(doc => {
-        // Map backend document types to form document types
-        const formDocumentType = mapBackendDocumentType(doc.document_type, doc.file_name);
-        if (formDocumentType) {
-          documentStatusMap.set(formDocumentType, 'entregado');
-          console.log(`Document ${doc.document_type} (${doc.file_name}) mapped to ${formDocumentType} with status entregado`);
-        } else {
-          console.log(`Document ${doc.document_type} (${doc.file_name}) could not be mapped to form document type`);
-        }
-
-        // Special handling for payment_info documents
-        if ((doc.document_type as string) === 'payment_info') {
-          documentStatusMap.set('informacion_pago', 'entregado');
-          console.log(`Payment info document mapped to informacion_pago with status entregado`);
-        }
-      });
-
-      console.log('Document status map:', documentStatusMap);
-
-      // Update form with existing document statuses
-      const updatedDocuments = documentTypes.map(doc => ({
-        document_type: doc.key as RequiredDocument['document_type'],
-        status: documentStatusMap.get(doc.key) || 'pendiente',
-        observations: ''
-      }));
-
-      console.log('Updated form documents before setForm:', updatedDocuments);
-
-      // Check if payment information document is entregado and set payment status accordingly
-      const paymentDocStatus = documentStatusMap.get('informacion_pago');
-      const isPaymentPaid = paymentDocStatus === 'entregado';
-
-      console.log('Payment document status:', paymentDocStatus);
-      console.log('Setting affiliation_fee_paid to:', isPaymentPaid);
-
-      setForm(prev => ({
-        ...prev,
-        documentation_requirements: {
-          ...prev.documentation_requirements,
-          documents: updatedDocuments,
-          affiliation_fee_paid: isPaymentPaid
-        }
-      }));
-
-      console.log('Updated form documents after setForm:', updatedDocuments);
-    }
   }, [currentRecord, documentTypes]);
 
   // Helper function to map backend document types to form document types
@@ -1252,22 +1232,22 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               if (index >= TOTAL_STEPS) return null;
               const label = STEP_LABELS[index];
               const isCurrent = index === currentStep;
-              const isPast = index < currentStep;
+              const canGoToStep = isAdminEdit ? true : index <= currentStep;
               return (
                 <button
                   key={index}
                   type="button"
-                  onClick={() => index <= currentStep && setCurrentStep(index)}
+                  onClick={() => canGoToStep && setCurrentStep(index)}
                   className={`flex flex-col items-center flex-1 min-w-0 max-w-[100px] min-h-[44px] py-2 px-1 rounded-lg transition-colors touch-manipulation ${
                     isCurrent
                       ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 ring-offset-2'
-                      : isPast
-                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
+                      : canGoToStep
+                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 cursor-pointer'
                         : 'text-gray-400 cursor-default'
                   }`}
                 >
                   <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold flex-shrink-0 ${
-                    isCurrent ? 'bg-blue-600 text-white' : isPast ? 'bg-gray-300 text-gray-700' : 'bg-gray-200 text-gray-500'
+                    isCurrent ? 'bg-blue-600 text-white' : canGoToStep ? 'bg-gray-300 text-gray-700' : 'bg-gray-200 text-gray-500'
                   }`}>
                     {index + 1}
                   </span>
@@ -1580,7 +1560,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               Dirección de domicilio exacta *
             </label>
             <textarea
-              value={form.complete_personal_data.exact_address}
+              value={form.complete_personal_data.exact_address ?? ''}
               onChange={(e) => {
                 const value = e.target.value;
                 const length = value.length;
@@ -1604,8 +1584,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </p>
             {addressError && <p className="text-xs text-red-500 mt-1">{addressError}</p>}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mt-4 min-w-0">
+            <div className="min-w-0">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Provincia *
               </label>
@@ -1689,18 +1669,18 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           ? 'border-orange-300 bg-orange-50'
           : 'border-gray-200'
           }`}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium text-gray-900">Información Familiar, al menos uno es requerido</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 min-w-0">Información Familiar, al menos uno es requerido</h3>
               {needsModification('family_information') && (
-                <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full flex-shrink-0">
                   Requiere Modificación
                 </span>
               )}
             </div>
 
-            {/* Toggle between Parents and Legal Guardian (mobile: larger touch targets) */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            {/* Toggle between Parents and Legal Guardian (mobile: full width, larger touch targets) */}
+            <div className="flex bg-gray-100 rounded-lg p-1 w-full sm:w-auto min-w-0">
               <button
                 type="button"
                 onClick={() => handleFamilyModeToggle('parents')}
@@ -2149,9 +2129,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         {currentStep === 2 && (
         <>
         {/* Datos de Discapacidad */}
-        <div className="border border-gray-200 rounded-lg p-3 sm:p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Información de Discapacidad</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="border border-gray-200 rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3">Información de Discapacidad</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Discapacidad *
@@ -2239,10 +2219,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         </div>
 
         {/* Información Médica Adicional */}
-        <div className="border border-gray-200 rounded-lg p-3 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Información Médica Adicional</h3>
+        <div className="border border-gray-200 rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 mb-4 min-w-0">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Información Médica Adicional</h3>
               <p className="text-sm text-gray-600">Complete la información médica relevante del beneficiario</p>
             </div>
           </div>
@@ -2284,7 +2264,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   Enfermedades que Padece <span className="text-gray-500 text-sm">(Opcional)</span>
                 </label>
                 <textarea
-                  value={form.disability_information.medical_additional.diseases}
+                  value={form.disability_information.medical_additional.diseases ?? ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     // Permitir letras, espacios, y signos de puntuación comunes (sin números)
@@ -2561,7 +2541,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Servicios Disponibles
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
               {[
                 { key: 'luz', label: 'Luz' },
                 { key: 'agua', label: 'Agua' },
@@ -2569,7 +2549,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 { key: 'alcantarillado', label: 'Alcantarillado' },
                 { key: 'internet', label: 'Internet' }
               ].map((service) => (
-                <div key={service.key} className="flex items-center">
+                <div key={service.key} className="flex items-center min-w-0">
                   <input
                     type="checkbox"
                     id={service.key}
@@ -2599,15 +2579,15 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
           </div>
 
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+          <div className="mt-4 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+              <label className="block text-sm font-medium text-gray-700 min-w-0">
                 Personas que Trabajan en la Familia
               </label>
               <button
                 type="button"
                 onClick={addWorkingFamilyMember}
-                className="flex items-center gap-1 px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="flex items-center justify-center gap-1 px-3 py-2 sm:py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 min-h-[44px] sm:min-h-0 touch-manipulation w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 Agregar Familiar
@@ -2615,7 +2595,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
             <div className="space-y-3">
               {form.socioeconomic_information.working_family_members.map((member, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-gray-200 rounded">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-gray-200 rounded min-w-0">
                   <input
                     type="text"
                     placeholder="Nombre"
@@ -2726,7 +2706,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     {documentStatus === 'entregado' && !hasFile && (
                       <div className="mb-2 p-2 bg-green-100 border border-green-300 rounded text-sm text-green-800 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4" />
-                        <span>Documento entregado en ASONIPED.</span>
+                        <span>Documento entregado a ASONIPED.</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between mb-2">
@@ -2806,9 +2786,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           </div>
 
           {/* Resumen de documentos */}
-          <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-3">Resumen de Documentación</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="mt-4 sm:mt-6 bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 min-w-0">
+            <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Resumen de Documentación</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm min-w-0">
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
                   {form.documentation_requirements.documents.filter(doc => doc.status === 'entregado').length}
@@ -2835,7 +2815,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               Observaciones Generales
             </label>
             <textarea
-              value={form.documentation_requirements.general_observations}
+              value={form.documentation_requirements.general_observations ?? ''}
               onChange={(e) => {
                 const value = e.target.value;
                 // Permitir letras, números, espacios y signos de puntuación básicos
