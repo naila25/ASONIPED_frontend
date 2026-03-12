@@ -337,14 +337,14 @@ const WorkshopOptionsPage: React.FC = () => {
     <div className="space-y-6 min-w-0">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex items-center gap-4 mb-20">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 mb-20">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-semibold text-gray-900 truncate">
               Gestión de Opciones de Talleres
             </h1>
           </div>
                {/* Actions moved to header */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
            {/* View Mode Toggle */}
             <button
               onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
