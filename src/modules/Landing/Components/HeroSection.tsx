@@ -66,10 +66,20 @@ const HeroSectionComponent = () => {
           {data.descripcion}
         </p>
 
-        <div className="flex justify-center mt-6 sm:mt-10">
+        <div className="flex justify-center my-10 flex-wrap gap-4">
           <a
-            href="/Conocenos"
-            className="inline-flex w-full sm:w-auto max-w-xs mx-auto justify-center bg-transparent text-white font-semibold py-3 px-8 rounded-full border border-white hover:bg-white/20 transition focus:outline-none focus:ring-2 focus:ring-white"
+            href="/donaciones/formulario"
+            className="hidden sm:inline-flex items-center justify-center bg-transparent text-white font-semibold py-3 px-8 rounded-full border border-white hover:bg-white/20 transition focus:outline-none focus:ring-2 focus:ring-white"
+            style={{ 
+              borderColor: data.color_boton_izquierdo,
+              color: data.color_boton_izquierdo 
+            }}
+          >
+            {data.texto_boton_izquierdo}
+          </a>
+          <a
+            href="Conocenos"
+            className="inline-flex items-center justify-center bg-transparent text-white font-semibold py-3 px-8 rounded-full border border-white hover:bg-white/20 transition focus:outline-none focus:ring-2 focus:ring-white"
             style={{ 
               borderColor: data.color_boton_derecho,
               color: data.color_boton_derecho 
@@ -84,3 +94,4 @@ const HeroSectionComponent = () => {
 };
 
 export default HeroSectionComponent;
+
