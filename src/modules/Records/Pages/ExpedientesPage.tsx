@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import IDCardModal from '../Components/IDCardModal';
 import { FileText, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react';
-import { getUserRecord, createInitialRecord, completeRecord, updatePhase1Data, updatePhase3Data, replaceDocument } from '../Services/recordsApi';
-import type { RecordWithDetails, Phase1Data, Phase3Data } from '../Types/records';
+import { getUserRecord, createInitialRecord, completeRecord, updatePhase1Data, updatePhase3Data } from '../Services/recordsApi';
+import type { RecordWithDetails, Phase1Data, Phase3Data, RecordNote } from '../Types/records';
+
+/** Note with optional Phase 3 modification fields from API */
+interface ModificationNote extends RecordNote {
+  modification_type?: string;
+  admin_comment?: string;
+  sections_to_modify?: string | string[];
+  documents_to_replace?: string | unknown[];
+}
+
 import {
   ProgressIndicator,
   Phase1Form,
@@ -44,13 +53,7 @@ const ExpedientesPage: React.FC = () => {
     return labels[sectionId] || sectionId;
   };
 
-  useEffect(() => {
-    loadUserRecord();
-  }, []);
-
-  // No auto-refresh - users can manually refresh if needed using the refresh button
-
-  const loadUserRecord = async () => {
+  const loadUserRecord = useCallback(async () => {
     try {
       setLoading(true);
       const userRecord = await getUserRecord();
@@ -89,7 +92,13 @@ const ExpedientesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUserRecord();
+  }, [loadUserRecord]);
+
+  // No auto-refresh - users can manually refresh if needed using the refresh button
 
   const parseModificationDetails = (record: RecordWithDetails) => {
     console.log('=== PARSING MODIFICATION DETAILS ===');
@@ -105,10 +114,10 @@ const ExpedientesPage: React.FC = () => {
           id: note.id,
           note: note.note,
           type: note.type,
-          modification_type: (note as any).modification_type,
-          admin_comment: (note as any).admin_comment,
-          sections_to_modify: (note as any).sections_to_modify,
-          documents_to_replace: (note as any).documents_to_replace,
+          modification_type: (note as ModificationNote).modification_type,
+          admin_comment: (note as ModificationNote).admin_comment,
+          sections_to_modify: (note as ModificationNote).sections_to_modify,
+          documents_to_replace: (note as ModificationNote).documents_to_replace,
           created_at: note.created_at
         });
       });
@@ -128,7 +137,7 @@ const ExpedientesPage: React.FC = () => {
                            noteText.includes('phase 3 modification') ||
                            noteText.includes('fase 3 modification') ||
                            noteText.includes('Phase 3 modification') ||
-                           (note as any).modification_type === 'phase3_modification';
+                           (note as ModificationNote).modification_type === 'phase3_modification';
         console.log(`Note "${noteText}" - isPhase3Mod: ${isPhase3Mod}`);
         return isPhase3Mod;
       })
@@ -161,7 +170,7 @@ const ExpedientesPage: React.FC = () => {
     if (noteToUse) {
       try {
         // Check if it's the new structured format
-        if ((noteToUse as any).admin_comment) {
+        if ((noteToUse as ModificationNote).admin_comment) {
           console.log('Using new structured format');
           
           // Parse JSON strings for sections and documents
@@ -169,10 +178,9 @@ const ExpedientesPage: React.FC = () => {
           let documents = [];
           
           try {
-            if ((noteToUse as any).sections_to_modify) {
-              sections = typeof (noteToUse as any).sections_to_modify === 'string' 
-                ? JSON.parse((noteToUse as any).sections_to_modify)
-                : (noteToUse as any).sections_to_modify || [];
+            const rawSections = (noteToUse as ModificationNote).sections_to_modify;
+            if (rawSections) {
+              sections = typeof rawSections === 'string' ? JSON.parse(rawSections) : rawSections || [];
             }
           } catch (e) {
             console.error('Error parsing sections_to_modify:', e);
@@ -180,10 +188,9 @@ const ExpedientesPage: React.FC = () => {
           }
           
           try {
-            if ((noteToUse as any).documents_to_replace) {
-              documents = typeof (noteToUse as any).documents_to_replace === 'string'
-                ? JSON.parse((noteToUse as any).documents_to_replace)
-                : (noteToUse as any).documents_to_replace || [];
+            const rawDocuments = (noteToUse as ModificationNote).documents_to_replace;
+            if (rawDocuments) {
+              documents = typeof rawDocuments === 'string' ? JSON.parse(rawDocuments) : rawDocuments || [];
             }
           } catch (e) {
             console.error('Error parsing documents_to_replace:', e);
@@ -193,7 +200,7 @@ const ExpedientesPage: React.FC = () => {
           const finalDetails = {
             sections: sections,
             documents: documents,
-            comment: (noteToUse as any).admin_comment || ''
+            comment: (noteToUse as ModificationNote).admin_comment || ''
           };
           console.log('Setting modification details (new format):', finalDetails);
           setModificationDetails(finalDetails);
@@ -453,18 +460,10 @@ const ExpedientesPage: React.FC = () => {
     );
   }
 
-  // Mostrar progreso y estado actual
+  // Mostrar progreso y estado actual (Mi carnet solo cuando phase === 'completed' && status === 'active', que se muestra arriba)
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-end mb-4">
-          <button
-            onClick={openMyIdCard}
-            className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
-          >
-            Mi carnet
-          </button>
-        </div>
+    <div className="min-h-screen bg-gray-50 py-8 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 min-w-0">
         {/* Indicador de progreso */}
         {(() => {
           // Cuando el usuario está completando el formulario de Fase 3
@@ -478,18 +477,22 @@ const ExpedientesPage: React.FC = () => {
           );
         })()}
         
-        {/* Estado del expediente */}
-        <div className="mt-6">
-          {(() => {
-            // Igualmente, sobreescribimos la fase mostrada en el componente de estado
-            const phaseOverride =
-              record.phase === 'phase2' && record.status === 'approved' && showPhase3Form
-                ? 'phase3'
-                : record.phase;
-            const recordForStatus = { ...record, phase: phaseOverride } as typeof record;
-            return <RecordStatus record={recordForStatus} />;
-          })()}
-        </div>
+        {/* Estado del expediente: ocultar cuando el usuario está llenando el formulario de Fase 3 */}
+        {!(showPhase3Form && (
+          (record.phase === 'phase2' && record.status === 'approved') ||
+          (record.phase === 'phase3' && record.status === 'needs_modification')
+        )) && (
+          <div className="mt-6">
+            {(() => {
+              const phaseOverride =
+                record.phase === 'phase2' && record.status === 'approved' && showPhase3Form
+                  ? 'phase3'
+                  : record.phase;
+              const recordForStatus = { ...record, phase: phaseOverride } as typeof record;
+              return <RecordStatus record={recordForStatus} />;
+            })()}
+          </div>
+        )}
 
         {/* Contenido específico según la fase */}
         {record.phase === 'phase1' && record.status === 'pending' && (
@@ -631,7 +634,7 @@ const ExpedientesPage: React.FC = () => {
         )}
 
         {record.phase === 'phase3' && record.status === 'needs_modification' && showPhase3Form && (
-          <div className="mt-6">
+          <div className="mt-6 min-w-0 overflow-x-hidden">
             <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="w-5 h-5 text-orange-600" />

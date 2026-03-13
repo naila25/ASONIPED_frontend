@@ -195,8 +195,8 @@ const NavBar = () => {
                     <button onClick={toggleNavbar}>
                         {mobileDrawerOpen ? <X /> : <Menu />}
                     </button>
-                </div>
             </div>
+        </div>
             {mobileDrawerOpen && (
                     <div className="fixed right-0 z-20 bg-blue-500 w-full p-12 flex delx-col justify-between items-center lg:hidden">
                         {!isInDashboard && (

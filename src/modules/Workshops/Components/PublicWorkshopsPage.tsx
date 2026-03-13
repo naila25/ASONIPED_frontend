@@ -10,65 +10,84 @@ export default function PublicWorkshopsPage() {
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // ✅ Detectar si es móvil
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
-  const loadWorkshops = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllWorkshops();
-      setWorkshops(data);
-    } catch (error) {
-      console.error('Error loading workshops:', error);
-      setWorkshops([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadWorkshops = async () => {
+      try {
+        setLoading(true);
+        const data = await getAllWorkshops();
+        setWorkshops(data);
+      } catch (error) {
+        console.error("Error loading workshops:", error);
+        setWorkshops([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     loadWorkshops();
+  }, []);
+
+  // ✅ Detectar tamaño de pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const handleEnroll = (workshop: Workshop) => {
     alert(`Inscrito en: ${workshop.titulo}`);
   };
 
+  const itemsPerView = isMobile ? 1 : 3;
+
   const prevSlide = () => {
     setCurrentIndex((prev) =>
-      prev === 0 ? Math.max(0, workshops.length - 3) : prev - 1
+      prev === 0 ? Math.max(0, workshops.length - itemsPerView) : prev - 1
     );
   };
 
   const nextSlide = () => {
     setCurrentIndex((prev) =>
-      prev >= Math.max(0, workshops.length - 3) ? 0 : prev + 1
+      prev >= workshops.length - itemsPerView ? 0 : prev + 1
     );
   };
 
-  const visibleWorkshops = workshops.slice(currentIndex, currentIndex + 3);
+  const visibleWorkshops = workshops.slice(
+    currentIndex,
+    currentIndex + itemsPerView
+  );
 
   return (
     <div className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-6">
-        {/* Título principal */}
-        <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-justify tracking-wide mb-5">
+        <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mb-5">
           Nuestros talleres
         </h2>
-        <p className="text-neutral-700 text-justify mb-10">
+        <p className="text-neutral-700 text-center mb-10">
           Descubre nuestros espacios de aprendizaje y creatividad.
         </p>
 
-        {/* Carrusel con 3 cards */}
         {loading ? (
           <div className="text-center py-8">
             <div className="text-gray-500">Cargando talleres...</div>
           </div>
         ) : workshops.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-gray-500">No hay talleres disponibles en este momento.</div>
+            <div className="text-gray-500">
+              No hay talleres disponibles en este momento.
+            </div>
           </div>
         ) : (
           <div className="relative flex items-center justify-center">
-            {/* Botón Anterior */}
-            {workshops.length > 3 && (
+            
+            {workshops.length > itemsPerView && (
               <button
                 onClick={prevSlide}
                 className="absolute left-0 bg-white rounded-full shadow p-2 hover:bg-gray-100 z-20"
@@ -77,28 +96,46 @@ export default function PublicWorkshopsPage() {
               </button>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center w-full">
+            <div
+              className={`w-full gap-8 justify-items-center ${
+                isMobile
+                  ? "flex justify-center"
+                  : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+              }`}
+            >
               {visibleWorkshops.map((workshop) => (
                 <div
                   key={workshop.id}
                   className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex flex-col border border-gray-200"
                 >
                   <div className="h-[220px]">
-                    {workshop.imagen && !workshop.imagen.startsWith('blob:') ? (
+                    {workshop.imagen && !workshop.imagen.startsWith("blob:") ? (
                       <img
-                        src={workshop.imagen.startsWith('http') ? workshop.imagen : `${getAPIBaseURLSync()}${workshop.imagen}`}
+
+                        src={
+                          workshop.imagen.startsWith("http")
+                            ? workshop.imagen
+                            : `http://localhost:3000${workshop.imagen}`
+                        }
+
                         alt={workshop.titulo}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const placeholder = target.parentElement?.querySelector('.image-placeholder') as HTMLElement;
-                        if (placeholder) placeholder.classList.remove('hidden');
-                      }}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const placeholder =
+                            target.parentElement?.querySelector(
+                              ".image-placeholder"
+                            ) as HTMLElement;
+                          if (placeholder) placeholder.classList.remove("hidden");
+                        }}
                         onLoad={(e) => {
                           const target = e.target as HTMLImageElement;
-                          const placeholder = target.parentElement?.querySelector('.image-placeholder') as HTMLElement;
-                          if (placeholder) placeholder.classList.add('hidden');
+                          const placeholder =
+                            target.parentElement?.querySelector(
+                              ".image-placeholder"
+                            ) as HTMLElement;
+                          if (placeholder) placeholder.classList.add("hidden");
                         }}
                       />
                     ) : (
@@ -106,11 +143,13 @@ export default function PublicWorkshopsPage() {
                         <span>Imagen no disponible</span>
                       </div>
                     )}
-                    {/* Placeholder div - shown when image fails to load */}
+
+                    {/* Placeholder cuando la imagen falla */}
                     <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm image-placeholder hidden">
                       <span>Imagen no disponible</span>
                     </div>
                   </div>
+
                   <div className="p-5 flex flex-col items-start">
                     <h3 className="text-xl font-semibold text-gray-900 mb-3">
                       {workshop.titulo}
@@ -129,8 +168,7 @@ export default function PublicWorkshopsPage() {
               ))}
             </div>
 
-            {/* Botón Siguiente */}
-            {workshops.length > 3 && (
+            {workshops.length > itemsPerView && (
               <button
                 onClick={nextSlide}
                 className="absolute right-0 bg-white rounded-full shadow p-2 hover:bg-gray-100 z-20"
@@ -142,7 +180,6 @@ export default function PublicWorkshopsPage() {
         )}
       </div>
 
-      {/* Modal */}
       <WorkshopDetailsModal
         isOpen={selectedWorkshop !== null}
         workshop={selectedWorkshop}
