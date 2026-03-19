@@ -1,4 +1,5 @@
 import AdminTicketsDashboard from "../Components/AdminTicketsDashboard";
+import { FaTicketAlt } from "react-icons/fa";
 
 export default function AdminTicketsPage() {
   return (
