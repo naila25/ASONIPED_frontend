@@ -243,6 +243,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   }, [resetTrigger]);
 
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const mobileStepperLastTapRef = useRef(0);
   const [documentFiles, setDocumentFiles] = useState<{ [key: string]: File | null }>({
     dictamen_medico: null,
     constancia_nacimiento: null,
@@ -931,6 +932,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   };
 
   const goToNextStep = () => {
+    // Admin edit/creation: allow free step navigation without validation (same as desktop step pills)
+    if (isAdminEdit || isAdminCreation) {
+      setCurrentStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (currentStep === 0 && !validateStepPersonal()) return;
     if (currentStep === 1 && !validateStepFamily()) return;
     if (currentStep === 2 && !validateStepDisability()) return;
@@ -1214,61 +1221,101 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         </div>
       </div>
 
-      {/* Step progress: carousel (3 steps visible) to avoid overflow */}
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center gap-1">
+      {/* Step progress */}
+      <div className="mb-6 sm:mb-8 min-w-0">
+        {/* Mobile: single-step + arrows (no overflow); debounce to avoid double-tap skip */}
+        <div className="sm:hidden flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={() => setStepperViewStart(s => Math.max(0, s - 1))}
-            disabled={stepperViewStart === 0}
-            className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
-            aria-label="Ver pasos anteriores"
+            onClick={() => {
+              const now = Date.now();
+              if (now - mobileStepperLastTapRef.current < 400) return;
+              mobileStepperLastTapRef.current = now;
+              setCurrentStep(s => Math.max(0, s - 1));
+            }}
+            disabled={currentStep === 0}
+            className="flex-shrink-0 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
+            aria-label="Paso anterior"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="flex flex-1 items-center justify-center gap-1 min-w-0">
-            {Array.from({ length: STEPS_VISIBLE }, (_, i) => {
-              const index = stepperViewStart + i;
-              if (index >= TOTAL_STEPS) return null;
-              const label = STEP_LABELS[index];
-              const isCurrent = index === currentStep;
-              const canGoToStep = isAdminEdit ? true : index <= currentStep;
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => canGoToStep && setCurrentStep(index)}
-                  className={`flex flex-col items-center flex-1 min-w-0 max-w-[100px] min-h-[44px] py-2 px-1 rounded-lg transition-colors touch-manipulation ${
-                    isCurrent
-                      ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 ring-offset-2'
-                      : canGoToStep
-                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 cursor-pointer'
-                        : 'text-gray-400 cursor-default'
-                  }`}
-                >
-                  <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold flex-shrink-0 ${
-                    isCurrent ? 'bg-blue-600 text-white' : canGoToStep ? 'bg-gray-300 text-gray-700' : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    {index + 1}
-                  </span>
-                  <span className="text-xs mt-1 truncate w-full text-center">{label}</span>
-                </button>
-              );
-            })}
+          <div className="flex-1 min-w-0 flex items-center justify-center">
+            <span className="text-sm font-medium text-gray-900 truncate text-center block w-full">
+              {currentStep + 1}/{TOTAL_STEPS} · {STEP_LABELS[currentStep]}
+            </span>
           </div>
           <button
             type="button"
-            onClick={() => setStepperViewStart(s => Math.min(TOTAL_STEPS - STEPS_VISIBLE, s + 1))}
-            disabled={stepperViewStart >= TOTAL_STEPS - STEPS_VISIBLE}
-            className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
-            aria-label="Ver siguientes pasos"
+            onClick={() => {
+              const now = Date.now();
+              if (now - mobileStepperLastTapRef.current < 400) return;
+              mobileStepperLastTapRef.current = now;
+              setCurrentStep(s => Math.min(TOTAL_STEPS - 1, s + 1));
+            }}
+            disabled={currentStep >= TOTAL_STEPS - 1}
+            className="flex-shrink-0 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
+            aria-label="Siguiente paso"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
-        <p className="text-sm text-gray-500 mt-2 text-center">
-          Paso {currentStep + 1} de {TOTAL_STEPS}: {STEP_LABELS[currentStep]}
-        </p>
+
+        {/* Desktop: carousel with 3 steps visible */}
+        <div className="hidden sm:block">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setStepperViewStart(s => Math.max(0, s - 1))}
+              disabled={stepperViewStart === 0}
+              className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
+              aria-label="Ver pasos anteriores"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex flex-1 items-center justify-center gap-1 min-w-0">
+              {Array.from({ length: STEPS_VISIBLE }, (_, i) => {
+                const index = stepperViewStart + i;
+                if (index >= TOTAL_STEPS) return null;
+                const label = STEP_LABELS[index];
+                const isCurrent = index === currentStep;
+                const canGoToStep = (isAdminEdit || isAdminCreation) ? true : index <= currentStep;
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => canGoToStep && setCurrentStep(index)}
+                    className={`flex flex-col items-center flex-1 min-w-0 max-w-[100px] min-h-[44px] py-2 px-1 rounded-lg transition-colors touch-manipulation ${
+                      isCurrent
+                        ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 ring-offset-2'
+                        : canGoToStep
+                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 cursor-pointer'
+                          : 'text-gray-400 cursor-default'
+                    }`}
+                  >
+                    <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold flex-shrink-0 ${
+                      isCurrent ? 'bg-blue-600 text-white' : canGoToStep ? 'bg-gray-300 text-gray-700' : 'bg-gray-200 text-gray-500'
+                    }`}>
+                      {index + 1}
+                    </span>
+                    <span className="text-xs mt-1 truncate w-full text-center">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setStepperViewStart(s => Math.min(TOTAL_STEPS - STEPS_VISIBLE, s + 1))}
+              disabled={stepperViewStart >= TOTAL_STEPS - STEPS_VISIBLE}
+              className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
+              aria-label="Ver siguientes pasos"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 mt-2 text-center">
+            Paso {currentStep + 1} de {TOTAL_STEPS}: {STEP_LABELS[currentStep]}
+          </p>
+        </div>
       </div>
 
       <form onSubmit={(e) => {

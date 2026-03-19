@@ -74,27 +74,27 @@ const IDCardModal: React.FC<IDCardModalProps> = ({ isOpen, onClose, recordId }) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className="flex items-center gap-2 text-gray-900 font-semibold">
-            <IdCard className="w-5 h-5 text-blue-600" />
-            Carnet de Identificación
+    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] min-w-0 flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 shrink-0">
+          <div className="flex items-center gap-2 text-gray-900 font-semibold min-w-0 truncate">
+            <IdCard className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <span className="truncate">Carnet de Identificación</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handlePrint} className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 print:hidden">Descargar PDF</button>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors print:hidden" aria-label="Cerrar">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={handlePrint} className="px-3 py-2 min-h-[44px] sm:min-h-0 sm:py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 print:hidden text-sm font-medium touch-manipulation">Descargar PDF</button>
+            <button onClick={onClose} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors print:hidden touch-manipulation" aria-label="Cerrar">
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        <div className="p-4">
-          {loading && <div className="text-center text-gray-600">Cargando...</div>}
-          {error && <div className="text-center text-red-600">{error}</div>}
+        <div className="p-2 sm:p-4 overflow-auto min-h-0 flex-1">
+          {loading && <div className="text-center text-gray-600 py-8">Cargando...</div>}
+          {error && <div className="text-center text-red-600 py-8">{error}</div>}
           {record && (
-            <div className="flex justify-center">
-              <div id="idcard-print">
+            <div className="flex justify-center min-w-0">
+              <div id="idcard-print" className="w-full max-w-full min-w-0">
                 <IDCard record={record} />
               </div>
             </div>

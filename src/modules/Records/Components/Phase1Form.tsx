@@ -1196,6 +1196,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
           <button
             type="submit"
             disabled={loading || cedulaAvailable === false}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Enviando...' : (isModification ? 'Actualizar Expediente' : 'Enviar Solicitud')}

@@ -186,27 +186,8 @@ const AdminRecordEdit: React.FC = () => {
                 Editar Expediente - {record.record_number}
               </h1>
               <p className="text-gray-600">
-                Edición administrativa con capacidad de override
+                Edición administrativa con capacidad de sobreescribir
               </p>
-            </div>
-          </div>
-          
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-orange-400" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-orange-800">
-                  Edición Administrativa
-                </h3>
-                <div className="mt-2 text-sm text-orange-700">
-                  <p>
-                    Como administrador, puedes editar cualquier campo del expediente.
-                    Los cambios se aplicarán inmediatamente sin necesidad de revisión.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

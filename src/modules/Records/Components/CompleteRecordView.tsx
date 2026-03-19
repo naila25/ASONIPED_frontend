@@ -1078,8 +1078,8 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
         </div>
       )}
 
-      {/* Resumen del Expediente (solo para admin, en pestaña Resumen) */}
-      {activeTab === 'resumen' && isAdmin && (
+      {/* Resumen del Expediente (pestaña Resumen) */}
+      {activeTab === 'resumen' && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-green-100 rounded-lg">
