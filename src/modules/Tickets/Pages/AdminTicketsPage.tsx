@@ -1,20 +1,20 @@
-import { FaTicketAlt } from "react-icons/fa";
 import AdminTicketsDashboard from "../Components/AdminTicketsDashboard";
 
 export default function AdminTicketsPage() {
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <FaTicketAlt className="text-orange-500 text-2xl" />
-          <h1 className="text-2xl font-bold text-gray-800">Gestión de Tickets</h1>
+     
+      <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-sm p-4 sm:p-6">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-lg font-semibold text-gray-900 truncate">
+              Gestión de Tickets
+            </h1>
+          </div>
         </div>
-        <p className="text-gray-600">
-          Administra y responde a las tickets de los usuarios
-        </p>
-      </div>
 
-      <AdminTicketsDashboard />
+        <AdminTicketsDashboard />
+      </div>
     </div>
   );
 }
