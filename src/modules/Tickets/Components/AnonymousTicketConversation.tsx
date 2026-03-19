@@ -3,12 +3,13 @@ import { FaPaperPlane, FaArrowLeft, FaUserShield, FaCheck } from 'react-icons/fa
 import { getAnonymousTicketMessages, sendAnonymousTicketMessage } from '../Services/anonymousTicketService';
 import type { AnonymousTicketMessage } from '../Services/anonymousTicketService';
 import { socketService } from '../../../shared/Services/socketService';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AnonymousTicketConversationProps {
   ticket: {
     id: number;
     ticket_id: string;
-    asunto: string;
+    asunto?: string;
     mensaje?: string;
     status: 'open' | 'closed' | 'archived';
   };
@@ -176,7 +177,7 @@ const AnonymousTicketConversation: React.FC<AnonymousTicketConversationProps> = 
   };
 
   return (
-    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden">
+    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden h-full min-h-0">
       {/* Header - Minimalista */}
       <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -210,95 +211,99 @@ const AnonymousTicketConversation: React.FC<AnonymousTicketConversationProps> = 
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container" style={{ maxHeight: '400px' }}>
-        {loading ? (
-          <div className="text-center text-gray-500">Cargando mensajes...</div>
-        ) : error ? (
-          <div className="text-center text-red-500">{error}</div>
-                 ) : messages.length === 0 ? (
-          <div className="text-center text-gray-500">
-            <p className="mb-2">No hay mensajes aún</p>
-            {ticket.mensaje && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-blue-800 text-sm">
-                  <strong>Mensaje inicial:</strong> {ticket.mensaje}
-                </p>
-              </div>
-            )}
-            {ticket.status !== 'open' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
-                <p className="text-yellow-800 text-sm">
-                  <strong>⚠️ Ticket {ticket.status === 'closed' ? 'cerrado' : 'archivado'}:</strong> 
-                  {ticket.status === 'closed' 
-                    ? ' Este ticket ha sido cerrado por un administrador.' 
-                    : ' Este ticket ha sido archivado.'
-                  }
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* Initial message if exists */}
-            {ticket.mensaje && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-blue-800 text-sm">
-                  <strong>Mensaje inicial:</strong> {ticket.mensaje}
-                </p>
-              </div>
-            )}
-            
-            {/* Status warning if ticket is closed/archived */}
-            {ticket.status !== 'open' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-yellow-800 text-sm">
-                  <strong>⚠️ Ticket {ticket.status === 'closed' ? 'cerrado' : 'archivado'}:</strong> 
-                  {ticket.status === 'closed' 
-                    ? ' Este ticket ha sido cerrado por un administrador.' 
-                    : ' Este ticket ha sido archivado.'
-                  }
-                </p>
-              </div>
-            )}
-            
-            {/* Messages */}
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[75%] ${message.sender_type === 'user' ? 'order-2' : 'order-1'}`}>
-                    {message.sender_type !== 'user' && (
-                      <div className="flex items-center gap-2 mb-1 ml-1">
-                        <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
-                          <FaUserShield className="text-blue-500" />
+      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container">
+        <AnimatePresence>
+          {loading ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-gray-500">
+              Cargando mensajes...
+            </motion.div>
+          ) : error ? (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm text-center"
+            >
+              {error}
+            </motion.div>
+          ) : messages.length === 0 ? (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center text-gray-500">
+              <p className="mb-2">No hay mensajes aún</p>
+              {ticket.mensaje && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-blue-800 text-sm">
+                    <strong>Mensaje inicial:</strong> {ticket.mensaje}
+                  </p>
+                </div>
+              )}
+              {ticket.status !== 'open' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>⚠️ Ticket {ticket.status === 'closed' ? 'cerrado' : 'archivado'}:</strong>{' '}
+                    {ticket.status === 'closed'
+                      ? ' Este ticket ha sido cerrado por un administrador.'
+                      : ' Este ticket ha sido archivado.'}
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <>
+              {ticket.mensaje && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-blue-800 text-sm">
+                    <strong>Mensaje inicial:</strong> {ticket.mensaje}
+                  </p>
+                </motion.div>
+              )}
+
+              {ticket.status !== 'open' && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>⚠️ Ticket {ticket.status === 'closed' ? 'cerrado' : 'archivado'}:</strong>{' '}
+                    {ticket.status === 'closed'
+                      ? ' Este ticket ha sido cerrado por un administrador.'
+                      : ' Este ticket ha sido archivado.'}
+                  </p>
+                </motion.div>
+              )}
+
+              <div className="space-y-4">
+                {messages.map((message, index) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`flex ${message.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[75%] ${message.sender_type === 'user' ? 'order-2' : 'order-1'}`}>
+                      {message.sender_type !== 'user' && (
+                        <div className="flex items-center gap-2 mb-1 ml-1">
+                          <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                            <FaUserShield className="text-blue-500" />
+                          </div>
+                          <span className="text-xs font-medium text-gray-600">Administrador</span>
                         </div>
-                        <span className="text-xs font-medium text-gray-600">
-                          Administrador
-                        </span>
-                      </div>
-                    )}
-                    <div className={`rounded-2xl px-4 py-3 ${
-                      message.sender_type === 'user'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
-                    }`}>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message}</p>
-                      <div className={`flex items-center justify-between mt-2 ${
-                        message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-400'
-                      }`}>
-                        <span className="text-xs">
-                          {formatDate(message.created_at)}
-                        </span>
+                      )}
+                      <div
+                        className={`rounded-2xl px-4 py-3 ${
+                          message.sender_type === 'user'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message}</p>
+                        <div className={`flex items-center justify-between mt-2 ${message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
+                          <span className="text-xs">{formatDate(message.created_at)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+                  </motion.div>
+                ))}
+              </div>
+            </>
+          )}
+        </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
 

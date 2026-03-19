@@ -30,8 +30,7 @@ const IntroductionInfo: React.FC<IntroductionInfoProps> = ({ onStartProcess }) =
           </h2>
           <div className="space-y-4 text-gray-700">
             <p>
-              <strong>ASONIPED</strong> es una organización sin fines de lucro dedicada a mejorar la calidad de vida 
-              de las personas con discapacidad en Nicoya y alrededores. Nuestra misión es promover la inclusión, 
+              <strong>ASONIPED</strong> es una organización sin fines de lucro. Nuestra misión es promover la inclusión, 
               igualdad de oportunidades y el respeto a los derechos humanos de todas las personas.
             </p>
             <p>
@@ -56,10 +55,6 @@ const IntroductionInfo: React.FC<IntroductionInfoProps> = ({ onStartProcess }) =
               <li className="flex items-start gap-2">
                 <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                 <span>Conocer sus necesidades específicas y ofrecer servicios personalizados</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Conectarle con recursos y servicios especializados</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -152,7 +147,10 @@ const IntroductionInfo: React.FC<IntroductionInfoProps> = ({ onStartProcess }) =
           </p>
         </div>
         <button
-          onClick={onStartProcess}
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            onStartProcess();
+          }}
           className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200 flex items-center gap-2 mx-auto"
         >
           Comenzar Registro

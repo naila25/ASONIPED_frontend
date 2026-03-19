@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getAllTickets, closeTicket, archiveTicket } from '../Services/ticketService';
 import type { DonationTicket } from '../Services/ticketService';
 import { closeAnonymousTicket, archiveAnonymousTicket } from '../Services/anonymousTicketService';
 import { FaTicketAlt, FaCheckCircle, FaEye, FaSearch, FaArchive } from 'react-icons/fa';
 import TicketConversation from '../Components/TicketConversation';
 import AdminAnonymousTicketConversation from './AdminAnonymousTicketConversation';
+import TicketConversationModal from './TicketConversationModal';
 
 const AdminTicketsDashboard: React.FC = () => {
   const [tickets, setTickets] = useState<DonationTicket[]>([]);
@@ -17,6 +18,8 @@ const AdminTicketsDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [assignedFilter] = useState<'all' | 'assigned' | 'unassigned'>('all');
   const [showArchived, setShowArchived] = useState(false);
+  const [pageSize, setPageSize] = useState<5 | 10>(10);
+  const [page, setPage] = useState(1);
 
   // Statistics
   const [stats, setStats] = useState({
@@ -28,7 +31,18 @@ const AdminTicketsDashboard: React.FC = () => {
     archived: 0
   });
 
-  const loadTickets = async () => {
+  const calculateStats = useCallback((ticketsData: DonationTicket[]) => {
+    const total = ticketsData.length;
+    const open = ticketsData.filter(t => t.status === 'open').length;
+    const closed = ticketsData.filter(t => t.status === 'closed').length;
+    const assigned = ticketsData.filter(t => t.assigned_admin_id).length;
+    const unassigned = total - assigned;
+    const archived = ticketsData.filter(t => t.status === 'archived').length;
+
+    setStats({ total, open, closed, assigned, unassigned, archived });
+  }, []);
+
+  const loadTickets = useCallback(async () => {
     try {
       setLoading(true);
       const ticketsData = await getAllTickets();
@@ -42,7 +56,7 @@ const AdminTicketsDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [calculateStats]);
 
   useEffect(() => {
     loadTickets();
@@ -59,18 +73,7 @@ const AdminTicketsDashboard: React.FC = () => {
         archived: 0
       });
     };
-  }, []);
-
-  const calculateStats = (ticketsData: DonationTicket[]) => {
-    const total = ticketsData.length;
-    const open = ticketsData.filter((t) => t.status === 'open').length;
-    const closed = ticketsData.filter((t) => t.status === 'closed').length;
-    const assigned = ticketsData.filter((t) => t.assigned_admin_id).length;
-    const unassigned = total - assigned;
-    const archived = ticketsData.filter((t) => t.status === 'archived').length;
-
-    setStats({ total, open, closed, assigned, unassigned, archived });
-  };
+  }, [loadTickets]);
 
   const handleCloseTicket = async (ticket: DonationTicket) => {
     try {
@@ -156,6 +159,18 @@ const AdminTicketsDashboard: React.FC = () => {
     return filtered;
   }, [tickets, statusFilter, searchTerm, assignedFilter, showArchived]);
 
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, searchTerm, showArchived, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
+  const clampedPage = Math.min(page, totalPages);
+  const paginatedTickets = useMemo(() => {
+    const start = (clampedPage - 1) * pageSize;
+    return filteredTickets.slice(start, start + pageSize);
+  }, [filteredTickets, clampedPage, pageSize]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -225,13 +240,53 @@ const AdminTicketsDashboard: React.FC = () => {
   return (
   
     <div className="space-y-6">
-      {/* Header / Filters */}
-      <div className="mb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-80">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
+          <div className="flex items-center">
+            <FaTicketAlt className="text-blue-500 mr-3 text-xl" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total</p>
+              <p className="text-lg font-bold text-gray-900">{stats.total}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
+          <div className="flex items-center">
+            <FaClock className="text-orange-500 mr-3 text-xl" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">Abiertos</p>
+              <p className="text-lg font-bold text-gray-900">{stats.open}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
+          <div className="flex items-center">
+            <FaCheckCircle className="text-green-500 mr-3 text-xl" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">Cerrados</p>
+              <p className="text-lg font-bold text-gray-900">{stats.closed}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-gray-500">
+          <div className="flex items-center">
+            <FaArchive className="text-gray-500 mr-3 text-xl" />
+            <div>
+              <p className="text-sm font-medium text-gray-600">Archivados</p>
+              <p className="text-lg font-bold text-gray-900">{stats.archived}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white p-3 sm:p-4 rounded-lg shadow border">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Buscar por asunto, nombre o correo..."
@@ -240,27 +295,27 @@ const AdminTicketsDashboard: React.FC = () => {
                 className="block w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
               />
             </div>
-
-            {/* Status Filter */}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <select
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as 'all' | 'open' | 'closed' | 'archived')
-              }
-              className="h-10 w-full sm:w-56 px-3 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'open' | 'closed' | 'archived')}
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="all">Todos los estados</option>
               <option value="open">Abiertos</option>
               <option value="closed">Cerrados</option>
               <option value="archived">Archivados</option>
             </select>
-
-            <button
-              onClick={() => setShowArchived((v) => !v)}
-              className="h-10 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 whitespace-nowrap sm:text-sm"
-            >
-              {showArchived ? 'Ocultar archivados' : 'Mostrar archivados'}
-            </button>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="shrink-0"
+              />
+              Mostrar Archivados
+            </label>
           </div>
         </div>
       </div>
@@ -276,163 +331,198 @@ const AdminTicketsDashboard: React.FC = () => {
             <p className="text-gray-600">No se encontraron tickets que coincidan con los filtros.</p>
           </div>
         ) : (
-          filteredTickets.map((ticket: DonationTicket) => (
+          <>
+            {/* Pagination controls (top) */}
+            <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600">
+                  Mostrando{' '}
+                  <span className="font-medium text-gray-800">
+                    {(clampedPage - 1) * pageSize + 1}
+                  </span>
+                  {' - '}
+                  <span className="font-medium text-gray-800">
+                    {Math.min(clampedPage * pageSize, filteredTickets.length)}
+                  </span>
+                  {' '}of{' '}
+                  <span className="font-medium text-gray-800">{filteredTickets.length}</span>
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600">Por página</label>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize((Number(e.target.value) as 5 | 10) || 10)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={clampedPage <= 1}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Página <span className="font-medium text-gray-800">{clampedPage}</span> / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={clampedPage >= totalPages}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {paginatedTickets.map((ticket: DonationTicket) => (
             <div key={ticket.id}>
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                <div className="p-6">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <FaTicketAlt className="text-orange-500" />
-                        <h3 className="text-xl font-bold text-gray-900">
-                          Ticket #{ticket.id} - {ticket.asunto}
-                        </h3>
-
-                        {getStatusBadge(ticket.status)}
-
-                        {/* Ticket type badge */}
-                        <span
-                          className={`text-xs px-3 py-1.5 rounded-full font-medium border ${
-                            ticket.ticket_type === 'anonymous'
-                              ? 'bg-purple-100 text-purple-800 border-purple-200'
-                              : 'bg-blue-100 text-blue-800 border-blue-200'
-                          }`}
-                        >
-                          {ticket.ticket_type === 'anonymous' ? 'Anónimo' : 'Registrado'}
-                        </span>
-
-                        {/* Public ticket ID for anonymous tickets */}
-                        {ticket.ticket_type === 'anonymous' && ticket.ticket_id && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                            ID: {ticket.ticket_id}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-sm text-gray-600 space-y-1">
-                        {ticket.ticket_type === 'anonymous' ? (
-                          <>
-                            <p>
-                              <span className="text-xs text-gray-500 uppercase tracking-wide">
-                                Tipo
-                              </span>
-                              : <span className="font-medium">Usuario Anónimo</span>
-                            </p>
-                            {ticket.nombre && (
-                              <p>
-                                <span className="text-xs text-gray-500 uppercase tracking-wide">
-                                  Nombre
-                                </span>
-                                : <span className="font-medium">{ticket.nombre}</span>
-                              </p>
-                            )}
-                            {ticket.correo && (
-                              <p>
-                                <span className="text-xs text-gray-500 uppercase tracking-wide">
-                                  Correo
-                                </span>
-                                : <span className="font-medium">{ticket.correo}</span>
-                              </p>
-                            )}
-                          </>
-                        ) : (
-                          <p>
-                            <span className="text-xs text-gray-500 uppercase tracking-wide">
-                              Solicitante
-                            </span>
-                            :{' '}
-                            <span className="font-medium">
-                              {ticket.nombre} ({ticket.correo})
-                            </span>
-                          </p>
-                        )}
-
-                        <p>
-                          <span className="text-xs text-gray-500 uppercase tracking-wide">Creado</span>:{' '}
-                          <span className="font-medium">{formatDate(ticket.created_at)}</span>
-                        </p>
-                        {ticket.closed_at && (
-                          <p>
-                            <span className="text-xs text-gray-500 uppercase tracking-wide">
-                              Cerrado
-                            </span>
-                            : <span className="font-medium">{formatDate(ticket.closed_at)}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
-                        onClick={() => handleViewConversation(ticket)}
-                      >
-                        <FaEye />
-                        Ver conversación
-                      </button>
-
+              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                      <FaTicketAlt className="text-orange-500" />
+                      <h3 className="font-semibold text-gray-800 break-words">
+                        Ticket #{ticket.id} - {ticket.asunto}
+                      </h3>
+                      {getStatusBadge(ticket.status)}
                       {ticket.status === 'open' && (
-                        <button
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                          onClick={() => handleCloseTicket(ticket)}
-                        >
-                          <FaCheckCircle />
-                          Cerrar
-                        </button>
+                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          Activo
+                        </span>
                       )}
-
-                      {ticket.status === 'closed' && (
-                        <button
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                          onClick={() => handleArchiveTicket(ticket)}
-                        >
-                          <FaArchive />
-                          Archivar
-                        </button>
+                      {/* Show ticket type badge */}
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        ticket.ticket_type === 'anonymous' 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {ticket.ticket_type === 'anonymous' ? 'Anónimo' : 'Registrado'}
+                      </span>
+                      {/* Show public ticket ID for anonymous tickets */}
+                      {ticket.ticket_type === 'anonymous' && ticket.ticket_id && (
+                        <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">
+                          ID: {ticket.ticket_id}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      {ticket.ticket_type === 'anonymous' ? (
+                        <>
+                          <p><strong>Tipo:</strong> Usuario Anónimo</p>
+                          {ticket.nombre && <p><strong>Nombre:</strong> {ticket.nombre}</p>}
+                          {ticket.correo && <p><strong>Correo:</strong> {ticket.correo}</p>}
+                        </>
+                      ) : (
+                        <p><strong>Solicitante:</strong> {ticket.nombre} ({ticket.correo})</p>
+                      )}
+                      <p><strong>Creado:</strong> {formatDate(ticket.created_at)}</p>
+                      {ticket.closed_at && (
+                        <p><strong>Cerrado:</strong> {formatDate(ticket.closed_at)}</p>
                       )}
                     </div>
                   </div>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <button
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                      onClick={() => handleViewConversation(ticket)}
+                    >
+                      <FaEye />
+                      Ver conversación
+                    </button>
+                    {ticket.status === 'open' && (
+                      <button
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                        onClick={() => handleCloseTicket(ticket)}
+                      >
+                        <FaCheckCircle />
+                        Cerrar
+                      </button>
+                    )}
+                    {ticket.status === 'closed' && (
+                      <button
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                        onClick={() => handleArchiveTicket(ticket)}
+                      >
+                        <FaArchive />
+                        Archivar
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Conversation opens below the specific ticket */}
-              {selectedTicket && selectedTicket.id === ticket.id && (
-                <div className="mt-4">
-                  {selectedTicket.ticket_type === 'anonymous' ? (
-                    <AdminAnonymousTicketConversation
-                      ticket={{
-                        id: selectedTicket.id,
-                        ticket_id: selectedTicket.ticket_id || '',
-                        asunto: selectedTicket.asunto || '',
-                        mensaje: selectedTicket.mensaje,
-                        status: selectedTicket.status
-                      }}
-                      onClose={handleCloseConversation}
-                      onTicketUpdate={() => {
-                        // Only reload if the ticket status actually changed
-                        if (selectedTicket.status !== 'open') {
-                          loadTickets();
-                        }
-                      }}
-                    />
-                  ) : (
-                    <TicketConversation
-                      ticket={selectedTicket}
-                      onClose={handleCloseConversation}
-                      onTicketUpdate={() => {
-                        // Only reload if the ticket status actually changed
-                        if (selectedTicket.status !== 'open') {
-                          loadTickets();
-                        }
-                      }}
-                    />
-                  )}
-                </div>
-              )}
+              
             </div>
-          ))
+            ))}
+
+            {/* Pagination controls (bottom) */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 py-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={clampedPage <= 1}
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                <span className="text-sm text-gray-600">
+                  Página <span className="font-medium text-gray-800">{clampedPage}</span> / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={clampedPage >= totalPages}
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Conversation in modal */}
+      {selectedTicket && (
+        <TicketConversationModal isOpen={true} onClose={handleCloseConversation}>
+          {selectedTicket.ticket_type === 'anonymous' ? (
+            <AdminAnonymousTicketConversation
+              ticket={{
+                id: selectedTicket.id,
+                ticket_id: selectedTicket.ticket_id || '',
+                asunto: selectedTicket.asunto || '',
+                mensaje: selectedTicket.mensaje,
+                status: selectedTicket.status,
+              }}
+              onClose={handleCloseConversation}
+              onTicketUpdate={() => {
+                if (selectedTicket.status !== 'open') loadTickets();
+              }}
+            />
+          ) : (
+            <TicketConversation
+              ticket={selectedTicket}
+              onClose={handleCloseConversation}
+              onTicketUpdate={() => {
+                if (selectedTicket.status !== 'open') loadTickets();
+              }}
+            />
+          )}
+        </TicketConversationModal>
+      )}
+
     </div>
   );
 };
