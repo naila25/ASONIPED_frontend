@@ -90,9 +90,9 @@ const RecordDetailsModal: React.FC<RecordDetailsModalProps> = ({
           <CompleteRecordView record={record} isAdmin={true} />
         </div>
 
-        {/* Optional footer (actions) */}
+        {/* Optional footer (actions): scrollable on small screens if many buttons */}
         {children && (
-          <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 shrink-0">
+          <div className="border-t border-gray-200 bg-gray-50 px-3 sm:px-4 py-3 shrink-0 overflow-auto min-w-0 max-h-[40vh] sm:max-h-none">
             {children}
           </div>
         )}

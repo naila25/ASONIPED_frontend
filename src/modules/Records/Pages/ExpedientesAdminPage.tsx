@@ -224,11 +224,27 @@ const ExpedientesAdminPage: React.FC = () => {
 
   const handleHandoverRecord = useCallback(async (userId: number) => {
     if (!handoverRecordId) return;
-    
+    const id = handoverRecordId;
+
     try {
       setHandoverLoading(true);
-      await handoverRecordToUser(handoverRecordId, userId);
-      await loadData(); // Refresh the records list
+      await handoverRecordToUser(id, userId);
+
+      // Refresh full record so details modal (if open) shows handed_over and hides "Entregar a usuario"
+      try {
+        const updated = await getRecordById(id);
+        setSelectedRecord((prev) => (prev?.id === id ? updated : prev));
+      } catch {
+        setSelectedRecord((prev) => (prev?.id === id ? null : prev));
+      }
+
+      await loadData(); // Refresh list from server
+
+      // Ensure this record is marked handed over in the list (in case list API doesn't return the flag)
+      setRecords((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, handed_over_to_user: true } : r))
+      );
+
       setShowHandoverModal(false);
       setHandoverRecordId(null);
     } catch (err) {
@@ -633,7 +649,7 @@ const ExpedientesAdminPage: React.FC = () => {
         {/* Desktop: table */}
         <div className="hidden lg:block overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+            <div className="overflow-hidden shadow  md:rounded-lg">
               <table className="w-full table-auto divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
@@ -759,85 +775,134 @@ const ExpedientesAdminPage: React.FC = () => {
         onClose={closeRecordDetailsModal}
         editHref={selectedRecord ? `/admin/expedientes/editar/${selectedRecord.id}` : undefined}
       >
-        {selectedRecord && (
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4' || selectedRecord.phase === 'completed') && (
+        {selectedRecord && (() => {
+          const listRecord = records.find((r) => r.id === selectedRecord.id);
+          const isHandedOver = listRecord?.handed_over_to_user === true || selectedRecord.handed_over_to_user === true;
+          const canHandover = selectedRecord.admin_created && !isHandedOver;
+          return (
+          <div className="flex flex-col gap-3 min-w-0">
+            {/* Acciones del expediente: carnet, entregar (solo si no está ya entregado), eliminar */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <button
                 type="button"
-                onClick={() => initiateAction('add-note', selectedRecord.id)}
-                className="inline-flex items-center px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                onClick={() => {
+                  setIdCardRecordId(selectedRecord.id);
+                  setShowIDCardModal(true);
+                  closeRecordDetailsModal();
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100"
               >
-                <Edit3 className="w-4 h-4 mr-2" />
-                Agregar Comentario
+                <IdCard className="w-3.5 h-3.5 flex-shrink-0" />
+                Ver carnet
               </button>
-            )}
-            {selectedRecord.phase === 'phase1' && selectedRecord.status === 'pending' && (
-              <>
+              {canHandover && (
                 <button
                   type="button"
-                  onClick={() => initiateAction('approve-phase1', selectedRecord.id)}
-                  className="inline-flex items-center px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Aprobar Fase 1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => initiateAction('request-modification', selectedRecord.id)}
-                  className="inline-flex items-center px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Solicitar Modificación
-                </button>
-                <button
-                  type="button"
-                  onClick={() => initiateAction('reject-phase1', selectedRecord.id)}
-                  className="inline-flex items-center px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Rechazar Fase 1
-                </button>
-              </>
-            )}
-            {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4') && selectedRecord.status === 'pending' && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => initiateAction('approve-record', selectedRecord.id)}
-                  className="inline-flex items-center px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Aprobar Expediente Completo
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const recordDetails = await getRecordById(selectedRecord.id);
-                      setSelectedRecord(recordDetails);
-                      setShowPhase3ModModal(true);
-                    } catch (err) {
-                      setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
-                    }
+                  onClick={() => {
+                    closeRecordDetailsModal();
+                    initiateHandover(selectedRecord.id);
                   }}
-                  disabled={phase3ModLoading}
-                  className="inline-flex items-center px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100"
                 >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Solicitar Modificación Fase 3
+                  <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                  Entregar a usuario
                 </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  closeRecordDetailsModal();
+                  openDeleteConfirm(selectedRecord.id);
+                }}
+                disabled={deletingRecordId === selectedRecord.id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
+                Eliminar
+              </button>
+            </div>
+
+            {/* Acciones de revisión (según fase) */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-2 border-t border-gray-200">
+              {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4' || selectedRecord.phase === 'completed') && (
                 <button
                   type="button"
-                  onClick={() => initiateAction('reject-record', selectedRecord.id)}
-                  className="inline-flex items-center px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+                  onClick={() => initiateAction('add-note', selectedRecord.id)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100"
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Rechazar Expediente Completo
+                  <Edit3 className="w-3.5 h-3.5 flex-shrink-0" />
+                  Agregar comentario
                 </button>
-              </>
-            )}
+              )}
+              {selectedRecord.phase === 'phase1' && selectedRecord.status === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('approve-phase1', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Aprobar Fase 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('request-modification', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 flex-shrink-0" />
+                    Solicitar modificación
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('reject-phase1', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100"
+                  >
+                    <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Rechazar Fase 1
+                  </button>
+                </>
+              )}
+              {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4') && selectedRecord.status === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('approve-record', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Aprobar expediente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const recordDetails = await getRecordById(selectedRecord.id);
+                        setSelectedRecord(recordDetails);
+                        setShowPhase3ModModal(true);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
+                      }
+                    }}
+                    disabled={phase3ModLoading}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 disabled:opacity-50"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 flex-shrink-0" />
+                    Solicitar mod. Fase 3
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('reject-record', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100"
+                  >
+                    <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Rechazar expediente
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        )}
+          );
+        })()}
       </RecordDetailsModal>
 
       {/* Modal unificado para acciones de Fase 1 y expediente */}

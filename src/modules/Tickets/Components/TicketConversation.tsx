@@ -26,7 +26,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messageListenerRef = useRef<((message: any) => void) | null>(null);
+  const messageListenerRef = useRef<((message: TicketMessage) => void) | null>(null);
   const recentlySentMessagesRef = useRef<Set<string>>(new Set());
 
   const loadMessages = useCallback(async () => {
@@ -58,6 +58,9 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
 
   // Setup WebSocket connection separately
   useEffect(() => {
+    // Capture current ref values to satisfy lint and ensure cleanup uses a stable reference.
+    const recentlySentMessages = recentlySentMessagesRef.current;
+
     const setupSocketConnection = async () => {
       try {
         await socketService.connect();
@@ -67,7 +70,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
         socketService.joinTicketRoom(ticket.id);
         
         // Create message handler with improved duplicate detection
-        const messageHandler = (message: any) => {
+        const messageHandler = (message: TicketMessage) => {
           // For messages from current user, check if this is a recently sent message
           if (user && message.sender_id === user.id) {
             // Check if we recently sent a message with this content
@@ -130,9 +133,9 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
         messageListenerRef.current = null;
       }
       // Clear recently sent messages when component unmounts
-      recentlySentMessagesRef.current.clear();
+      recentlySentMessages.clear();
     };
-  }, [ticket.id, user?.id]); // Removed loadMessages, setupSocketConnection, cleanupSocketConnection from dependencies
+  }, [ticket.id, user]); // user is read inside the effect (message handler)
 
   useEffect(() => {
     scrollToBottom();
@@ -252,7 +255,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center flex-1">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-300 border-t-blue-500"></div>
           <p className="text-gray-500 text-sm">Cargando conversación...</p>
@@ -262,7 +265,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   }
 
   return (
-    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden">
+    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden h-full min-h-0">
              {/* Header - Minimalista */}
        <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -302,7 +305,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
       </div>
 
              {/* Messages - Diseño limpio */}
-       <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container" style={{ maxHeight: '400px' }}>
+      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container">
         <AnimatePresence>
           {error && (
             <motion.div 

@@ -1,8 +1,50 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { FaHeadset, FaTicketAlt } from 'react-icons/fa';
 import AnonymousTicketLookup from '../Components/AnonymousTicketLookup';
+import TicketSupportForm from '../Components/TicketSupportForm';
+import AnonymousTicketConversation from '../Components/AnonymousTicketConversation';
+import TicketConversation from '../Components/TicketConversation';
+import TicketConversationModal from '../Components/TicketConversationModal';
+import type { AnonymousTicket } from '../Services/anonymousTicketService';
+import type { DonationTicket } from '../Services/ticketService';
+import { getAnonymousTicketByTicketId } from '../Services/anonymousTicketService';
+import { getTicketById } from '../Services/ticketService';
 
 const SoportePage: React.FC = () => {
+  const [activeAnonymousTicket, setActiveAnonymousTicket] = useState<AnonymousTicket | null>(null);
+  const [activeTicket, setActiveTicket] = useState<DonationTicket | null>(null);
+  const [supportMode, setSupportMode] = useState<'create' | 'open'>('create');
+
+  const refreshAnonymousTicket = useCallback(async () => {
+    if (!activeAnonymousTicket) return;
+    const updated = await getAnonymousTicketByTicketId(activeAnonymousTicket.ticket_id);
+    setActiveAnonymousTicket(updated);
+  }, [activeAnonymousTicket]);
+
+  const refreshAuthTicket = useCallback(async () => {
+    if (!activeTicket) return;
+    const updated = await getTicketById(activeTicket.id);
+    setActiveTicket(updated);
+  }, [activeTicket]);
+
+  const handleAnonymousCreated = (ticket: AnonymousTicket) => {
+    setActiveAnonymousTicket(ticket);
+    setActiveTicket(null);
+  };
+
+  const handleAuthenticatedCreated = (ticket: DonationTicket) => {
+    setActiveTicket(ticket);
+    setActiveAnonymousTicket(null);
+  };
+
+  const handleCloseAnonymousConversation = () => {
+    setActiveAnonymousTicket(null);
+  };
+
+  const handleCloseAuthConversation = () => {
+    setActiveTicket(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -20,9 +62,49 @@ const SoportePage: React.FC = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content - Ticket Lookup */}
+          {/* Main Content - Create ticket + Conversation */}
           <div className="lg:col-span-2">
-            <AnonymousTicketLookup />
+            {!activeAnonymousTicket && !activeTicket && (
+              <>
+                <div className="mb-6">
+                  <div className="flex gap-3 justify-center lg:justify-start">
+                    <button
+                      type="button"
+                      onClick={() => setSupportMode('create')}
+                      className={`px-4 py-2 rounded-lg border transition-colors ${
+                        supportMode === 'create'
+                          ? 'bg-orange-500 text-white border-orange-500'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      Crear ticket
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSupportMode('open')}
+                      className={`px-4 py-2 rounded-lg border transition-colors ${
+                        supportMode === 'open'
+                          ? 'bg-orange-500 text-white border-orange-500'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      Abrir ticket
+                    </button>
+                  </div>
+                </div>
+
+                {supportMode === 'create' ? (
+                  <TicketSupportForm
+                    onAnonymousCreated={handleAnonymousCreated}
+                    onAuthenticatedCreated={handleAuthenticatedCreated}
+                  />
+                ) : (
+                  <div className="mt-2">
+                    <AnonymousTicketLookup />
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Sidebar - Information */}
@@ -38,25 +120,52 @@ const SoportePage: React.FC = () => {
                   <div className="w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
                     1
                   </div>
-                  <p>Crea una Ticket en nuestro formulario</p>
+                  <p>Crea un ticket en el formulario (anónimo o con cuenta)</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
                     2
                   </div>
-                  <p>Recibe tu ID de Ticket único</p>
+                  <p>Si envías anónimo, recibe tu ID de ticket único</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
                     3
                   </div>
-                  <p>Accede aquí para continuar la conversación</p>
+                  <p>Continúa la conversación aquí (se abre en la misma página)</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      {/* Anonymous conversation in modal */}
+      {activeAnonymousTicket && (
+        <TicketConversationModal
+          isOpen={true}
+          onClose={handleCloseAnonymousConversation}
+        >
+          <AnonymousTicketConversation
+            ticket={{ ...activeAnonymousTicket, asunto: activeAnonymousTicket.asunto ?? '' }}
+            onClose={handleCloseAnonymousConversation}
+            onTicketUpdate={refreshAnonymousTicket}
+          />
+        </TicketConversationModal>
+      )}
+
+      {/* Authenticated conversation in modal */}
+      {activeTicket && (
+        <TicketConversationModal
+          isOpen={true}
+          onClose={handleCloseAuthConversation}
+        >
+          <TicketConversation
+            ticket={activeTicket}
+            onClose={handleCloseAuthConversation}
+            onTicketUpdate={refreshAuthTicket}
+          />
+        </TicketConversationModal>
+      )}
     </div>
   );
 };

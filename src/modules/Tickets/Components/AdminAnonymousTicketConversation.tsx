@@ -218,7 +218,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
   };
 
   return (
-    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden">
+    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden h-full min-h-0">
       {/* Header - Minimalista */}
       <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -252,7 +252,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container" style={{ maxHeight: '400px' }}>
+      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container">
         {loading ? (
           <div className="text-center text-gray-500">Cargando mensajes...</div>
         ) : error ? (

@@ -144,8 +144,7 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
                 </h3>
                 <div className="mt-2 text-sm text-orange-700">
                   <p>
-                    Al entregar este expediente a un usuario, el usuario podrá gestionar 
-                    y modificar su propio expediente. Esta acción no se puede deshacer.
+                    Al entregar este expediente a un usuario, el usuario podrá ver su expediente.
                   </p>
                 </div>
               </div>
