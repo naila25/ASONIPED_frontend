@@ -438,7 +438,7 @@ const ExpedientesPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">Expediente Completado</h1>
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-gray-600">Su expediente ha sido aprobado y está activo. A continuación puede ver todos los detalles.</p>
+              <p className="text-gray-600">Expediente aprobado y activo. Carnet disponible.</p>
               <button
                 onClick={openMyIdCard}
                 className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
