@@ -1,5 +1,5 @@
-import { FaTicketAlt } from "react-icons/fa";
 import AdminTicketsDashboard from "../Components/AdminTicketsDashboard";
+import { FaTicketAlt } from "react-icons/fa";
 
 export default function AdminTicketsPage() {
   return (
@@ -9,12 +9,9 @@ export default function AdminTicketsPage() {
           <FaTicketAlt className="text-orange-500 text-2xl" />
           <h1 className="text-2xl font-bold text-gray-800">Gestión de Tickets</h1>
         </div>
-        <p className="text-gray-600">
-          Administra y responde a las tickets de los usuarios
-        </p>
-      </div>
 
-      <AdminTicketsDashboard />
+        <AdminTicketsDashboard />
+      </div>
     </div>
   );
 }
