@@ -22,13 +22,59 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentPhase }) =
     return 'pending';
   };
 
+  const currentIndex = phases.findIndex(p => p.id === currentPhase);
+  const currentPhaseData = currentIndex >= 0 ? phases[currentIndex] : phases[0];
+
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between">
+    <div className="mb-6 sm:mb-8">
+      {/* Mobile: compact current-phase summary with dots */}
+      <div className="sm:hidden space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={`
+                w-9 h-9 rounded-full flex items-center justify-center border-2
+                ${getPhaseStatus(currentPhaseData.id) === 'completed' ? 'bg-green-500 border-green-500 text-white' : ''}
+                ${getPhaseStatus(currentPhaseData.id) === 'current' ? 'bg-blue-500 border-blue-500 text-white' : ''}
+                ${getPhaseStatus(currentPhaseData.id) === 'pending' ? 'bg-gray-200 border-gray-300 text-gray-500' : ''}
+              `}
+            >
+              <currentPhaseData.icon className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-600">
+                Fase {currentIndex + 1} de {phases.length}
+              </p>
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {currentPhaseData.label}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          {phases.map((phase) => {
+            const status = getPhaseStatus(phase.id);
+            return (
+              <div
+                key={phase.id}
+                className={`
+                  w-2.5 h-2.5 rounded-full
+                  ${status === 'completed' ? 'bg-green-500' : ''}
+                  ${status === 'current' ? 'bg-blue-500' : ''}
+                  ${status === 'pending' ? 'bg-gray-300' : ''}
+                `}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop / tablet: full horizontal indicator */}
+      <div className="hidden sm:flex items-center justify-between">
         {phases.map((phase, index) => {
           const status = getPhaseStatus(phase.id);
           const Icon = phase.icon;
-          
+
           return (
             <div key={phase.id} className="flex items-center">
               <div className={`flex flex-col items-center ${index > 0 ? 'ml-8' : ''}`}>
@@ -45,7 +91,7 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ currentPhase }) =
                   )}
                 </div>
                 <span className={`text-sm mt-2 font-medium ${
-                  status === 'completed' ? 'text-green-600' : 
+                  status === 'completed' ? 'text-green-600' :
                   status === 'current' ? 'text-blue-600' : 'text-gray-500'
                 }`}>
                   {phase.label}
