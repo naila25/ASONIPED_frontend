@@ -60,7 +60,7 @@ export default function UserDashboard() {
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden"
+          className="fixed inset-0 bg-blue-950/15 backdrop-blur-[2px] z-20 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}

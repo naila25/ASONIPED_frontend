@@ -7,61 +7,82 @@ interface Props {
 }
 
 export const WorkshopCard = ({ workshop, onSelect }: Props) => {
+  const displayImageUrl = (() => {
+    const originalUrl = workshop.imagen;
+    if (!originalUrl) return '';
+    if (originalUrl.startsWith('blob:')) return '';
+    if (originalUrl.startsWith('http')) return originalUrl;
+    return `${getAPIBaseURLSync()}${originalUrl}`;
+  })();
+
   return (
     <div
       onClick={() => onSelect(workshop)}
-      className="bg-white border border-neutral-200 rounded-xl shadow-md p-6 cursor-pointer hover:scale-105 transition-transform text-center"
+      className="bg-white rounded-lg shadow hover:shadow-md transition-shadow flex flex-col h-full cursor-pointer border border-neutral-200"
     >
-      <img
-        src={(() => {
-          const originalUrl = workshop.imagen;
-          if (!originalUrl) return '';
-          if (originalUrl.startsWith('blob:')) return '';
-          if (originalUrl.startsWith('http')) return originalUrl;
-          return `${getAPIBaseURLSync()}${originalUrl}`;
-        })()}
-        alt={workshop.titulo}
-        className="w-full h-44 object-cover rounded-lg mb-4"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          const placeholder = target.parentElement?.querySelector('.image-placeholder') as HTMLElement;
-          if (placeholder) placeholder.classList.remove('hidden');
-        }}
-        onLoad={(e) => {
-          const target = e.target as HTMLImageElement;
-          const placeholder = target.parentElement?.querySelector('.image-placeholder') as HTMLElement;
-          if (placeholder) placeholder.classList.add('hidden');
-        }}
-      />
-      {/* Placeholder div - shown when no image or image fails to load */}
-      <div className={`w-full h-44 bg-gray-200 flex items-center justify-center text-gray-500 text-sm rounded-lg mb-4 image-placeholder ${workshop.imagen && !workshop.imagen.startsWith('blob:') ? 'hidden' : ''}`}>
+      {displayImageUrl ? (
+        <img
+          src={displayImageUrl}
+          alt={workshop.titulo}
+          className="w-full h-48 object-cover rounded-t-lg flex-shrink-0"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const placeholder = target.parentElement?.querySelector(
+              '.image-placeholder'
+            ) as HTMLElement;
+            if (placeholder) placeholder.classList.remove('hidden');
+          }}
+          onLoad={(e) => {
+            const target = e.target as HTMLImageElement;
+            const placeholder = target.parentElement?.querySelector(
+              '.image-placeholder'
+            ) as HTMLElement;
+            if (placeholder) placeholder.classList.add('hidden');
+          }}
+        />
+      ) : (
+        <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500 text-sm rounded-t-lg image-placeholder">
+          <span>Imagen no disponible</span>
+        </div>
+      )}
+
+      {/* Placeholder div - shown when image fails to load */}
+      <div className="hidden w-full h-48 bg-gray-200 items-center justify-center text-gray-500 text-sm rounded-t-lg image-placeholder">
         <span>Imagen no disponible</span>
       </div>
-      <h3 className="text-lg font-semibold text-gray-800">{workshop.titulo}</h3>
-      {workshop.descripcion && (
-        <p className="text-gray-600 mt-2">{workshop.descripcion}</p>
-      )}
-      {workshop.fecha && (
-        <p className="text-sm text-gray-500">Fecha: {workshop.fecha}</p>
-      )}
-      {workshop.hora && (
-        <p className="text-sm text-gray-500">Hora: {workshop.hora}</p>
-      )}
-      {workshop.ubicacion && (
-        <p className="text-sm text-gray-500">Ubicación: {workshop.ubicacion}</p>
-      )}
-      {workshop.capacidad !== undefined && (
-        <p className="text-sm text-gray-500">Capacidad: {workshop.capacidad}</p>
-      )}
-      {workshop.materiales && workshop.materiales.length > 0 && (
-        <p className="text-sm text-gray-500">
-          Materiales: {Array.isArray(workshop.materiales) ? workshop.materiales.join(', ') : workshop.materiales}
-        </p>
-      )}
-      {workshop.aprender && (
-        <p className="text-sm text-gray-500">¿Qué aprenderás?: {workshop.aprender}</p>
-      )}
+
+      <div className="p-4 flex flex-col flex-grow">
+        <h3 className="text-lg font-semibold mb-2 line-clamp-2 text-gray-800">
+          {workshop.titulo}
+        </h3>
+
+        {workshop.descripcion && (
+          <p className="text-neutral-700 text-sm mb-4 line-clamp-3 flex-grow">
+            {workshop.descripcion}
+          </p>
+        )}
+
+        <div className="flex flex-col text-sm text-neutral-700 space-y-2 flex-shrink-0">
+          {workshop.fecha && <span>Fecha: {workshop.fecha}</span>}
+          {workshop.hora && <span>Hora: {workshop.hora}</span>}
+          {workshop.ubicacion && <span>Ubicación: {workshop.ubicacion}</span>}
+          {workshop.capacidad !== undefined && (
+            <span>Capacidad: {workshop.capacidad}</span>
+          )}
+          {workshop.materiales && workshop.materiales.length > 0 && (
+            <span>
+              Materiales:{' '}
+              {Array.isArray(workshop.materiales)
+                ? workshop.materiales.join(', ')
+                : workshop.materiales}
+            </span>
+          )}
+          {workshop.aprender && (
+            <span>¿Qué aprenderás?: {workshop.aprender}</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
