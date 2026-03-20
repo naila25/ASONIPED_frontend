@@ -99,7 +99,7 @@ const NavBar = () => {
     };
 
   return (
-    <nav className="bg-gradient-to-br from-blue-700 to-sky-500 text-white sticky top-0 z-50 py-5 backdrop-blur-lg border-b.border-neutral-700/80">
+    <nav className="bg-blue-500 text-white sticky top-0 z-50 py-5 backdrop-blur-lg border-b.border-neutral-700/80">
         <div className="container mx-auto px-4 text-sm relative">
             <div className="flex items-center w-full">
                 {/* Left: Logo and Title */}

@@ -245,6 +245,9 @@ const AdminTicketsDashboard: React.FC = () => {
       {/* Filters */}
      
         <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 ">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+          <h2 className="text-lg font-semibold text-gray-900">Gestión de Tickets</h2>
+        </div>
           <div className="w-full lg:w-[400px] lg:ml-auto">
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
