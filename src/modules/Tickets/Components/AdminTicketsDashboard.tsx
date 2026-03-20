@@ -241,45 +241,6 @@ const AdminTicketsDashboard: React.FC = () => {
   
     <div className="space-y-6">
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
-          <div className="flex items-center">
-            <FaTicketAlt className="text-blue-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total</p>
-              <p className="text-lg font-bold text-gray-900">{stats.total}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
-          <div className="flex items-center">
-            <FaClock className="text-orange-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Abiertos</p>
-              <p className="text-lg font-bold text-gray-900">{stats.open}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
-          <div className="flex items-center">
-            <FaCheckCircle className="text-green-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Cerrados</p>
-              <p className="text-lg font-bold text-gray-900">{stats.closed}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-gray-500">
-          <div className="flex items-center">
-            <FaArchive className="text-gray-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Archivados</p>
-              <p className="text-lg font-bold text-gray-900">{stats.archived}</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Filters */}
       <div className="bg-white p-3 sm:p-4 rounded-lg shadow border">
