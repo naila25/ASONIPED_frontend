@@ -214,23 +214,23 @@ export default function DashboardHome() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button 
             onClick={quickActions.createRecord}
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
+            className="flex items-center gap-3 p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
           >
-            <FileText className="w-5 h-5 text-blue-600" />
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
             <span className="font-medium text-gray-700">Expediente</span>
           </button>
           <button 
             onClick={quickActions.enrollWorkshop}
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors"
+            className="flex items-center gap-3 p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors"
           >
-            <GraduationCap className="w-5 h-5 text-green-600" />
-            <span className="font-medium text-gray-700">Inscribirse a Taller</span>
+            <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+            <span className="font-medium text-gray-700 text-sm sm:text-base">Inscribirse a Taller</span>
           </button>
           <button 
             onClick={() => window.location.href = '/VolunteerCard'}
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors"
+            className="flex items-center gap-3 p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors"
           >
-            <Heart className="w-5 h-5 text-purple-600" />
+            <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
             <span className="font-medium text-gray-700">Inscribirse a Voluntariado</span>
           </button>
         </div>
