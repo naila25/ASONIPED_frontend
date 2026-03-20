@@ -241,50 +241,14 @@ const AdminTicketsDashboard: React.FC = () => {
   
     <div className="space-y-6">
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
-          <div className="flex items-center">
-            <FaTicketAlt className="text-blue-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total</p>
-              <p className="text-lg font-bold text-gray-900">{stats.total}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
-          <div className="flex items-center">
-            <FaClock className="text-orange-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Abiertos</p>
-              <p className="text-lg font-bold text-gray-900">{stats.open}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
-          <div className="flex items-center">
-            <FaCheckCircle className="text-green-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Cerrados</p>
-              <p className="text-lg font-bold text-gray-900">{stats.closed}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-gray-500">
-          <div className="flex items-center">
-            <FaArchive className="text-gray-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Archivados</p>
-              <p className="text-lg font-bold text-gray-900">{stats.archived}</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Filters */}
-      <div className="bg-white p-3 sm:p-4 rounded-lg shadow border">
-        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
-          <div className="flex-1">
+     
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 ">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+          <h2 className="text-lg font-semibold text-gray-900">Gestión de Tickets</h2>
+        </div>
+          <div className="w-full lg:w-[400px] lg:ml-auto">
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -318,7 +282,7 @@ const AdminTicketsDashboard: React.FC = () => {
             </label>
           </div>
         </div>
-      </div>
+      
 
       {/* Tickets List */}
       <div className="space-y-4">
