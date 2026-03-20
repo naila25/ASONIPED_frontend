@@ -243,9 +243,9 @@ const AdminTicketsDashboard: React.FC = () => {
 
 
       {/* Filters */}
-      <div className="bg-white p-3 sm:p-4 rounded-lg shadow border">
-        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
-          <div className="flex-1">
+     
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 ">
+          <div className="w-full lg:w-[400px] lg:ml-auto">
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -279,7 +279,7 @@ const AdminTicketsDashboard: React.FC = () => {
             </label>
           </div>
         </div>
-      </div>
+      
 
       {/* Tickets List */}
       <div className="space-y-4">
