@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getAllTickets, closeTicket, archiveTicket } from '../Services/ticketService';
 import type { DonationTicket } from '../Services/ticketService';
 import { closeAnonymousTicket, archiveAnonymousTicket } from '../Services/anonymousTicketService';
-import { FaTicketAlt, FaClock, FaCheckCircle, FaEye, FaSearch, FaArchive } from 'react-icons/fa';
+import { FaTicketAlt, FaCheckCircle, FaEye, FaSearch, FaArchive,FaClock } from 'react-icons/fa';
 import TicketConversation from '../Components/TicketConversation';
 import AdminAnonymousTicketConversation from './AdminAnonymousTicketConversation';
 import TicketConversationModal from './TicketConversationModal';
@@ -12,7 +12,7 @@ const AdminTicketsDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<DonationTicket | null>(null);
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed' | 'archived'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,6 +50,7 @@ const AdminTicketsDashboard: React.FC = () => {
       // Always update tickets to reflect status changes (open -> closed -> archived)
       setTickets(ticketsData);
       calculateStats(ticketsData);
+      setError(null);
     } catch {
       setError('Error loading tickets');
     } finally {
@@ -59,7 +60,7 @@ const AdminTicketsDashboard: React.FC = () => {
 
   useEffect(() => {
     loadTickets();
-    
+
     // Cleanup function to prevent memory leaks
     return () => {
       setTickets([]);
@@ -81,12 +82,12 @@ const AdminTicketsDashboard: React.FC = () => {
       } else {
         await closeTicket(ticket.id);
       }
-      
+
       await loadTickets(); // Reload tickets
-      
+
       // Update selectedTicket state if it's the same ticket
       if (selectedTicket && selectedTicket.id === ticket.id) {
-        setSelectedTicket(prev => prev ? { ...prev, status: 'closed' as const } : null);
+        setSelectedTicket((prev) => (prev ? { ...prev, status: 'closed' as const } : null));
       }
     } catch (error) {
       console.error('Error closing ticket:', error);
@@ -102,10 +103,10 @@ const AdminTicketsDashboard: React.FC = () => {
         await archiveTicket(ticket.id);
       }
       await loadTickets(); // Reload tickets
-      
+
       // Update selectedTicket state if it's the same ticket
       if (selectedTicket && selectedTicket.id === ticket.id) {
-        setSelectedTicket(prev => prev ? { ...prev, status: 'archived' as const } : null);
+        setSelectedTicket((prev) => (prev ? { ...prev, status: 'archived' as const } : null));
       }
     } catch {
       setError('Error archiving ticket');
@@ -124,24 +125,26 @@ const AdminTicketsDashboard: React.FC = () => {
   // Filter tickets using useMemo to prevent unnecessary recalculations
   const filteredTickets = useMemo(() => {
     // Remove duplicates by ID to prevent multiplication issues
-    const uniqueTickets = tickets.filter((ticket, index, self) => 
-      index === self.findIndex(t => t.id === ticket.id)
+    const uniqueTickets = tickets.filter(
+      (ticket, index, self) => index === self.findIndex((t) => t.id === ticket.id)
     );
-    
-    const filtered = uniqueTickets.filter(ticket => {
+
+    const filtered = uniqueTickets.filter((ticket) => {
       const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch =
+        searchTerm === '' ||
         ticket.asunto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticket.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticket.correo?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesAssigned = assignedFilter === 'all' || 
+      const matchesAssigned =
+        assignedFilter === 'all' ||
         (assignedFilter === 'assigned' && ticket.assigned_admin_id) ||
         (assignedFilter === 'unassigned' && !ticket.assigned_admin_id);
       const matchesArchived = showArchived || ticket.status !== 'archived';
 
       return matchesStatus && matchesSearch && matchesAssigned && matchesArchived;
     });
-    
+
     // Debug: Log filtering results
     console.log('🔍 Filtering tickets:', {
       original: tickets.length,
@@ -152,7 +155,7 @@ const AdminTicketsDashboard: React.FC = () => {
       searchTerm,
       assignedFilter
     });
-    
+
     return filtered;
   }, [tickets, statusFilter, searchTerm, assignedFilter, showArchived]);
 
@@ -179,90 +182,73 @@ const AdminTicketsDashboard: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      open: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Abierto' },
-      closed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Cerrado' },
-      archived: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Archivado' }
-    };
+    const baseClasses = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium';
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.open;
-
-    return (
-      <span className={`${config.bg} ${config.text} text-xs px-2 py-1 rounded-full font-medium`}>
-        {config.label}
-      </span>
-    );
+    switch (status) {
+      case 'open':
+        return (
+          <span className={`${baseClasses} bg-orange-100 text-orange-800 border border-orange-200`}>
+            Abierto
+          </span>
+        );
+      case 'closed':
+        return (
+          <span className={`${baseClasses} bg-green-100 text-green-800 border border-green-200`}>
+            Cerrado
+          </span>
+        );
+      case 'archived':
+        return (
+          <span className={`${baseClasses} bg-gray-100 text-gray-800 border border-gray-200`}>
+            Archivado
+          </span>
+        );
+      default:
+        return (
+          <span className={`${baseClasses} bg-yellow-100 text-yellow-800 border border-yellow-200`}>
+            Pendiente
+          </span>
+        );
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+          <span className="text-gray-600">Cargando tickets...</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-600">{error}</p>
-        <button 
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <p className="text-red-600 text-lg font-medium">{error}</p>
+        <button
           onClick={loadTickets}
-          className="mt-4 bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600"
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
         >
-          Retry
+          Reintentar
         </button>
       </div>
     );
   }
 
   return (
+  
     <div className="space-y-6">
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
-          <div className="flex items-center">
-            <FaTicketAlt className="text-blue-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total</p>
-              <p className="text-lg font-bold text-gray-900">{stats.total}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
-          <div className="flex items-center">
-            <FaClock className="text-orange-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Abiertos</p>
-              <p className="text-lg font-bold text-gray-900">{stats.open}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
-          <div className="flex items-center">
-            <FaCheckCircle className="text-green-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Cerrados</p>
-              <p className="text-lg font-bold text-gray-900">{stats.closed}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-gray-500">
-          <div className="flex items-center">
-            <FaArchive className="text-gray-500 mr-3 text-xl" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Archivados</p>
-              <p className="text-lg font-bold text-gray-900">{stats.archived}</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Filters */}
-      <div className="bg-white p-3 sm:p-4 rounded-lg shadow border">
-        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
-          <div className="flex-1">
+     
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 ">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+          <h2 className="text-lg font-semibold text-gray-900">Gestión de Tickets</h2>
+        </div>
+          <div className="w-full lg:w-[400px] lg:ml-auto">
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -270,7 +256,7 @@ const AdminTicketsDashboard: React.FC = () => {
                 placeholder="Buscar por asunto, nombre o correo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="block w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
               />
             </div>
           </div>
@@ -296,14 +282,17 @@ const AdminTicketsDashboard: React.FC = () => {
             </label>
           </div>
         </div>
-      </div>
+      
 
       {/* Tickets List */}
       <div className="space-y-4">
         {filteredTickets.length === 0 ? (
-          <div className="text-center py-8 bg-white rounded-lg shadow border">
-            <FaTicketAlt className="text-gray-400 text-4xl mx-auto mb-4" />
-            <p className="text-gray-600">No se encontraron tickets que coincidan con los filtros</p>
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaTicketAlt className="text-gray-400 text-3xl" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">No hay tickets</h3>
+            <p className="text-gray-600">No se encontraron tickets que coincidan con los filtros.</p>
           </div>
         ) : (
           <>
