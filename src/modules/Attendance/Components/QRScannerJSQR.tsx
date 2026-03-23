@@ -232,7 +232,7 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
     if (video) {
       video.style.border = '4px solid #10B981';
       setTimeout(() => {
-        video.style.border = '4px solid #3B82F6';
+        video.style.border = '4px solid #0d9488';
       }, 500);
     }
   };
@@ -291,7 +291,7 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
         <p className="text-gray-600 mb-4">{error}</p>
         <button
           onClick={requestCameraPermission}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
         >
           <FaCamera className="w-4 h-4" />
           Intentar Nuevamente
@@ -307,7 +307,7 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
         <video
           ref={videoRef}
           className="w-full h-64 md:h-80 object-cover"
-          style={{ border: '4px solid #3B82F6' }}
+          style={{ border: '4px solid #0d9488' }}
           playsInline
           muted
         />
@@ -324,14 +324,14 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
             <div className="relative">
               {/* Scanning Frame */}
               <div className="w-48 h-48 border-2 border-white rounded-lg relative">
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-blue-500 rounded-tl-lg"></div>
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-blue-500 rounded-tr-lg"></div>
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-blue-500 rounded-bl-lg"></div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-blue-500 rounded-br-lg"></div>
+                <div className="absolute left-0 top-0 h-6 w-6 rounded-tl-lg border-l-4 border-t-4 border-teal-500"></div>
+                <div className="absolute right-0 top-0 h-6 w-6 rounded-tr-lg border-r-4 border-t-4 border-teal-500"></div>
+                <div className="absolute bottom-0 left-0 h-6 w-6 rounded-bl-lg border-b-4 border-l-4 border-teal-500"></div>
+                <div className="absolute bottom-0 right-0 h-6 w-6 rounded-br-lg border-b-4 border-r-4 border-teal-500"></div>
               </div>
               
               {/* Scanning Line */}
-              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-blue-500 animate-pulse"></div>
+              <div className="absolute left-0 right-0 top-1/2 h-0.5 animate-pulse bg-teal-500"></div>
             </div>
           </div>
         )}

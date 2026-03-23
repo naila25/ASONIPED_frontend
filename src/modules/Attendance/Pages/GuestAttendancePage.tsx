@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaUserFriends, FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaPlus, FaUsers} from 'react-icons/fa';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { FaUserFriends, FaCheckCircle, FaExclamationTriangle, FaPlus, FaUsers } from 'react-icons/fa';
+import { useNavigate } from '@tanstack/react-router';
 import ActivitySelector from '../Components/ActivitySelector';
+import AttendancePageHeader from '../Components/AttendancePageHeader';
+import AttendanceEmptyState from '../Components/AttendanceEmptyState';
 import { attendanceRecordsApi } from '../Services/attendanceNewApi';
 import type { ActivityTrack, AttendanceRecord } from '../Types/attendanceNew';
 
@@ -105,50 +107,30 @@ export default function GuestAttendancePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/admin/attendance"
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <FaArrowLeft className="w-5 h-5" />
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <FaUserFriends className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
-                    Registro Manual 
-                  </h1>
-                  <p className="text-sm text-gray-600">
-                    Registra asistencia con formularios
-                  </p>
-                </div>
+      <AttendancePageHeader
+        icon={<FaUserFriends className="h-6 w-6" />}
+        title="Registro manual"
+        description="Registra invitados y consulta la lista de asistencia por actividad."
+        actions={
+          selectedActivity ? (
+            <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
+              <div className="hidden text-right sm:block">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Actividad</p>
+                <p className="max-w-[200px] truncate font-medium text-gray-900 lg:max-w-xs">
+                  {selectedActivity.name}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-3 py-1">
+                <div className="h-2 w-2 rounded-full bg-teal-500" />
+                <span className="text-sm text-teal-900">Activa</span>
               </div>
             </div>
+          ) : null
+        }
+      />
 
-            {selectedActivity && (
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Actividad actual</p>
-                  <p className="font-medium text-gray-900">{selectedActivity.name}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Activa</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-6">
           {/* Left Column - Activity Selection */}
           <div className="lg:col-span-1">
             <ActivitySelector
@@ -161,8 +143,7 @@ export default function GuestAttendancePage() {
             />
           </div>
 
-          {/* Right Column - Guest Registration */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="flex flex-col gap-6 lg:col-span-2">
             {/* Messages */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -184,17 +165,13 @@ export default function GuestAttendancePage() {
 
             {/* Instructions */}
             {!selectedActivity && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="text-center">
-                  <FaUserFriends className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Selecciona una Actividad
-                  </h3>
-                  <p className="text-gray-600">
-                    Para comenzar a registrar invitados, primero selecciona una actividad en el
-                    panel izquierdo.
-                  </p>
-                </div>
+              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+                <AttendanceEmptyState
+                  className="border-0 shadow-none sm:p-6"
+                  icon={<FaUserFriends className="h-7 w-7" />}
+                  title="Selecciona una actividad"
+                  description="Para registrar invitados, elige una actividad en el panel izquierdo."
+                />
               </div>
             )}
 
@@ -205,7 +182,7 @@ export default function GuestAttendancePage() {
                   <h2 className="text-lg font-semibold text-gray-900">Registro de Personas</h2>
                   <button
                     onClick={() => setShowForm(!showForm)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
                   >
                     <FaPlus className="w-4 h-4" />
                     {showForm ? 'Cancelar' : 'Nuevo Registro'}
@@ -234,7 +211,7 @@ export default function GuestAttendancePage() {
                             setError(' Solo se permiten letras en el nombre completo');
                           }
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-teal-500"
                         placeholder="Ej: Juan Pérez"
                         required
                       />
@@ -263,7 +240,7 @@ export default function GuestAttendancePage() {
                               setError(null);
                             }
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-teal-500"
                           placeholder="Ej: 12345678"
                         />
                       </div>
@@ -290,7 +267,7 @@ export default function GuestAttendancePage() {
                               setError(null);
                             }
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-teal-500"
                           placeholder="Ej: 555-1234"
                         />
                       </div>
@@ -300,7 +277,7 @@ export default function GuestAttendancePage() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {loading ? (
                           <>
@@ -327,18 +304,29 @@ export default function GuestAttendancePage() {
               </div>
             )}
 
+            {selectedActivity && !loading && attendanceRecords.length === 0 && (
+              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+                <AttendanceEmptyState
+                  className="border-0 shadow-none sm:p-6"
+                  icon={<FaUsers className="h-7 w-7" />}
+                  title="Aún no hay registros"
+                  description="Registra invitados con el formulario para verlos en esta lista."
+                />
+              </div>
+            )}
+
             {/* Attendance Records */}
             {selectedActivity && attendanceRecords.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Registros de Asistencia</h2>
+              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Registros de asistencia</h2>
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <FaUsers className="w-4 h-4 text-blue-600" />
+                      <FaUsers className="h-4 w-4 text-teal-600" />
                       <span className="text-gray-600">{getBeneficiariosCount()} beneficiarios</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <FaUserFriends className="w-4 h-4 text-purple-600" />
+                      <FaUserFriends className="h-4 w-4 text-gray-600" />
                       <span className="text-gray-600">{getGuestsCount()} invitados</span>
                     </div>
                   </div>
@@ -355,12 +343,12 @@ export default function GuestAttendancePage() {
                       >
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${
-                            isBeneficiario ? 'bg-blue-100' : 'bg-purple-100'
+                            isBeneficiario ? 'bg-teal-100' : 'bg-gray-100'
                           }`}>
                             {isBeneficiario ? (
-                              <FaUsers className="w-4 h-4 text-blue-600" />
+                              <FaUsers className="h-4 w-4 text-teal-600" />
                             ) : (
-                              <FaUserFriends className="w-4 h-4 text-purple-600" />
+                              <FaUserFriends className="h-4 w-4 text-gray-600" />
                             )}
                           </div>
                           <div>
@@ -378,8 +366,8 @@ export default function GuestAttendancePage() {
                           </p>
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             isBeneficiario 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-purple-100 text-purple-800'
+                              ? 'bg-teal-100 text-teal-800'
+                              : 'bg-gray-100 text-gray-800'
                           }`}>
                             {isBeneficiario ? 'Beneficiario' : 'Invitado'}
                           </span>
@@ -395,7 +383,7 @@ export default function GuestAttendancePage() {
             {loading && (
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
                   <span className="ml-3 text-gray-600">Procesando...</span>
                 </div>
               </div>

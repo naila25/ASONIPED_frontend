@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaChartLine, FaArrowLeft, FaDownload, FaFilter, FaUsers, FaSearch, FaExclamationTriangle, FaCalendarAlt, FaTimes, FaSort, FaSortUp, FaSortDown, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import { Link } from '@tanstack/react-router';
+import { FaChartLine, FaDownload, FaFilter, FaUsers, FaSearch, FaExclamationTriangle, FaCalendarAlt, FaTimes, FaSort, FaSortUp, FaSortDown, FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp, FaIdCard, FaPhone } from 'react-icons/fa';
 import { activityTracksApi, attendanceRecordsApi } from '../Services/attendanceNewApi';
+import AttendancePageHeader from '../Components/AttendancePageHeader';
+import AttendanceEmptyState from '../Components/AttendanceEmptyState';
 import type { ActivityTrack, ActivityTrackWithStats, AttendanceRecordWithDetails } from '../Types/attendanceNew';
 
 type SortField = 'full_name' | 'attendance_type' | 'attendance_method' | 'cedula' | 'phone' | 'date';
@@ -11,7 +12,9 @@ export default function AttendanceListPage() {
   const [activities, setActivities] = useState<ActivityTrackWithStats[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<ActivityTrack | null>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecordWithDetails[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [filters, setFilters] = useState({
@@ -24,23 +27,24 @@ export default function AttendanceListPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [filtersOpenMobile, setFiltersOpenMobile] = useState(false);
 
   const loadActivities = async () => {
     try {
-      setLoading(true);
+      setActivitiesLoading(true);
       const response = await activityTracksApi.getAll(1, 1000);
       setActivities(response.data);
     } catch {
       setError('Error al cargar actividades');
     } finally {
-      setLoading(false);
+      setActivitiesLoading(false);
     }
   };
 
   const loadAttendanceRecords = useCallback(async () => {
     if (!selectedActivity) return;
     try {
-      setLoading(true);
+      setRecordsLoading(true);
       setError(null);
       const response = await attendanceRecordsApi.getAll(
         1,
@@ -55,7 +59,7 @@ export default function AttendanceListPage() {
     } catch {
       setError('Error al cargar registros de asistencia');
     } finally {
-      setLoading(false);
+      setRecordsLoading(false);
     }
   }, [selectedActivity, filters.startDate, filters.endDate, filters.attendanceType]);
 
@@ -86,9 +90,9 @@ export default function AttendanceListPage() {
     }
     
     try {
-      setLoading(true);
+      setExporting(true);
       setError(null);
-      
+
       // Export filtered and sorted records
       const dataToExport = sortedAndFilteredRecords.map(record => ({
         nombre: record.full_name,
@@ -143,7 +147,7 @@ export default function AttendanceListPage() {
     } catch {
       setError('Error al exportar datos');
     } finally {
-      setLoading(false);
+      setExporting(false);
     }
   };
 
@@ -161,9 +165,9 @@ export default function AttendanceListPage() {
     if (sortField !== field) {
       return <FaSort className="w-3 h-3 text-gray-400 ml-1" />;
     }
-    return sortDirection === 'asc' 
-      ? <FaSortUp className="w-3 h-3 text-green-600 ml-1" />
-      : <FaSortDown className="w-3 h-3 text-green-600 ml-1" />;
+    return sortDirection === 'asc'
+      ? <FaSortUp className="ml-1 h-3 w-3 text-teal-600" />
+      : <FaSortDown className="ml-1 h-3 w-3 text-teal-600" />;
   };
 
   const handleClearFilters = () => {
@@ -247,49 +251,35 @@ export default function AttendanceListPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link to="/admin/attendance" className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                <FaArrowLeft className="w-5 h-5" />
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <FaChartLine className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Analítica & Reportes</h1>
-                  <p className="text-sm text-gray-600">Visualiza estadísticas y exporta datos de asistencia</p>
-                </div>
+      <AttendancePageHeader
+        icon={<FaChartLine className="h-6 w-6" />}
+        title="Analítica y reportes"
+        description="Filtra, ordena y exporta registros de asistencia por actividad."
+        actions={
+          selectedActivity ? (
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              <div className="hidden text-right sm:block">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Actividad</p>
+                <p className="max-w-[200px] truncate font-medium text-gray-900 lg:max-w-xs">
+                  {selectedActivity.name}
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => handleExport('csv')}
+                disabled={exporting || recordsLoading || sortedAndFilteredRecords.length === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                title={`Exportar ${sortedAndFilteredRecords.length} registro(s)`}
+              >
+                <FaDownload className="h-4 w-4" />
+                Exportar Excel
+              </button>
             </div>
+          ) : null
+        }
+      />
 
-            {selectedActivity && (
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Actividad seleccionada</p>
-                  <p className="font-medium text-gray-900">{selectedActivity.name}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleExport('csv')}
-                    disabled={loading || sortedAndFilteredRecords.length === 0}
-                    className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title={`Exportar ${sortedAndFilteredRecords.length} registro(s)`}
-                  >
-                    <FaDownload className="w-4 h-4" />
-                    Excel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center justify-between">
@@ -298,10 +288,12 @@ export default function AttendanceListPage() {
               <p className="text-red-800">{error}</p>
             </div>
             <button
+              type="button"
               onClick={() => setError(null)}
-              className="text-red-600 hover:text-red-800"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-100 hover:text-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+              aria-label="Cerrar mensaje de error"
             >
-              <FaTimes className="w-4 h-4" />
+              <FaTimes className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -328,33 +320,67 @@ export default function AttendanceListPage() {
           {/* Left Column - Activity Selection & Filters */}
           <div className="lg:col-span-1 space-y-6">
             {/* Activity Selection */}
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Seleccionar Actividad</h3>
-              <select
-                value={selectedActivity?.id || ''}
-                onChange={(e) => {
-                  const activity = activities.find(a => a.id === parseInt(e.target.value));
-                  setSelectedActivity(activity || null);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="">Selecciona una actividad</option>
-                {activities.map((activity) => (
-                  <option key={activity.id} value={activity.id}>
-                    {activity.name} - {new Date(activity.event_date).toLocaleDateString('es-ES')}
-                  </option>
-                ))}
-              </select>
+            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Seleccionar actividad</h3>
+              {activitiesLoading ? (
+                <div className="space-y-2" aria-busy="true" aria-label="Cargando actividades">
+                  <div className="h-10 animate-pulse rounded-lg bg-gray-100" />
+                </div>
+              ) : activities.length === 0 ? (
+                <AttendanceEmptyState
+                  className="border-0 p-4"
+                  icon={<FaCalendarAlt className="h-7 w-7" />}
+                  title="No hay actividades"
+                  description="Crea una actividad en Gestión de actividades para ver reportes aquí."
+                />
+              ) : (
+                <select
+                  value={selectedActivity?.id || ''}
+                  onChange={(e) => {
+                    const activity = activities.find((a) => a.id === parseInt(e.target.value, 10));
+                    setSelectedActivity(activity || null);
+                  }}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Selecciona una actividad</option>
+                  {activities.map((activity) => (
+                    <option key={activity.id} value={activity.id}>
+                      {activity.name} - {new Date(activity.event_date).toLocaleDateString('es-ES')}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Filters */}
             {selectedActivity && (
-              <div className="bg-white rounded-lg shadow-sm p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <FaFilter className="w-4 h-4" />
+              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpenMobile((prev) => !prev)}
+                  className="inline-flex min-h-[44px] w-full items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 lg:hidden"
+                  aria-expanded={filtersOpenMobile}
+                  aria-controls="attendance-report-filters"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FaFilter className="h-4 w-4" />
+                    Filtros
+                  </span>
+                  {filtersOpenMobile ? (
+                    <FaChevronUp className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <FaChevronDown className="h-4 w-4 text-gray-500" />
+                  )}
+                </button>
+
+                <h3 className="mb-4 hidden items-center gap-2 text-lg font-semibold text-gray-900 lg:flex">
+                  <FaFilter className="h-4 w-4" />
                   Filtros
                 </h3>
-                <div className="space-y-4">
+                <div
+                  id="attendance-report-filters"
+                  className={`${filtersOpenMobile ? 'mt-4 block' : 'hidden'} space-y-4 lg:block`}
+                >
                   {/* Buscar por nombre o cédula */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
@@ -365,7 +391,7 @@ export default function AttendanceListPage() {
                         placeholder="Nombre o cédula..."
                         value={filters.searchTerm}
                         onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -377,7 +403,7 @@ export default function AttendanceListPage() {
                       type="date"
                       value={filters.startDate}
                       onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     />
                   </div>
 
@@ -388,7 +414,7 @@ export default function AttendanceListPage() {
                       type="date"
                       value={filters.endDate}
                       onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     />
                   </div>
 
@@ -398,7 +424,7 @@ export default function AttendanceListPage() {
                     <select
                       value={filters.attendanceType}
                       onChange={(e) => setFilters({ ...filters, attendanceType: e.target.value as 'beneficiario' | 'guest' | '' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     >
                       <option value="">Todos</option>
                       <option value="beneficiario">Beneficiarios</option>
@@ -409,10 +435,11 @@ export default function AttendanceListPage() {
                   {/* Clear Filters Button */}
                   {(filters.startDate || filters.endDate || filters.attendanceType || filters.searchTerm) && (
                     <button
+                      type="button"
                       onClick={handleClearFilters}
-                      className="w-full px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="min-h-[44px] w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
                     >
-                      Limpiar Filtros
+                      Limpiar filtros
                     </button>
                   )}
                 </div>
@@ -420,32 +447,50 @@ export default function AttendanceListPage() {
             )}
           </div>
 
-          {/* Right Column - Statistics & Records */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* No Activity Selected State */}
-            {!selectedActivity && (
-              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                <FaCalendarAlt className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona una Actividad</h3>
-                <p className="text-gray-600">Elige una actividad para ver sus estadísticas y registros de asistencia</p>
+          {/* Right Column — reportes y tabla */}
+          <div className="space-y-6 lg:col-span-3">
+            {activitiesLoading && !selectedActivity && (
+              <div
+                className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm"
+                aria-busy="true"
+                aria-label="Cargando"
+              >
+                <div className="border-b border-gray-200 px-6 py-4">
+                  <div className="h-6 w-48 animate-pulse rounded-md bg-gray-100" />
+                  <div className="mt-2 h-4 w-72 animate-pulse rounded-md bg-gray-100" />
+                </div>
+                <div className="space-y-3 p-6">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-100" />
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Attendance Records Table */}
+            {!selectedActivity && !activitiesLoading && activities.length > 0 && (
+              <AttendanceEmptyState
+                icon={<FaCalendarAlt className="h-7 w-7" />}
+                title="Selecciona una actividad"
+                description="Elige una actividad en el panel izquierdo para ver y exportar sus registros de asistencia."
+              />
+            )}
+
             {selectedActivity && (
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Registros de Asistencia</h2>
-                    {sortedAndFilteredRecords.length > 0 && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        Mostrando {startIndex + 1}-{Math.min(endIndex, sortedAndFilteredRecords.length)} de {sortedAndFilteredRecords.length} registro{sortedAndFilteredRecords.length !== 1 ? 's' : ''}
+              <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+                <div className="flex flex-col gap-4 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold text-gray-900">Registros de asistencia</h2>
+                    {sortedAndFilteredRecords.length > 0 && !recordsLoading && (
+                      <p className="mt-1 text-sm text-gray-600">
+                        Mostrando {startIndex + 1}-{Math.min(endIndex, sortedAndFilteredRecords.length)} de{' '}
+                        {sortedAndFilteredRecords.length} registro
+                        {sortedAndFilteredRecords.length !== 1 ? 's' : ''}
                       </p>
                     )}
                   </div>
                   {sortedAndFilteredRecords.length > 0 && (
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm text-gray-600 flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-2 text-sm text-gray-600">
                         Por página:
                         <select
                           value={itemsPerPage}
@@ -453,8 +498,9 @@ export default function AttendanceListPage() {
                             setItemsPerPage(Number(e.target.value));
                             setCurrentPage(1);
                           }}
-                          className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="min-h-[44px] rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
                         >
+                          <option value={5}>5</option>
                           <option value={10}>10</option>
                           <option value={25}>25</option>
                           <option value={50}>50</option>
@@ -464,132 +510,197 @@ export default function AttendanceListPage() {
                     </div>
                   )}
                 </div>
-                
-                {loading ? (
-                  <div className="p-8 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                    <span className="ml-3 text-gray-600">Cargando registros...</span>
+
+                {recordsLoading ? (
+                  <div className="flex items-center justify-center gap-3 p-8" aria-busy="true">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+                    <span className="text-gray-600">Cargando registros...</span>
                   </div>
                 ) : sortedAndFilteredRecords.length === 0 ? (
-                  <div className="p-12 text-center">
-                    <FaUsers className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No hay registros</h3>
-                    <p className="text-gray-600">
-                      {filters.searchTerm || filters.attendanceType || filters.startDate || filters.endDate
-                        ? 'No se encontraron registros que coincidan con los filtros aplicados'
-                        : 'No hay registros de asistencia para esta actividad todavía'}
-                    </p>
+                  <div className="p-6 sm:p-8">
+                    <AttendanceEmptyState
+                      className="border-0 p-4"
+                      icon={<FaUsers className="h-7 w-7" />}
+                      title="No hay registros"
+                      description={
+                        filters.searchTerm || filters.attendanceType || filters.startDate || filters.endDate
+                          ? 'No hay registros que coincidan con los filtros. Prueba a limpiar filtros o ajustar fechas.'
+                          : 'Aún no hay registros de asistencia para esta actividad.'
+                      }
+                    />
                   </div>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <ul className="divide-y divide-gray-100 md:hidden">
+                      {paginatedRecords.map((record) => {
+                        const dateStr =
+                          record.scanned_at
+                            ? new Date(record.scanned_at).toLocaleString('es-ES')
+                            : record.created_at
+                              ? new Date(record.created_at).toLocaleString('es-ES')
+                              : '—';
+                        return (
+                          <li key={record.id} className="px-3 py-3">
+                            <p className="text-sm font-medium text-gray-900">{record.full_name}</p>
+                            {record.record_number && (
+                              <p className="text-[11px] text-gray-500">Exp: {record.record_number}</p>
+                            )}
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                  record.attendance_type === 'beneficiario'
+                                    ? 'bg-teal-100 text-teal-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                {record.attendance_type === 'beneficiario' ? 'Beneficiario' : 'Invitado'}
+                              </span>
+                              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700">
+                                {record.attendance_method === 'qr_scan' ? 'QR' : 'Manual'}
+                              </span>
+                            </div>
+                            <div className="mt-1.5 space-y-0.5 text-xs text-gray-600">
+                              {record.cedula && (
+                                <p className="flex items-center gap-2">
+                                  <FaIdCard className="h-3 w-3 shrink-0 text-gray-400" aria-hidden />
+                                  {record.cedula}
+                                </p>
+                              )}
+                              {record.phone && (
+                                <p className="flex items-center gap-2">
+                                  <FaPhone className="h-3 w-3 shrink-0 text-gray-400" aria-hidden />
+                                  {record.phone}
+                                </p>
+                              )}
+                              <p className="text-[11px] text-gray-500">{dateStr}</p>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    <div className="hidden max-h-[min(70vh,640px)] overflow-auto md:block">
+                      <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
+                        <thead className="sticky top-0 z-10 bg-gray-100 shadow-sm">
                           <tr>
-                            <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => handleSort('full_name')}
-                            >
-                              <div className="flex items-center">
+                            <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                              <button
+                                type="button"
+                                onClick={() => handleSort('full_name')}
+                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              >
                                 Nombre
                                 {getSortIcon('full_name')}
-                              </div>
+                              </button>
                             </th>
-                            <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => handleSort('attendance_type')}
-                            >
-                              <div className="flex items-center">
+                            <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                              <button
+                                type="button"
+                                onClick={() => handleSort('attendance_type')}
+                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              >
                                 Tipo
                                 {getSortIcon('attendance_type')}
-                              </div>
+                              </button>
                             </th>
-                            <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => handleSort('attendance_method')}
-                            >
-                              <div className="flex items-center">
+                            <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+                              <button
+                                type="button"
+                                onClick={() => handleSort('attendance_method')}
+                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              >
                                 Método
                                 {getSortIcon('attendance_method')}
-                              </div>
+                              </button>
                             </th>
-                            <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => handleSort('cedula')}
-                            >
-                              <div className="flex items-center">
+                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                              <button
+                                type="button"
+                                onClick={() => handleSort('cedula')}
+                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              >
                                 Cédula
                                 {getSortIcon('cedula')}
-                              </div>
+                              </button>
                             </th>
-                            <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => handleSort('phone')}
-                            >
-                              <div className="flex items-center">
+                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                              <button
+                                type="button"
+                                onClick={() => handleSort('phone')}
+                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              >
                                 Teléfono
                                 {getSortIcon('phone')}
-                              </div>
+                              </button>
                             </th>
-                            <th 
-                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => handleSort('date')}
-                            >
-                              <div className="flex items-center">
+                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                              <button
+                                type="button"
+                                onClick={() => handleSort('date')}
+                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              >
                                 Fecha
                                 {getSortIcon('date')}
-                              </div>
+                              </button>
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-100 bg-white">
                           {paginatedRecords.map((record) => (
                             <tr key={record.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                                 {record.full_name}
                                 {record.record_number && (
                                   <div className="text-xs text-gray-500">Exp: {record.record_number}</div>
                                 )}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
+                              <td className="whitespace-nowrap px-6 py-4">
                                 <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                     record.attendance_type === 'beneficiario'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-purple-100 text-purple-800'
+                                      ? 'bg-teal-100 text-teal-800'
+                                      : 'bg-gray-100 text-gray-800'
                                   }`}
                                 >
                                   {record.attendance_type === 'beneficiario' ? 'Beneficiario' : 'Invitado'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                                 {record.attendance_method === 'qr_scan' ? 'QR Scan' : 'Manual'}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.cedula || '-'}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.phone || '-'}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {record.scanned_at ? new Date(record.scanned_at).toLocaleString('es-ES') : (record.created_at ? new Date(record.created_at).toLocaleString('es-ES') : '-')}
+                              <td className="whitespace-nowrap px-6 py-4 text-right font-mono text-sm text-gray-900 tabular-nums">
+                                {record.cedula || '—'}
+                              </td>
+                              <td className="whitespace-nowrap px-6 py-4 text-right font-mono text-sm text-gray-900 tabular-nums">
+                                {record.phone || '—'}
+                              </td>
+                              <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-700 tabular-nums">
+                                {record.scanned_at
+                                  ? new Date(record.scanned_at).toLocaleString('es-ES')
+                                  : record.created_at
+                                    ? new Date(record.created_at).toLocaleString('es-ES')
+                                    : '—'}
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
-                    
-                    {/* Pagination Controls */}
+
                     {totalPages > 1 && (
-                      <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                        <div className="flex flex-wrap items-center justify-center gap-1 sm:justify-start">
                           <button
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            type="button"
+                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
-                            className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
                             aria-label="Página anterior"
                           >
-                            <FaChevronLeft className="w-4 h-4" />
+                            <FaChevronLeft className="h-4 w-4" />
                           </button>
-                          
-                          <div className="flex items-center gap-1">
+
+                          <div className="flex flex-wrap items-center justify-center gap-1">
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                               let pageNum: number;
                               if (totalPages <= 5) {
@@ -601,14 +712,15 @@ export default function AttendanceListPage() {
                               } else {
                                 pageNum = currentPage - 2 + i;
                               }
-                              
+
                               return (
                                 <button
                                   key={pageNum}
+                                  type="button"
                                   onClick={() => setCurrentPage(pageNum)}
-                                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                                  className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
                                     currentPage === pageNum
-                                      ? 'bg-green-600 text-white'
+                                      ? 'bg-teal-600 text-white'
                                       : 'text-gray-700 hover:bg-gray-100'
                                   }`}
                                 >
@@ -617,18 +729,19 @@ export default function AttendanceListPage() {
                               );
                             })}
                           </div>
-                          
+
                           <button
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            type="button"
+                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}
-                            className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
                             aria-label="Página siguiente"
                           >
-                            <FaChevronRight className="w-4 h-4" />
+                            <FaChevronRight className="h-4 w-4" />
                           </button>
                         </div>
-                        
-                        <span className="text-sm text-gray-600">
+
+                        <span className="text-center text-sm text-gray-600 sm:text-right">
                           Página {currentPage} de {totalPages}
                         </span>
                       </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaQrcode, FaUsers, FaArrowLeft } from 'react-icons/fa';
-import { Link } from '@tanstack/react-router';
+import { FaQrcode, FaUsers } from 'react-icons/fa';
 import ActivitySelector from '../Components/ActivitySelector';
+import AttendancePageHeader from '../Components/AttendancePageHeader';
+import AttendanceEmptyState from '../Components/AttendanceEmptyState';
 import QRScannerJSQR from '../Components/QRScannerJSQR';
 import ScanningStatus from '../Components/ScanningStatus';
 import BeneficiarioCard from '../Components/BeneficiarioCard';
@@ -133,46 +134,30 @@ export default function QRScannerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/admin/attendance"
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <FaArrowLeft className="w-5 h-5" />
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FaQrcode className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Escaneo QR - Beneficiarios</h1>
-                  <p className="text-sm text-gray-600">Registra asistencia escaneando códigos QR</p>
-                </div>
+      <AttendancePageHeader
+        icon={<FaQrcode className="h-6 w-6" />}
+        title="Escaneo QR — Beneficiarios"
+        description="Registra asistencia escaneando códigos QR del expediente."
+        actions={
+          selectedActivity ? (
+            <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
+              <div className="hidden text-right sm:block">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Actividad</p>
+                <p className="max-w-[200px] truncate font-medium text-gray-900 lg:max-w-xs">
+                  {selectedActivity.name}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-3 py-1">
+                <div className="h-2 w-2 rounded-full bg-teal-500" />
+                <span className="text-sm text-teal-900">Activa</span>
               </div>
             </div>
-            
-            {selectedActivity && (
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Actividad actual</p>
-                  <p className="font-medium text-gray-900">{selectedActivity.name}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Activa</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-6">
           {/* Left Column - Activity Selection */}
           <div className="lg:col-span-1">
             <ActivitySelector
@@ -185,8 +170,8 @@ export default function QRScannerPage() {
             />
           </div>
 
-          {/* Right Column - QR Scanner and Status */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Right column — flujo principal */}
+          <div className="flex flex-col gap-6 lg:col-span-2">
             {/* Scanning Status */}
             {selectedActivity && (
                <ScanningStatus
@@ -202,7 +187,7 @@ export default function QRScannerPage() {
 
             {/* QR Scanner */}
             {selectedActivity && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Escáner de Códigos QR</h2>
                  <QRScannerJSQR
                    onScanSuccess={handleQRScanSuccess}
@@ -216,28 +201,27 @@ export default function QRScannerPage() {
 
             {/* Instructions */}
             {!selectedActivity && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="text-center">
-                  <FaQrcode className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona una Actividad</h3>
-                  <p className="text-gray-600">
-                    Para comenzar a escanear códigos QR, primero selecciona una actividad en el panel izquierdo.
-                  </p>
-                </div>
+              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+                <AttendanceEmptyState
+                  className="border-0 shadow-none sm:p-6"
+                  icon={<FaQrcode className="h-7 w-7" />}
+                  title="Selecciona una actividad"
+                  description="Para escanear códigos QR, elige una actividad en el panel izquierdo."
+                />
               </div>
             )}
 
             {selectedActivity && !isScanning && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div className="text-center">
-                  <FaQrcode className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Listo para Escanear</h3>
-                  <p className="text-gray-600 mb-4">
-                    Haz clic en "Iniciar Escaneo" para comenzar a registrar asistencia con códigos QR.
+                  <FaQrcode className="mx-auto mb-4 h-12 w-12 text-teal-600" />
+                  <h3 className="mb-2 text-lg font-medium text-gray-900">Listo para escanear</h3>
+                  <p className="mb-4 text-gray-600">
+                    Haz clic en &quot;Iniciar escaneo&quot; para comenzar a registrar asistencia con códigos QR.
                   </p>
                   <button
                     onClick={handleStartScanning}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-6 py-3 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
                   >
                     <FaQrcode className="w-4 h-4" />
                     Iniciar Escaneo
@@ -247,29 +231,36 @@ export default function QRScannerPage() {
             )}
 
             {/* Attendance Records */}
+            {selectedActivity && !loading && attendanceRecords.length === 0 && (
+              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+                <AttendanceEmptyState
+                  className="border-0 shadow-none sm:p-6"
+                  icon={<FaUsers className="h-7 w-7" />}
+                  title="Aún no hay registros"
+                  description="Cuando escanees códigos QR, los asistentes aparecerán en esta lista."
+                />
+              </div>
+            )}
+
             {selectedActivity && attendanceRecords.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Registros de Asistencia</h2>
-                  <div className="flex items-center gap-4 text-sm">
+              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Registros de asistencia</h2>
+                  <div className="flex flex-wrap items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <FaUsers className="w-4 h-4 text-blue-600" />
+                      <FaUsers className="h-4 w-4 text-teal-600" />
                       <span className="text-gray-600">{getBeneficiariosCount()} beneficiarios</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <FaUsers className="w-4 h-4 text-purple-600" />
+                      <FaUsers className="h-4 w-4 text-gray-600" />
                       <span className="text-gray-600">{getGuestsCount()} invitados</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="max-h-96 space-y-3 overflow-y-auto">
                   {attendanceRecords.map((record) => (
-                    <BeneficiarioCard
-                      key={record.id}
-                      record={record}
-                      showActions={false}
-                    />
+                    <BeneficiarioCard key={record.id} record={record} showActions={false} />
                   ))}
                 </div>
               </div>
@@ -277,9 +268,9 @@ export default function QRScannerPage() {
 
             {/* Loading State */}
             {loading && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
                   <span className="ml-3 text-gray-600">Procesando...</span>
                 </div>
               </div>
