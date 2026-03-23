@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FaUserFriends, FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaPlus, FaUsers} from 'react-icons/fa';
 import { Link, useNavigate } from '@tanstack/react-router';
 import ActivitySelector from '../Components/ActivitySelector';
@@ -21,19 +21,7 @@ export default function GuestAttendancePage() {
     phone: '',
   });
 
-  // Load attendance records when activity is selected
-  useEffect(() => {
-    if (selectedActivity) {
-      // Defer data loading to improve initial render
-      const timer = setTimeout(() => {
-        loadAttendanceRecords();
-      }, 0);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [selectedActivity]);
-
-  const loadAttendanceRecords = async () => {
+  const loadAttendanceRecords = useCallback(async () => {
     if (!selectedActivity) return;
 
     try {
@@ -41,12 +29,24 @@ export default function GuestAttendancePage() {
       // Load ALL attendance records (both beneficiaries and guests)
       const records = await attendanceRecordsApi.getByActivityTrack(selectedActivity.id!);
       setAttendanceRecords(records.data);
-    } catch (err) {
-      console.error('Error loading attendance records:', err);
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al cargar registros de asistencia');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedActivity]);
+
+  // Load attendance records when activity is selected
+  useEffect(() => {
+    if (selectedActivity) {
+      // Defer data loading to improve initial render
+      const timer = setTimeout(() => {
+        loadAttendanceRecords();
+      }, 0);
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedActivity, loadAttendanceRecords]);
 
   const handleActivitySelect = (activity: ActivityTrack) => {
     setSelectedActivity(activity);
@@ -90,7 +90,6 @@ export default function GuestAttendancePage() {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al registrar invitado');
-      console.error('Error registering guest:', err);
     } finally {
       setLoading(false);
     }
@@ -157,7 +156,7 @@ export default function GuestAttendancePage() {
               selectedActivity={selectedActivity || undefined}
               showCreateButton={true}
               onCreateActivity={() => {
-                navigate({ to: '../activities' as any });
+                navigate({ to: '../activities' as string });
               }}
             />
           </div>
@@ -347,7 +346,6 @@ export default function GuestAttendancePage() {
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {attendanceRecords.map((record) => {
-                    const isGuest = record.attendance_type === 'guest';
                     const isBeneficiario = record.attendance_type === 'beneficiario';
                     
                     return (

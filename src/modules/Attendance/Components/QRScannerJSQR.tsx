@@ -31,14 +31,6 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
       
       // Check if camera is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.error('❌ Camera API not available:', {
-          hasNavigator: !!navigator,
-          hasMediaDevices: !!navigator.mediaDevices,
-          hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
-          userAgent: navigator.userAgent,
-          isSecureContext: window.isSecureContext,
-          protocol: window.location.protocol
-        });
         throw new Error('Cámara no soportada en este dispositivo');
       }
 
@@ -52,7 +44,6 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
         }
       };
 
-      console.log('🎥 Requesting camera with constraints:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
       streamRef.current = stream;
@@ -67,12 +58,10 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
           videoRef.current.onloadedmetadata = () => {
             if (videoRef.current && document.body.contains(videoRef.current)) {
               videoRef.current.play().then(() => {
-                console.log('🎥 Video is ready and playing');
                 setIsCameraReady(true);
                 // Don't automatically set isScanning here - let the parent control it
                 // The parent will call setIsScanning when it's ready to start scanning
-              }).catch((playError) => {
-                console.error('❌ Error playing video:', playError);
+              }).catch(() => {
                 setError('Error al reproducir el video de la cámara');
                 setIsCameraReady(false);
               });
@@ -83,9 +72,7 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
 
     } catch (err: unknown) {
       setCameraPermission('denied');
-      
-      console.error('❌ Camera error:', err);
-      
+
       if ((err as Error).name === 'NotAllowedError') {
         setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara en la configuración del navegador.');
       } else if ((err as Error).name === 'NotFoundError') {
@@ -129,8 +116,8 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
       // Reset processing flags
       processingRef.current = false;
       lastProcessedQR.current = '';
-    } catch (error) {
-      console.warn('Cleanup warning:', error);
+    } catch {
+      // ignore cleanup errors
     }
   }, []);
 
@@ -160,7 +147,6 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
     // Set canvas size to match video
     // Check if video has valid dimensions
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      console.log('Video not ready yet, skipping scan');
       return;
     }
 
@@ -259,51 +245,6 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
     }
   };
 
-  const testQRDetection = () => {
-    // Test with a sample QR data
-    const testData = {
-      type: "attendance",
-      record_id: 123,
-      user_id: null,
-      full_name: "Test Beneficiario",
-      issued_at: new Date().toISOString(),
-      nonce: "test123456"
-    };
-    
-    const qrData = {
-      record_id: testData.record_id,
-      name: testData.full_name
-    };
-    
-    onScanSuccess(qrData);
-    showScanSuccess();
-  };
-
-  const testQRScanner = () => {
-    // Test if the scanner is working by trying to scan the current video
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      
-      if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
-        
-        if (code && code.data && code.data.trim().length > 0) {
-          // Test scan successful
-        } else if (code && (!code.data || code.data.trim().length === 0)) {
-          // QR detected but with empty data
-        } else {
-          // No QR code detected
-        }
-      }
-    }
-  };
-
   useEffect(() => {
     if (isActive) {
       startCamera();
@@ -316,13 +257,13 @@ export default function QRScannerJSQR({ onScanSuccess, onScanError, isActive, ac
     };
   }, [isActive, startCamera, stopCamera]);
 
-  // Start scanning when both camera is ready and parent wants to scan
+  // Sync scanning with camera + active state only (not isScanning), so a temporary
+  // false from post-scan cooldown is not immediately overwritten by this effect.
   useEffect(() => {
-    if (isActive && isCameraReady && !isScanning) {
-      console.log('🎥 Camera is ready, starting QR scanning...');
-      setIsScanning(true);
-    } else if (!isActive || !isCameraReady) {
+    if (!isActive || !isCameraReady) {
       setIsScanning(false);
+    } else {
+      setIsScanning(true);
     }
   }, [isActive, isCameraReady]);
 

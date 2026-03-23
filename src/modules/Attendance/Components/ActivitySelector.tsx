@@ -24,9 +24,8 @@ export default function ActivitySelector({
       setLoading(true);
       const response = await activityTracksApi.getAll(1, 50, 'active');
       setActivities(response.data);
-    } catch (err) {
+    } catch {
       setError('Error al cargar las actividades');
-      console.error('Error fetching activities:', err);
     } finally {
       setLoading(false);
     }
@@ -38,8 +37,8 @@ export default function ActivitySelector({
       if (activeActivity) {
         setScanningStatus({ [activeActivity.id!]: true });
       }
-    } catch (err) {
-      console.error('Error checking scanning status:', err);
+    } catch {
+      // Optional: UI works without active-scanning state if this request fails
     }
   };
 
@@ -52,8 +51,7 @@ export default function ActivitySelector({
         const updatedActivity = { ...selectedActivity, scanning_active: true };
         onActivitySelect(updatedActivity);
       }
-    } catch (err) {
-      console.error('Error starting scanning:', err);
+    } catch {
       alert('Error al iniciar el escaneo');
     }
   };
@@ -67,8 +65,7 @@ export default function ActivitySelector({
         const updatedActivity = { ...selectedActivity, scanning_active: false };
         onActivitySelect(updatedActivity);
       }
-    } catch (err) {
-      console.error('Error stopping scanning:', err);
+    } catch {
       alert('Error al detener el escaneo');
     }
   };

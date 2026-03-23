@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaChartLine, FaArrowLeft, FaDownload, FaFilter, FaUsers, FaQrcode, FaSearch, FaExclamationTriangle, FaCalendarAlt, FaTimes, FaSort, FaSortUp, FaSortDown, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChartLine, FaArrowLeft, FaDownload, FaFilter, FaUsers, FaSearch, FaExclamationTriangle, FaCalendarAlt, FaTimes, FaSort, FaSortUp, FaSortDown, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { Link } from '@tanstack/react-router';
 import { activityTracksApi, attendanceRecordsApi } from '../Services/attendanceNewApi';
 import type { ActivityTrack, ActivityTrackWithStats, AttendanceRecordWithDetails } from '../Types/attendanceNew';
@@ -30,8 +30,7 @@ export default function AttendanceListPage() {
       setLoading(true);
       const response = await activityTracksApi.getAll(1, 1000);
       setActivities(response.data);
-    } catch (err) {
-      console.error('Error loading activities:', err);
+    } catch {
       setError('Error al cargar actividades');
     } finally {
       setLoading(false);
@@ -53,8 +52,7 @@ export default function AttendanceListPage() {
         filters.endDate || undefined
       );
       setAttendanceRecords(response.data || []);
-    } catch (err) {
-      console.error('Error loading attendance records:', err);
+    } catch {
       setError('Error al cargar registros de asistencia');
     } finally {
       setLoading(false);
@@ -142,8 +140,7 @@ export default function AttendanceListPage() {
       
       setSuccess(`${sortedAndFilteredRecords.length} registro(s) exportado(s) exitosamente`);
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      console.error('Error exporting data:', err);
+    } catch {
       setError('Error al exportar datos');
     } finally {
       setLoading(false);
@@ -247,14 +244,6 @@ export default function AttendanceListPage() {
     setCurrentPage(1);
   }, [filters.searchTerm, filters.attendanceType, filters.startDate, filters.endDate]);
 
-  const getBeneficiariosCount = () =>
-    filteredRecords.filter(record => record.attendance_type === 'beneficiario').length;
-
-  const getGuestsCount = () =>
-    filteredRecords.filter(record => record.attendance_type === 'guest').length;
-
-  const getQRScansCount = () =>
-    filteredRecords.filter(record => record.attendance_method === 'qr_scan').length;
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -36,8 +36,7 @@ export default function ActivitiesPage() {
       setLoading(true);
       const response = await activityTracksApi.getAll(1, 1000); // Get all activities
       setActivities(response.data);
-    } catch (err) {
-      console.error('Error loading activities:', err);
+    } catch {
       setError('Error al cargar actividades');
     } finally {
       setLoading(false);
@@ -70,7 +69,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al crear actividad');
-      console.error('Error creating activity:', err);
     } finally {
       setLoading(false);
     }
@@ -104,7 +102,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al actualizar actividad');
-      console.error('Error updating activity:', err);
     } finally {
       setLoading(false);
     }
@@ -126,7 +123,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al eliminar actividad');
-      console.error('Error deleting activity:', err);
     } finally {
       setLoading(false);
     }
@@ -146,7 +142,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al iniciar escaneo');
-      console.error('Error starting scanning:', err);
     } finally {
       setLoading(false);
     }
@@ -166,7 +161,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al detener escaneo');
-      console.error('Error stopping scanning:', err);
     } finally {
       setLoading(false);
     }
@@ -356,7 +350,7 @@ export default function ActivitiesPage() {
                   <select
                     id="status"
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'completed' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   >
                     <option value="active">Activa</option>

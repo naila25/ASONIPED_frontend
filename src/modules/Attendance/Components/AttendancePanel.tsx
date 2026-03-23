@@ -10,18 +10,9 @@ export default function AttendancePanel() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        console.log('Fetching dashboard stats...');
         const dashboardStats = await dashboardApi.getStats();
-        console.log('Dashboard stats received:', dashboardStats);
         setStats(dashboardStats);
-      } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        console.error('Error details:', {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined
-        });
-        
-        // Set default stats to prevent UI issues
+      } catch {
         setStats({
           totalActivities: 0,
           activeActivities: 0,
@@ -60,9 +51,6 @@ export default function AttendancePanel() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Nueva Actividad button clicked');
-                  console.log('Current URL before navigation:', window.location.href);
-                  console.log('Attempting to navigate to:', '/admin/attendance/activities');
                   window.location.href = '/admin/attendance/activities';
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"

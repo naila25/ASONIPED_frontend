@@ -5,7 +5,6 @@ import { getAPIBaseURLSync } from '../../../shared/Services/config';
 const API_URL = `${getAPIBaseURLSync()}/attendance`;
 
 export const fetchAttendance = async (): Promise<Attendance[]> => {
-  try {
     const response = await fetch(API_URL, {
       headers: {
         ...getAuthHeader(),
@@ -19,14 +18,9 @@ export const fetchAttendance = async (): Promise<Attendance[]> => {
       throw new Error('Failed to fetch attendance');
     }
     return await response.json();
-  } catch (error) {
-    console.error('Error fetching attendance:', error);
-    throw error;
-  }
 };
 
 export const createAttendance = async (data: Omit<Attendance, 'id' | 'created_at'>) => {
-  try {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -42,10 +36,6 @@ export const createAttendance = async (data: Omit<Attendance, 'id' | 'created_at
       throw new Error('Failed to create attendance record');
     }
     return await response.json();
-  } catch (error) {
-    console.error('Error creating attendance record:', error);
-    throw error;
-  }
 };
 
 // Alias for createAttendance to maintain compatibility

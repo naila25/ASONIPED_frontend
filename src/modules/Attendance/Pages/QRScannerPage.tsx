@@ -16,22 +16,17 @@ export default function QRScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  console.log('QRScannerPage rendered', { selectedActivity, loading, error });
-
   const loadAttendanceRecords = useCallback(async () => {
     if (!selectedActivity) {
-      console.log('No selected activity, skipping loadAttendanceRecords');
       return;
     }
     
     try {
-      console.log('Loading attendance records for activity:', selectedActivity.id);
       setLoading(true);
       const response = await attendanceRecordsApi.getByActivityTrack(selectedActivity.id!, 1, 100);
-      console.log('Attendance records loaded:', response);
       setAttendanceRecords(response.data);
-    } catch (err) {
-      console.error('Error loading attendance records:', err);
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al cargar registros de asistencia');
     } finally {
       setLoading(false);
     }
@@ -80,7 +75,6 @@ export default function QRScannerPage() {
       
      } catch (err: unknown) {
       setError((err as Error).message || 'Error al procesar el código QR');
-      console.error('Error processing QR scan:', err);
     } finally {
       setLoading(false);
     }
@@ -104,10 +98,8 @@ export default function QRScannerPage() {
       await activityTracksApi.startScanning(selectedActivity.id!);
       
       setIsScanning(true);
-      console.log('✅ QR scanning started for activity:', selectedActivity.name);
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al iniciar el escaneo QR');
-      console.error('Error starting QR scanning:', err);
     } finally {
       setLoading(false);
     }
@@ -123,9 +115,7 @@ export default function QRScannerPage() {
       await activityTracksApi.stopScanning(selectedActivity.id!);
       
       setIsScanning(false);
-      console.log('⏹️ QR scanning stopped for activity:', selectedActivity.name);
-    } catch (err: unknown) {
-      console.error('Error stopping QR scanning:', err);
+    } catch {
       // Still stop scanning locally even if API call fails
       setIsScanning(false);
     } finally {
