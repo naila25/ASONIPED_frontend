@@ -21,7 +21,6 @@ const API_URL = `${getAPIBaseURLSync()}/api/attendance`;
 export const activityTracksApi = {
   // Create a new activity track
   create: async (data: CreateActivityTrackData): Promise<{ activity_track_id: number }> => {
-    try {
       const response = await fetch(`${API_URL}/activity-tracks`, {
         method: 'POST',
         headers: {
@@ -40,15 +39,10 @@ export const activityTracksApi = {
       }
 
       return await response.json();
-    } catch (error) {
-      console.error('Error creating activity track:', error);
-      throw error;
-    }
   },
 
   // Get all activity tracks with pagination
   getAll: async (page = 1, limit = 10, status?: string, createdBy?: number): Promise<PaginatedResponse<ActivityTrackWithStats>> => {
-    try {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
@@ -78,15 +72,10 @@ export const activityTracksApi = {
         limit: data.limit,
         totalPages: data.totalPages
       };
-    } catch (error) {
-      console.error('Error fetching activity tracks:', error);
-      throw error;
-    }
   },
 
   // Get activity track by ID
   getById: async (id: number): Promise<ActivityTrackWithStats> => {
-    try {
       const response = await fetch(`${API_URL}/activity-tracks/${id}`, {
         headers: {
           ...getAuthHeader(),
@@ -105,15 +94,10 @@ export const activityTracksApi = {
       }
 
       return await response.json();
-    } catch (error) {
-      console.error('Error fetching activity track:', error);
-      throw error;
-    }
   },
 
   // Update activity track
   update: async (id: number, data: Partial<ActivityTrack>): Promise<void> => {
-    try {
       const response = await fetch(`${API_URL}/activity-tracks/${id}`, {
         method: 'PUT',
         headers: {
@@ -133,15 +117,10 @@ export const activityTracksApi = {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to update activity track');
       }
-    } catch (error) {
-      console.error('Error updating activity track:', error);
-      throw error;
-    }
   },
 
   // Delete activity track
   delete: async (id: number): Promise<void> => {
-    try {
       const response = await fetch(`${API_URL}/activity-tracks/${id}`, {
         method: 'DELETE',
         headers: {
@@ -159,15 +138,10 @@ export const activityTracksApi = {
         }
         throw new Error('Failed to delete activity track');
       }
-    } catch (error) {
-      console.error('Error deleting activity track:', error);
-      throw error;
-    }
   },
 
   // Start QR scanning for an activity track
   startScanning: async (id: number): Promise<void> => {
-    try {
       const response = await fetch(`${API_URL}/activity-tracks/${id}/start-scanning`, {
         method: 'PUT',
         headers: {
@@ -186,15 +160,10 @@ export const activityTracksApi = {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to start QR scanning');
       }
-    } catch (error) {
-      console.error('Error starting QR scanning:', error);
-      throw error;
-    }
   },
 
   // Stop QR scanning for an activity track
   stopScanning: async (id: number): Promise<void> => {
-    try {
       const response = await fetch(`${API_URL}/activity-tracks/${id}/stop-scanning`, {
         method: 'PUT',
         headers: {
@@ -212,15 +181,10 @@ export const activityTracksApi = {
         }
         throw new Error('Failed to stop QR scanning');
       }
-    } catch (error) {
-      console.error('Error stopping QR scanning:', error);
-      throw error;
-    }
   },
 
   // Get currently active scanning activity track
   getActiveScanning: async (): Promise<ActivityTrack | null> => {
-    try {
       const response = await fetch(`${API_URL}/activity-tracks/active-scanning`, {
         headers: {
           ...getAuthHeader(),
@@ -237,15 +201,10 @@ export const activityTracksApi = {
 
       const data = await response.json();
       return data.activeTrack || null;
-    } catch (error) {
-      console.error('Error fetching active scanning activity:', error);
-      throw error;
-    }
   },
 
   // Get upcoming activity tracks
   getUpcoming: async (limit = 5): Promise<ActivityTrackWithStats[]> => {
-    try {
       const response = await fetch(`${API_URL}/activity-tracks/upcoming?limit=${limit}`, {
         headers: {
           ...getAuthHeader(),
@@ -262,10 +221,6 @@ export const activityTracksApi = {
 
       const data = await response.json();
       return data.activityTracks || [];
-    } catch (error) {
-      console.error('Error fetching upcoming activities:', error);
-      throw error;
-    }
   }
 };
 
@@ -273,7 +228,6 @@ export const activityTracksApi = {
 export const attendanceRecordsApi = {
   // Process QR code scan
   processQRScan: async (data: QRScanRequest): Promise<AttendanceRecord> => {
-    try {
       const response = await fetch(`${API_URL}/attendance-records/qr-scan`, {
         method: 'POST',
         headers: {
@@ -301,15 +255,10 @@ export const attendanceRecordsApi = {
 
       const result = await response.json();
       return result.attendanceRecord;
-    } catch (error) {
-      console.error('Error processing QR scan:', error);
-      throw error;
-    }
   },
 
   // Create manual attendance entry
   createManual: async (data: CreateGuestAttendanceData): Promise<AttendanceRecord> => {
-    try {
       const response = await fetch(`${API_URL}/attendance-records/manual`, {
         method: 'POST',
         headers: {
@@ -337,10 +286,6 @@ export const attendanceRecordsApi = {
 
       const result = await response.json();
       return result.attendanceRecord;
-    } catch (error) {
-      console.error('Error creating manual attendance:', error);
-      throw error;
-    }
   },
 
   // Get attendance records with filtering
@@ -353,7 +298,6 @@ export const attendanceRecordsApi = {
     startDate?: string,
     endDate?: string
   ): Promise<PaginatedResponse<AttendanceRecordWithDetails>> => {
-    try {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
@@ -386,15 +330,10 @@ export const attendanceRecordsApi = {
         limit: data.limit,
         totalPages: data.totalPages
       };
-    } catch (error) {
-      console.error('Error fetching attendance records:', error);
-      throw error;
-    }
   },
 
   // Get attendance records for a specific activity track
   getByActivityTrack: async (activityTrackId: number, page = 1, limit = 50): Promise<PaginatedResponse<AttendanceRecordWithDetails>> => {
-    try {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString()
@@ -422,15 +361,10 @@ export const attendanceRecordsApi = {
         limit: data.limit,
         totalPages: data.totalPages
       };
-    } catch (error) {
-      console.error('Error fetching attendance records for activity:', error);
-      throw error;
-    }
   },
 
   // Get recent attendance records
   getRecent: async (limit = 10): Promise<AttendanceRecordWithDetails[]> => {
-    try {
       const response = await fetch(`${API_URL}/attendance-records/recent?limit=${limit}`, {
         headers: {
           ...getAuthHeader(),
@@ -447,15 +381,10 @@ export const attendanceRecordsApi = {
 
       const data = await response.json();
       return data.records || [];
-    } catch (error) {
-      console.error('Error fetching recent attendance records:', error);
-      throw error;
-    }
   },
 
   // Get attendance statistics for an activity track
   getStats: async (activityTrackId: number): Promise<AttendanceStats> => {
-    try {
       const response = await fetch(`${API_URL}/attendance-records/activity-track/${activityTrackId}/stats`, {
         headers: {
           ...getAuthHeader(),
@@ -472,10 +401,6 @@ export const attendanceRecordsApi = {
 
       const data = await response.json();
       return data.stats;
-    } catch (error) {
-      console.error('Error fetching attendance statistics:', error);
-      throw error;
-    }
   }
 };
 
@@ -483,7 +408,6 @@ export const attendanceRecordsApi = {
 export const analyticsApi = {
   // Get comprehensive analytics overview
   getOverview: async (startDate?: string, endDate?: string): Promise<AttendanceAnalytics> => {
-    try {
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
@@ -503,15 +427,10 @@ export const analyticsApi = {
       }
 
       return await response.json();
-    } catch (error) {
-      console.error('Error fetching analytics overview:', error);
-      throw error;
-    }
   },
 
   // Export attendance data
   exportData: async (format: 'json' | 'csv' = 'json', startDate?: string, endDate?: string): Promise<Blob> => {
-    try {
       const params = new URLSearchParams({ format });
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
@@ -530,18 +449,13 @@ export const analyticsApi = {
       }
 
       return await response.blob();
-    } catch (error) {
-      console.error('Error exporting attendance data:', error);
-      throw error;
-    }
   }
 };
 
 // Records Integration API
 export const recordsApi = {
   // Generate attendance QR data for a record
-  generateAttendanceQR: async (recordId: number): Promise<{ qrData: QRScanData; record: any }> => {
-    try {
+  generateAttendanceQR: async (recordId: number): Promise<{ qrData: QRScanData; record: AttendanceRecord }> => {
       const response = await fetch(`${getAPIBaseURLSync()}/records/${recordId}/attendance-qr`, {
         headers: {
           ...getAuthHeader(),
@@ -564,10 +478,6 @@ export const recordsApi = {
       }
 
       return await response.json();
-    } catch (error) {
-      console.error('Error generating attendance QR:', error);
-      throw error;
-    }
   }
 };
 
@@ -576,32 +486,16 @@ export const dashboardApi = {
   // Get dashboard statistics
   getStats: async (): Promise<DashboardStats> => {
     try {
-      console.log('Dashboard API: Starting to fetch stats...');
-      
-      // Get upcoming activities
-      console.log('Dashboard API: Fetching upcoming activities...');
       const upcomingActivities = await activityTracksApi.getUpcoming(5);
-      console.log('Dashboard API: Upcoming activities fetched:', upcomingActivities);
-      
-      // Get today's date for filtering
+
       const today = new Date().toISOString().split('T')[0];
-      console.log('Dashboard API: Today date:', today);
-      
-      // Get today's attendance
-      console.log('Dashboard API: Fetching today\'s attendance...');
+
       const todayAttendance = await attendanceRecordsApi.getAll(1, 1000, undefined, undefined, undefined, today, today);
-      console.log('Dashboard API: Today\'s attendance fetched:', todayAttendance);
-      
-      // Get total attendance
-      console.log('Dashboard API: Fetching total attendance...');
+
       const totalAttendance = await attendanceRecordsApi.getAll(1, 1);
-      console.log('Dashboard API: Total attendance fetched:', totalAttendance);
-      
-      // Get all activities for stats
-      console.log('Dashboard API: Fetching all activities...');
+
       const allActivities = await activityTracksApi.getAll(1, 1000);
-      console.log('Dashboard API: All activities fetched:', allActivities);
-      
+
       const stats = {
         totalActivities: allActivities.total || 0,
         activeActivities: (allActivities.data || []).filter(a => a.status === 'active').length,
@@ -609,17 +503,9 @@ export const dashboardApi = {
         totalAttendance: totalAttendance.total || 0,
         recentActivities: upcomingActivities || []
       };
-      
-      console.log('Dashboard API: Stats computed:', stats);
+
       return stats;
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      
-      // Return default stats instead of throwing
+    } catch {
       return {
         totalActivities: 0,
         activeActivities: 0,
