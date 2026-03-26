@@ -24,10 +24,11 @@ const navLinks = [
     icon: TrendingUp, 
     hasSubmenu: true,
     submenu: [
-      { to: "/admin/attendance/beneficiaries", label: "Asistencia Beneficiarios", icon: Users },
-      { to: "/admin/attendance/guests", label: "Asistencia Invitados", icon: User },
-      { to: "/admin/attendance/list", label: "Lista de Asistencia", icon: FileText },
-      { to: "/admin/attendance/activities", label: "Actividades", icon: Calendar }
+      { to: "/admin/attendance/list", label: "Reportes", icon: FileText },
+      { to: "/admin/attendance/activities", label: "Actividades", icon: Calendar },
+      { to: "/admin/attendance/beneficiaries", label: "Escanear QR", icon: Users },
+      { to: "/admin/attendance/guests", label: "Registro manual", icon: User }
+
     ]
   },
   { 
