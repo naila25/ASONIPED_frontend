@@ -10,6 +10,10 @@ export interface Workshop {
   fecha: string;
   hora: string;
   capacidad: number;
+  // Enrollment-related fields (optional, returned by some endpoints)
+  available_spots?: number;
+  enrolled_count?: number;
+  is_enrolled?: boolean;
 
 }
 
