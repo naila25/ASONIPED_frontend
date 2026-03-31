@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { adminFetchAllProposals, adminSetProposalStatus } from '../Services/fetchVolunteers';
 import { getAPIBaseURLSync } from '../../../shared/Services/config';
+import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 import { 
   FileText, 
   User, 
@@ -64,52 +65,13 @@ export default function VolunteerProposalsAdmin() {
   const onSetStatus = async (id: number, status: 'approved' | 'rejected' | 'filed') => {
     try {
       setUpdatingId(id);
+      setError(null);
       await adminSetProposalStatus(id, status);
       await load();
     } catch {
-      alert('No se pudo actualizar el estado');
+      setError('No se pudo actualizar el estado. Intenta de nuevo.');
     } finally {
       setUpdatingId(null);
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'rejected':
-        return <XCircle className="w-4 h-4 text-red-600" />;
-      case 'filed':
-        return <Eye className="w-4 h-4 text-gray-600" />;
-      default:
-        return <Clock className="w-4 h-4 text-yellow-600" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'Aprobada';
-      case 'rejected':
-        return 'Rechazada';
-      case 'filed':
-        return 'Archivada';
-      default:
-        return 'Pendiente';
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const baseClasses = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium";
-    switch (status) {
-      case 'approved':
-        return `${baseClasses} bg-green-100 text-green-800 border border-green-200`;
-      case 'rejected':
-        return `${baseClasses} bg-red-100 text-red-800 border border-red-200`;
-      case 'filed':
-        return `${baseClasses} bg-gray-100 text-gray-800 border border-gray-200`;
-      default:
-        return `${baseClasses} bg-yellow-100 text-yellow-800 border border-yellow-200`;
     }
   };
 
@@ -159,24 +121,15 @@ export default function VolunteerProposalsAdmin() {
   });
 
   return (
-    <div className="max-w-8xl mx-auto px-6 py-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div>
-            <h1 className="ext-lg font-semibold text-gray-900">Propuestas de Voluntariado</h1>
-           
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="text-sm text-gray-600">
-            {showArchived ? 'Mostrando archivadas' : 'Archivadas ocultas'}
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-            {/* Search Input */}
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        icon={<FileText className="h-6 w-6" />}
+        title="Propuestas de voluntariado"
+        description="Revisa, filtra y aprueba propuestas enviadas por usuarios."
+        actions={
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-80">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-4 w-4 text-gray-400" />
               </div>
               <input
@@ -184,34 +137,45 @@ export default function VolunteerProposalsAdmin() {
                 placeholder="Buscar por nombre, teléfono, propuesta..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
-            
             <button
+              type="button"
               onClick={() => setShowArchived((v) => !v)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
             >
               {showArchived ? 'Ocultar archivadas' : 'Mostrar archivadas'}
             </button>
           </div>
-        </div>
-        
-        
-      </div>
+        }
+        showSubNav={false}
+      />
 
-      {/* Content */}
-      {loading ? (
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        {error && (
+          <div className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+              <span>{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+              aria-label="Cerrar mensaje"
+            >
+              <XCircle className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+
+        {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
             <span className="text-gray-600">Cargando propuestas...</span>
           </div>
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
-          <p className="text-red-600 text-lg font-medium">{error}</p>
         </div>
       ) : filteredProposals.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
@@ -225,19 +189,14 @@ export default function VolunteerProposalsAdmin() {
         <div className="space-y-4">
           {filteredProposals.map((proposal) => {
             const isArchived = proposal.status === 'filed' || (proposal.admin_note?.includes('[ARCHIVED]') ?? false);
-            const displayStatus = isArchived ? 'filed' : proposal.status;
             return (
             <div key={proposal.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="p-6">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="mb-2">
                       <h3 className="text-xl font-bold text-gray-900">{proposal.title}</h3>
-                      <span className={getStatusBadge(displayStatus)}>
-                        {getStatusIcon(displayStatus)}
-                        {getStatusText(displayStatus)}
-                      </span>
                     </div>
                     <p className="text-gray-600 leading-relaxed line-clamp-3">
                       {proposal.proposal}
@@ -329,7 +288,7 @@ export default function VolunteerProposalsAdmin() {
                           href={proposal.document_path.startsWith('/uploads') ? `${getAPIBaseURLSync()}${proposal.document_path}` : proposal.document_path}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:text-teal-800"
                         >
                           <Download className="w-3 h-3" />
                           Ver archivo
@@ -351,9 +310,9 @@ export default function VolunteerProposalsAdmin() {
 
                 {/* Admin Note */}
                 {proposal.admin_note && (
-                  <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-200 rounded-lg">
-                    <h4 className="text-sm font-medium text-blue-800 mb-2">Nota del administrador:</h4>
-                    <p className="text-sm text-blue-700">{proposal.admin_note}</p>
+                  <div className="mb-4 rounded-lg border border-teal-100 bg-teal-50 p-4">
+                    <h4 className="mb-2 text-sm font-medium text-teal-900">Nota del administrador</h4>
+                    <p className="text-sm text-teal-800">{proposal.admin_note}</p>
                   </div>
                 )}
 
@@ -403,6 +362,7 @@ export default function VolunteerProposalsAdmin() {
           );})}
         </div>
       )}
+      </div>
     </div>
   );
 }
