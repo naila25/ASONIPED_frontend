@@ -87,7 +87,7 @@ export default function PublicWorkshopsPage() {
         ) : (
           <div className="relative flex items-center justify-center">
             
-            {workshops.length > itemsPerView && (
+            {!isMobile && workshops.length > itemsPerView && (
               <button
                 onClick={prevSlide}
                 className="absolute left-0 bg-white rounded-full shadow p-2 hover:bg-gray-100 z-20"
@@ -97,27 +97,25 @@ export default function PublicWorkshopsPage() {
             )}
 
             <div
-              className={`w-full gap-8 justify-items-center ${
+              className={`w-full gap-8 ${
                 isMobile
-                  ? "flex justify-center"
-                  : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  ? "flex overflow-x-auto space-x-4 px-4 scroll-smooth snap-x snap-mandatory"
+                  : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-items-center"
               }`}
             >
-              {visibleWorkshops.map((workshop) => (
+              {(isMobile ? workshops : visibleWorkshops).map((workshop) => (
                 <div
                   key={workshop.id}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex flex-col border border-gray-200"
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex-shrink-0 snap-center flex flex-col border border-gray-200"
                 >
                   <div className="h-[220px]">
                     {workshop.imagen && !workshop.imagen.startsWith("blob:") ? (
                       <img
-
                         src={
                           workshop.imagen.startsWith("http")
                             ? workshop.imagen
                             : `http://localhost:3000${workshop.imagen}`
                         }
-
                         alt={workshop.titulo}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -144,7 +142,6 @@ export default function PublicWorkshopsPage() {
                       </div>
                     )}
 
-                    {/* Placeholder cuando la imagen falla */}
                     <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm image-placeholder hidden">
                       <span>Imagen no disponible</span>
                     </div>
@@ -168,7 +165,7 @@ export default function PublicWorkshopsPage() {
               ))}
             </div>
 
-            {workshops.length > itemsPerView && (
+            {!isMobile && workshops.length > itemsPerView && (
               <button
                 onClick={nextSlide}
                 className="absolute right-0 bg-white rounded-full shadow p-2 hover:bg-gray-100 z-20"

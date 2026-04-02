@@ -6,6 +6,7 @@ import {
   updateWorkshop,
   deleteWorkshop
 } from '../Services/workshopService';
+import { getAvailableSpots } from '../Services/workshopEnrollments';
 
 import {
   Search,
@@ -112,10 +113,54 @@ const WorkshopOptionsPage: React.FC = () => {
     return text.length > limit ? `${text.substring(0, limit)}...` : text;
   };
 
+  const getCapacitySummary = (workshop: Workshop) => {
+    const total = workshop.capacidad;
+    const available = workshop.available_spots;
+    const enrolled = workshop.enrolled_count;
+
+    if (typeof total === 'number' && typeof available === 'number') {
+      return `${available}/${total} cupos disponibles`;
+    }
+
+    if (typeof total === 'number' && typeof enrolled === 'number') {
+      const availableFromEnrolled = Math.max(total - enrolled, 0);
+      return `${availableFromEnrolled}/${total} cupos disponibles`;
+    }
+
+    if (typeof total === 'number') {
+      return `${total} cupos`;
+    }
+
+    return 'Capacidad no definida';
+  };
+
   const load = async () => {
     try {
       setLoading(true);
       const list = await getAllWorkshops();
+
+      // Enrich workshops with real-time occupancy when endpoint is available.
+      const workshopsWithSpots = await Promise.all(
+        list.map(async (workshop) => {
+          try {
+            const spots = await getAvailableSpots(workshop.id);
+            return {
+              ...workshop,
+              available_spots:
+                typeof spots?.available_spots === 'number'
+                  ? spots.available_spots
+                  : workshop.available_spots,
+              enrolled_count:
+                typeof spots?.enrolled_count === 'number'
+                  ? spots.enrolled_count
+                  : workshop.enrolled_count,
+            };
+          } catch {
+            return workshop;
+          }
+        })
+      );
+
       // Sort newest first by date (supports YYYY-MM-DD and DD/MM/YYYY)
       const getTime = (d: string) => {
         try {
@@ -131,7 +176,7 @@ const WorkshopOptionsPage: React.FC = () => {
           return isNaN(f.getTime()) ? -Infinity : f.getTime();
         } catch { return -Infinity; }
       };
-      const sorted = [...list].sort((a, b) => {
+      const sorted = [...workshopsWithSpots].sort((a, b) => {
         const tb = getTime(b.fecha as unknown as string);
         const ta = getTime(a.fecha as unknown as string);
         if (tb !== ta) return tb - ta;
@@ -337,14 +382,14 @@ const WorkshopOptionsPage: React.FC = () => {
     <div className="space-y-6 min-w-0">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex items-center gap-4 mb-20">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 mb-20">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-semibold text-gray-900 truncate">
               Gestión de Opciones de Talleres
             </h1>
           </div>
                {/* Actions moved to header */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
            {/* View Mode Toggle */}
             <button
               onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
@@ -694,7 +739,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     {/* Status Badge */}
                     <div className="absolute top-3 right-3">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                        Activo
+                        Taller
                       </span>
                     </div>
                   </div>
@@ -712,59 +757,39 @@ const WorkshopOptionsPage: React.FC = () => {
                     </p>
 
                     {/* Meta Information */}
-                    <div className="space-y-3 mb-4 flex-shrink-0">
-                      {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium">Fecha:</span>
-                        <span>{new Date(opt.fecha).toLocaleDateString('es-ES')}</span>
+                    <div className="mb-4 flex-shrink-0">
+                      <div className="text-sm text-gray-600 mb-2 flex flex-wrap items-center gap-2" title={`Fecha: ${new Date(opt.fecha).toLocaleDateString('es-ES')}`}>
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span><span className="font-medium text-gray-700">Fecha:</span> {new Date(opt.fecha).toLocaleDateString('es-ES')}</span>
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={`Hora: ${opt.hora ? formatHour12(opt.hora) : 'Hora no definida'}`}>
+                          <Clock className="w-3.5 h-3.5 mr-1" />
+                          {opt.hora ? formatHour12(opt.hora) : 'Hora no definida'}
+                        </span>
                       </div>
 
-                      {/* Hour */}
-                      {opt.hora && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">Hora:</span>
-                          <span>{formatHour12(opt.hora)}</span>
-                        </div>
-                      )}
-
-                      {/* Location */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium">Ubicación:</span>
-                        <span className="truncate" title={opt.ubicacion}>{opt.ubicacion}</span>
+                      <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2 mb-2">
+                        <span className="inline-flex items-center gap-1 min-w-0" title={opt.ubicacion}>
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="truncate"><span className="font-medium text-gray-700">Ubicación:</span> {opt.ubicacion}</span>
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={getCapacitySummary(opt)}>
+                          <Users className="w-3.5 h-3.5 mr-1" />
+                          {getCapacitySummary(opt)}
+                        </span>
                       </div>
 
-                      {/* Capacity */}
-                      {opt.capacidad && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Users className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">Capacidad:</span>
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                            {opt.capacidad} cupos
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Materials */}
                       {opt.materiales && opt.materiales.length > 0 && (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-700 block mb-1">Materiales:</span>
-                          <p className="text-gray-600 text-xs line-clamp-2" title={Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}>
-                            {Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}
-                          </p>
-                        </div>
+                        <p className="text-xs text-gray-600 line-clamp-1 mb-1" title={Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}>
+                          <span className="font-medium text-gray-700">Materiales:</span> {Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}
+                        </p>
                       )}
 
-                      {/* Learning */}
                       {opt.aprender && (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-700 block mb-1">Aprenderás:</span>
-                          <p className="text-gray-600 text-xs line-clamp-2" title={opt.aprender}>
-                            {opt.aprender}
-                          </p>
-                        </div>
+                        <p className="text-xs text-gray-600 line-clamp-1" title={opt.aprender}>
+                          <span className="font-medium text-gray-700">Aprenderás:</span> {opt.aprender}
+                        </p>
                       )}
                     </div>
 

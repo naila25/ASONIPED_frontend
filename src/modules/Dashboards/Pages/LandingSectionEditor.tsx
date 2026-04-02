@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { SectionData, SectionKey, ValueItem } from "../Types/types";
 import { ModalSimple } from "./ModalSimple.tsx";
 import { heroService, type HeroSection } from "../Services/heroService.ts";
@@ -54,6 +54,8 @@ export function LandingSectionEditor({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const MAX_DONATION_CARDS = 3;
+  const donationMessageRef = useRef<HTMLDivElement | null>(null);
   // Estado específico para workshop section del backend
   const [workshopData, setWorkshopData] = useState<LandingWorkshop>(
     section === "workshop"
@@ -318,6 +320,17 @@ export function LandingSectionEditor({
     e.preventDefault();
     setValidationErrors({});
     setError(null);
+
+    const cardsCount = donationData?.cards?.length || 0;
+    const isCreating = !editingId;
+    if (isCreating && cardsCount >= MAX_DONATION_CARDS) {
+      setError(`Solo se permiten ${MAX_DONATION_CARDS} cards de donaciones.`);
+      setTimeout(() => {
+        donationMessageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
+      return;
+    }
+
     const errors = validateCard(cardForm);
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
@@ -1280,7 +1293,11 @@ export function LandingSectionEditor({
           <div className="mt-4 space-y-6">
             <h2 className="text-2xl font-bold mb-4">Personalizar donaciones</h2>
             {loading && <div className="text-blue-600">Cargando datos...</div>}
-            {error && <div className="text-red-600">Error: {error}</div>}
+            {error && (
+              <div ref={donationMessageRef} className="text-red-600 font-medium">
+                Error: {error}
+              </div>
+            )}
             {Object.keys(validationErrors).length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                 <h3 className="text-red-800 font-medium mb-2">Errores de validación:</h3>
@@ -1364,6 +1381,9 @@ export function LandingSectionEditor({
               <h3 className="text-xl font-bold mb-4">
                 {editingId ? "Editar Card" : "Agregar Nueva Card"}
               </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Cards creadas: <span className="font-semibold">{donationData?.cards?.length || 0}/{MAX_DONATION_CARDS}</span>
+              </p>
               <form onSubmit={handleCardSubmit} className="space-y-6">
                 {Object.keys(validationErrors).length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">

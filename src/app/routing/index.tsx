@@ -391,8 +391,8 @@ const router = createRouter({
   ),
   defaultNotFoundComponent: () => (
     <div className="text-center p-4">
-      <h1 className="text-2xl font-bold text-red-600">Page Not Found</h1>
-      <p className="text-gray-700">The page you're looking for doesn't exist.</p>
+      <h1 className="text-2xl font-bold text-red-600">Página no encontrada</h1>
+      <p className="text-gray-700">La página que estás buscando no existe.</p>
     </div>
   )
 });

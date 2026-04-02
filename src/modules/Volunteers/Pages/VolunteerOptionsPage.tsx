@@ -82,6 +82,43 @@ const VolunteerOptionsPage = () => {
     return text.length > limit ? `${text.substring(0, limit)}...` : text;
   };
 
+  // Remove noisy technical payloads rendered as plain text from API responses.
+  const sanitizeTechnicalText = (value?: string) => {
+    if (!value) return '';
+    return value
+      .replace(/\{\s*message\s*:\s*"[^"]*"\s*\}/gi, '')
+      .replace(/message\s*:\s*"[^"]*"/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  };
+
+  const formatDisplayDate = (rawDate: string) => {
+    try {
+      if (rawDate.includes('/')) {
+        const [day, month, year] = rawDate.split('/');
+        const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        if (!isNaN(dateObj.getTime())) return dateObj.toLocaleDateString('es-ES');
+      }
+      const dateObj = new Date(rawDate);
+      if (!isNaN(dateObj.getTime())) return dateObj.toLocaleDateString('es-ES');
+      return rawDate;
+    } catch {
+      return rawDate;
+    }
+  };
+
+  const getSpotsSummary = (option: VolunteerOption) => {
+    const available = option.available_spots;
+    const total = option.spots;
+    if (available !== undefined && total !== undefined) {
+      return `${available}/${total} cupos disponibles`;
+    }
+    if (total !== undefined) {
+      return `${total} cupos disponibles`;
+    }
+    return 'Cupos no definidos';
+  };
+
   // Fetch all volunteer options from API
   const loadOptions = async () => {
     try {
@@ -632,9 +669,9 @@ const VolunteerOptionsPage = () => {
             {/* Options Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {currentOptions.map((option) => (
-              <div key={option.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
+              <div key={option.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
                 {/* Image Section */}
-                <div className="relative h-48 bg-gray-100 flex-shrink-0">
+                <div className="relative h-48 bg-gray-100">
                   {option.imageUrl ? (
                     <img
                       src={option.imageUrl.startsWith('http') ? option.imageUrl : `${getAPIBaseURLSync()}${option.imageUrl}`}
@@ -649,7 +686,7 @@ const VolunteerOptionsPage = () => {
                   {/* Status Badge */}
                   <div className="absolute top-3 right-3">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                      Activa
+                      Voluntariado
                     </span>
                   </div>
                 </div>
@@ -662,88 +699,36 @@ const VolunteerOptionsPage = () => {
                   </h3>
 
                   {/* Description */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow" title={option.description}>
-                    {option.description}
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3" title={sanitizeTechnicalText(option.description)}>
+                    {sanitizeTechnicalText(option.description) || 'Sin descripción'}
                   </p>
 
                   {/* Meta Information */}
-                  <div className="space-y-3 mb-4 flex-shrink-0">
-                  {/* Date */}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">Fecha:</span>
-                    <span>{(() => {
-                      try {
-                        // Handle DD/MM/YYYY format from database
-                        if (option.date.includes('/')) {
-                          const [day, month, year] = option.date.split('/');
-                          const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                          if (!isNaN(dateObj.getTime())) {
-                            return dateObj.toLocaleDateString('es-ES');
-                          }
-                        }
-                        // Fallback for other formats
-                        const dateObj = new Date(option.date);
-                        if (!isNaN(dateObj.getTime())) {
-                          return dateObj.toLocaleDateString('es-ES');
-                        }
-                        return option.date; // Show raw date if parsing fails
-                      } catch (error) {
-                        return option.date; // Show raw date if parsing fails
-                      }
-                    })()}</span>
-                  </div>
-
-                  {/* Hour */}
-                  {(option as unknown as { hour?: string }).hour && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium">Hora:</span>
-                      <span>{formatHour12((option as unknown as { hour?: string }).hour)}</span>
-                    </div>
-                  )}
-
-                  {/* Location */}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">Ubicación:</span>
-                    <span className="truncate" title={option.location}>{option.location}</span>
-                  </div>
-
-                  {/* Spots */}
-                  {option.spots && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium">Cupos:</span>
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                        {option.spots} disponibles
+                  <div className="mb-4 flex-shrink-0">
+                    <div className="text-sm text-gray-600 mb-2 flex flex-wrap items-center gap-2" title={`Fecha: ${formatDisplayDate(option.date)}`}>
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span><span className="font-medium text-gray-700">Fecha:</span> {formatDisplayDate(option.date)}</span>
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={`Hora: ${formatHour12((option as unknown as { hour?: string }).hour) || 'Hora no definida'}`}>
+                        <Clock className="w-3.5 h-3.5 mr-1" />
+                        {formatHour12((option as unknown as { hour?: string }).hour) || 'Hora no definida'}
                       </span>
                     </div>
-                  )}
-
-                    {/* Skills */}
-                    {(option as unknown as { skills?: string }).skills && (
-                      <div className="text-sm">
-                        <span className="font-medium text-gray-700 block mb-1">Habilidades:</span>
-                        <p className="text-gray-600 text-xs line-clamp-2" title={(option as unknown as { skills?: string }).skills}>
-                          {(option as unknown as { skills?: string }).skills}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Tools */}
-                    {(option as unknown as { tools?: string }).tools && (
-                      <div className="text-sm">
-                        <span className="font-medium text-gray-700 block mb-1">Herramientas:</span>
-                        <p className="text-gray-600 text-xs line-clamp-2" title={(option as unknown as { tools?: string }).tools}>
-                          {(option as unknown as { tools?: string }).tools}
-                        </p>
-                      </div>
-                    )}
+                    <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 min-w-0" title={option.location}>
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span className="truncate"><span className="font-medium text-gray-700">Ubicación:</span> {option.location}</span>
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={getSpotsSummary(option)}>
+                        <Users className="w-3.5 h-3.5 mr-1" />
+                        {getSpotsSummary(option)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100 mt-auto">
                     <button
                       onClick={() => handleEdit(option)}
                       className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getTicketsByUserId } from '../Services/ticketService';
 import type { DonationTicket } from '../Services/ticketService';
-import { FaTicketAlt, FaClock, FaCheckCircle, FaTimesCircle, FaEye } from 'react-icons/fa';
+import { FaTicketAlt, FaTimesCircle, FaEye } from 'react-icons/fa';
 import TicketConversation from './TicketConversation';
 import TicketPreview from './TicketPreview';
+import TicketConversationModal from './TicketConversationModal';
 
 interface UserTicketsListProps {
   userId: number;
@@ -16,11 +17,7 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'open' | 'closed' | 'archived'>('open');
   const [selectedTicket, setSelectedTicket] = useState<DonationTicket | null>(null);
 
-  useEffect(() => {
-    loadTickets();
-  }, [userId]);
-
-  const loadTickets = async () => {
+  const loadTickets = useCallback(async () => {
     try {
       setLoading(true);
       const userTickets = await getTicketsByUserId(userId);
@@ -32,7 +29,11 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadTickets();
+  }, [loadTickets]);
 
   const handleViewConversation = (ticket: DonationTicket) => {
     setSelectedTicket(ticket);
@@ -56,32 +57,6 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const getStatusIcon = (status: 'open' | 'closed' | 'archived') => {
-    switch (status) {
-      case 'open':
-        return <FaClock className="text-orange-500" />;
-      case 'closed':
-        return <FaCheckCircle className="text-green-500" />;
-      case 'archived':
-        return <FaTimesCircle className="text-gray-500" />;
-      default:
-        return <FaClock className="text-orange-500" />;
-    }
-  };
-
-  const getStatusText = (status: 'open' | 'closed' | 'archived') => {
-    switch (status) {
-      case 'open':
-        return 'Abierto';
-      case 'closed':
-        return 'Cerrado';
-      case 'archived':
-        return 'Archivado';
-      default:
-        return 'Abierto';
-    }
   };
 
   const getStatusBadge = (status: 'open' | 'closed' | 'archived') => {
@@ -223,20 +198,23 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
                   </div>
                 </div>
               </div>
-              
-              {/* Conversation opens below the specific ticket */}
-              {selectedTicket && selectedTicket.id === ticket.id && (
-                <div className="mt-4">
-                  <TicketConversation
-                    ticket={selectedTicket}
-                    onClose={handleCloseConversation}
-                    onTicketUpdate={loadTickets}
-                  />
-                </div>
-              )}
             </div>
           ))}
         </div>
+      )}
+
+      {/* Conversation in modal */}
+      {selectedTicket && (
+        <TicketConversationModal
+          isOpen={true}
+          onClose={handleCloseConversation}
+        >
+          <TicketConversation
+            ticket={selectedTicket}
+            onClose={handleCloseConversation}
+            onTicketUpdate={loadTickets}
+          />
+        </TicketConversationModal>
       )}
 
 

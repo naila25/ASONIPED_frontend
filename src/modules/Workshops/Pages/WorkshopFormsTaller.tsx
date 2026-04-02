@@ -219,10 +219,10 @@ const WorkshopFormsTallerPage = () => {
 
   // Main render
   return (
-    <div className="max-w-8xl mx-auto px-8 py-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 bg-white rounded-lg shadow-sm">
       {/* Header */}
       <div className="mb-10">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 truncate">Gestión de Inscripciones a Talleres</h2>
             
