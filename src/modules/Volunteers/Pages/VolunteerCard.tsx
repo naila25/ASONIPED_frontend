@@ -93,7 +93,7 @@ const VolunteerCard = ({
           <div className="flex justify-center items-center mt-auto">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-sky-600 text-white px-6 py-2 rounded-lg hover:bg-sky-500 transition"
+              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
             >
               Ver más
             </button>
@@ -337,14 +337,14 @@ const Voluntariados = () => {
       <div id="volunteer-section" className="max-w-7xl p-2 mb-12 mt-16 mx-auto">
         <div className=" text-center items-center mb-6">
 
-          <h2 className="text-sky-600 text-4xl font-semibold">
+          <h2 className="text-orange-600 text-4xl font-semibold">
             Áreas de voluntariado en ASONIPED
           </h2>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
             <p className="mt-4 text-gray-600">
               Cargando oportunidades de voluntariado...
             </p>
@@ -388,7 +388,7 @@ const Voluntariados = () => {
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     currentPage === 1
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-sky-500 text-white hover:bg-sky-600'
+                      : 'bg-orange-500 text-white hover:bg-orange-600'
                   }`}
                 >
                   Anterior
@@ -402,7 +402,7 @@ const Voluntariados = () => {
                       onClick={() => handlePageChange(page)}
                       className={`px-3 py-2 rounded-lg font-medium transition-colors ${
                         currentPage === page
-                          ? 'bg-sky-600 text-white'
+                          ? 'bg-orange-600 text-white'
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
@@ -418,7 +418,7 @@ const Voluntariados = () => {
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     currentPage === totalPages
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-sky-500 text-white hover:bg-sky-600'
+                      : 'bg-orange-500 text-white hover:bg-orange-600'
                   }`}
                 >
                   Siguiente
@@ -429,7 +429,7 @@ const Voluntariados = () => {
         )}
       </div>
 
-      <h2 className="text-center text-3xl font-extrabold text-sky-600 mb-6 mt-20">
+      <h2 className="text-center text-3xl font-extrabold text-orange-600 mb-6 mt-20">
           ¿No encontraste un voluntariado para ti?
         </h2>
 
@@ -507,7 +507,7 @@ const Voluntariados = () => {
               <div className="space-y-3">
                 <Link
                   to="/user/voluntariado"
-                  className="inline-flex items-center gap-2 bg-sky-600 text-white px-6 py-3 rounded-lg hover:bg-sky-700 transition-colors font-medium"
+                  className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium"
                 >
                   <FaRegCalendarAlt className="w-4 h-4" />
                   Ver Mis Voluntariados
@@ -525,7 +525,7 @@ const Voluntariados = () => {
             </div>
           ) : (
             <form onSubmit={handleProposalSubmit} className="text-black grid grid-cols-1 gap-4 bg-white">
-              <h3 className="text-xl font-bold text-sky-600 mb-2">
+              <h3 className="text-xl font-bold text-orange-600 mb-2">
                 Deja tu voluntariado
               </h3>
             <div>
@@ -676,7 +676,7 @@ const Voluntariados = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="bg-sky-600 text-white px-6 py-2 rounded-lg hover:bg-sky-500 transition self-start disabled:opacity-60"
+              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition self-start disabled:opacity-60"
             >
               {submitting ? 'Enviando...' : 'Enviar solicitud'}
             </button>

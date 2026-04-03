@@ -148,41 +148,41 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                 />
 
                 <span className="font-medium text-gray-900 flex items-center gap-2">
-                  <MdDescription className="text-sky-500" />
+                  <MdDescription className="text-orange-500" />
                   Descripción del voluntariado:
                 </span>
                 <p className="text-neutral-700">{volunteer.description}</p>
 
                 <span className="font-medium text-gray-900 flex items-center gap-2">
-                  <FaRegLightbulb className="text-sky-500" />
+                  <FaRegLightbulb className="text-orange-500" />
                   Habilidades necesarias:
                 </span>
                 <p className="text-neutral-700">{(volunteer as VolunteerOption & { skills?: string }).skills || '—'}</p>
 
                 <span className="font-medium text-gray-900 flex items-center gap-2">
-                  <FaTools className="text-sky-500" />
+                  <FaTools className="text-orange-500" />
                   Herramientas necesarias:
                 </span>
                 <p className="text-neutral-700">{(volunteer as VolunteerOption & { tools?: string }).tools || '—'}</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-700">
                   <div className="flex items-center gap-2">
-                    <FaRegCalendarAlt className="text-sky-500" />
+                    <FaRegCalendarAlt className="text-orange-500" />
                     <span className="font-medium text-gray-900">Fecha:</span> {volunteer.date}
                   </div>
                   {volunteer.hour && (
                     <div className="flex items-center gap-2">
-                      <FaClock className="text-sky-500" />
+                      <FaClock className="text-orange-500" />
                       <span className="font-medium text-gray-900">Hora:</span> {formatTime12Hour(volunteer.hour)}
                     </div>
                   )}
                   <div className="flex items-center gap-2">
-                    <MdLocationOn className="text-sky-500" />
+                    <MdLocationOn className="text-orange-500" />
                     <span className="font-medium text-gray-900">Ubicación:</span> {volunteer.location}
                   </div>
                   {registrationStatus.available_spots !== undefined && (
                     <div className="flex items-center gap-2">
-                      <FaUsers className="text-sky-500" />
+                      <FaUsers className="text-orange-500" />
                       <span className="font-medium text-gray-900">Cupos:</span> 
                       <span className={registrationStatus.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
                         {registrationStatus.available_spots} disponibles
@@ -217,7 +217,7 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
                       {justRegistered ? (
                         <Link
                           to="/user/voluntariado"
-                          className="inline-flex items-center justify-center bg-sky-600 text-white px-6 py-2 rounded-lg hover:bg-sky-500 transition"
+                          className="inline-flex items-center justify-center bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
                         >
                           Ir a Mi Voluntariado
                         </Link>

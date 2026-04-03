@@ -272,7 +272,7 @@ export default function VoluntariadoPage() {
               <button
                 type="button"
                 onClick={() => { setDetailsOpen(false); setSelectedRegistration(null); }}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
               >
                 Cerrar
               </button>
@@ -283,7 +283,7 @@ export default function VoluntariadoPage() {
       
       {loading ? (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
           <span className="ml-4 text-gray-600">Cargando tus voluntariados...</span>
         </div>
       ) : error ? (
@@ -299,7 +299,7 @@ export default function VoluntariadoPage() {
           <p className="text-gray-600 mb-4">No tienes voluntariados registrados en este momento.</p>
           <a 
             href="/volunteerCard" 
-            className="inline-block bg-sky-600 text-white px-6 py-2 rounded-lg hover:bg-sky-500 transition"
+            className="inline-block bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
           >
             Ver Voluntariados Disponibles
           </a>
@@ -357,7 +357,7 @@ export default function VoluntariadoPage() {
                   <button
                     type="button"
                     onClick={() => openDetails(registration)}
-                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
                   >
                     Ver detalles
                   </button>
@@ -410,7 +410,7 @@ export default function VoluntariadoPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                     {registration.volunteer_option.date && (
                       <div className="flex items-center text-gray-600">
-                        <FaRegCalendarAlt className="w-5 h-5 mr-3 text-sky-500" />
+                        <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Fecha</div>
                           <div className="text-base">{registration.volunteer_option.date}</div>
@@ -420,7 +420,7 @@ export default function VoluntariadoPage() {
                     
                     {registration.volunteer_option.location && (
                       <div className="flex items-center text-gray-600">
-                        <FaMapMarkerAlt className="w-5 h-5 mr-3 text-sky-500" />
+                        <FaMapMarkerAlt className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Ubicación</div>
                           <div className="text-base">{registration.volunteer_option.location}</div>
@@ -429,7 +429,7 @@ export default function VoluntariadoPage() {
                     )}
 
                     <div className="flex items-center text-gray-600">
-                      <FaClock className="w-5 h-5 mr-3 text-sky-500" />
+                      <FaClock className="w-5 h-5 mr-3 text-orange-500" />
                       <div>
                         <div className="text-sm font-medium text-gray-500">
                           {registration.status === 'cancelled' ? 'Fecha de cancelación' : 'Fecha de inscripción'}
@@ -449,7 +449,7 @@ export default function VoluntariadoPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                     {registration.volunteer_option.hour && (
                       <div className="flex items-center text-gray-600">
-                        <FaClock className="w-5 h-5 mr-3 text-sky-500" />
+                        <FaClock className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Hora</div>
                           <div className="text-base">{formatTime12Hour(registration.volunteer_option.hour)}</div>
@@ -458,7 +458,7 @@ export default function VoluntariadoPage() {
                     )}
                     
                     <div className="flex items-center text-gray-600">
-                      <FaUsers className="w-5 h-5 mr-3 text-sky-500" />
+                      <FaUsers className="w-5 h-5 mr-3 text-orange-500" />
                       <div>
                         <div className="text-sm font-medium text-gray-500">Cupos disponibles</div>
                         <div className="text-base">
@@ -523,7 +523,7 @@ export default function VoluntariadoPage() {
               <p className="text-gray-600 mb-6">Crea tu primera propuesta de voluntariado para contribuir a la comunidad</p>
               <a 
                 href="/volunteerCard" 
-                className="inline-flex items-center px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
               >
                 Ver voluntariados disponibles
               </a>
@@ -552,7 +552,7 @@ export default function VoluntariadoPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                       {proposal.date && (
                         <div className="flex items-center text-gray-600">
-                          <FaRegCalendarAlt className="w-5 h-5 mr-3 text-sky-500" />
+                          <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
                           <div>
                             <div className="text-sm font-medium text-gray-500">Fecha propuesta</div>
                             <div className="text-base">{proposal.date}</div>
@@ -562,7 +562,7 @@ export default function VoluntariadoPage() {
 
                       {proposal.location && (
                         <div className="flex items-center text-gray-600">
-                          <FaMapMarkerAlt className="w-5 h-5 mr-3 text-sky-500" />
+                          <FaMapMarkerAlt className="w-5 h-5 mr-3 text-orange-500" />
                           <div>
                             <div className="text-sm font-medium text-gray-500">Ubicación</div>
                             <div className="text-base">{proposal.location}</div>
@@ -572,7 +572,7 @@ export default function VoluntariadoPage() {
 
                       {proposal.hour && (
                         <div className="flex items-center text-gray-600">
-                          <FaClock className="w-5 h-5 mr-3 text-sky-500" />
+                          <FaClock className="w-5 h-5 mr-3 text-orange-500" />
                           <div>
                             <div className="text-sm font-medium text-gray-500">Hora propuesta</div>
                             <div className="text-base">{formatTime12Hour(proposal.hour)}</div>
@@ -581,7 +581,7 @@ export default function VoluntariadoPage() {
                       )}
 
                       <div className="flex items-center text-gray-600">
-                        <FaClock className="w-5 h-5 mr-3 text-sky-500" />
+                        <FaClock className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Fecha de envío</div>
                           <div className="text-base">
@@ -609,7 +609,7 @@ export default function VoluntariadoPage() {
                           <div className="mb-3">
                             <h4 className="text-sm font-medium text-gray-700 mb-2">Documento adjunto:</h4>
                             <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                              <FaFileAlt className="w-5 h-5 text-sky-500" />
+                              <FaFileAlt className="w-5 h-5 text-orange-500" />
                               <div className="flex-1">
                                 <p className="text-sm text-gray-600 font-medium">{getFileName(proposal.document_path)}</p>
                                 <p className="text-xs text-gray-500">Archivo adjunto a la propuesta</p>
@@ -618,7 +618,7 @@ export default function VoluntariadoPage() {
                                 href={getFileUrl(proposal.document_path)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-3 py-2 bg-sky-500 text-white text-sm rounded-lg hover:bg-sky-600 transition-colors"
+                                className="flex items-center gap-2 px-3 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 transition-colors"
                               >
                                 <FaDownload className="w-4 h-4" />
                                 Ver archivo
@@ -643,7 +643,7 @@ export default function VoluntariadoPage() {
                       <button
                         onClick={() => handleDeleteProposal(proposal.id)}
                         disabled={deletingProposal === proposal.id}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {deletingProposal === proposal.id ? (
                           <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>

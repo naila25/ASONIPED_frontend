@@ -67,7 +67,7 @@ export default function PublicWorkshopsPage() {
   return (
     <div className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-6">
-        <h2 className="text-teal-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mb-5">
+        <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mb-5">
           Nuestros talleres
         </h2>
         <p className="text-neutral-700 text-center mb-10">
@@ -159,7 +159,7 @@ export default function PublicWorkshopsPage() {
                     </p>
                     <button
                       onClick={() => setSelectedWorkshop(workshop)}
-                      className="bg-teal-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-teal-600"
+                      className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
                     >
                       Ver más
                     </button>
