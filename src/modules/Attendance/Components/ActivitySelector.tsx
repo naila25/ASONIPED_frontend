@@ -137,7 +137,7 @@ export default function ActivitySelector({
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'active':
-        return 'bg-teal-100 text-teal-800';
+        return 'bg-emerald-100 text-emerald-800';
       case 'inactive':
         return 'bg-gray-100 text-gray-800';
       case 'completed':
@@ -181,7 +181,7 @@ export default function ActivitySelector({
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={fetchActivities}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
           >
             Reintentar
           </button>
@@ -241,7 +241,7 @@ export default function ActivitySelector({
             <button
               type="button"
               onClick={onCreateActivity}
-              className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 self-stretch rounded-lg bg-teal-600 px-3 py-2 text-sm text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 sm:self-auto md:px-4 md:py-2.5 md:text-base"
+              className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 self-stretch rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 sm:self-auto md:px-4 md:py-2.5 md:text-base"
             >
               <FaPlus className="h-4 w-4 md:h-[18px] md:w-[18px]" />
               <span className="md:hidden">Actividades</span>
@@ -285,7 +285,7 @@ export default function ActivitySelector({
             <button
               type="button"
               onClick={onCreateActivity}
-              className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
               <FaPlus className="h-4 w-4" />
               Crear primera actividad
@@ -297,7 +297,7 @@ export default function ActivitySelector({
           {/* Móvil: selector compacto + modal; no lista larga en pantalla */}
           <div className="md:hidden">
             {selectedActivity ? (
-              <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-3.5">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold leading-snug text-gray-900">{selectedActivity.name}</p>
@@ -305,8 +305,8 @@ export default function ActivitySelector({
                       <p className="mt-1 truncate text-xs text-gray-600">{selectedMobileMeta}</p>
                     ) : null}
                     {selectedIsScanning && (
-                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-teal-800">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-teal-600" aria-hidden />
+                      <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-emerald-800">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-600" aria-hidden />
                         Escaneo activo
                       </div>
                     )}
@@ -317,7 +317,7 @@ export default function ActivitySelector({
                         <button
                           type="button"
                           onClick={() => handleStartScanning(selectedActivity.id!)}
-                          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-teal-700 transition-colors active:bg-teal-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-emerald-700 transition-colors active:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                           title="Iniciar escaneo QR"
                           aria-label="Iniciar escaneo QR"
                         >
@@ -337,7 +337,7 @@ export default function ActivitySelector({
                     <button
                       type="button"
                       onClick={() => setPickerOpen(true)}
-                      className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-teal-300 bg-white px-3 text-sm font-medium text-teal-900 shadow-sm transition-colors active:bg-teal-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-emerald-300 bg-white px-3 text-sm font-medium text-emerald-900 shadow-sm transition-colors active:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                     >
                       Cambiar
                       <FaChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
@@ -349,9 +349,9 @@ export default function ActivitySelector({
               <button
                 type="button"
                 onClick={() => setPickerOpen(true)}
-                className="flex w-full min-h-[52px] items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/80 px-4 text-base font-medium text-gray-800 transition-colors active:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                className="flex w-full min-h-[52px] items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/80 px-4 text-base font-medium text-gray-800 transition-colors active:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
-                <FaChevronDown className="h-5 w-5 text-teal-600" aria-hidden />
+                <FaChevronDown className="h-5 w-5 text-emerald-600" aria-hidden />
                 Elegir actividad
               </button>
             )}
@@ -372,7 +372,7 @@ export default function ActivitySelector({
                 title={activity.description || undefined}
                 className={`cursor-pointer rounded-xl border px-4 py-3 transition-all duration-200 ${
                   isSelected
-                    ? 'border-teal-500 bg-teal-50/70 ring-1 ring-teal-500/15'
+                    ? 'border-emerald-500 bg-emerald-50/70 ring-1 ring-emerald-500/15'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/80'
                 }`}
                 onClick={() => onActivitySelect(activity)}
@@ -388,7 +388,7 @@ export default function ActivitySelector({
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       {isSelected && (
                         <span
-                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-600 text-white"
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"
                           aria-label="Seleccionada"
                         >
                           <FaCheck className="h-3 w-3" aria-hidden />
@@ -404,11 +404,11 @@ export default function ActivitySelector({
                       </span>
                       {isScanning && (
                         <span
-                          className="inline-flex shrink-0 items-center rounded-full bg-teal-100 p-1.5"
+                          className="inline-flex shrink-0 items-center rounded-full bg-emerald-100 p-1.5"
                           title="Escaneo QR activo"
                           aria-label="Escaneo QR activo"
                         >
-                          <span className="h-2 w-2 animate-pulse rounded-full bg-teal-600" aria-hidden />
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-600" aria-hidden />
                         </span>
                       )}
                     </div>
@@ -458,7 +458,7 @@ export default function ActivitySelector({
                             e.stopPropagation();
                             handleStartScanning(activity.id!);
                           }}
-                          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-teal-600 transition-colors hover:bg-teal-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-emerald-600 transition-colors hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                           title="Iniciar escaneo QR"
                           aria-label="Iniciar escaneo QR"
                         >
@@ -494,14 +494,14 @@ export default function ActivitySelector({
           aria-label="Resumen de actividad seleccionada"
           className="mt-4 hidden border-t border-gray-200 pt-4 md:mt-5 md:block md:pt-5"
         >
-          <div className="rounded-xl border border-teal-100 bg-teal-50/90 px-3 py-3 md:px-4 md:py-3.5">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-teal-900">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/90 px-3 py-3 md:px-4 md:py-3.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-emerald-900">
               Seleccionada
             </h4>
             <p className="mt-1 text-sm font-medium text-gray-900 md:text-base">{selectedActivity.name}</p>
             {selectedActivity.scanning_active && (
-              <div className="mt-2 flex items-center gap-2 text-sm font-medium text-teal-800 md:mt-3">
-                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-teal-500" aria-hidden />
+              <div className="mt-2 flex items-center gap-2 text-sm font-medium text-emerald-800 md:mt-3">
+                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" aria-hidden />
                 <span className="leading-snug">Escaneo QR activo</span>
               </div>
             )}
@@ -533,7 +533,7 @@ export default function ActivitySelector({
               <button
                 type="button"
                 onClick={() => setPickerOpen(false)}
-                className="inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                className="inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 aria-label="Cerrar"
               >
                 <FaTimes className="h-6 w-6" />
@@ -554,7 +554,7 @@ export default function ActivitySelector({
                   value={mobileSearch}
                   onChange={(e) => setMobileSearch(e.target.value)}
                   placeholder="Buscar actividad..."
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -573,7 +573,7 @@ export default function ActivitySelector({
                     <button
                       type="button"
                       className={`flex w-full items-start gap-3 rounded-xl px-3 py-4 text-left transition-colors ${
-                        picked ? 'bg-teal-50' : 'active:bg-gray-50'
+                        picked ? 'bg-emerald-50' : 'active:bg-gray-50'
                       }`}
                       onClick={() => {
                         onActivitySelect(activity);
@@ -581,7 +581,7 @@ export default function ActivitySelector({
                       }}
                     >
                       <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white">
-                        {picked ? <FaCheck className="h-3.5 w-3.5 text-teal-600" aria-hidden /> : null}
+                        {picked ? <FaCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden /> : null}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-base font-semibold text-gray-900">{activity.name}</span>

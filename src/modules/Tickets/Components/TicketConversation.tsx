@@ -4,7 +4,9 @@ import type { DonationTicket, TicketMessage } from '../Services/ticketService';
 import { useAuth } from '../../Login/Hooks/useAuth';
 import { FaPaperPlane, FaUser, FaUserShield, FaCheck, FaCheckDouble, FaSmile, FaArrowLeft } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
-import socketService from '../../../shared/Services/socketService';
+import socketService, {
+  type TicketSocketIncomingMessage,
+} from '../../../shared/Services/socketService';
 
 interface TicketConversationProps {
   ticket: DonationTicket;
@@ -70,7 +72,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
         socketService.joinTicketRoom(ticket.id);
         
         // Create message handler with improved duplicate detection
-        const messageHandler = (message: TicketMessage) => {
+        const messageHandler = (message: TicketSocketIncomingMessage) => {
           // For messages from current user, check if this is a recently sent message
           if (user && message.sender_id === user.id) {
             // Check if we recently sent a message with this content
@@ -106,8 +108,17 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
             if (messageExists) {
               return prev;
             }
-            
-            return [...prev, message];
+
+            const normalized: TicketMessage = {
+              id: message.id ?? Date.now(),
+              module_type: message.module_type,
+              module_id: message.module_id,
+              sender_id: message.sender_id,
+              message: message.message,
+              timestamp: message.timestamp ?? new Date().toISOString(),
+              sender_name: message.sender_name,
+            };
+            return [...prev, normalized];
           });
         };
         

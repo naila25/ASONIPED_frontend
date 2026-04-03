@@ -220,7 +220,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // Reset form when resetTrigger changes
   useEffect(() => {
     if (resetTrigger > 0) {
-      console.log('🔄 Resetting form due to resetTrigger change');
       setForm(getInitialFormState());
       setDocumentFiles({
         dictamen_medico: null,
@@ -268,8 +267,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
       // Format as yyyy-MM-dd for input[type="date"]
       return date.toISOString().split('T')[0];
-    } catch (error) {
-      console.error('Error formatting date:', error);
+    } catch {
       return '';
     }
   };
@@ -277,15 +275,11 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // Pre-fill data from existing Phase 3 data when it's a modification
   useEffect(() => {
     if (isModification && currentRecord) {
-      console.log('=== PRE-FILLING PHASE 3 FORM FOR MODIFICATION ===');
-      console.log('Current record:', currentRecord);
-
       setForm(prev => {
         const newForm = { ...prev };
 
         // Pre-fill complete personal data
         if (currentRecord.complete_personal_data) {
-          console.log('Pre-filling complete personal data:', currentRecord.complete_personal_data);
           newForm.complete_personal_data = {
             ...prev.complete_personal_data,
             ...currentRecord.complete_personal_data,
@@ -296,7 +290,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill family information
         if (currentRecord.family_information) {
-          console.log('Pre-filling family information:', currentRecord.family_information);
           newForm.family_information = {
             ...prev.family_information,
             ...currentRecord.family_information
@@ -305,7 +298,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill disability information
         if (currentRecord.disability_information) {
-          console.log('Pre-filling disability information:', currentRecord.disability_information);
           newForm.disability_information = {
             ...prev.disability_information,
             ...currentRecord.disability_information
@@ -314,7 +306,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill socioeconomic information
         if (currentRecord.socioeconomic_information) {
-          console.log('Pre-filling socioeconomic information:', currentRecord.socioeconomic_information);
           newForm.socioeconomic_information = {
             ...prev.socioeconomic_information,
             ...currentRecord.socioeconomic_information
@@ -323,9 +314,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill documentation requirements
         if (currentRecord.documentation_requirements) {
-          console.log('Pre-filling documentation requirements:', currentRecord.documentation_requirements);
-          console.log('affiliation_fee_paid value:', currentRecord.documentation_requirements.affiliation_fee_paid);
-          console.log('affiliation_fee_paid type:', typeof currentRecord.documentation_requirements.affiliation_fee_paid);
           newForm.documentation_requirements = {
             ...prev.documentation_requirements,
             ...currentRecord.documentation_requirements,
@@ -343,8 +331,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   useEffect(() => {
     if (!isModification && currentRecord?.personal_data) {
       const phase1Data = currentRecord.personal_data;
-
-      console.log('Pre-filling Phase 3 form with Phase 1 data:', phase1Data);
 
       setForm(prev => ({
         ...prev,
@@ -403,42 +389,30 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       if (currentRecord?.personal_data && provinces.length > 0) {
         const phase1Data = currentRecord.personal_data;
 
-        console.log('Preloading geographic data:', {
-          province: phase1Data.province,
-          canton: phase1Data.canton,
-          district: phase1Data.district,
-          provincesLoaded: provinces.length
-        });
-
         // Load cantons if province is pre-filled
         if (phase1Data.province) {
           try {
             const selectedProvince = provinces.find(p => p.name === phase1Data.province);
-            console.log('Selected province for preloading:', selectedProvince);
 
             if (selectedProvince) {
               setLoadingCantons(true);
               const cantonsData = await getCantonsByProvince(selectedProvince.id);
-              console.log('Loaded cantons for preloading:', cantonsData.length);
               setCantons(cantonsData);
               setLoadingCantons(false);
 
               // Load districts if canton is pre-filled
               if (phase1Data.canton) {
                 const selectedCanton = cantonsData.find(c => c.name === phase1Data.canton);
-                console.log('Selected canton for preloading:', selectedCanton);
 
                 if (selectedCanton) {
                   setLoadingDistricts(true);
                   const districtsData = await getDistrictsByCanton(selectedCanton.id);
-                  console.log('Loaded districts for preloading:', districtsData.length);
                   setDistricts(districtsData);
                   setLoadingDistricts(false);
                 }
               }
             }
-          } catch (error) {
-            console.error('Error preloading geographic data:', error);
+          } catch {
             setLoadingCantons(false);
             setLoadingDistricts(false);
           }
@@ -456,8 +430,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       try {
         const provincesData = await getProvinces();
         setProvinces(provincesData);
-      } catch (error) {
-        console.error('Error loading provinces:', error);
+      } catch {
+        // keep empty provinces list on failure
       } finally {
         setLoadingProvinces(false);
       }
@@ -476,8 +450,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             const cantonsData = await getCantonsByProvince(selectedProvince.id);
             setCantons(cantonsData);
           }
-        } catch (error) {
-          console.error('Error loading cantons:', error);
+        } catch {
+          // keep cantons empty on failure
         } finally {
           setLoadingCantons(false);
         }
@@ -500,8 +474,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             const districtsData = await getDistrictsByCanton(selectedCanton.id);
             setDistricts(districtsData);
           }
-        } catch (error) {
-          console.error('Error loading districts:', error);
+        } catch {
+          // keep districts empty on failure
         } finally {
           setLoadingDistricts(false);
         }
@@ -545,7 +519,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     // 2) Override with 'entregado' for any document type that has an uploaded file
     if (currentRecord?.documents && currentRecord.documents.length > 0) {
       currentRecord.documents.forEach((doc: { document_type?: string; file_name?: string }) => {
-        const formDocumentType = mapBackendDocumentType(doc.document_type || '', doc.file_name);
+        const formDocumentType = mapBackendDocumentType(doc.document_type || '');
         if (formDocumentType) {
           documentStatusMap.set(formDocumentType, 'entregado');
         }
@@ -582,9 +556,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   }, [currentRecord, documentTypes]);
 
   // Helper function to map backend document types to form document types
-  const mapBackendDocumentType = (backendType: string, fileName?: string): string | null => {
-    console.log(`Mapping backend type: ${backendType}, fileName: ${fileName}`);
-
+  const mapBackendDocumentType = (backendType: string): string | null => {
     // Direct mapping based on backend document types
     const mapping: { [key: string]: string } = {
       'medical_diagnosis': 'dictamen_medico',
@@ -600,24 +572,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       'other': 'cuenta_banco_nacional' // Default for 'other' type
     };
 
-    const result = mapping[backendType] || null;
-    console.log(`Mapped ${backendType} to ${result}`);
-    return result;
+    return mapping[backendType] || null;
   };
-
-  // Debug: Log form state changes
-  useEffect(() => {
-    console.log('Form state updated:', {
-      documents: form.documentation_requirements.documents,
-      documentFiles: Object.keys(documentFiles).filter(key => documentFiles[key] !== null)
-    });
-
-    // Specifically log document statuses
-    console.log('Document statuses in form:', form.documentation_requirements.documents.map(doc => ({
-      type: doc.document_type,
-      status: doc.status
-    })));
-  }, [form.documentation_requirements.documents, documentFiles]);
 
   const handleChange = (section: keyof Phase3Data, field: string, value: string | number | boolean | string[] | RequiredDocument[] | AvailableService[]) => {
     setForm(prev => ({
@@ -645,8 +601,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   };
 
   const handleDocumentChange = (documentType: string, file: File | null) => {
-    console.log('handleDocumentChange called:', { documentType, file: file?.name });
-
     setDocumentFiles(prev => ({
       ...prev,
       [documentType]: file
@@ -654,18 +608,14 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
     // Actualizar automáticamente el estado del documento cuando se sube un archivo
     if (file) {
-      console.log('File uploaded, updating document status to entregado');
-
       setForm(prev => {
         const existingDoc = prev.documentation_requirements.documents.find(doc => doc.document_type === documentType);
-        console.log('Existing doc:', existingDoc);
 
         if (existingDoc) {
           // Update existing document status to 'entregado'
           const updatedDocs = prev.documentation_requirements.documents.map(doc =>
             doc.document_type === documentType ? { ...doc, status: 'entregado' as const } : doc
           );
-          console.log('Updated docs:', updatedDocs);
 
           const updatedForm = {
             ...prev,
@@ -678,7 +628,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           // Si es el documento de información de pago, marcar el pago como pagado
           if (documentType === 'informacion_pago') {
             updatedForm.documentation_requirements.affiliation_fee_paid = true;
-            console.log('Payment information document uploaded, setting affiliation_fee_paid to true');
           }
 
           return updatedForm;
@@ -690,7 +639,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             observations: ''
           };
           const updatedDocs = [...prev.documentation_requirements.documents, newDoc];
-          console.log('Added new doc:', updatedDocs);
 
           const updatedForm = {
             ...prev,
@@ -703,15 +651,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           // Si es el documento de información de pago, marcar el pago como pagado
           if (documentType === 'informacion_pago') {
             updatedForm.documentation_requirements.affiliation_fee_paid = true;
-            console.log('Payment information document uploaded, setting affiliation_fee_paid to true');
           }
 
           return updatedForm;
         }
       });
     } else {
-      console.log('File removed, updating document status to pendiente');
-
       setForm(prev => {
         const existingDoc = prev.documentation_requirements.documents.find(doc => doc.document_type === documentType);
 
@@ -731,7 +676,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           // Si se elimina el documento de información de pago, marcar el pago como pendiente
           if (documentType === 'informacion_pago') {
             updatedForm.documentation_requirements.affiliation_fee_paid = false;
-            console.log('Payment information document removed, setting affiliation_fee_paid to false');
           }
 
           return updatedForm;
@@ -959,13 +903,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       goToNextStep();
       return;
     }
-    console.log('=== FORM SUBMISSION HANDLER CALLED ===');
-    console.log('Is modification:', isModification);
-    console.log('Document files:', documentFiles);
-    console.log('Form documents:', form.documentation_requirements.documents);
-    console.log('Loading state:', loading);
-    console.log('Form state:', form);
-
     // Validaciones manuales antes del envío
     let hasErrors = false;
 
@@ -1012,7 +949,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     }
 
     if (hasErrors) {
-      console.log('❌ Validación fallida. No se envía el formulario.');
       return;
     }
 
@@ -1091,7 +1027,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     }
 
     if (hasFamilyErrors) {
-      console.log('❌ Validación familiar fallida');
       return;
     }
 
@@ -1157,42 +1092,17 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     // Combinar todos los documentos
     const allDocuments = [...specificDocuments];
 
-    console.log('All documents to upload:', allDocuments);
-
-    // In modification mode, if no new documents are uploaded but existing documents are marked as 'entregado',
-    // we should still allow the form submission
-    if (isModification && allDocuments.length === 0) {
-      const hasExistingDocuments = form.documentation_requirements.documents.some(doc => doc.status === 'entregado');
-      console.log('Has existing documents:', hasExistingDocuments);
-      console.log('Document statuses:', form.documentation_requirements.documents.map(doc => ({
-        type: doc.document_type,
-        status: doc.status
-      })));
-
-      if (hasExistingDocuments) {
-        console.log('Modification mode with existing documents - allowing submission without new files');
-      } else {
-        console.log('No existing documents and no new files - this might be an issue');
-        // Don't prevent submission in modification mode - let the backend handle it
-        console.log('Allowing submission anyway in modification mode');
-      }
-    }
-
     const formData: Phase3Data = {
       ...form,
       documents: allDocuments.map(doc => doc.file) // Keep the original format for now
     };
 
-    // Store document types for API service
-    (formData as Phase3Data & { documentTypes: { [key: string]: string } }).documentTypes = allDocuments.reduce((acc, doc) => {
+    formData.documentTypes = allDocuments.reduce<Record<string, string>>((acc, doc) => {
       acc[doc.file.name] = doc.type;
       return acc;
-    }, {} as { [key: string]: string });
+    }, {});
 
-    console.log('Final form data:', formData);
-    console.log('Calling onSubmit with form data...');
     onSubmit(formData);
-    console.log('onSubmit called successfully');
   };
 
   return (
@@ -1318,11 +1228,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         </div>
       </div>
 
-      <form onSubmit={(e) => {
-        console.log('=== FORM ONSUBMIT EVENT TRIGGERED ===');
-        console.log('Event:', e);
-        handleSubmit(e);
-      }} className="min-w-0 w-full max-w-full overflow-x-hidden box-border break-words space-y-6 sm:space-y-8 [&_input]:text-base [&_select]:text-base [&_textarea]:text-base">
+      <form onSubmit={handleSubmit} className="min-w-0 w-full max-w-full overflow-x-hidden box-border break-words space-y-6 sm:space-y-8 [&_input]:text-base [&_select]:text-base [&_textarea]:text-base">
         {loading && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1">

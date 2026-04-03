@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getAllTickets, closeTicket, archiveTicket } from '../Services/ticketService';
 import type { DonationTicket } from '../Services/ticketService';
 import { closeAnonymousTicket, archiveAnonymousTicket } from '../Services/anonymousTicketService';
-import { FaTicketAlt, FaCheckCircle, FaEye, FaSearch, FaArchive,FaClock } from 'react-icons/fa';
+import { FaTicketAlt, FaCheckCircle, FaEye, FaSearch, FaArchive } from 'react-icons/fa';
 import TicketConversation from '../Components/TicketConversation';
 import AdminAnonymousTicketConversation from './AdminAnonymousTicketConversation';
 import TicketConversationModal from './TicketConversationModal';
@@ -21,27 +21,6 @@ const AdminTicketsDashboard: React.FC = () => {
   const [pageSize, setPageSize] = useState<5 | 10>(10);
   const [page, setPage] = useState(1);
 
-  // Statistics
-  const [stats, setStats] = useState({
-    total: 0,
-    open: 0,
-    closed: 0,
-    assigned: 0,
-    unassigned: 0,
-    archived: 0
-  });
-
-  const calculateStats = useCallback((ticketsData: DonationTicket[]) => {
-    const total = ticketsData.length;
-    const open = ticketsData.filter(t => t.status === 'open').length;
-    const closed = ticketsData.filter(t => t.status === 'closed').length;
-    const assigned = ticketsData.filter(t => t.assigned_admin_id).length;
-    const unassigned = total - assigned;
-    const archived = ticketsData.filter(t => t.status === 'archived').length;
-
-    setStats({ total, open, closed, assigned, unassigned, archived });
-  }, []);
-
   const loadTickets = useCallback(async () => {
     try {
       setLoading(true);
@@ -49,29 +28,19 @@ const AdminTicketsDashboard: React.FC = () => {
 
       // Always update tickets to reflect status changes (open -> closed -> archived)
       setTickets(ticketsData);
-      calculateStats(ticketsData);
       setError(null);
     } catch {
       setError('Error loading tickets');
     } finally {
       setLoading(false);
     }
-  }, [calculateStats]);
+  }, []);
 
   useEffect(() => {
     loadTickets();
 
-    // Cleanup function to prevent memory leaks
     return () => {
       setTickets([]);
-      setStats({
-        total: 0,
-        open: 0,
-        closed: 0,
-        assigned: 0,
-        unassigned: 0,
-        archived: 0
-      });
     };
   }, [loadTickets]);
 
@@ -89,8 +58,7 @@ const AdminTicketsDashboard: React.FC = () => {
       if (selectedTicket && selectedTicket.id === ticket.id) {
         setSelectedTicket((prev) => (prev ? { ...prev, status: 'closed' as const } : null));
       }
-    } catch (error) {
-      console.error('Error closing ticket:', error);
+    } catch {
       setError('Error closing ticket');
     }
   };
@@ -145,17 +113,6 @@ const AdminTicketsDashboard: React.FC = () => {
       return matchesStatus && matchesSearch && matchesAssigned && matchesArchived;
     });
 
-    // Debug: Log filtering results
-    console.log('🔍 Filtering tickets:', {
-      original: tickets.length,
-      unique: uniqueTickets.length,
-      filtered: filtered.length,
-      showArchived,
-      statusFilter,
-      searchTerm,
-      assignedFilter
-    });
-
     return filtered;
   }, [tickets, statusFilter, searchTerm, assignedFilter, showArchived]);
 
@@ -187,29 +144,49 @@ const AdminTicketsDashboard: React.FC = () => {
     switch (status) {
       case 'open':
         return (
-          <span className={`${baseClasses} bg-orange-100 text-orange-800 border border-orange-200`}>
+          <span className={`${baseClasses} bg-emerald-50 text-emerald-700 border border-emerald-200`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
             Abierto
           </span>
         );
       case 'closed':
         return (
-          <span className={`${baseClasses} bg-green-100 text-green-800 border border-green-200`}>
+          <span className={`${baseClasses} bg-slate-100 text-slate-600 border border-slate-200`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
             Cerrado
           </span>
         );
       case 'archived':
         return (
-          <span className={`${baseClasses} bg-gray-100 text-gray-800 border border-gray-200`}>
+          <span className={`${baseClasses} bg-slate-50 text-slate-500 border border-slate-200`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block" />
             Archivado
           </span>
         );
       default:
         return (
-          <span className={`${baseClasses} bg-yellow-100 text-yellow-800 border border-yellow-200`}>
+          <span className={`${baseClasses} bg-amber-50 text-amber-700 border border-amber-200`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
             Pendiente
           </span>
         );
     }
+  };
+
+  // Left border accent color per status
+  const getCardAccent = (status: string) => {
+    if (status === 'open')     return 'border-l-emerald-400';
+    if (status === 'closed')   return 'border-l-slate-300';
+    if (status === 'archived') return 'border-l-slate-200';
+    return 'border-l-amber-400';
+  };
+
+  // Icon color per status
+  const getIconColor = (status: string) => {
+    if (status === 'open')     return 'text-emerald-500';
+    if (status === 'closed')   return 'text-slate-400';
+    if (status === 'archived') return 'text-slate-300';
+    return 'text-amber-400';
   };
 
   if (loading) {
@@ -241,48 +218,40 @@ const AdminTicketsDashboard: React.FC = () => {
   
     <div className="space-y-6">
 
-
       {/* Filters */}
-     
-        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 ">
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
-          <h2 className="text-lg font-semibold text-gray-900">Gestión de Tickets</h2>
+      <div className="flex flex-col lg:flex-row lg:items-end gap-3 sm:gap-4">
+        <div className="relative w-full lg:flex-1 lg:max-w-md">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por asunto, nombre o correo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+            />
         </div>
-          <div className="w-full lg:w-[400px] lg:ml-auto">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar por asunto, nombre o correo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'open' | 'closed' | 'archived')}
-              className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="open">Abiertos</option>
-              <option value="closed">Cerrados</option>
-              <option value="archived">Archivados</option>
-            </select>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={(e) => setShowArchived(e.target.checked)}
-                className="shrink-0"
-              />
-              Mostrar Archivados
-            </label>
-          </div>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center shrink-0">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'open' | 'closed' | 'archived')}
+            className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="open">Abiertos</option>
+            <option value="closed">Cerrados</option>
+            <option value="archived">Archivados</option>
+          </select>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="shrink-0"
+            />
+            Mostrar Archivados
+          </label>
         </div>
-      
+      </div>
 
       {/* Tickets List */}
       <div className="space-y-4">
@@ -352,39 +321,47 @@ const AdminTicketsDashboard: React.FC = () => {
 
             {paginatedTickets.map((ticket: DonationTicket) => (
             <div key={ticket.id}>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+              {/* Card con borde izquierdo de color según estado y padding más generoso */}
+              <div className={`bg-white border border-gray-200 border-l-4 ${getCardAccent(ticket.status)} rounded-lg p-5 sm:p-7 hover:shadow-md transition-shadow`}>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                      <FaTicketAlt className="text-orange-500" />
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                      {/* Ícono toma el color del estado */}
+                      <FaTicketAlt className={getIconColor(ticket.status)} />
                       <h3 className="font-semibold text-gray-800 break-words">
                         Ticket #{ticket.id} - {ticket.asunto}
                       </h3>
+                      {/* Badge de estado con colores semánticos */}
                       {getStatusBadge(ticket.status)}
                       {ticket.status === 'open' && (
                         <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                           Activo
                         </span>
                       )}
-                      {/* Show ticket type badge */}
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        ticket.ticket_type === 'anonymous' 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-blue-100 text-blue-800'
+                      {/* Badge tipo de ticket:
+                          anonymous  → violeta (identidad oculta)
+                          registered → azul suave */}
+                      <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium border ${
+                        ticket.ticket_type === 'anonymous'
+                          ? 'bg-violet-50 text-violet-700 border-violet-200'
+                          : 'bg-sky-50 text-sky-700 border-sky-200'
                       }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${
+                          ticket.ticket_type === 'anonymous' ? 'bg-violet-400' : 'bg-sky-400'
+                        }`} />
                         {ticket.ticket_type === 'anonymous' ? 'Anónimo' : 'Registrado'}
                       </span>
                       {/* Show public ticket ID for anonymous tickets */}
                       {ticket.ticket_type === 'anonymous' && ticket.ticket_id && (
-                        <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">
-                          ID: {ticket.ticket_id}
+                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md font-mono border border-gray-200">
+                          {ticket.ticket_id}
                         </span>
                       )}
                     </div>
                     <div className="text-sm text-gray-600 space-y-1">
                       {ticket.ticket_type === 'anonymous' ? (
                         <>
-                          <p><strong>Tipo:</strong> Usuario Anónimo</p>
+                          <p className="text-violet-600 font-medium">Usuario Anónimo</p>
                           {ticket.nombre && <p><strong>Nombre:</strong> {ticket.nombre}</p>}
                           {ticket.correo && <p><strong>Correo:</strong> {ticket.correo}</p>}
                         </>
@@ -398,35 +375,37 @@ const AdminTicketsDashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    {/* Ver conversación — neutro, siempre visible */}
                     <button
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors"
                       onClick={() => handleViewConversation(ticket)}
                     >
-                      <FaEye />
+                      <FaEye className="text-gray-400" />
                       Ver conversación
                     </button>
+                    {/* Cerrar — solo si open, verde suave */}
                     {ticket.status === 'open' && (
                       <button
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 border border-emerald-200 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors"
                         onClick={() => handleCloseTicket(ticket)}
                       >
-                        <FaCheckCircle />
+                        <FaCheckCircle className="text-emerald-500" />
                         Cerrar
                       </button>
                     )}
+                    {/* Archivar — solo si closed, gris suave */}
                     {ticket.status === 'closed' && (
                       <button
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 border border-slate-200 bg-slate-50 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors"
                         onClick={() => handleArchiveTicket(ticket)}
                       >
-                        <FaArchive />
+                        <FaArchive className="text-slate-400" />
                         Archivar
                       </button>
                     )}
                   </div>
                 </div>
               </div>
-              
             </div>
             ))}
 

@@ -14,56 +14,7 @@ interface CompleteRecordViewProps {
   isAdmin?: boolean;
 }
 
-const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin = false }) => {
-  // Debug: Log record data for admin view
-  React.useEffect(() => {
-    if (isAdmin) {
-      console.log('=== ADMIN VIEW - RECORD DATA ===');
-      console.log('Record:', record);
-      console.log('Disability Information:', record.disability_information);
-      console.log('Disability Data (fallback):', record.disability_data);
-      console.log('Complete Personal Data:', record.complete_personal_data);
-      console.log('Family Information:', record.family_information);
-      console.log('Socioeconomic Information:', record.socioeconomic_information);
-      console.log('Socioeconomic Data (fallback):', record.socioeconomic_data);
-      console.log('Documents:', record.documents);
-      console.log('Registration requirements:', record.registration_requirements);
-      
-      // Debug medical additional data specifically
-      if (record.disability_information?.medical_additional) {
-        console.log('=== MEDICAL ADDITIONAL DATA ===');
-        console.log('Blood Type:', record.disability_information.medical_additional.blood_type);
-        console.log('Diseases:', record.disability_information.medical_additional.diseases);
-        console.log('Biomechanical Benefits:', record.disability_information.medical_additional.biomechanical_benefit);
-        console.log('Permanent Limitations:', record.disability_information.medical_additional.permanent_limitations);
-      }
-      
-      // Log detallado de documentos
-      if (record.documents && record.documents.length > 0) {
-        console.log('=== DOCUMENTOS DETALLADOS ===');
-        record.documents.forEach((doc, index) => {
-          console.log(`Documento ${index + 1}:`, {
-            id: doc.id,
-            document_type: doc.document_type,
-            file_name: doc.file_name,
-            original_name: doc.original_name,
-            uploaded_at: doc.uploaded_at
-          });
-        });
-      } else {
-        console.log('No hay documentos en el expediente');
-      }
-      
-      // Log de verificación de documentos por tipo
-      console.log('=== VERIFICACIÓN DE DOCUMENTOS POR TIPO ===');
-      const documentTypes = ['medical_diagnosis', 'birth_certificate', 'cedula', 'photo', 'pension_certificate', 'study_certificate'];
-      documentTypes.forEach(type => {
-        const found = record.documents?.find(d => d.document_type === type);
-        console.log(`${type}:`, found ? 'ENCONTRADO' : 'NO ENCONTRADO', found);
-      });
-    }
-  }, [record, isAdmin]);
-
+const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record }) => {
   const [activeTab, setActiveTab] = React.useState<
     'resumen' | 'personales' | 'familia' | 'discapacidad' | 'socioeconomico' | 'documentos' | 'notas'
   >('resumen');
@@ -904,8 +855,8 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                           savedStatus = entry.status as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
                         }
                       }
-                    } catch (e) {
-                      console.error('Error parsing document_statuses in CompleteRecordView:', e);
+                    } catch {
+                      // invalid document_statuses JSON — fall back to uploaded file / pendiente
                     }
                   }
 
@@ -920,15 +871,6 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                   const status: DocStatus =
                     (savedStatus as DocStatus | undefined) ?? (uploadedDoc ? 'entregado' : 'pendiente');
 
-                  // Debug: Log para cada documento
-                  console.log(`Documento ${doc.label}:`, {
-                    backendKey: doc.backendKey,
-                    formDocType,
-                    uploadedDoc,
-                    savedStatus,
-                    status
-                  });
-                  
                   return (
                     <div key={doc.key} className="flex items-center justify-between p-2 border border-gray-200 rounded-lg">
                       <span className="text-sm text-gray-700">{doc.label}</span>

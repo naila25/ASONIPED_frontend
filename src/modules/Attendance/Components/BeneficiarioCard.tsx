@@ -15,7 +15,7 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
 
   const getAttendanceTypeColor = () => {
     return record.attendance_type === 'beneficiario'
-      ? 'bg-teal-100 text-teal-800'
+      ? 'bg-emerald-100 text-emerald-800'
       : 'bg-gray-100 text-gray-800';
   };
 
@@ -28,7 +28,7 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
   };
 
   const getMethodColor = () => {
-    return record.attendance_method === 'qr_scan' ? 'text-teal-600' : 'text-orange-600';
+    return record.attendance_method === 'qr_scan' ? 'text-emerald-600' : 'text-orange-600';
   };
 
   const getMethodText = () => {
@@ -48,12 +48,12 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
           {/* Avatar */}
           <div
             className={`rounded-lg p-2 ${
-              record.attendance_type === 'beneficiario' ? 'bg-teal-100' : 'bg-gray-100'
+              record.attendance_type === 'beneficiario' ? 'bg-emerald-100' : 'bg-gray-100'
             }`}
           >
             <FaUser
               className={`h-5 w-5 ${
-                record.attendance_type === 'beneficiario' ? 'text-teal-600' : 'text-gray-600'
+                record.attendance_type === 'beneficiario' ? 'text-emerald-600' : 'text-gray-600'
               }`}
             />
           </div>

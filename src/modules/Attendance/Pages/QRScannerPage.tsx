@@ -135,6 +135,7 @@ export default function QRScannerPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
+        accent="emerald"
         icon={<FaQrcode className="h-6 w-6" />}
         title="Escaneo QR — Beneficiarios"
         description="Registra asistencia escaneando códigos QR del expediente."
@@ -147,9 +148,9 @@ export default function QRScannerPage() {
                   {selectedActivity.name}
                 </p>
               </div>
-              <div className="flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-3 py-1">
-                <div className="h-2 w-2 rounded-full bg-teal-500" />
-                <span className="text-sm text-teal-900">Activa</span>
+              <div className="flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-sm text-emerald-900">Activa</span>
               </div>
             </div>
           ) : null
@@ -214,14 +215,14 @@ export default function QRScannerPage() {
             {selectedActivity && !isScanning && (
               <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div className="text-center">
-                  <FaQrcode className="mx-auto mb-4 h-12 w-12 text-teal-600" />
+                  <FaQrcode className="mx-auto mb-4 h-12 w-12 text-emerald-600" />
                   <h3 className="mb-2 text-lg font-medium text-gray-900">Listo para escanear</h3>
                   <p className="mb-4 text-gray-600">
                     Haz clic en &quot;Iniciar escaneo&quot; para comenzar a registrar asistencia con códigos QR.
                   </p>
                   <button
                     onClick={handleStartScanning}
-                    className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-6 py-3 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                   >
                     <FaQrcode className="w-4 h-4" />
                     Iniciar Escaneo
@@ -248,7 +249,7 @@ export default function QRScannerPage() {
                   <h2 className="text-lg font-semibold text-gray-900">Registros de asistencia</h2>
                   <div className="flex flex-wrap items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <FaUsers className="h-4 w-4 text-teal-600" />
+                      <FaUsers className="h-4 w-4 text-emerald-600" />
                       <span className="text-gray-600">{getBeneficiariosCount()} beneficiarios</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -270,7 +271,7 @@ export default function QRScannerPage() {
             {loading && (
               <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
                   <span className="ml-3 text-gray-600">Procesando...</span>
                 </div>
               </div>

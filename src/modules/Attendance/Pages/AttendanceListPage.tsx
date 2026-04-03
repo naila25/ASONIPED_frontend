@@ -166,8 +166,8 @@ export default function AttendanceListPage() {
       return <FaSort className="w-3 h-3 text-gray-400 ml-1" />;
     }
     return sortDirection === 'asc'
-      ? <FaSortUp className="ml-1 h-3 w-3 text-teal-600" />
-      : <FaSortDown className="ml-1 h-3 w-3 text-teal-600" />;
+      ? <FaSortUp className="ml-1 h-3 w-3 text-emerald-600" />
+      : <FaSortDown className="ml-1 h-3 w-3 text-emerald-600" />;
   };
 
   const handleClearFilters = () => {
@@ -252,6 +252,7 @@ export default function AttendanceListPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
+        accent="emerald"
         icon={<FaChartLine className="h-6 w-6" />}
         title="Analítica y reportes"
         description="Filtra, ordena y exporta registros de asistencia por actividad."
@@ -268,7 +269,7 @@ export default function AttendanceListPage() {
                 type="button"
                 onClick={() => handleExport('csv')}
                 disabled={exporting || recordsLoading || sortedAndFilteredRecords.length === 0}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 title={`Exportar ${sortedAndFilteredRecords.length} registro(s)`}
               >
                 <FaDownload className="h-4 w-4" />
@@ -340,7 +341,7 @@ export default function AttendanceListPage() {
                     const activity = activities.find((a) => a.id === parseInt(e.target.value, 10));
                     setSelectedActivity(activity || null);
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="">Selecciona una actividad</option>
                   {activities.map((activity) => (
@@ -358,7 +359,7 @@ export default function AttendanceListPage() {
                 <button
                   type="button"
                   onClick={() => setFiltersOpenMobile((prev) => !prev)}
-                  className="inline-flex min-h-[44px] w-full items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 lg:hidden"
+                  className="inline-flex min-h-[44px] w-full items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-left text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 lg:hidden"
                   aria-expanded={filtersOpenMobile}
                   aria-controls="attendance-report-filters"
                 >
@@ -391,7 +392,7 @@ export default function AttendanceListPage() {
                         placeholder="Nombre o cédula..."
                         value={filters.searchTerm}
                         onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -403,7 +404,7 @@ export default function AttendanceListPage() {
                       type="date"
                       value={filters.startDate}
                       onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                   </div>
 
@@ -414,7 +415,7 @@ export default function AttendanceListPage() {
                       type="date"
                       value={filters.endDate}
                       onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                   </div>
 
@@ -424,7 +425,7 @@ export default function AttendanceListPage() {
                     <select
                       value={filters.attendanceType}
                       onChange={(e) => setFilters({ ...filters, attendanceType: e.target.value as 'beneficiario' | 'guest' | '' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     >
                       <option value="">Todos</option>
                       <option value="beneficiario">Beneficiarios</option>
@@ -437,7 +438,7 @@ export default function AttendanceListPage() {
                     <button
                       type="button"
                       onClick={handleClearFilters}
-                      className="min-h-[44px] w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                      className="min-h-[44px] w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                     >
                       Limpiar filtros
                     </button>
@@ -498,7 +499,7 @@ export default function AttendanceListPage() {
                             setItemsPerPage(Number(e.target.value));
                             setCurrentPage(1);
                           }}
-                          className="min-h-[44px] rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                          className="min-h-[44px] rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                         >
                           <option value={5}>5</option>
                           <option value={10}>10</option>
@@ -513,7 +514,7 @@ export default function AttendanceListPage() {
 
                 {recordsLoading ? (
                   <div className="flex items-center justify-center gap-3 p-8" aria-busy="true">
-                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
                     <span className="text-gray-600">Cargando registros...</span>
                   </div>
                 ) : sortedAndFilteredRecords.length === 0 ? (
@@ -549,7 +550,7 @@ export default function AttendanceListPage() {
                               <span
                                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
                                   record.attendance_type === 'beneficiario'
-                                    ? 'bg-teal-100 text-teal-800'
+                                    ? 'bg-emerald-100 text-emerald-800'
                                     : 'bg-gray-100 text-gray-800'
                                 }`}
                               >
@@ -587,7 +588,7 @@ export default function AttendanceListPage() {
                               <button
                                 type="button"
                                 onClick={() => handleSort('full_name')}
-                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               >
                                 Nombre
                                 {getSortIcon('full_name')}
@@ -597,7 +598,7 @@ export default function AttendanceListPage() {
                               <button
                                 type="button"
                                 onClick={() => handleSort('attendance_type')}
-                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               >
                                 Tipo
                                 {getSortIcon('attendance_type')}
@@ -607,7 +608,7 @@ export default function AttendanceListPage() {
                               <button
                                 type="button"
                                 onClick={() => handleSort('attendance_method')}
-                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                                className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               >
                                 Método
                                 {getSortIcon('attendance_method')}
@@ -617,7 +618,7 @@ export default function AttendanceListPage() {
                               <button
                                 type="button"
                                 onClick={() => handleSort('cedula')}
-                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               >
                                 Cédula
                                 {getSortIcon('cedula')}
@@ -627,7 +628,7 @@ export default function AttendanceListPage() {
                               <button
                                 type="button"
                                 onClick={() => handleSort('phone')}
-                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               >
                                 Teléfono
                                 {getSortIcon('phone')}
@@ -637,7 +638,7 @@ export default function AttendanceListPage() {
                               <button
                                 type="button"
                                 onClick={() => handleSort('date')}
-                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                                className="ml-auto flex items-center justify-end gap-1 rounded-md px-1 py-1 hover:bg-gray-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               >
                                 Fecha
                                 {getSortIcon('date')}
@@ -658,7 +659,7 @@ export default function AttendanceListPage() {
                                 <span
                                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                     record.attendance_type === 'beneficiario'
-                                      ? 'bg-teal-100 text-teal-800'
+                                      ? 'bg-emerald-100 text-emerald-800'
                                       : 'bg-gray-100 text-gray-800'
                                   }`}
                                 >
@@ -694,7 +695,7 @@ export default function AttendanceListPage() {
                             type="button"
                             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
-                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
+                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
                             aria-label="Página anterior"
                           >
                             <FaChevronLeft className="h-4 w-4" />
@@ -718,9 +719,9 @@ export default function AttendanceListPage() {
                                   key={pageNum}
                                   type="button"
                                   onClick={() => setCurrentPage(pageNum)}
-                                  className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
+                                  className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
                                     currentPage === pageNum
-                                      ? 'bg-teal-600 text-white'
+                                      ? 'bg-emerald-600 text-white'
                                       : 'text-gray-700 hover:bg-gray-100'
                                   }`}
                                 >
@@ -734,7 +735,7 @@ export default function AttendanceListPage() {
                             type="button"
                             onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}
-                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
+                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
                             aria-label="Página siguiente"
                           >
                             <FaChevronRight className="h-4 w-4" />

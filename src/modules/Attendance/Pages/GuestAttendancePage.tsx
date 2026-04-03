@@ -108,6 +108,7 @@ export default function GuestAttendancePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
+        accent="emerald"
         icon={<FaUserFriends className="h-6 w-6" />}
         title="Registro manual"
         description="Registra invitados y consulta la lista de asistencia por actividad."
@@ -120,9 +121,9 @@ export default function GuestAttendancePage() {
                   {selectedActivity.name}
                 </p>
               </div>
-              <div className="flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-3 py-1">
-                <div className="h-2 w-2 rounded-full bg-teal-500" />
-                <span className="text-sm text-teal-900">Activa</span>
+              <div className="flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-sm text-emerald-900">Activa</span>
               </div>
             </div>
           ) : null
@@ -182,7 +183,7 @@ export default function GuestAttendancePage() {
                   <h2 className="text-lg font-semibold text-gray-900">Registro de Personas</h2>
                   <button
                     onClick={() => setShowForm(!showForm)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                   >
                     <FaPlus className="w-4 h-4" />
                     {showForm ? 'Cancelar' : 'Nuevo Registro'}
@@ -211,7 +212,7 @@ export default function GuestAttendancePage() {
                             setError(' Solo se permiten letras en el nombre completo');
                           }
                         }}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                         placeholder="Ej: Juan Pérez"
                         required
                       />
@@ -240,7 +241,7 @@ export default function GuestAttendancePage() {
                               setError(null);
                             }
                           }}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                           placeholder="Ej: 12345678"
                         />
                       </div>
@@ -267,7 +268,7 @@ export default function GuestAttendancePage() {
                               setError(null);
                             }
                           }}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                           placeholder="Ej: 555-1234"
                         />
                       </div>
@@ -277,7 +278,7 @@ export default function GuestAttendancePage() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {loading ? (
                           <>
@@ -322,7 +323,7 @@ export default function GuestAttendancePage() {
                   <h2 className="text-lg font-semibold text-gray-900">Registros de asistencia</h2>
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <FaUsers className="h-4 w-4 text-teal-600" />
+                      <FaUsers className="h-4 w-4 text-emerald-600" />
                       <span className="text-gray-600">{getBeneficiariosCount()} beneficiarios</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -343,10 +344,10 @@ export default function GuestAttendancePage() {
                       >
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${
-                            isBeneficiario ? 'bg-teal-100' : 'bg-gray-100'
+                            isBeneficiario ? 'bg-emerald-100' : 'bg-gray-100'
                           }`}>
                             {isBeneficiario ? (
-                              <FaUsers className="h-4 w-4 text-teal-600" />
+                              <FaUsers className="h-4 w-4 text-emerald-600" />
                             ) : (
                               <FaUserFriends className="h-4 w-4 text-gray-600" />
                             )}
@@ -366,7 +367,7 @@ export default function GuestAttendancePage() {
                           </p>
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             isBeneficiario 
-                              ? 'bg-teal-100 text-teal-800'
+                              ? 'bg-emerald-100 text-emerald-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}>
                             {isBeneficiario ? 'Beneficiario' : 'Invitado'}
@@ -383,7 +384,7 @@ export default function GuestAttendancePage() {
             {loading && (
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
                   <span className="ml-3 text-gray-600">Procesando...</span>
                 </div>
               </div>

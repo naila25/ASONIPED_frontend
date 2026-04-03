@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Clock, MapPin, GraduationCap, Heart, Calendar as CalendarIcon } from "lucide-react";
+import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 import { getCalendarActivitiesByMonth } from '../../../shared/Services/statistics.service';
 import Calendar from '../../../shared/Components/Calendar';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
@@ -108,18 +109,16 @@ export default function AdminCalendarioPage() {
   const selectedDateEvents = events.filter(event => event.date === selectedDateString);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Calendario de Actividades</h1>
-            <p className="text-gray-600">Visualiza todas las actividades del sistema</p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        icon={<CalendarIcon className="h-6 w-6" />}
+        title="Calendario de actividades"
+        description="Vista administrativa: actividades del sistema por mes y fecha."
+        showSubNav={false}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mx-auto max-w-8xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Calendar */}
         <div className="lg:col-span-2">
           <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-70' : 'opacity-100'}`}>
@@ -205,6 +204,7 @@ export default function AdminCalendarioPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

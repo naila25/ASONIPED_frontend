@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FaPaperPlane, FaUser, FaArrowLeft, FaCheck } from 'react-icons/fa';
 import { getAnonymousTicketMessages, sendAnonymousTicketMessage } from '../Services/anonymousTicketService';
 import type { AnonymousTicketMessage } from '../Services/anonymousTicketService';
-import { socketService } from '../../../shared/Services/socketService';
+import {
+  socketService,
+  type AnonymousSocketIncomingMessage,
+} from '../../../shared/Services/socketService';
 
 interface AdminAnonymousTicketConversationProps {
   ticket: {
@@ -26,7 +29,9 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageListenerRef = useRef<((message: any) => void) | null>(null);
+  const messageListenerRef = useRef<
+    ((message: AnonymousSocketIncomingMessage) => void) | null
+  >(null);
   const recentlySentMessagesRef = useRef<Set<string>>(new Set());
 
   const loadMessages = useCallback(async () => {
@@ -49,6 +54,8 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
 
   // Setup WebSocket connection separately
   useEffect(() => {
+    const recentlySentMessages = recentlySentMessagesRef.current;
+
     // Setup WebSocket connection for real-time chat
     const setupSocket = async () => {
       try {
@@ -56,7 +63,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
         socketService.joinAnonymousTicketRoom(ticket.ticket_id);
         
         // Create message handler with improved duplicate detection
-        const messageHandler = (message: any) => {
+        const messageHandler = (message: AnonymousSocketIncomingMessage) => {
           // For admin messages, check if this is a recently sent message (prevent own broadcast duplicates)
           if (message.sender_type === 'admin') {
             // Check if we recently sent a message with this content
@@ -64,10 +71,10 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
             let foundMatch = false;
             
             // Check all recently sent message keys (they include timestamp, so we check the prefix)
-            recentlySentMessagesRef.current.forEach(key => {
+            recentlySentMessages.forEach(key => {
               if (key.startsWith(messageContentKey)) {
                 foundMatch = true;
-                recentlySentMessagesRef.current.delete(key);
+                recentlySentMessages.delete(key);
               }
             });
             
@@ -78,10 +85,14 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
           
           // Check if message already exists to prevent duplicates
           setMessages(prev => {
+            const createdAt =
+              message.timestamp ||
+              message.created_at ||
+              new Date().toISOString();
             const messageExists = prev.some(msg => {
               // More robust duplicate check: compare message content, sender type, and timestamp
               const msgTimestamp = new Date(msg.created_at).getTime();
-              const newTimestamp = new Date(message.timestamp || message.created_at).getTime();
+              const newTimestamp = new Date(createdAt).getTime();
               const timeDiff = Math.abs(msgTimestamp - newTimestamp);
               
               return msg.message === message.message && 
@@ -101,7 +112,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
               ticket_id: ticket.id,
               sender_type: message.sender_type,
               message: message.message,
-              created_at: message.timestamp || message.created_at
+              created_at: createdAt
             }];
           });
         };
@@ -128,8 +139,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
         socketService.removeListener('anonymous_message_received');
         messageListenerRef.current = null;
       }
-      // Clear recently sent messages when component unmounts
-      recentlySentMessagesRef.current.clear();
+      recentlySentMessages.clear();
     };
   }, [ticket.id, ticket.ticket_id]); // Removed loadMessages from dependencies
 

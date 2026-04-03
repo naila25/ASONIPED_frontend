@@ -41,7 +41,7 @@ const TablaListaAsistencia: React.FC<Props> = ({ registros }) => {
                 <FaIdCard className="h-3.5 w-3.5 text-gray-400" aria-hidden />
                 {r.cedula}
               </span>
-              <span className="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-800">
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">
                 {r.tipo}
               </span>
             </div>
