@@ -154,11 +154,11 @@ const VolunteerFormsPage = () => {
 
     return (
       <article className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-500 to-cyan-500" aria-hidden />
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 to-sky-600" aria-hidden />
 
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-sm font-extrabold text-teal-700 ring-1 ring-teal-100">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sm font-extrabold text-sky-700 ring-1 ring-sky-100">
               {initials}
             </div>
             <div className="min-w-0">
@@ -285,6 +285,7 @@ const VolunteerFormsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
+        accent="sky"
         icon={<Users className="h-6 w-6" />}
         title="Formularios de voluntariado"
         description="Revisa postulaciones y filtra por voluntariado o búsqueda."
@@ -293,7 +294,7 @@ const VolunteerFormsPage = () => {
             <button
               type="button"
               onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
             >
               {viewMode === 'cards' ? <Filter className="h-4 w-4" /> : <Users className="h-4 w-4" />}
               {viewMode === 'cards' ? 'Ver tabla' : 'Ver tarjetas'}
@@ -336,14 +337,14 @@ const VolunteerFormsPage = () => {
               placeholder="Buscar voluntarios..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-4 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-4 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
           </div>
           
           <select
             value={selectedOption}
             onChange={(e) => setSelectedOption(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
             <option value="all">Todos los voluntariados</option>
             {options.map(option => (
@@ -377,7 +378,7 @@ const VolunteerFormsPage = () => {
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Voluntariados</p>
                         <h3 className="text-base font-semibold text-gray-900 sm:text-lg">Sin asignar</h3>
                       </div>
-                      <span className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-800">
+                      <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">
                         {unassignedForms.length} voluntarios
                       </span>
                     </div>
@@ -428,7 +429,7 @@ const VolunteerFormsPage = () => {
         </>
       ) : (
         <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-          <div className="border-b border-gray-100 bg-gradient-to-r from-teal-50/80 to-white px-4 py-4 sm:px-6">
+          <div className="border-b border-gray-100 bg-gradient-to-r from-sky-50/80 to-white px-4 py-4 sm:px-6">
             <h3 className="text-base font-semibold text-gray-900">Vista tabla</h3>
             <p className="mt-1 text-sm text-gray-600">
               {filteredForms.length} postulaciones
@@ -449,7 +450,7 @@ const VolunteerFormsPage = () => {
               return (
                 <li key={form.id} className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xs font-bold text-teal-800 ring-1 ring-teal-100">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-xs font-bold text-sky-800 ring-1 ring-sky-100">
                       {initials}
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
@@ -518,11 +519,11 @@ const VolunteerFormsPage = () => {
                     return (
                       <tr
                         key={form.id}
-                        className="transition-colors hover:bg-teal-50/40"
+                        className="transition-colors hover:bg-sky-50/40"
                       >
                         <td className="whitespace-nowrap px-4 py-4 sm:px-6">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xs font-bold text-teal-800 ring-1 ring-teal-100">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-xs font-bold text-sky-800 ring-1 ring-sky-100">
                               {initials}
                             </div>
                             <div className="min-w-0">
@@ -574,10 +575,10 @@ const VolunteerFormsPage = () => {
                 type="button"
                 onClick={handlePreviousPage}
                 disabled={currentPage === 1}
-                className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
+                className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                   currentPage === 1
                     ? 'cursor-not-allowed bg-gray-100 text-gray-400'
-                    : 'bg-teal-600 text-white hover:bg-teal-700'
+                    : 'bg-sky-600 text-white hover:bg-sky-700'
                 }`}
               >
                 Anterior
@@ -589,9 +590,9 @@ const VolunteerFormsPage = () => {
                     key={page}
                     type="button"
                     onClick={() => handlePageChange(page)}
-                    className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-3 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
+                    className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-3 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                       currentPage === page
-                        ? 'bg-teal-600 text-white'
+                        ? 'bg-sky-600 text-white'
                         : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -604,10 +605,10 @@ const VolunteerFormsPage = () => {
                 type="button"
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
-                className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
+                className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                   currentPage === totalPages
                     ? 'cursor-not-allowed bg-gray-100 text-gray-400'
-                    : 'bg-teal-600 text-white hover:bg-teal-700'
+                    : 'bg-sky-600 text-white hover:bg-sky-700'
                 }`}
               >
                 Siguiente

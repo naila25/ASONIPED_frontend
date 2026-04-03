@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FaRocket, FaInfoCircle, FaHandsHelping, FaDonate, FaChalkboardTeacher } from "react-icons/fa";
+import { LayoutTemplate } from "lucide-react";
+import { FaRocket, FaInfoCircle, FaHandsHelping, FaDonate } from "react-icons/fa";
+import AttendancePageHeader from "../../Attendance/Components/AttendancePageHeader";
 import { LandingSectionEditor } from "./LandingSectionEditor";
 import { PreviewModal } from "./PreviewModal";
 import type { AllSectionData, SectionData, SectionKey, DonationSection, LandingWorkshop } from "../Types/types";
@@ -173,12 +175,11 @@ export default function GestionLanding() {
       setSectionData(prev => ({ ...prev, donation: data as DonationSection }));
     } else if (currentSection === "workshop") {
       // Si es edición de taller, usa el service para guardar (update o create)
-      let resp;
       const input = data as LandingWorkshop;
       if (input.id) {
-        resp = await landingWorkshopService.update(input.id, input);
+        await landingWorkshopService.update(input.id, input);
       } else {
-        resp = await landingWorkshopService.create(input);
+        await landingWorkshopService.create(input);
       }
       // Vuelve a cargar la lista de talleres
       const workshopData = await landingWorkshopService.getAll();
@@ -278,16 +279,24 @@ export default function GestionLanding() {
   ];
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Gestión del Landing</h1>
-        <button
-          onClick={() => setPreviewOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
-        >
-          Vista previa
-        </button>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        icon={<LayoutTemplate className="h-6 w-6" />}
+        title="Gestión del landing"
+        description="Edita las secciones públicas del sitio: hero, sobre nosotros, voluntariado y donaciones."
+        showSubNav={false}
+        actions={
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          >
+            Vista previa
+          </button>
+        }
+      />
+
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
       {message && (
         <div className={`p-3 mb-4 rounded ${message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
           {message.text}
@@ -353,6 +362,7 @@ export default function GestionLanding() {
           onClose={() => setPreviewOpen(false)}
         />
       )}
+      </div>
     </div>
   );
 }

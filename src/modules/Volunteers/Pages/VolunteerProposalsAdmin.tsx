@@ -123,6 +123,7 @@ export default function VolunteerProposalsAdmin() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
+        accent="sky"
         icon={<FileText className="h-6 w-6" />}
         title="Propuestas de voluntariado"
         description="Revisa, filtra y aprueba propuestas enviadas por usuarios."
@@ -137,13 +138,13 @@ export default function VolunteerProposalsAdmin() {
                 placeholder="Buscar por nombre, teléfono, propuesta..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
             <button
               type="button"
               onClick={() => setShowArchived((v) => !v)}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
             >
               {showArchived ? 'Ocultar archivadas' : 'Mostrar archivadas'}
             </button>
@@ -173,7 +174,7 @@ export default function VolunteerProposalsAdmin() {
         {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
             <span className="text-gray-600">Cargando propuestas...</span>
           </div>
         </div>
@@ -288,7 +289,7 @@ export default function VolunteerProposalsAdmin() {
                           href={proposal.document_path.startsWith('/uploads') ? `${getAPIBaseURLSync()}${proposal.document_path}` : proposal.document_path}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:text-teal-800"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-sky-700 hover:text-sky-800"
                         >
                           <Download className="w-3 h-3" />
                           Ver archivo
@@ -310,9 +311,9 @@ export default function VolunteerProposalsAdmin() {
 
                 {/* Admin Note */}
                 {proposal.admin_note && (
-                  <div className="mb-4 rounded-lg border border-teal-100 bg-teal-50 p-4">
-                    <h4 className="mb-2 text-sm font-medium text-teal-900">Nota del administrador</h4>
-                    <p className="text-sm text-teal-800">{proposal.admin_note}</p>
+                  <div className="mb-4 rounded-lg border border-sky-100 bg-sky-50 p-4">
+                    <h4 className="mb-2 text-sm font-medium text-sky-900">Nota del administrador</h4>
+                    <p className="text-sm text-sky-800">{proposal.admin_note}</p>
                   </div>
                 )}
 

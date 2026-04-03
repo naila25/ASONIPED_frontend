@@ -52,6 +52,7 @@ const AttendancePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
+        accent="emerald"
         icon={<FaClipboardList className="h-6 w-6" />}
         title="Asistencia (formulario clásico)"
         description="Registro manual por nombre, cédula y tipo. Vista previa de la tabla de registros."

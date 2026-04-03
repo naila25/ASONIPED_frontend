@@ -174,7 +174,7 @@ const WorkshopFormsTallerPage = () => {
 
     return (
       <article className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-500 to-cyan-500" aria-hidden />
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-teal-500 to-teal-600" aria-hidden />
 
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3">
@@ -267,8 +267,9 @@ const WorkshopFormsTallerPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
+        accent="teal"
         icon={<Users className="h-6 w-6" />}
-        title="Inscripciones a talleres"
+        title="Formularios de talleres"
         description="Consulta inscripciones y filtra por taller o búsqueda."
         actions={
           <button
