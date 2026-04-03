@@ -40,7 +40,7 @@ export default function ScanningStatus({
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-teal-100 p-2 text-teal-700">
+          <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
             <FaQrcode className="h-5 w-5" />
           </div>
           <div>
@@ -50,13 +50,13 @@ export default function ScanningStatus({
         </div>
         <div className="flex items-center gap-2">
           {isScanning ? (
-            <div className="h-3 w-3 animate-pulse rounded-full bg-teal-500" aria-hidden />
+            <div className="h-3 w-3 animate-pulse rounded-full bg-emerald-500" aria-hidden />
           ) : (
             <div className="h-3 w-3 rounded-full bg-gray-400" aria-hidden />
           )}
           <span
             className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-              isScanning ? 'bg-teal-100 text-teal-900' : 'bg-gray-100 text-gray-800'
+              isScanning ? 'bg-emerald-100 text-emerald-900' : 'bg-gray-100 text-gray-800'
             }`}
           >
             {isScanning ? 'Escaneando' : 'Inactivo'}
@@ -100,7 +100,7 @@ export default function ScanningStatus({
           <button
             type="button"
             onClick={onStartScanning}
-            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-6 py-3 font-medium text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
           >
             <FaPlay className="h-4 w-4" />
             Iniciar escaneo
@@ -115,16 +115,16 @@ export default function ScanningStatus({
             Detener escaneo
           </button>
         )}
-        <div className="flex items-center gap-2 rounded-lg border border-teal-100 bg-teal-50 px-4 py-2">
-          <FaCheckCircle className="h-4 w-4 text-teal-600" />
-          <span className="text-sm font-medium text-teal-900">{attendanceCount} asistentes</span>
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2">
+          <FaCheckCircle className="h-4 w-4 text-emerald-600" />
+          <span className="text-sm font-medium text-emerald-900">{attendanceCount} asistentes</span>
         </div>
       </div>
 
-      <div className="mt-4 rounded-lg border border-teal-100 bg-teal-50/80 p-3">
+      <div className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50/80 p-3">
         <div className="flex items-start gap-2">
-          <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-teal-500" aria-hidden />
-          <div className="text-sm text-teal-900">
+          <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+          <div className="text-sm text-emerald-900">
             {isScanning ? (
               <p>
                 <strong>Escaneo activo:</strong> Apunta la cámara hacia el código QR del beneficiario. El sistema
@@ -141,8 +141,8 @@ export default function ScanningStatus({
       </div>
 
       {isScanning && (
-        <div className="mt-4 flex items-center gap-2 text-sm text-teal-700">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-teal-500" aria-hidden />
+        <div className="mt-4 flex items-center gap-2 text-sm text-emerald-700">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" aria-hidden />
           <span>Escaneando códigos QR en tiempo real…</span>
         </div>
       )}

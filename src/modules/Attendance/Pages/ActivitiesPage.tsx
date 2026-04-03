@@ -183,6 +183,7 @@ export default function ActivitiesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
+        accent="emerald"
         icon={<FaCalendarAlt className="h-6 w-6" />}
         title="Gestión de actividades"
         description="Crea y edita actividades; el escaneo QR se gestiona desde Escanear QR."
@@ -190,7 +191,7 @@ export default function ActivitiesPage() {
           <button
             type="button"
             onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
           >
             <FaPlus className="h-4 w-4" />
             Nueva actividad
@@ -230,7 +231,7 @@ export default function ActivitiesPage() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     placeholder="Ej: Taller de Cocina"
                     required
                   />
@@ -248,7 +249,7 @@ export default function ActivitiesPage() {
                          setFormData({ ...formData, description: e.target.value });
                       }
                      }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     rows={3}
                     placeholder="Descripción de la actividad..."
                   />
@@ -265,7 +266,7 @@ export default function ActivitiesPage() {
                       value={formData.event_date}
                       onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
                        min={new Date().toISOString().split("T")[0]}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -284,7 +285,7 @@ export default function ActivitiesPage() {
                          ? new Date().toTimeString().slice(0, 5)
                          : undefined
                       } 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -298,7 +299,7 @@ export default function ActivitiesPage() {
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     placeholder="Ej: Salón Principal"
                   />
                 </div>
@@ -311,7 +312,7 @@ export default function ActivitiesPage() {
                     id="status"
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'completed' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   >
                     <option value="active">Activa</option>
                     <option value="inactive">Inactiva</option>
@@ -323,7 +324,7 @@ export default function ActivitiesPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {loading ? (
                       <>
@@ -371,7 +372,7 @@ export default function ActivitiesPage() {
                     setPageSize(Number(e.target.value) as (typeof PAGE_SIZES)[number]);
                     setCurrentPage(1);
                   }}
-                  className="min-h-[44px] rounded-lg border border-gray-300 px-2 py-1.5 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+                  className="min-h-[44px] rounded-lg border border-gray-300 px-2 py-1.5 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                 >
                   {PAGE_SIZES.map((n) => (
                     <option key={n} value={n}>
@@ -386,7 +387,7 @@ export default function ActivitiesPage() {
           {loading && !showCreateForm ? (
             <div className="p-6">
               <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                 <span className="ml-3 text-gray-600">Cargando actividades...</span>
               </div>
             </div>
@@ -397,7 +398,7 @@ export default function ActivitiesPage() {
               <p className="text-gray-600 mb-4">Crea tu primera actividad para comenzar a gestionar la asistencia.</p>
               <button
                 onClick={() => setShowCreateForm(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 <FaPlus className="w-4 h-4" />
                 Crear Primera Actividad
@@ -460,7 +461,7 @@ export default function ActivitiesPage() {
                             <Link
                               to="/admin/attendance/beneficiaries"
                               search={{ activityId: activity.id }}
-                              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-3 text-sm font-medium text-teal-800 transition-colors hover:bg-teal-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                             >
                               <FaEye className="h-4 w-4 shrink-0" aria-hidden />
                               Asistencia
@@ -468,7 +469,7 @@ export default function ActivitiesPage() {
                             <button
                               type="button"
                               onClick={() => openEditForm(activity)}
-                              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                             >
                               <FaEdit className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
                               Editar
@@ -551,7 +552,7 @@ export default function ActivitiesPage() {
                             <Link
                               to="/admin/attendance/beneficiaries"
                               search={{ activityId: activity.id }}
-                              className="rounded-lg p-2 text-teal-600 transition-colors hover:bg-teal-50 hover:text-teal-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                              className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               title="Ver asistencia"
                               aria-label={`Ver asistencia: ${activity.name}`}
                             >
@@ -590,7 +591,7 @@ export default function ActivitiesPage() {
                       type="button"
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
                       aria-label="Página anterior"
                     >
                       <FaChevronLeft className="h-4 w-4" />
@@ -612,9 +613,9 @@ export default function ActivitiesPage() {
                             key={pageNum}
                             type="button"
                             onClick={() => setCurrentPage(pageNum)}
-                            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
+                            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
                               currentPage === pageNum
-                                ? 'bg-teal-600 text-white'
+                                ? 'bg-emerald-600 text-white'
                                 : 'text-gray-700 hover:bg-gray-100'
                             }`}
                           >
@@ -627,7 +628,7 @@ export default function ActivitiesPage() {
                       type="button"
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
-                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
                       aria-label="Página siguiente"
                     >
                       <FaChevronRight className="h-4 w-4" />

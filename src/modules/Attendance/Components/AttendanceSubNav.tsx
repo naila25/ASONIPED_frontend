@@ -44,9 +44,9 @@ export default function AttendanceSubNav({ className = '' }: AttendanceSubNavPro
           <Link
             key={to}
             to={to}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
               active
-                ? 'bg-teal-100 text-teal-900'
+                ? 'bg-emerald-100 text-emerald-900'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
             }`}
           >

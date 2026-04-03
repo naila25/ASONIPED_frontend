@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { WorkshopDetailsModal } from "../../Workshops/Pages/WorkshopDetailsModal";
 import { getAllWorkshops } from "../Services/workshopService";
 import type { Workshop } from "../Services/workshop";
-import { getAPIBaseURLSync } from '../../../shared/Services/config';
+
 
 export default function PublicWorkshopsPage() {
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
@@ -108,43 +108,46 @@ export default function PublicWorkshopsPage() {
                   key={workshop.id}
                   className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex-shrink-0 snap-center flex flex-col border border-gray-200"
                 >
-                  <div className="h-[220px]">
+                  <div className="relative h-[220px]">
                     {workshop.imagen && !workshop.imagen.startsWith("blob:") ? (
-                      <img
-                        src={
-                          workshop.imagen.startsWith("http")
-                            ? workshop.imagen
-                            : `http://localhost:3000${workshop.imagen}`
-                        }
-                        alt={workshop.titulo}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                          const placeholder =
-                            target.parentElement?.querySelector(
-                              ".image-placeholder"
-                            ) as HTMLElement;
-                          if (placeholder) placeholder.classList.remove("hidden");
-                        }}
-                        onLoad={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          const placeholder =
-                            target.parentElement?.querySelector(
-                              ".image-placeholder"
-                            ) as HTMLElement;
-                          if (placeholder) placeholder.classList.add("hidden");
-                        }}
-                      />
+                      <>
+                        <img
+                          src={
+                            workshop.imagen.startsWith("http")
+                              ? workshop.imagen
+                              : `http://localhost:3000${workshop.imagen}`
+                          }
+                          alt={workshop.titulo}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                            const placeholder =
+                              target.parentElement?.querySelector(
+                                ".image-placeholder"
+                              ) as HTMLElement;
+                            if (placeholder) placeholder.classList.remove("hidden");
+                          }}
+                          onLoad={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const placeholder =
+                              target.parentElement?.querySelector(
+                                ".image-placeholder"
+                              ) as HTMLElement;
+                            if (placeholder) placeholder.classList.add("hidden");
+                          }}
+                        />
+                        <div className="image-placeholder absolute inset-0 hidden bg-gray-200">
+                          <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
+                            <span>Imagen no disponible</span>
+                          </div>
+                        </div>
+                      </>
                     ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
+                      <div className="flex h-full w-full items-center justify-center bg-gray-200 text-sm text-gray-500">
                         <span>Imagen no disponible</span>
                       </div>
                     )}
-
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm image-placeholder hidden">
-                      <span>Imagen no disponible</span>
-                    </div>
                   </div>
 
                   <div className="p-5 flex flex-col items-start">

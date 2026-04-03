@@ -168,6 +168,8 @@ export interface RequiredDocument {
   document_type: 'dictamen_medico' | 'constancia_nacimiento' | 'copia_cedula' | 'copias_cedulas_familia' | 'foto_pasaporte' | 'constancia_pension_ccss' | 'constancia_pension_alimentaria' | 'constancia_estudio' | 'cuenta_banco_nacional';
   status: 'entregado' | 'pendiente' | 'en_tramite' | 'no_aplica';
   observations?: string;
+  /** Present on client when user selects a file for upload (not from API JSON). */
+  file?: File;
 }
 
 export interface FormSignatures {
@@ -221,6 +223,31 @@ export interface RecordNote {
   created_at?: string;
 }
 
+/** API mirror of disability fields when nested under `disability_data` instead of `disability_information`. */
+export type DisabilityDataPayload = Partial<DisabilityInformation>;
+
+/** API mirror of socioeconomic fields when nested under `socioeconomic_data`. */
+export type SocioeconomicDataPayload = Partial<SocioeconomicInformation>;
+
+/** Registration / documentation bundle returned by some record endpoints. */
+export interface RegistrationRequirementsPayload {
+  affiliation_fee_paid?: boolean;
+  bank_account_info?: string;
+  general_observations?: string;
+  /** JSON string or parsed array of per-document statuses */
+  document_statuses?: unknown;
+  [key: string]: unknown;
+}
+
+/** Boleta de matrícula / enrollment block from API. */
+export interface EnrollmentFormPayload {
+  enrollment_date?: string;
+  applicant_full_name?: string;
+  applicant_cedula?: string;
+  emergency_phones?: string;
+  [key: string]: unknown;
+}
+
 export interface Record {
   id: number;
   record_number: string;
@@ -255,13 +282,13 @@ export interface RecordWithDetails extends Record {
   complete_personal_data?: CompletePersonalData;
   family_information?: FamilyInformation;
   disability_information?: DisabilityInformation;
-  disability_data?: any; // Add this line
+  disability_data?: DisabilityDataPayload;
   socioeconomic_information?: SocioeconomicInformation;
-  socioeconomic_data?: any; // Add this line
+  socioeconomic_data?: SocioeconomicDataPayload;
   documentation_requirements?: DocumentationRequirements;
-  registration_requirements?: any;
+  registration_requirements?: RegistrationRequirementsPayload;
   administrative_control?: AdministrativeControl;
-  enrollment_form?: any;
+  enrollment_form?: EnrollmentFormPayload;
   documents: RecordDocument[];
   notes: RecordNote[];
 }
@@ -297,6 +324,8 @@ export interface Phase3Data {
   socioeconomic_information: Omit<SocioeconomicInformation, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
   documentation_requirements: Omit<DocumentationRequirements, 'id' | 'record_id' | 'created_at' | 'updated_at'>;
   documents: File[];
+  /** File name → form/backend document field key (set by Phase3Form on submit) */
+  documentTypes?: { [fileName: string]: string };
 }
 
 // Tipos para respuestas de API

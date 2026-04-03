@@ -57,7 +57,7 @@ const ListaAsistencia: React.FC<Props> = ({ onNewAttendance }) => {
           placeholder="Nombre completo"
           value={formData.nombre}
           onChange={handleChange}
-          className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+          className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
         />
 
         <input
@@ -66,7 +66,7 @@ const ListaAsistencia: React.FC<Props> = ({ onNewAttendance }) => {
           placeholder="Cédula"
           value={formData.cedula}
           onChange={handleChange}
-          className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+          className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
         />
 
         <div>
@@ -78,7 +78,7 @@ const ListaAsistencia: React.FC<Props> = ({ onNewAttendance }) => {
             name="tipo"
             value={formData.tipo}
             onChange={handleChange}
-            className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:ring-2 focus:ring-teal-500"
+            className="w-full rounded-lg border border-gray-300 p-3 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
           >
             <option value="">Seleccione tipo de asistencia</option>
             <option value="Cursos">Cursos</option>
@@ -90,7 +90,7 @@ const ListaAsistencia: React.FC<Props> = ({ onNewAttendance }) => {
 
         <button
           type="submit"
-          className="min-h-[44px] w-full rounded-lg bg-teal-600 py-3 text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+          className="min-h-[44px] w-full rounded-lg bg-emerald-600 py-3 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
         >
           Registrar asistencia
         </button>

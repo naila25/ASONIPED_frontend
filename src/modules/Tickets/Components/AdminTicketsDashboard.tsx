@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getAllTickets, closeTicket, archiveTicket } from '../Services/ticketService';
 import type { DonationTicket } from '../Services/ticketService';
 import { closeAnonymousTicket, archiveAnonymousTicket } from '../Services/anonymousTicketService';
-import { FaTicketAlt, FaCheckCircle, FaEye, FaSearch, FaArchive,FaClock } from 'react-icons/fa';
+import { FaTicketAlt, FaCheckCircle, FaEye, FaSearch, FaArchive } from 'react-icons/fa';
 import TicketConversation from '../Components/TicketConversation';
 import AdminAnonymousTicketConversation from './AdminAnonymousTicketConversation';
 import TicketConversationModal from './TicketConversationModal';
@@ -21,27 +21,6 @@ const AdminTicketsDashboard: React.FC = () => {
   const [pageSize, setPageSize] = useState<5 | 10>(10);
   const [page, setPage] = useState(1);
 
-  // Statistics
-  const [stats, setStats] = useState({
-    total: 0,
-    open: 0,
-    closed: 0,
-    assigned: 0,
-    unassigned: 0,
-    archived: 0
-  });
-
-  const calculateStats = useCallback((ticketsData: DonationTicket[]) => {
-    const total = ticketsData.length;
-    const open = ticketsData.filter(t => t.status === 'open').length;
-    const closed = ticketsData.filter(t => t.status === 'closed').length;
-    const assigned = ticketsData.filter(t => t.assigned_admin_id).length;
-    const unassigned = total - assigned;
-    const archived = ticketsData.filter(t => t.status === 'archived').length;
-
-    setStats({ total, open, closed, assigned, unassigned, archived });
-  }, []);
-
   const loadTickets = useCallback(async () => {
     try {
       setLoading(true);
@@ -49,29 +28,19 @@ const AdminTicketsDashboard: React.FC = () => {
 
       // Always update tickets to reflect status changes (open -> closed -> archived)
       setTickets(ticketsData);
-      calculateStats(ticketsData);
       setError(null);
     } catch {
       setError('Error loading tickets');
     } finally {
       setLoading(false);
     }
-  }, [calculateStats]);
+  }, []);
 
   useEffect(() => {
     loadTickets();
 
-    // Cleanup function to prevent memory leaks
     return () => {
       setTickets([]);
-      setStats({
-        total: 0,
-        open: 0,
-        closed: 0,
-        assigned: 0,
-        unassigned: 0,
-        archived: 0
-      });
     };
   }, [loadTickets]);
 
@@ -89,8 +58,7 @@ const AdminTicketsDashboard: React.FC = () => {
       if (selectedTicket && selectedTicket.id === ticket.id) {
         setSelectedTicket((prev) => (prev ? { ...prev, status: 'closed' as const } : null));
       }
-    } catch (error) {
-      console.error('Error closing ticket:', error);
+    } catch {
       setError('Error closing ticket');
     }
   };
@@ -145,17 +113,6 @@ const AdminTicketsDashboard: React.FC = () => {
       return matchesStatus && matchesSearch && matchesAssigned && matchesArchived;
     });
 
-    // Debug: Log filtering results
-    console.log('🔍 Filtering tickets:', {
-      original: tickets.length,
-      unique: uniqueTickets.length,
-      filtered: filtered.length,
-      showArchived,
-      statusFilter,
-      searchTerm,
-      assignedFilter
-    });
-
     return filtered;
   }, [tickets, statusFilter, searchTerm, assignedFilter, showArchived]);
 
@@ -181,10 +138,6 @@ const AdminTicketsDashboard: React.FC = () => {
     });
   };
 
-  // open     → verde esmeralda (activo / en curso)
-  // closed   → gris slate     (resuelto / cerrado)
-  // archived → gris muy claro (fuera de foco)
-  // default  → ámbar          (pendiente)
   const getStatusBadge = (status: string) => {
     const baseClasses = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium';
 
@@ -266,12 +219,8 @@ const AdminTicketsDashboard: React.FC = () => {
     <div className="space-y-6">
 
       {/* Filters */}
-      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
-        <div className="flex items-center gap-3 mb-2 flex-wrap">
-          <h2 className="text-lg font-semibold text-gray-900">Gestión de Tickets</h2>
-        </div>
-        <div className="w-full lg:w-[400px] lg:ml-auto">
-          <div className="relative">
+      <div className="flex flex-col lg:flex-row lg:items-end gap-3 sm:gap-4">
+        <div className="relative w-full lg:flex-1 lg:max-w-md">
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -280,9 +229,8 @@ const AdminTicketsDashboard: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
             />
-          </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center shrink-0">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'all' | 'open' | 'closed' | 'archived')}

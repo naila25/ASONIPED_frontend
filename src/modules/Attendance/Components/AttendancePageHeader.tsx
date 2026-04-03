@@ -1,10 +1,26 @@
 import type { ReactNode } from 'react';
 import AttendanceSubNav from './AttendanceSubNav';
 
+const accentIconClasses = {
+  sky: 'bg-sky-100 text-sky-700',
+  teal: 'bg-teal-100 text-teal-700',
+  amber: 'bg-amber-100 text-amber-800',
+
+  orange: 'bg-orange-100 text-orange-800',
+  violet: 'bg-violet-100 text-violet-800',
+  /** Soft pink; prefer over `red` for module chrome (red reads as errors). */
+  rose: 'bg-rose-100 text-rose-800',
+  emerald: 'bg-emerald-100 text-emerald-800',
+} as const;
+
+export type PageHeaderAccent = keyof typeof accentIconClasses;
+
 export type AttendancePageHeaderProps = {
   icon: ReactNode;
   title: string;
   description: string;
+  /** Icon pill colors (default sky). Pass e.g. teal, emerald, or violet per module. */
+  accent?: PageHeaderAccent;
   /** When false, back chevron is hidden (e.g. hub uses its own layout). */
   showBackLink?: boolean;
   backTo?: string;
@@ -18,6 +34,7 @@ export default function AttendancePageHeader({
   title,
   description,
   actions,
+  accent = 'sky',
   showSubNav = true,
 }: AttendancePageHeaderProps) {
   return (
@@ -27,7 +44,7 @@ export default function AttendancePageHeader({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3 sm:gap-4">
               <div className="flex min-w-0 items-start gap-3">
-                <div className="shrink-0 rounded-xl bg-teal-100 p-2.5 text-teal-700">{icon}</div>
+                <div className={`shrink-0 rounded-xl p-2.5 ${accentIconClasses[accent]}`}>{icon}</div>
                 <div className="min-w-0">
                   <h1 className="text-xl font-semibold tracking-tight text-gray-900">{title}</h1>
                   <p className="mt-0.5 text-sm text-gray-600">{description}</p>

@@ -20,8 +20,11 @@ import {
   Users,
   Clock,
   Table,
-  Grid3X3
+  Grid3X3,
+  ClipboardList,
+  XCircle,
 } from 'lucide-react';
+import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 
 interface FormState {
   titulo: string;
@@ -323,33 +326,77 @@ const WorkshopOptionsPage: React.FC = () => {
     }
   };
 
+  const pageHeaderActions = (
+    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <button
+        type="button"
+        onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-50"
+      >
+        {viewMode === 'cards' ? <Table className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
+        {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
+      </button>
+      <div className="relative w-full min-w-[12rem] sm:w-72">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Buscar opciones..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={startAdd}
+        className="flex items-center gap-2 whitespace-nowrap rounded-lg bg-teal-500 px-4 py-2 text-white transition-colors hover:bg-teal-600"
+      >
+        <Plus className="h-4 w-4" />
+        <span className="hidden sm:inline">Nueva Opción</span>
+        <span className="sm:hidden">Nuevo</span>
+      </button>
+    </div>
+  );
+
   // Show skeleton UI instead of full loading screen for better perceived performance
   if (loading && options.length === 0) {
     return (
-      <div className="space-y-6 min-w-0">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-          <div className="flex items-center gap-4 mb-20">
-            <div className="min-w-0 flex-1">
-              <div className="h-6 bg-gray-200 rounded w-64 animate-pulse"></div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
-              <div className="h-10 bg-gray-200 rounded w-48 animate-pulse"></div>
-              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="h-48 bg-gray-200 animate-pulse"></div>
-              <div className="p-6 space-y-3">
-                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+      <div className="min-h-screen bg-gray-50">
+        <AttendancePageHeader
+          accent="teal"
+          icon={<ClipboardList className="h-6 w-6" />}
+          title="Opciones de talleres"
+          description="Administra los talleres publicados, cupos y detalles para inscripciones."
+          actions={pageHeaderActions}
+          showSubNav={false}
+        />
+        <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="space-y-6 min-w-0">
+            <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+              <div className="mb-20 flex items-center gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="h-6 w-64 animate-pulse rounded bg-gray-200" />
+                </div>
+                <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+                  <div className="h-10 w-32 animate-pulse rounded bg-gray-200" />
+                  <div className="h-10 w-48 animate-pulse rounded bg-gray-200" />
+                  <div className="h-10 w-32 animate-pulse rounded bg-gray-200" />
+                </div>
               </div>
             </div>
-          ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="h-48 bg-gray-200 animate-pulse"></div>
+                  <div className="p-6 space-y-3">
+                    <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -358,75 +405,60 @@ const WorkshopOptionsPage: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full">
-          <div className="flex items-center space-x-3 text-red-600 mb-4">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <h3 className="text-lg font-medium">Error</h3>
-          </div>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+      <div className="min-h-screen bg-gray-50">
+        <AttendancePageHeader
+          accent="teal"
+          icon={<ClipboardList className="h-6 w-6" />}
+          title="Opciones de talleres"
+          description="Administra los talleres publicados, cupos y detalles para inscripciones."
+          actions={pageHeaderActions}
+          showSubNav={false}
+        />
+        <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+          <div
+            className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
           >
-            Intentar nuevamente
-          </button>
+            <div className="flex items-start gap-2">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+              <span>{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="shrink-0 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              Reintentar
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 min-w-0">
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        accent="teal"
+        icon={<ClipboardList className="h-6 w-6" />}
+        title="Opciones de talleres"
+        description="Administra los talleres publicados, cupos y detalles para inscripciones."
+        actions={pageHeaderActions}
+        showSubNav={false}
+      />
+
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="space-y-6 min-w-0">
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 mb-20">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-semibold text-gray-900 truncate">
-              Gestión de Opciones de Talleres
-            </h1>
-          </div>
-               {/* Actions moved to header */}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto">
-           {/* View Mode Toggle */}
-            <button
-              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
-            >
-              {viewMode === 'cards' ? <Table className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
-              {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
-            </button>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar opciones..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={startAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nueva Opción</span>
-              <span className="sm:hidden">Nuevo</span>
-            </button>
-        </div>
-       </div>
 
         {/* Add/Edit Option Form */}
       {(isAdding || editingId) && (
           <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
+              <FileText className="w-5 h-5 text-teal-600 flex-shrink-0" />
               <h3 className="text-lg font-semibold text-gray-900 truncate">
-                {editingId ? 'Editar Taller' : 'Nuevo Taller'}
+                {editingId ? 'Editar Taller' : 'Nueva Opción'}
               </h3>
             </div>
             <button
@@ -451,7 +483,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.titulo}
                   onChange={handleChange}
                   maxLength={100}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
                   <div className="text-xs text-gray-500 mt-1">{form.titulo.length}/100</div>
@@ -466,7 +498,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.ubicacion}
                   onChange={handleChange}
                   maxLength={100}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
                   <div className="text-xs text-gray-500 mt-1">{form.ubicacion.length}/100</div>
@@ -484,7 +516,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     name="hora"
                     value={form.hora}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -499,7 +531,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     onChange={handleChange}
                     min="1"
                     max="999"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -517,7 +549,7 @@ const WorkshopOptionsPage: React.FC = () => {
                   onChange={handleChange}
                   rows={3}
                   maxLength={500}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
                   <div className="text-xs text-gray-500 mt-1">{form.descripcion.length}/500</div>
@@ -533,7 +565,7 @@ const WorkshopOptionsPage: React.FC = () => {
                   onChange={handleChange}
                   rows={3}
                   maxLength={500}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
                   <div className="text-xs text-gray-500 mt-1">{form.materiales.length}/500</div>
               </div>
@@ -548,7 +580,7 @@ const WorkshopOptionsPage: React.FC = () => {
                   onChange={handleChange}
                   rows={3}
                   maxLength={500}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
                   <div className="text-xs text-gray-500 mt-1">{form.aprender.length}/500</div>
                 </div>
@@ -565,7 +597,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.imagen}
                     onChange={handleImageChange}
                     placeholder="https://res.cloudinary.com/..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   />
                   <div className="text-xs text-gray-500 mt-1">
                     Pega aquí la URL de la imagen desde Cloudinary
@@ -593,7 +625,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.fecha}
                     onChange={handleChange}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   />
               </div>
@@ -609,7 +641,7 @@ const WorkshopOptionsPage: React.FC = () => {
               </button>
               <button
                 type="submit"
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                  className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
               >
                 {editingId ? 'Actualizar' : 'Crear'}
               </button>
@@ -876,6 +908,8 @@ const WorkshopOptionsPage: React.FC = () => {
             {search ? 'No se encontraron talleres que coincidan con la búsqueda' : 'No hay talleres disponibles'}
           </div>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );

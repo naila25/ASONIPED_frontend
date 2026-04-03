@@ -35,7 +35,7 @@ export default function AttendancePanel() {
         <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
-              <div className="shrink-0 rounded-xl bg-teal-100 p-3 text-teal-700">
+              <div className="shrink-0 rounded-xl bg-emerald-100 p-3 text-emerald-700">
                 <FaUsers className="h-7 w-7 sm:h-8 sm:w-8" />
               </div>
               <div>
@@ -74,7 +74,7 @@ export default function AttendancePanel() {
                   className="flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50/80 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="shrink-0 rounded-lg bg-teal-100 p-2 text-teal-700">
+                    <div className="shrink-0 rounded-lg bg-emerald-100 p-2 text-emerald-700">
                       <FaCalendarAlt className="h-4 w-4" />
                     </div>
                     <div>

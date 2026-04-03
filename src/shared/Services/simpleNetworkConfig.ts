@@ -27,7 +27,6 @@ export class SimpleNetworkConfig {
 
     // Health check disabled - usar directamente localhost o IP del host
     const url = `http://${hostname}:${port}`;
-    console.log(`🌐 Usando IP del host actual: ${url}`);
     this.currentBackendUrl = url;
     this.lastDetectionTime = Date.now();
     return url;
@@ -54,8 +53,8 @@ export class SimpleNetworkConfig {
           return result.value;
         }
       }
-    } catch (error) {
-      console.warn('⚠️ Error en pruebas paralelas:', error);
+    } catch {
+      // ignore parallel probe failures
     }
 
     return null;
@@ -74,7 +73,6 @@ export class SimpleNetworkConfig {
 
   // Forzar nueva detección (limpia cache)
   async refreshDetection(): Promise<string> {
-    console.log(`🔄 Forzando nueva detección...`);
     this.currentBackendUrl = '';
     this.lastDetectionTime = 0;
     return await this.getBackendUrl();
@@ -84,7 +82,6 @@ export class SimpleNetworkConfig {
   setBackendUrl(url: string): void {
     this.currentBackendUrl = url;
     this.lastDetectionTime = Date.now();
-    console.log(`🔧 Backend URL configurada manualmente: ${url}`);
   }
 
   // Obtener URL actual sin detección

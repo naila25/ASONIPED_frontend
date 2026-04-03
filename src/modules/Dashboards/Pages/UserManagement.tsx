@@ -8,6 +8,7 @@ import {
   getUsers, getUserById, createUser, updateUser, deleteUser,
   type User, type UserWithStatistics, type UserFilters, type UserSort, type UserFormData
 } from '../../../shared/Services/userManagement.service';
+import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 
 // Validation function
 const validateUserInput = (data: UserFormData): string | null => {
@@ -281,7 +282,16 @@ const UserManagement = () => {
   const totalPages = Math.ceil(totalUsers / pageSize);
 
     return (
-    <div className="space-y-6 min-w-0 max-w-full overflow-hidden">
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        icon={<Shield className="h-6 w-6" />}
+        title="Gestión de Usuarios"
+        description="Administra los usuarios del sistema"
+        accent="orange"
+        showSubNav={false}
+      />
+
+      <div className="mx-auto max-w-8xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 min-w-0 overflow-hidden">
       {/* Messages */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
@@ -306,19 +316,6 @@ const UserManagement = () => {
           </button>
         </div>
       )}
-
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-orange-100 rounded-lg flex-shrink-0">
-            <Shield className="w-6 h-6 text-orange-600" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Usuarios</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Administra los usuarios del sistema</p>
-          </div>
-        </div>
-      </div>
 
       {/* Filters and Search */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
@@ -972,6 +969,7 @@ const UserManagement = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

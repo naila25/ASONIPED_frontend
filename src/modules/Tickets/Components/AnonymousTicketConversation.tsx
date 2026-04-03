@@ -54,6 +54,10 @@ const AnonymousTicketConversation: React.FC<AnonymousTicketConversationProps> = 
         socketService.onAnonymousMessageReceived((message) => {
           // Check if message already exists to prevent duplicates
           setMessages(prev => {
+            const createdAt =
+              message.timestamp ||
+              message.created_at ||
+              new Date().toISOString();
             const messageExists = prev.some(msg => 
               msg.message === message.message && 
               msg.sender_type === message.sender_type
@@ -71,7 +75,7 @@ const AnonymousTicketConversation: React.FC<AnonymousTicketConversationProps> = 
               ticket_id: ticket.id,
               sender_type: message.sender_type,
               message: message.message,
-              created_at: message.timestamp || message.created_at
+              created_at: createdAt
             }];
           });
         });
