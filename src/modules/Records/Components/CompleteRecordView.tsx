@@ -846,11 +846,18 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record }) => {
                   const savedStatuses = record.registration_requirements?.document_statuses;
                   if (savedStatuses) {
                     try {
-                      const list = Array.isArray(savedStatuses)
+                      const list: unknown = Array.isArray(savedStatuses)
                         ? savedStatuses
-                        : JSON.parse(savedStatuses);
+                        : typeof savedStatuses === 'string'
+                          ? JSON.parse(savedStatuses)
+                          : null;
                       if (Array.isArray(list)) {
-                        const entry = list.find((item: DocumentStatusEntry) => item?.document_type === formDocType);
+                        const entry = list.find(
+                          (item: unknown): item is DocumentStatusEntry =>
+                            typeof item === 'object' &&
+                            item !== null &&
+                            (item as DocumentStatusEntry).document_type === formDocType
+                        );
                         if (entry && typeof entry.status === 'string') {
                           savedStatus = entry.status as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
                         }
