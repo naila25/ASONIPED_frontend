@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { getTicketMessages, sendMessage } from '../Services/ticketService';
 import type { DonationTicket, TicketMessage } from '../Services/ticketService';
 import { useAuth } from '../../Login/Hooks/useAuth';
 import { FaPaperPlane, FaUser, FaUserShield, FaCheck, FaCheckDouble, FaSmile, FaArrowLeft } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
 import socketService, {
   type TicketSocketIncomingMessage,
 } from '../../../shared/Services/socketService';
@@ -14,6 +13,187 @@ interface TicketConversationProps {
   onTicketUpdate?: () => void;
 }
 
+const TA_MIN_H = 44;
+const TA_MAX_H = 120;
+
+function formatMessageDate(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffInHours < 24) {
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+  return date.toLocaleDateString('es-ES', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+type MessageListProps = {
+  messages: TicketMessage[];
+  userId: number | undefined;
+  assignedAdminId: number | null | undefined;
+};
+
+const TicketMessageList = memo(function TicketMessageList({
+  messages,
+  userId,
+  assignedAdminId,
+}: MessageListProps) {
+  return (
+    <div className="space-y-4">
+      {messages.map(message => {
+        const own = message.sender_id === userId;
+        const isFromAdmin = message.sender_id === assignedAdminId;
+        const senderName =
+          message.sender_name ||
+          (isFromAdmin ? 'Administrador' : 'Usuario');
+
+        return (
+          <div
+            key={message.id}
+            className={`flex ${own ? 'justify-end' : 'justify-start'}`}
+          >
+            <div className={`max-w-[75%] ${own ? 'order-2' : 'order-1'}`}>
+              {!own && (
+                <div className="flex items-center gap-2 mb-1 ml-1">
+                  <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                    {isFromAdmin ? (
+                      <FaUserShield className="text-blue-500" />
+                    ) : (
+                      <FaUser className="text-gray-500" />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-gray-600">{senderName}</span>
+                </div>
+              )}
+              <div
+                className={`rounded-2xl px-4 py-3 ${
+                  own
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
+                }`}
+              >
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message}</p>
+                <div
+                  className={`flex items-center justify-between mt-2 ${
+                    own ? 'text-blue-100' : 'text-gray-400'
+                  }`}
+                >
+                  <span className="text-xs">{formatMessageDate(message.timestamp)}</span>
+                  {own && (
+                    <div className="flex items-center gap-1">
+                      <FaCheck className="text-xs" />
+                      <FaCheckDouble className="text-xs" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
+type MessageComposerProps = {
+  onSend: (text: string) => void;
+  disabled?: boolean;
+  sending: boolean;
+};
+
+const TicketMessageComposer = memo(function TicketMessageComposer({
+  onSend,
+  disabled,
+  sending,
+}: MessageComposerProps) {
+  const [value, setValue] = useState('');
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const rafRef = useRef(0);
+
+  const scheduleResize = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = 0;
+      const el = taRef.current;
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = `${Math.min(el.scrollHeight, TA_MAX_H)}px`;
+    });
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    },
+    []
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const t = value.trim();
+    if (!t || disabled || sending) return;
+    onSend(t);
+    setValue('');
+    requestAnimationFrame(() => {
+      const el = taRef.current;
+      if (el) {
+        el.style.height = `${TA_MIN_H}px`;
+      }
+    });
+  };
+
+  return (
+    <div className="bg-white border-t border-gray-100 p-4 flex-shrink-0">
+      <form onSubmit={handleSubmit} className="flex items-end space-x-3">
+        <div className="flex-1 relative">
+          <textarea
+            ref={taRef}
+            value={value}
+            onChange={e => {
+              setValue(e.target.value);
+              scheduleResize();
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
+            placeholder="Escribe tu mensaje..."
+            className="w-full border border-gray-200 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            rows={1}
+            disabled={disabled || sending}
+            style={{ minHeight: TA_MIN_H, maxHeight: TA_MAX_H }}
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={!value.trim() || disabled || sending}
+          className={`p-3 rounded-full ${
+            !value.trim() || disabled || sending
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg'
+          }`}
+        >
+          {sending ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+          ) : (
+            <FaPaperPlane className="text-sm" />
+          )}
+        </button>
+      </form>
+    </div>
+  );
+});
+
 const TicketConversation: React.FC<TicketConversationProps> = ({ 
   ticket, 
   onClose, 
@@ -21,35 +201,36 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
 }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<TicketMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageListenerRef = useRef<((message: TicketMessage) => void) | null>(null);
   const recentlySentMessagesRef = useRef<Set<string>>(new Set());
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const ticketMessages = await getTicketMessages(ticket.id);
       setMessages(ticketMessages);
       setError(null);
     } catch (err) {
-      setError('Error al cargar los mensajes');
+      if (!silent) {
+        setError('Error al cargar los mensajes');
+      }
       console.error('Error loading messages:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [ticket.id]);
 
   const scrollToBottom = () => {
-    // Scroll within the messages container, not the whole page
-    const messagesContainer = document.querySelector('.messages-container');
-    if (messagesContainer && messagesEndRef.current) {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const el = messagesContainerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
     }
   };
 
@@ -58,17 +239,17 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
     loadMessages();
   }, [loadMessages]);
 
-  // Setup WebSocket connection separately
+  // Setup WebSocket after paint (helps INP when opening the modal)
   useEffect(() => {
-    // Capture current ref values to satisfy lint and ensure cleanup uses a stable reference.
     const recentlySentMessages = recentlySentMessagesRef.current;
+    let cancelled = false;
 
     const setupSocketConnection = async () => {
       try {
         await socketService.connect();
+        if (cancelled) return;
         setIsConnected(true);
-        
-        // Join ticket room
+
         socketService.joinTicketRoom(ticket.id);
         
         // Create message handler with improved duplicate detection
@@ -130,14 +311,17 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
         
       } catch (error) {
         console.error('Failed to connect to Socket.io:', error);
-        setIsConnected(false);
+        if (!cancelled) setIsConnected(false);
       }
     };
 
-    setupSocketConnection();
+    const timer = window.setTimeout(() => {
+      void setupSocketConnection();
+    }, 0);
 
-    // Cleanup function
     return () => {
+      cancelled = true;
+      clearTimeout(timer);
       socketService.leaveTicketRoom(ticket.id);
       if (messageListenerRef.current) {
         socketService.removeListener('message_received');
@@ -146,28 +330,15 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
       // Clear recently sent messages when component unmounts
       recentlySentMessages.clear();
     };
-  }, [ticket.id, user]); // user is read inside the effect (message handler)
+  }, [ticket.id, user]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages.length]);
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-  }, [newMessage]);
+  const handleSendMessage = useCallback(async (messageText: string) => {
+    if (!messageText || !user) return;
 
-
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newMessage.trim() || !user) return;
-
-    const messageText = newMessage.trim();
     const messageData = {
       module_type: 'donations' as const,
       module_id: ticket.id,
@@ -175,94 +346,50 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
       message: messageText
     };
 
+    const messageTimestamp = new Date().toISOString();
+    const messageKey = `${messageText}-${user.id}-${messageTimestamp}`;
+    const optimisticId = Date.now();
+    const optimistic: TicketMessage = {
+      id: optimisticId,
+      module_type: 'donations',
+      module_id: ticket.id,
+      sender_id: user.id,
+      message: messageText,
+      timestamp: messageTimestamp,
+      sender_name: user.full_name || 'Usuario',
+    };
+
     try {
       setSending(true);
-      setNewMessage('');
+      setMessages(prev => [...prev, optimistic]);
 
-      // Create a unique key for this message to prevent duplicate handling
-      const messageTimestamp = new Date().toISOString();
-      const messageKey = `${messageText}-${user.id}-${messageTimestamp}`;
-      
-      // Add to recently sent messages to prevent duplicate from WebSocket broadcast
       recentlySentMessagesRef.current.add(messageKey);
-      
-      // Remove from recently sent after 3 seconds (enough time for broadcast)
       setTimeout(() => {
         recentlySentMessagesRef.current.delete(messageKey);
       }, 3000);
 
-      // Send via WebSocket for real-time delivery
-      let messageSentViaWebSocket = false;
       if (isConnected) {
         socketService.sendMessage(ticket.id, {
           ...messageData,
           sender_name: user.full_name || 'Usuario',
-          timestamp: messageTimestamp
+          timestamp: messageTimestamp,
         });
-        messageSentViaWebSocket = true;
       }
 
-      // Always send via API for persistence
       await sendMessage(messageData);
-      
-      // Only reload messages if WebSocket failed, to prevent duplicates
-      if (!messageSentViaWebSocket) {
-        await loadMessages();
-      }
-      
+      await loadMessages({ silent: true });
+
       if (onTicketUpdate) {
         onTicketUpdate();
       }
     } catch (err) {
+      setMessages(prev => prev.filter(m => m.id !== optimisticId));
       setError('Error al enviar el mensaje');
       console.error('Error sending message:', err);
     } finally {
       setSending(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 24) {
-      return date.toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } else {
-      return date.toLocaleDateString('es-ES', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-  };
-
-  const isOwnMessage = (message: TicketMessage) => {
-    return message.sender_id === user?.id;
-  };
-
-  const getSenderName = (message: TicketMessage) => {
-    if (message.sender_name) return message.sender_name;
-    
-    const isMessageFromAdmin = message.sender_id === ticket.assigned_admin_id;
-    return isMessageFromAdmin ? 'Administrador' : 'Usuario';
-  };
-
-  const getSenderIcon = (message: TicketMessage) => {
-    const isMessageFromAdmin = message.sender_id === ticket.assigned_admin_id;
-    return isMessageFromAdmin ? <FaUserShield className="text-blue-500" /> : <FaUser className="text-gray-500" />;
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage(e as React.FormEvent);
-    }
-  };
+  }, [user, ticket.id, isConnected, loadMessages, onTicketUpdate]);
 
   if (loading) {
     return (
@@ -316,117 +443,40 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
       </div>
 
              {/* Messages - Diseño limpio */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container">
-        <AnimatePresence>
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm"
-            >
-              {error}
-            </motion.div>
-          )}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container"
+      >
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+            {error}
+          </div>
+        )}
 
-          {messages.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-16"
-            >
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaSmile className="text-gray-400 text-xl" />
-              </div>
-              <p className="text-gray-500 font-medium mb-1">No hay Tickets aún</p>
-            </motion.div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((message, index) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`flex ${isOwnMessage(message) ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[75%] ${isOwnMessage(message) ? 'order-2' : 'order-1'}`}>
-                    {!isOwnMessage(message) && (
-                      <div className="flex items-center gap-2 mb-1 ml-1">
-                        <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
-                          {getSenderIcon(message)}
-                        </div>
-                        <span className="text-xs font-medium text-gray-600">
-                          {getSenderName(message)}
-                        </span>
-                      </div>
-                    )}
-                    <div className={`rounded-2xl px-4 py-3 ${
-                      isOwnMessage(message)
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
-                    }`}>
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message}</p>
-                      <div className={`flex items-center justify-between mt-2 ${
-                        isOwnMessage(message) ? 'text-blue-100' : 'text-gray-400'
-                      }`}>
-                        <span className="text-xs">
-                          {formatDate(message.timestamp)}
-                        </span>
-                        {isOwnMessage(message) && (
-                          <div className="flex items-center gap-1">
-                            <FaCheck className="text-xs" />
-                            <FaCheckDouble className="text-xs" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+        {messages.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaSmile className="text-gray-400 text-xl" />
             </div>
-          )}
-          
-
-        </AnimatePresence>
+            <p className="text-gray-500 font-medium mb-1">No hay Tickets aún</p>
+          </div>
+        ) : (
+          <TicketMessageList
+            messages={messages}
+            userId={user?.id}
+            assignedAdminId={ticket.assigned_admin_id}
+          />
+        )}
         <div ref={messagesEndRef} />
       </div>
 
              {/* Message Input - Minimalista */}
-       {ticket.status === 'open' ? (
-         <div className="bg-white border-t border-gray-100 p-4 flex-shrink-0">
-          <form onSubmit={handleSendMessage} className="flex items-end space-x-3">
-            <div className="flex-1 relative">
-              <textarea
-                ref={textareaRef}
-                value={newMessage}
-                                 onChange={(e) => {
-                   setNewMessage(e.target.value);
-                 }}
-                onKeyPress={handleKeyPress}
-                placeholder="Escribe tu mensaje..."
-                className="w-full border border-gray-200 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
-                rows={1}
-                disabled={sending}
-                style={{ minHeight: '44px', maxHeight: '120px' }}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={!newMessage.trim() || sending}
-              className={`p-3 rounded-full transition-all ${
-                !newMessage.trim() || sending
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
-              }`}
-            >
-              {sending ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-              ) : (
-                <FaPaperPlane className="text-sm" />
-              )}
-            </button>
-          </form>
-        </div>
+      {ticket.status === 'open' ? (
+        <TicketMessageComposer
+          onSend={handleSendMessage}
+          disabled={!user}
+          sending={sending}
+        />
       ) : (
         <div className="bg-gray-50 border-t border-gray-100 p-6 text-center">
           <div className="flex items-center justify-center space-x-2 text-gray-600">

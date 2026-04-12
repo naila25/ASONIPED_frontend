@@ -318,12 +318,17 @@ export default function UserWorkshopsPage() {
                 </div>
               </div>
 
-              {/* Desktop: keep current design */}
-              <div className="hidden md:flex flex-col lg:flex-row">
-                {/* Image Section */}
+              {/* Tablet/desktop: imagen llena todo el alto de la tarjeta (object-cover), sin crecer por píxeles intrínsecos */}
+              <div
+                className={
+                  enrollment.workshop_imagen
+                    ? 'hidden md:grid min-h-0 md:grid-cols-1 md:grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,20rem)_1fr] lg:grid-rows-1'
+                    : 'hidden md:flex md:flex-col'
+                }
+              >
                 {enrollment.workshop_imagen && (
-                  <div className="lg:w-80 h-64 lg:h-auto relative">
-                    <img 
+                  <div className="relative aspect-video w-full min-h-0 overflow-hidden bg-gray-100 lg:aspect-auto lg:h-full lg:min-h-0">
+                    <img
                       src={(() => {
                         const originalUrl = enrollment.workshop_imagen;
                         if (!originalUrl) return '';
@@ -331,8 +336,8 @@ export default function UserWorkshopsPage() {
                         if (originalUrl.startsWith('http')) return originalUrl;
                         return `${getAPIBaseURLSync()}${originalUrl}`;
                       })()}
-                      alt={enrollment.workshop_titulo} 
-                      className="w-full h-full object-cover" 
+                      alt={enrollment.workshop_titulo}
+                      className="absolute inset-0 h-full w-full object-cover object-center"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
@@ -345,14 +350,15 @@ export default function UserWorkshopsPage() {
                         if (placeholder) placeholder.classList.add('hidden');
                       }}
                     />
-                    <div className={`absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-500 text-sm image-placeholder ${enrollment.workshop_imagen && !enrollment.workshop_imagen.startsWith('blob:') ? 'hidden' : ''}`}>
+                    <div
+                      className={`pointer-events-none absolute inset-0 z-0 flex items-center justify-center bg-gray-200 text-sm text-gray-500 image-placeholder ${enrollment.workshop_imagen && !enrollment.workshop_imagen.startsWith('blob:') ? 'hidden' : ''}`}
+                    >
                       <span>Imagen no disponible</span>
                     </div>
                   </div>
                 )}
-                
-                {/* Content Section */}
-                <div className="flex-1 p-6">
+
+                <div className="min-w-0 flex-1 p-6">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
                     <div className="flex-1">
                       <h3 className="text-2xl font-bold text-gray-800 mb-2">{enrollment.workshop_titulo}</h3>

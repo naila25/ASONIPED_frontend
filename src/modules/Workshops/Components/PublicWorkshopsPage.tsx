@@ -70,7 +70,7 @@ export default function PublicWorkshopsPage() {
         <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mb-5">
           Nuestros talleres
         </h2>
-        <p className="text-neutral-700 text-center mb-10">
+        <p className="text-lg text-neutral-700 text-center mb-10">
           Descubre nuestros espacios de aprendizaje y creatividad.
         </p>
 
@@ -151,7 +151,7 @@ export default function PublicWorkshopsPage() {
                   </div>
 
                   <div className="p-5 flex flex-col items-start">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
                       {workshop.titulo}
                     </h3>
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">

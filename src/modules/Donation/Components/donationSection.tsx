@@ -23,36 +23,6 @@ const DonationSectionComponent = () => {
     }
   };
 
-  const fallbackData: DonationSection = {
-    header: {
-      titulo: "¿Por qué ayudar a ASONIPED?",
-      descripcion: "Las donaciones permiten ofrecer paseos recreativos a los niños, renovar el mobiliario y mantener en buen estado las instalaciones de la organización.",
-    },
-    cards: [
-      {
-        titulo_card: "Paseos y actividades",
-        descripcion_card: "Creamos experiencias recreativas para que los chicos disfruten y creen recuerdos inolvidables fuera del aula.",
-        URL_imagen: fallbackImg,
-        texto_boton: "Quiero donar",
-        color_boton: "#f97316"
-      },
-      {
-        titulo_card: "Compra de pupitres",
-        descripcion_card: "Renovamos el mobiliario para garantizar un espacio cómodo y digno para estudiar.",
-        URL_imagen: fallbackImg,
-        texto_boton: "Quiero donar",
-        color_boton: "#f97316"
-      },
-      {
-        titulo_card: "Mantenimiento institucional",
-        descripcion_card: "Contribuyes al buen funcionamiento de ASONIPED, asegurando espacios limpios y adecuados.",
-        URL_imagen: fallbackImg,
-        texto_boton: "Quiero donar",
-        color_boton: "#f97316"
-      }
-    ]
-  };
-
   if (loading) {
     return (
       <section className="w-full py-20 bg-gray-50 flex flex-col items-center justify-center">
@@ -62,9 +32,26 @@ const DonationSectionComponent = () => {
   }
 
   if (error && !donationData) {
-    const data = fallbackData;
     return (
-      <section className="my-12 px-6 text-gray-800">
+      <section className="w-full py-20 bg-gray-50 flex flex-col items-center justify-center">
+        <p className="text-lg text-red-600 text-center px-6">{error}</p>
+      </section>
+    );
+  }
+
+  if (!donationData) {
+    return (
+      <section className="w-full py-20 bg-gray-50 flex flex-col items-center justify-center">
+        <p className="text-lg text-gray-600">No hay información de donaciones disponible.</p>
+      </section>
+    );
+  }
+
+  const data = donationData;
+
+  return (
+    <section className="my-12 text-gray-800">
+      <div className="max-w-7xl mx-auto px-6">
         <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mt-40 mb-5">
           {data.header.titulo}
         </h2>
@@ -72,10 +59,12 @@ const DonationSectionComponent = () => {
           {data.header.descripcion}
         </p>
 
-        {/* Tarjetas de inversión del dinero */}
-        <div className="max-w-6xl mx-auto flex md:grid md:grid-cols-3 gap-12 mb-12 overflow-x-auto snap-x snap-mandatory">
+        <div className="mb-12 w-full gap-8 flex overflow-x-auto space-x-4 px-4 scroll-smooth snap-x snap-mandatory sm:grid sm:grid-cols-2 sm:space-x-0 lg:grid-cols-3 sm:overflow-x-visible sm:px-0 justify-items-center">
           {data.cards.map((card, idx) => (
-            <div key={idx} className="min-w-full md:min-w-0 snap-center bg-white shadow-2xl rounded-xl overflow-hidden flex flex-col">
+            <div
+              key={idx}
+              className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] shrink-0 snap-center flex flex-col border border-gray-200"
+            >
               <img
                 src={card.URL_imagen || fallbackImg}
                 alt={card.titulo_card}
@@ -89,7 +78,6 @@ const DonationSectionComponent = () => {
                 <a
                   href="/donaciones/formulario"
                   className="mt-auto bg-orange-500 text-white py-2 px-4 rounded-full border hover:bg-orange-600 transition"
-                  
                 >
                   {card.texto_boton}
                 </a>
@@ -97,45 +85,6 @@ const DonationSectionComponent = () => {
             </div>
           ))}
         </div>
-        <div className="mt-6 text-center text-red-500">{error}</div>
-      </section>
-    );
-  }
-
-  const data = donationData || fallbackData;
-
-  return (
-    <section className="my-12 px-6 text-gray-800">
-      <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mt-40 mb-5">
-        {data?.header?.titulo || fallbackData.header.titulo}
-      </h2>
-      <p className="text-neutral-700 max-w-3xl mx-auto text-center text-lg mb-12">
-        {data?.header?.descripcion || fallbackData.header.descripcion}
-      </p>
-
-      {/* Tarjetas de inversión del dinero */}
-      <div className="max-w-6xl mx-auto flex md:grid md:grid-cols-3 gap-12 mb-12 overflow-x-auto snap-x snap-mandatory">
-        {(data?.cards || fallbackData.cards).map((card, idx) => (
-          <div key={idx} className="min-w-full md:min-w-0 snap-center bg-white shadow-2xl rounded-xl overflow-hidden flex flex-col">
-            <img
-              src={card.URL_imagen || fallbackImg}
-              alt={card.titulo_card}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-6 text-center flex-grow flex flex-col justify-between">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">{card.titulo_card}</h3>
-                <p className="text-sm text-gray-600 mb-4">{card.descripcion_card}</p>
-              </div>
-              <a
-                href="/donaciones/formulario"
-                className="mt-auto bg-orange-500 text-white py-2 px-4 rounded-full border hover:bg-orange-600 transition"
-              >
-                {card.texto_boton}
-              </a>
-            </div>
-          </div>
-        ))}
       </div>
     </section>
   );
