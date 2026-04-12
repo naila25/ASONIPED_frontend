@@ -34,16 +34,17 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
   >(null);
   const recentlySentMessagesRef = useRef<Set<string>>(new Set());
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const fetchedMessages = await getAnonymousTicketMessages(ticket.ticket_id);
       setMessages(fetchedMessages);
     } catch (error) {
       setError('Error loading messages');
       console.error('Error loading messages:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [ticket.ticket_id]);
 
@@ -168,16 +169,27 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
       sender_type: 'admin' as const
     };
 
+    const messageTimestamp = new Date().toISOString();
+    const messageKey = `${messageText}-admin-${messageTimestamp}`;
+
     try {
       setNewMessage('');
 
-      // Create a unique key for this message to prevent duplicate handling
-      const messageTimestamp = new Date().toISOString();
-      const messageKey = `${messageText}-admin-${messageTimestamp}`;
-      
+      // Show immediately: WebSocket echo is skipped as duplicate and we used to skip reload when WS worked
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: -Date.now(),
+          ticket_id: ticket.id,
+          sender_type: 'admin',
+          message: messageText,
+          created_at: messageTimestamp,
+        },
+      ]);
+
       // Add to recently sent messages to prevent duplicate from WebSocket broadcast
       recentlySentMessagesRef.current.add(messageKey);
-      
+
       // Remove from recently sent after 3 seconds (enough time for broadcast)
       setTimeout(() => {
         recentlySentMessagesRef.current.delete(messageKey);
@@ -185,35 +197,34 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
 
       // Send via WebSocket for real-time delivery
       const isConnected = socketService.getConnectionStatus();
-      let messageSentViaWebSocket = false;
-      
+
       if (isConnected) {
         socketService.sendAnonymousMessage(ticket.ticket_id, messageData);
-        messageSentViaWebSocket = true;
       } else {
         try {
           await socketService.connect();
           if (socketService.getConnectionStatus()) {
             socketService.sendAnonymousMessage(ticket.ticket_id, messageData);
-            messageSentViaWebSocket = true;
           }
         } catch (reconnectError) {
           console.error('Failed to reconnect:', reconnectError);
         }
       }
-      
-      // Always send via API for persistence
+
+      // Always send via API for persistence, then sync list (silent = no full-panel loading flash)
       await sendAnonymousTicketMessage(messageData);
-      
-      // Only reload messages if WebSocket failed, to prevent duplicates
-      if (!messageSentViaWebSocket) {
-        await loadMessages();
-      }
-      
+      await loadMessages({ silent: true });
+
       onTicketUpdate();
     } catch (error) {
       setError('Error sending message');
       console.error('Error sending message:', error);
+      recentlySentMessagesRef.current.delete(messageKey);
+      try {
+        await loadMessages({ silent: true });
+      } catch {
+        /* ignore reload errors after send failure */
+      }
     }
   };
 
