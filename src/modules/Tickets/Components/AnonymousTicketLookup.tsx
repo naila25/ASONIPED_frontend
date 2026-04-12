@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import { FaTicketAlt, FaSearch, FaExclamationTriangle } from 'react-icons/fa';
 import { getAnonymousTicketByTicketId } from '../Services/anonymousTicketService';
 import type { AnonymousTicket } from '../Services/anonymousTicketService';
-import AnonymousTicketConversation from './AnonymousTicketConversation';
 
-const AnonymousTicketLookup: React.FC = () => {
+type AnonymousTicketLookupProps = {
+  onTicketFound: (ticket: AnonymousTicket) => void;
+};
+
+const AnonymousTicketLookup: React.FC<AnonymousTicketLookupProps> = ({ onTicketFound }) => {
   const [ticketId, setTicketId] = useState('');
-  const [ticket, setTicket] = useState<AnonymousTicket | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!ticketId.trim()) {
       setError('Por favor ingresa un ID de ticket válido');
       return;
@@ -21,32 +23,16 @@ const AnonymousTicketLookup: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const ticketData = await getAnonymousTicketByTicketId(ticketId.trim());
-      setTicket(ticketData);
+      onTicketFound(ticketData);
+      setTicketId('');
     } catch {
       setError('Ticket no encontrado. Verifica el ID e intenta de nuevo.');
-      setTicket(null);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleCloseConversation = () => {
-    setTicket(null);
-    setTicketId('');
-    setError(null);
-  };
-
-  if (ticket) {
-    return (
-      <AnonymousTicketConversation 
-        ticket={ticket as { id: number; ticket_id: string; asunto: string; mensaje?: string | undefined; status: "open" | "closed" | "archived"; }} 
-        onClose={handleCloseConversation}
-        onTicketUpdate={() => {}} // No need to update anything in lookup mode
-      />
-    );
-  }
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">

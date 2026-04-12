@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { getTicketMessages } from '../Services/ticketService';
 import type { TicketMessage } from '../Services/ticketService';
 import { FaComments, FaUser, FaUserShield } from 'react-icons/fa';
@@ -8,10 +8,19 @@ interface TicketPreviewProps {
   maxMessages?: number;
 }
 
-const TicketPreview: React.FC<TicketPreviewProps> = ({ 
-  ticketId, 
-  maxMessages = 2 
-}) => {
+function formatPreviewDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString('es-ES', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const TicketPreview: React.FC<TicketPreviewProps> = memo(function TicketPreview({
+  ticketId,
+  maxMessages = 2,
+}) {
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,15 +41,6 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({
   useEffect(() => {
     loadMessages();
   }, [loadMessages]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const getSenderIcon = (message: TicketMessage) => {
     // Lógica simple: si tiene sender_name y contiene "admin", mostrar icono de admin
@@ -79,7 +79,7 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({
               {message.sender_name || 'Usuario'}
             </span>
             <span className="text-gray-500">
-              {formatDate(message.timestamp)}
+              {formatPreviewDate(message.timestamp)}
             </span>
           </div>
           <p className="text-gray-600 line-clamp-2">
@@ -92,6 +92,6 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({
       ))}
     </div>
   );
-};
+});
 
 export default TicketPreview;

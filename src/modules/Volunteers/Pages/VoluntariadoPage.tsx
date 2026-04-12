@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchMyVolunteerProposals, deleteMyProposal } from "../Services/fetchVolunteers";
 import { getUserRegistrations, cancelVolunteerRegistration } from "../Services/volunteerRegistrations";
-import { FaRegCalendarAlt, FaMapMarkerAlt, FaUserCheck, FaClock, FaFileAlt, FaDownload, FaTimes, FaUsers } from "react-icons/fa";
+import { FaRegCalendarAlt, FaMapMarkerAlt, FaUserCheck, FaClock, FaFileAlt, FaDownload, FaTimes, FaUsers, FaClipboardList } from "react-icons/fa";
 import { formatTime12Hour } from "../../../shared/Utils/timeUtils";
 import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
@@ -51,6 +51,8 @@ export default function VoluntariadoPage() {
   const [deletingProposal, setDeletingProposal] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<VolunteerRegistration | null>(null);
+  const [proposalDetailsOpen, setProposalDetailsOpen] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<VolunteerProposal | null>(null);
 
   const truncateTitle = (title: string, maxChars = 15) => {
     const t = (title ?? '').trim();
@@ -84,20 +86,27 @@ export default function VoluntariadoPage() {
   }, []);
 
   useEffect(() => {
-    if (!detailsOpen) return;
+    if (!detailsOpen && !proposalDetailsOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setDetailsOpen(false);
         setSelectedRegistration(null);
+        setProposalDetailsOpen(false);
+        setSelectedProposal(null);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [detailsOpen]);
+  }, [detailsOpen, proposalDetailsOpen]);
 
   const openDetails = (registration: VolunteerRegistration) => {
     setSelectedRegistration(registration);
     setDetailsOpen(true);
+  };
+
+  const openProposalDetails = (proposal: VolunteerProposal) => {
+    setSelectedProposal(proposal);
+    setProposalDetailsOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -196,7 +205,7 @@ export default function VoluntariadoPage() {
   };
 
   return (
-    <div className="max-w-8xl mx-auto px-6 py-10">
+    <div className="mx-auto min-w-0 max-w-8xl px-6 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Mi Voluntariado</h1>
         <p className="text-gray-600">Gestiona tus participaciones en programas de voluntariado</p>
@@ -216,13 +225,13 @@ export default function VoluntariadoPage() {
             }
           }}
         >
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
+          <div className="w-full min-w-0 max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
             <div className="border-b border-gray-100 px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Voluntariado</p>
-                  <h3 className="mt-1 truncate text-lg font-semibold text-gray-900">
-                    {truncateTitle(selectedRegistration.volunteer_option.title, 28)}
+                  <h3 className="mt-1 break-words text-lg font-semibold text-gray-900">
+                    {selectedRegistration.volunteer_option.title}
                   </h3>
                 </div>
                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusColor(selectedRegistration.status)}`}>
@@ -231,39 +240,49 @@ export default function VoluntariadoPage() {
               </div>
             </div>
 
-            <div className="max-h-[70vh] overflow-auto px-5 py-4">
-              <div className="space-y-3 text-sm text-gray-700">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-gray-500">Ubicación</span>
-                  <span className="text-right font-medium text-gray-900">{selectedRegistration.volunteer_option.location || '—'}</span>
+            <div className="max-h-[70vh] min-w-0 overflow-y-auto overflow-x-hidden px-5 py-4">
+              <div className="min-w-0 space-y-3 text-sm text-gray-700">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="shrink-0 text-gray-500">Ubicación</span>
+                  <span className="min-w-0 flex-1 break-words text-right font-medium text-gray-900">
+                    {selectedRegistration.volunteer_option.location || '—'}
+                  </span>
                 </div>
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-gray-500">Fecha</span>
-                  <span className="text-right font-medium text-gray-900">{selectedRegistration.volunteer_option.date || '—'}</span>
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="shrink-0 text-gray-500">Fecha</span>
+                  <span className="min-w-0 flex-1 break-words text-right font-medium text-gray-900">
+                    {selectedRegistration.volunteer_option.date || '—'}
+                  </span>
                 </div>
                 {selectedRegistration.volunteer_option.hour && (
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-gray-500">Hora</span>
-                    <span className="text-right font-medium text-gray-900">{formatTime12Hour(selectedRegistration.volunteer_option.hour)}</span>
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <span className="shrink-0 text-gray-500">Hora</span>
+                    <span className="min-w-0 flex-1 break-words text-right font-medium text-gray-900">
+                      {formatTime12Hour(selectedRegistration.volunteer_option.hour)}
+                    </span>
                   </div>
                 )}
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-gray-500">Cupos</span>
-                  <span className="text-right font-medium text-gray-900">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="shrink-0 text-gray-500">Cupos</span>
+                  <span className="min-w-0 flex-1 break-words text-right font-medium text-gray-900">
                     {selectedRegistration.volunteer_option.available_spots}/{selectedRegistration.volunteer_option.spots}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <div className="mt-4 min-w-0 rounded-xl border border-gray-100 bg-gray-50 p-4">
                 <p className="text-xs font-semibold text-gray-500">Descripción</p>
-                <p className="mt-1 text-sm text-gray-700">{cleanDescription(selectedRegistration.volunteer_option.description)}</p>
+                <p className="mt-1 min-w-0 max-w-full break-words text-sm text-gray-700">
+                  {cleanDescription(selectedRegistration.volunteer_option.description)}
+                </p>
               </div>
 
               {selectedRegistration.notes && (
-                <div className="mt-4 rounded-xl border border-gray-100 bg-white p-4">
+                <div className="mt-4 min-w-0 rounded-xl border border-gray-100 bg-white p-4">
                   <p className="text-xs font-semibold text-gray-500">Notas</p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{selectedRegistration.notes}</p>
+                  <p className="mt-1 min-w-0 max-w-full break-words whitespace-pre-wrap text-sm text-gray-700">
+                    {selectedRegistration.notes}
+                  </p>
                 </div>
               )}
             </div>
@@ -272,6 +291,134 @@ export default function VoluntariadoPage() {
               <button
                 type="button"
                 onClick={() => { setDetailsOpen(false); setSelectedRegistration(null); }}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {proposalDetailsOpen && selectedProposal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Detalles de la propuesta"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setProposalDetailsOpen(false);
+              setSelectedProposal(null);
+            }
+          }}
+        >
+          <div className="w-full min-w-0 max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="border-b border-gray-100 px-5 py-4">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Propuesta</p>
+                  <h3 className="mt-1 break-words text-lg font-semibold text-gray-900">
+                    {truncateTitle(selectedProposal.title, 28)}
+                  </h3>
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusColor(selectedProposal.status)}`}>
+                  {getStatusText(selectedProposal.status)}
+                </span>
+              </div>
+            </div>
+
+            <div className="max-h-[70vh] min-w-0 overflow-y-auto overflow-x-hidden px-5 py-4">
+              <div className="min-w-0 space-y-3 text-sm text-gray-700">
+                {selectedProposal.date && (
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <span className="shrink-0 text-gray-500">Fecha propuesta</span>
+                    <span className="min-w-0 flex-1 break-words text-right font-medium text-gray-900">
+                      {selectedProposal.date}
+                    </span>
+                  </div>
+                )}
+                {selectedProposal.location && (
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <span className="shrink-0 text-gray-500">Ubicación</span>
+                    <span className="min-w-0 flex-1 break-words text-right font-medium text-gray-900">
+                      {selectedProposal.location}
+                    </span>
+                  </div>
+                )}
+                {selectedProposal.hour && (
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <span className="shrink-0 text-gray-500">Hora</span>
+                    <span className="min-w-0 flex-1 break-words text-right font-medium text-gray-900">
+                      {formatTime12Hour(selectedProposal.hour)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="shrink-0 text-gray-500">Fecha de envío</span>
+                  <span className="min-w-0 flex-1 break-words text-right font-medium text-gray-900">
+                    {new Date(selectedProposal.created_at).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 min-w-0 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-xs font-semibold text-gray-500">Descripción</p>
+                <p className="mt-1 min-w-0 max-w-full break-words text-sm text-gray-700 whitespace-pre-wrap">
+                  {(selectedProposal.proposal ?? '').trim() || '—'}
+                </p>
+              </div>
+
+              {selectedProposal.tools && (
+                <div className="mt-4 min-w-0 rounded-xl border border-gray-100 bg-white p-4">
+                  <p className="text-xs font-semibold text-gray-500">Herramientas necesarias</p>
+                  <p className="mt-1 min-w-0 max-w-full whitespace-pre-wrap break-words text-sm text-gray-700">
+                    {selectedProposal.tools}
+                  </p>
+                </div>
+              )}
+
+              {selectedProposal.document_path && (
+                <div className="mt-4 min-w-0 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                  <p className="text-xs font-semibold text-gray-500">Documento</p>
+                  <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="min-w-0 max-w-full break-words text-sm font-medium text-gray-800">
+                      {getFileName(selectedProposal.document_path)}
+                    </span>
+                    <a
+                      href={getFileUrl(selectedProposal.document_path)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-600"
+                    >
+                      <FaDownload className="h-3.5 w-3.5" />
+                      Ver archivo
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {selectedProposal.admin_note && (
+                <div className="mt-4 min-w-0 rounded-xl border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-xs font-semibold text-blue-800">Nota del administrador</p>
+                  <p className="mt-1 min-w-0 max-w-full break-words whitespace-pre-wrap text-sm text-blue-900">
+                    {selectedProposal.admin_note}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setProposalDetailsOpen(false);
+                  setSelectedProposal(null);
+                }}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
               >
                 Cerrar
@@ -308,13 +455,13 @@ export default function VoluntariadoPage() {
         <>
         {/* My Active Registrations - Only show if there are active registrations */}
         {registrations.filter(r => r.status === 'registered').length > 0 && (
-          <div className="space-y-6 mb-10">
+          <div className="mb-10 min-w-0 space-y-6">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Mis Registros Activos</h2>
             {registrations.filter(r => r.status === 'registered').map((registration) => (
-            <div key={registration.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+            <div key={registration.id} className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
               {/* Mobile: compact card */}
-              <div className="p-4 md:hidden">
-                <div className="flex items-start gap-3">
+              <div className="min-w-0 overflow-x-hidden p-4 md:hidden">
+                <div className="flex min-w-0 items-start gap-3">
                   <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-gray-100 ring-1 ring-gray-200">
                     {registration.volunteer_option.imageUrl ? (
                       <img
@@ -325,20 +472,28 @@ export default function VoluntariadoPage() {
                     ) : null}
                   </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-base font-semibold text-gray-900">{truncateTitle(registration.volunteer_option.title, 20)}</h3>
-                        <p className="mt-1 line-clamp-1 text-sm text-gray-600">
+                  <div className="min-w-0 flex-1 basis-0">
+                    {/* Column on narrow screens so text uses full width; row from sm+ so badge doesn’t steal flex width */}
+                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+                      <div className="min-w-0 w-full max-w-full sm:flex-1 sm:basis-0">
+                        <h3 className="text-base font-semibold leading-snug text-gray-900 [overflow-wrap:anywhere]">
+                          {registration.volunteer_option.title}
+                        </h3>
+                        <p className="mt-1 text-sm leading-snug text-gray-600 [overflow-wrap:anywhere]">
                           {registration.volunteer_option.location || '—'} · {registration.volunteer_option.date || '—'}
                         </p>
+                        <p className="mt-2 text-sm leading-snug text-gray-600 [overflow-wrap:anywhere]">
+                          {cleanDescription(registration.volunteer_option.description)}
+                        </p>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusColor(registration.status)}`}>
+                      <span
+                        className={`shrink-0 self-start rounded-full px-2.5 py-1 text-xs font-semibold sm:self-auto ${getStatusColor(registration.status)}`}
+                      >
                         {getStatusText(registration.status)}
                       </span>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                    <div className="mt-3 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs text-gray-600">
                       {registration.volunteer_option.hour && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1">
                           <FaClock className="h-3.5 w-3.5 text-gray-400" />
@@ -378,63 +533,65 @@ export default function VoluntariadoPage() {
               </div>
 
               {/* Desktop: keep current design */}
-              <div className="hidden md:flex flex-col lg:flex-row">
+              <div className="hidden min-w-0 md:flex md:flex-col lg:flex-row">
                 {/* Image Section */}
                 {registration.volunteer_option.imageUrl && (
-                  <div className="lg:w-80 h-64 lg:h-auto">
+                  <div className="h-64 shrink-0 lg:h-auto lg:w-80">
                     <img 
                       src={registration.volunteer_option.imageUrl?.startsWith('http') ? registration.volunteer_option.imageUrl : `${getAPIBaseURLSync()}${registration.volunteer_option.imageUrl}`} 
                       alt={registration.volunteer_option.title} 
-                      className="w-full h-full object-cover" 
+                      className="h-full w-full object-cover" 
                     />
                   </div>
                 )}
                 
                 {/* Content Section */}
-                <div className="flex-1 p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-800 mb-2">{registration.volunteer_option.title}</h3>
-                      <p className="text-gray-600 text-base leading-relaxed">
+                <div className="min-w-0 flex-1 p-6">
+                  <div className="mb-4 flex min-w-0 flex-col lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1 lg:pr-4">
+                      <h3 className="mb-2 break-words text-2xl font-bold text-gray-800">
+                        {registration.volunteer_option.title}
+                      </h3>
+                      <p className="min-w-0 break-words text-base leading-relaxed text-gray-600">
                         {cleanDescription(registration.volunteer_option.description)}
                       </p>
                     </div>
-                    <div className="mt-4 lg:mt-0 lg:ml-6">
-                      <span className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(registration.status)}`}>
+                    <div className="mt-4 shrink-0 lg:mt-0 lg:ml-0">
+                      <span className={`rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(registration.status)}`}>
                         {getStatusText(registration.status)}
                       </span>
                     </div>
                   </div>
 
                   {/* Details Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+                  <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 md:grid-cols-3">
                     {registration.volunteer_option.date && (
-                      <div className="flex items-center text-gray-600">
-                        <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
-                        <div>
+                      <div className="flex min-w-0 items-start text-gray-600">
+                        <FaRegCalendarAlt className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                        <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-500">Fecha</div>
-                          <div className="text-base">{registration.volunteer_option.date}</div>
+                          <div className="break-words text-base">{registration.volunteer_option.date}</div>
                         </div>
                       </div>
                     )}
                     
                     {registration.volunteer_option.location && (
-                      <div className="flex items-center text-gray-600">
-                        <FaMapMarkerAlt className="w-5 h-5 mr-3 text-orange-500" />
-                        <div>
+                      <div className="flex min-w-0 items-start text-gray-600">
+                        <FaMapMarkerAlt className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                        <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-500">Ubicación</div>
-                          <div className="text-base">{registration.volunteer_option.location}</div>
+                          <div className="break-words text-base">{registration.volunteer_option.location}</div>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex items-center text-gray-600">
-                      <FaClock className="w-5 h-5 mr-3 text-orange-500" />
-                      <div>
+                    <div className="flex min-w-0 items-start text-gray-600">
+                      <FaClock className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                      <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-500">
                           {registration.status === 'cancelled' ? 'Fecha de cancelación' : 'Fecha de inscripción'}
                         </div>
-                        <div className="text-base">
+                        <div className="break-words text-base">
                           {new Date(registration.status === 'cancelled' ? registration.cancellation_date! : registration.registration_date).toLocaleDateString('es-ES', {
                             year: 'numeric',
                             month: 'long',
@@ -446,26 +603,26 @@ export default function VoluntariadoPage() {
                   </div>
 
                   {/* Hour and Spots */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                  <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-3">
                     {registration.volunteer_option.hour && (
-                      <div className="flex items-center text-gray-600">
-                        <FaClock className="w-5 h-5 mr-3 text-orange-500" />
-                        <div>
+                      <div className="flex min-w-0 items-start text-gray-600">
+                        <FaClock className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                        <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-500">Hora</div>
-                          <div className="text-base">{formatTime12Hour(registration.volunteer_option.hour)}</div>
+                          <div className="break-words text-base">{formatTime12Hour(registration.volunteer_option.hour)}</div>
                         </div>
                       </div>
                     )}
                     
-                    <div className="flex items-center text-gray-600">
-                      <FaUsers className="w-5 h-5 mr-3 text-orange-500" />
-                      <div>
+                    <div className="flex min-w-0 items-start text-gray-600">
+                      <FaUsers className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                      <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-500">Cupos disponibles</div>
-                        <div className="text-base">
+                        <div className="break-words text-base">
                           <span className={registration.volunteer_option.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
                             {registration.volunteer_option.available_spots}
                           </span>
-                          <span className="text-gray-500 text-sm ml-1">
+                          <span className="ml-1 text-sm text-gray-500">
                             / {registration.volunteer_option.spots} total
                           </span>
                         </div>
@@ -475,9 +632,11 @@ export default function VoluntariadoPage() {
 
                   {/* Notes */}
                   {registration.notes && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <div className="text-sm font-medium text-gray-500 mb-1">Notas</div>
-                      <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{registration.notes}</div>
+                    <div className="mt-4 border-t border-gray-100 pt-4">
+                      <div className="mb-1 text-sm font-medium text-gray-500">Notas</div>
+                      <div className="min-w-0 break-words rounded-lg bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                        {registration.notes}
+                      </div>
                     </div>
                   )}
 
@@ -506,152 +665,253 @@ export default function VoluntariadoPage() {
         )}
 
         {/* My Proposals - Always show */}
-        <div className="mt-12">
-          <div className="flex items-center justify-between mb-6">
+        <div className="mt-12 min-w-0">
+          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <h2 className="text-2xl font-semibold text-gray-800">Mis Propuestas</h2>
-            <div className="text-sm text-gray-500">
+            <span className="inline-flex w-fit items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
               {proposals.length} propuesta{proposals.length !== 1 ? 's' : ''} enviada{proposals.length !== 1 ? 's' : ''}
-            </div>
+            </span>
           </div>
-          
+
           {proposals.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaRegCalendarAlt className="w-8 h-8 text-gray-400" />
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-10 text-center shadow-sm sm:p-12">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white ring-1 ring-gray-200">
+                <FaClipboardList className="h-8 w-8 text-orange-500" />
               </div>
-              <h3 className="text-lg font-medium text-gray-800 mb-2">No has enviado propuestas aún</h3>
-              <p className="text-gray-600 mb-6">Crea tu primera propuesta de voluntariado para contribuir a la comunidad</p>
-              <a 
-                href="/volunteerCard" 
-                className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              <h3 className="text-lg font-semibold text-gray-800">No has enviado propuestas aún</h3>
+              <p className="mx-auto mt-2 max-w-md text-gray-600">
+                Crea tu primera propuesta de voluntariado para contribuir a la comunidad.
+              </p>
+              <a
+                href="/volunteerCard"
+                className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
               >
                 Ver voluntariados disponibles
               </a>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="min-w-0 space-y-6">
               {proposals.map((proposal) => (
-                <div key={proposal.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                  <div className="p-6">
-                    {/* Header */}
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-bold text-gray-800 mb-2">{proposal.title}</h3>
-                        <p className="text-gray-600 text-base leading-relaxed">
+                <div
+                  key={proposal.id}
+                  className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg"
+                >
+                  {/* Mobile: compact card (aligned with Mis Registros Activos) */}
+              <div className="min-w-0 overflow-x-hidden p-4 md:hidden">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-100 text-orange-600 ring-1 ring-orange-200/70">
+                    <FaClipboardList className="h-6 w-6" />
+                  </div>
+
+                  <div className="min-w-0 flex-1 basis-0">
+                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+                      <div className="min-w-0 w-full max-w-full sm:flex-1 sm:basis-0">
+                        <h3 className="text-base font-semibold leading-snug text-gray-900 [overflow-wrap:anywhere]">
+                          {proposal.title}
+                        </h3>
+                        <p className="mt-1 text-sm leading-snug text-gray-600 [overflow-wrap:anywhere]">
+                          {proposal.location || '—'} · {proposal.date || '—'}
+                        </p>
+                        <p className="mt-2 text-sm leading-snug text-gray-600 [overflow-wrap:anywhere]">
                           {cleanDescription(proposal.proposal)}
                         </p>
                       </div>
-                      <div className="mt-4 lg:mt-0 lg:ml-6">
-                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(proposal.status)}`}>
+                      <span
+                        className={`shrink-0 self-start rounded-full px-2.5 py-1 text-xs font-semibold sm:self-auto ${getStatusColor(proposal.status)}`}
+                      >
+                        {getStatusText(proposal.status)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs text-gray-600">
+                          {proposal.hour && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1">
+                              <FaClock className="h-3.5 w-3.5 text-gray-400" />
+                              {formatTime12Hour(proposal.hour)}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1">
+                            <FaRegCalendarAlt className="h-3.5 w-3.5 text-gray-400" />
+                            {new Date(proposal.created_at).toLocaleDateString('es-ES', {
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          </span>
+                          {proposal.document_path && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 font-medium text-orange-800">
+                              <FaFileAlt className="h-3.5 w-3.5" />
+                              Archivo
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openProposalDetails(proposal)}
+                        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+                      >
+                        Ver detalles
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProposal(proposal.id)}
+                        disabled={deletingProposal === proposal.id}
+                        className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      >
+                        {deletingProposal === proposal.id ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        ) : (
+                          <FaTimes className="h-4 w-4" />
+                        )}
+                        {deletingProposal === proposal.id ? 'Eliminando...' : 'Cancelar'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tablet / desktop */}
+                  <div className="hidden min-h-0 md:grid md:grid-cols-1 lg:grid-cols-[minmax(0,14rem)_1fr]">
+                    <div className="flex min-w-0 flex-row items-center justify-between gap-4 border-b border-gray-100 bg-gradient-to-br from-orange-50 via-amber-50/70 to-white px-6 py-4 lg:flex-col lg:justify-center lg:border-b-0 lg:border-r lg:border-gray-100 lg:py-10">
+                      <div className="flex min-w-0 items-center gap-4 lg:flex-col lg:gap-3">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 ring-1 ring-orange-200/60 lg:h-16 lg:w-16">
+                          <FaClipboardList className="h-7 w-7 lg:h-8 lg:w-8" />
+                        </div>
+                        <span
+                          className={`max-w-full break-words rounded-xl px-3 py-1 text-center text-xs font-semibold ${getStatusColor(proposal.status)}`}
+                        >
                           {getStatusText(proposal.status)}
                         </span>
                       </div>
+                      <p className="min-w-0 max-w-[10rem] break-words text-right text-xs text-gray-500 lg:max-w-none lg:text-center">
+                        Enviada el{' '}
+                        {new Date(proposal.created_at).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </p>
                     </div>
 
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                      {proposal.date && (
-                        <div className="flex items-center text-gray-600">
-                          <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
-                          <div>
-                            <div className="text-sm font-medium text-gray-500">Fecha propuesta</div>
-                            <div className="text-base">{proposal.date}</div>
-                          </div>
-                        </div>
-                      )}
-
-                      {proposal.location && (
-                        <div className="flex items-center text-gray-600">
-                          <FaMapMarkerAlt className="w-5 h-5 mr-3 text-orange-500" />
-                          <div>
-                            <div className="text-sm font-medium text-gray-500">Ubicación</div>
-                            <div className="text-base">{proposal.location}</div>
-                          </div>
-                        </div>
-                      )}
-
-                      {proposal.hour && (
-                        <div className="flex items-center text-gray-600">
-                          <FaClock className="w-5 h-5 mr-3 text-orange-500" />
-                          <div>
-                            <div className="text-sm font-medium text-gray-500">Hora propuesta</div>
-                            <div className="text-base">{formatTime12Hour(proposal.hour)}</div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center text-gray-600">
-                        <FaClock className="w-5 h-5 mr-3 text-orange-500" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-500">Fecha de envío</div>
-                          <div className="text-base">
-                            {new Date(proposal.created_at).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </div>
-                        </div>
+                    <div className="min-w-0 p-6">
+                      <div className="mb-4 min-w-0">
+                        <h3 className="break-words text-2xl font-bold text-gray-900">{proposal.title}</h3>
+                        <p className="mt-2 min-w-0 break-words text-base leading-relaxed text-gray-600">
+                          {cleanDescription(proposal.proposal)}
+                        </p>
                       </div>
-                    </div>
 
-                    {/* Tools, File, and Admin Note */}
-                    {(proposal.tools || proposal.document_path || proposal.admin_note) && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        {proposal.tools && (
-                          <div className="mb-3">
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Herramientas necesarias:</h4>
-                            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{proposal.tools}</p>
-                          </div>
-                        )}
-                        
-                        {proposal.document_path && (
-                          <div className="mb-3">
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Documento adjunto:</h4>
-                            <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                              <FaFileAlt className="w-5 h-5 text-orange-500" />
-                              <div className="flex-1">
-                                <p className="text-sm text-gray-600 font-medium">{getFileName(proposal.document_path)}</p>
-                                <p className="text-xs text-gray-500">Archivo adjunto a la propuesta</p>
+                      <div className="grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
+                        {proposal.date && (
+                          <div className="flex min-w-0 items-start gap-3 text-gray-600">
+                            <FaRegCalendarAlt className="mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                Fecha propuesta
                               </div>
-                              <a
-                                href={getFileUrl(proposal.document_path)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-3 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 transition-colors"
-                              >
-                                <FaDownload className="w-4 h-4" />
-                                Ver archivo
-                              </a>
+                              <div className="break-words text-base text-gray-900">{proposal.date}</div>
                             </div>
                           </div>
                         )}
-                        
-                        {proposal.admin_note && (
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Nota del administrador:</h4>
-                            <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
-                              {proposal.admin_note}
-                            </p>
+                        {proposal.location && (
+                          <div className="flex min-w-0 items-start gap-3 text-gray-600">
+                            <FaMapMarkerAlt className="mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                Ubicación
+                              </div>
+                              <div className="break-words text-base text-gray-900">{proposal.location}</div>
+                            </div>
                           </div>
                         )}
-                      </div>
-                    )}
-
-                    {/* Action Button */}
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <button
-                        onClick={() => handleDeleteProposal(proposal.id)}
-                        disabled={deletingProposal === proposal.id}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {deletingProposal === proposal.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        ) : (
-                          <FaTimes className="w-4 h-4" />
+                        {proposal.hour && (
+                          <div className="flex min-w-0 items-start gap-3 text-gray-600">
+                            <FaClock className="mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                Hora propuesta
+                              </div>
+                              <div className="break-words text-base text-gray-900">{formatTime12Hour(proposal.hour)}</div>
+                            </div>
+                          </div>
                         )}
-                        {deletingProposal === proposal.id ? 'Eliminando...' : 'Cancelar Propuesta'}
-                      </button>
+                        <div className="flex min-w-0 items-start gap-3 text-gray-600">
+                          <FaClock className="mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              Fecha de envío
+                            </div>
+                            <div className="break-words text-base text-gray-900">
+                              {new Date(proposal.created_at).toLocaleDateString('es-ES', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {(proposal.tools || proposal.document_path || proposal.admin_note) && (
+                        <div className="mt-4 min-w-0 space-y-4 border-t border-gray-100 pt-4">
+                          {proposal.tools && (
+                            <div className="min-w-0">
+                              <h4 className="mb-2 text-sm font-semibold text-gray-800">Herramientas necesarias</h4>
+                              <p className="min-w-0 max-w-full break-words rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm text-gray-700">
+                                {proposal.tools}
+                              </p>
+                            </div>
+                          )}
+                          {proposal.document_path && (
+                            <div className="min-w-0">
+                              <h4 className="mb-2 text-sm font-semibold text-gray-800">Documento adjunto</h4>
+                              <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                                <FaFileAlt className="h-5 w-5 shrink-0 text-orange-500" />
+                                <div className="min-w-0 flex-1">
+                                  <p className="break-words text-sm font-medium text-gray-800">
+                                    {getFileName(proposal.document_path)}
+                                  </p>
+                                  <p className="text-xs text-gray-500">Archivo adjunto a la propuesta</p>
+                                </div>
+                                <a
+                                  href={getFileUrl(proposal.document_path)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+                                >
+                                  <FaDownload className="h-4 w-4" />
+                                  Ver archivo
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                          {proposal.admin_note && (
+                            <div className="min-w-0">
+                              <h4 className="mb-2 text-sm font-semibold text-gray-800">Nota del administrador</h4>
+                              <p className="min-w-0 break-words rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900 whitespace-pre-wrap">
+                                {proposal.admin_note}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-4 border-t border-gray-100 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProposal(proposal.id)}
+                          disabled={deletingProposal === proposal.id}
+                          className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                        >
+                          {deletingProposal === proposal.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          ) : (
+                            <FaTimes className="h-4 w-4" />
+                          )}
+                          {deletingProposal === proposal.id ? 'Eliminando...' : 'Cancelar propuesta'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
