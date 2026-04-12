@@ -242,7 +242,7 @@ const TicketSupportForm: React.FC<TicketSupportFormProps> = ({
             className="mr-2 mt-1"
           />
           <label htmlFor="privacy" className="text-sm text-gray-700">
-            He leído y acepto el aviso de privacidad
+            Acepto la política de privacidad
           </label>
         </div>
         {errors.aceptacion_privacidad && <p className="text-red-500 text-sm mt-1">{errors.aceptacion_privacidad}</p>}
