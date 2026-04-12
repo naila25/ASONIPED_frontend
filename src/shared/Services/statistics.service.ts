@@ -73,7 +73,7 @@ export const getCalendarActivitiesByMonth = async (year: number, month: number):
 export interface RecentActivity {
   id: string;
   title: string;
-  type: 'expediente' | 'ticket' | 'taller' | 'voluntario';
+  type: 'expediente' | 'ticket' | 'taller' | 'voluntario' | 'propuesta_voluntariado';
   user?: string;
   workshop?: string;
   event?: string;

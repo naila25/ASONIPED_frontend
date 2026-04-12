@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Clock, MapPin, GraduationCap, Heart, Calendar as CalendarIcon } from "lucide-react";
 import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 import { getCalendarActivitiesByMonth } from '../../../shared/Services/statistics.service';
+import { adminFetchAllProposals } from '../../Volunteers/Services/fetchVolunteers';
+import type { VolunteerProposal } from '../../Volunteers/Types/volunteer';
 import Calendar from '../../../shared/Components/Calendar';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
 
@@ -64,13 +66,16 @@ export default function AdminCalendarioPage() {
         setLoading(true);
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth() + 1; // getMonth() returns 0-11
-        
-        const activities = await getCalendarActivitiesByMonth(year, month);
+
+        const [activities, proposalsRes] = await Promise.all([
+          getCalendarActivitiesByMonth(year, month),
+          adminFetchAllProposals().catch(() => ({ proposals: [] as VolunteerProposal[] })),
+        ]);
 
         // Transform activities to match Calendar component format
         const transformedEvents: CalendarEvent[] = activities.map((activity) => {
           const normalizedDate = normalizeDate(activity.date);
-          
+
           return {
             id: `${normalizedDate}-${activity.id}`,
             title: activity.title,
@@ -78,11 +83,49 @@ export default function AdminCalendarioPage() {
             date: normalizedDate,
             time: activity.time || '10:00',
             location: activity.location || undefined,
-            status: 'registered' as const
+            status: 'registered' as const,
           };
         });
 
-        setEvents(transformedEvents);
+        // Approved volunteer proposals use the proposed activity date (same as user CalendarioPage).
+        // Backend month endpoint does not include these, so we merge them here and scope by month.
+        const approvedProposalEvents: CalendarEvent[] = (proposalsRes.proposals || [])
+          .filter((p) => p.status === 'approved')
+          .flatMap((p): CalendarEvent[] => {
+            const rawDate = (p.date || p.created_at || '').toString();
+            if (!rawDate) return [];
+
+            let normalizedDate = '';
+            if (rawDate.includes('/')) {
+              const [d, m, y] = rawDate.split('/');
+              normalizedDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            } else {
+              normalizedDate = normalizeDate(rawDate);
+            }
+            if (!normalizedDate) return [];
+
+            const parts = normalizedDate.slice(0, 10).split('-').map(Number);
+            const eventYear = parts[0];
+            const eventMonth = parts[1];
+            if (eventYear !== year || eventMonth !== month) return [];
+
+            const time: string =
+              typeof p.hour === 'string' && p.hour.trim() ? p.hour : '00:00';
+
+            return [
+              {
+                id: `proposal-${p.id}`,
+                title: p.title || 'Propuesta de voluntariado',
+                type: 'volunteer' as const,
+                date: normalizedDate.slice(0, 10),
+                time,
+                location: p.location || undefined,
+                status: 'registered' as const,
+              },
+            ];
+          });
+
+        setEvents([...transformedEvents, ...approvedProposalEvents]);
       } catch (error) {
         console.error('Error loading calendar activities:', error);
       } finally {
@@ -94,19 +137,19 @@ export default function AdminCalendarioPage() {
     loadEvents();
   }, [currentMonth, normalizeDate]);
 
-  // Convert to CalendarEvent format
-  const calendarEvents = events.map(event => ({
-    id: event.id,
+  // Calendar grid matches events by id containing YYYY-MM-DD (see shared Calendar getEventsForDate).
+  // Activities already use `${date}-${id}`; proposals use `proposal-${id}` so we prefix with date here.
+  const calendarEvents = events.map((event) => ({
+    id: event.id.startsWith(event.date) ? event.id : `${event.date}-${event.id}`,
     title: event.title,
     type: event.type,
     time: event.time,
     location: event.location,
-    status: event.status
+    status: event.status,
   }));
 
-  // Get events for selected date
-  const selectedDateString = selectedDate.toISOString().split('T')[0];
-  const selectedDateEvents = events.filter(event => event.date === selectedDateString);
+  const selectedDateString = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+  const selectedDateEvents = events.filter((event) => event.date === selectedDateString);
 
   return (
     <div className="min-h-screen bg-gray-50">
