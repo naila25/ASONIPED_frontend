@@ -3,60 +3,21 @@ import { FileText, User, Heart, Accessibility, Home, FileCheck, AlertCircle, Che
 import type { RecordWithDetails } from '../Types/records';
 import { getFileUrl, getFileName, formatFileSize, getFileIcon, previewFile, downloadFile, canPreviewInBrowser } from '../Utils/fileUtils';
 
+/** Entry shape from registration_requirements.document_statuses (array or JSON) */
+interface DocumentStatusEntry {
+  document_type?: string;
+  status?: string;
+}
+
 interface CompleteRecordViewProps {
   record: RecordWithDetails;
   isAdmin?: boolean;
 }
 
-const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin = false }) => {
-  // Debug: Log record data for admin view
-  React.useEffect(() => {
-    if (isAdmin) {
-      console.log('=== ADMIN VIEW - RECORD DATA ===');
-      console.log('Record:', record);
-      console.log('Disability Information:', record.disability_information);
-      console.log('Disability Data (fallback):', record.disability_data);
-      console.log('Complete Personal Data:', record.complete_personal_data);
-      console.log('Family Information:', record.family_information);
-      console.log('Socioeconomic Information:', record.socioeconomic_information);
-      console.log('Socioeconomic Data (fallback):', record.socioeconomic_data);
-      console.log('Documents:', record.documents);
-      console.log('Registration requirements:', record.registration_requirements);
-      
-      // Debug medical additional data specifically
-      if (record.disability_information?.medical_additional) {
-        console.log('=== MEDICAL ADDITIONAL DATA ===');
-        console.log('Blood Type:', record.disability_information.medical_additional.blood_type);
-        console.log('Diseases:', record.disability_information.medical_additional.diseases);
-        console.log('Biomechanical Benefits:', record.disability_information.medical_additional.biomechanical_benefit);
-        console.log('Permanent Limitations:', record.disability_information.medical_additional.permanent_limitations);
-      }
-      
-      // Log detallado de documentos
-      if (record.documents && record.documents.length > 0) {
-        console.log('=== DOCUMENTOS DETALLADOS ===');
-        record.documents.forEach((doc, index) => {
-          console.log(`Documento ${index + 1}:`, {
-            id: doc.id,
-            document_type: doc.document_type,
-            file_name: doc.file_name,
-            original_name: doc.original_name,
-            uploaded_at: doc.uploaded_at
-          });
-        });
-      } else {
-        console.log('No hay documentos en el expediente');
-      }
-      
-      // Log de verificación de documentos por tipo
-      console.log('=== VERIFICACIÓN DE DOCUMENTOS POR TIPO ===');
-      const documentTypes = ['medical_diagnosis', 'birth_certificate', 'cedula', 'photo', 'pension_certificate', 'study_certificate'];
-      documentTypes.forEach(type => {
-        const found = record.documents?.find(d => d.document_type === type);
-        console.log(`${type}:`, found ? 'ENCONTRADO' : 'NO ENCONTRADO', found);
-      });
-    }
-  }, [record, isAdmin]);
+const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record }) => {
+  const [activeTab, setActiveTab] = React.useState<
+    'resumen' | 'personales' | 'familia' | 'discapacidad' | 'socioeconomico' | 'documentos' | 'notas'
+  >('resumen');
   const getStatusIcon = (status: string | boolean) => {
     switch (status) {
       case 'entregado':
@@ -140,8 +101,42 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
         </div>
       </div>
 
+      {/* Navegación por secciones */}
+      <div className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3">
+        <nav
+          className="flex flex-wrap gap-2 overflow-x-auto text-sm"
+          aria-label="Secciones del expediente"
+        >
+          {[
+            { id: 'resumen', label: 'Resumen' },
+            { id: 'personales', label: 'Datos personales' },
+            { id: 'familia', label: 'Familia' },
+            { id: 'discapacidad', label: 'Discapacidad' },
+            { id: 'socioeconomico', label: 'Socioeconómico' },
+            { id: 'documentos', label: 'Documentos' },
+            { id: 'notas', label: 'Notas' },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                className={`whitespace-nowrap rounded-full px-3 py-1 border text-xs sm:text-sm transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+      
       {/* Datos Personales - Only show if no Phase 3 data */}
-      {!record.complete_personal_data && (
+      {activeTab === 'personales' && !record.complete_personal_data && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-blue-100 rounded-lg">
@@ -207,7 +202,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
       )}
 
       {/* Información Personal Completa (Phase 3) */}
-      {record.complete_personal_data && (
+      {activeTab === 'personales' && record.complete_personal_data && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-indigo-100 rounded-lg">
@@ -281,6 +276,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
       )}
 
       {/* Información Familiar */}
+      {activeTab === 'familia' && (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-green-100 rounded-lg">
@@ -474,9 +470,10 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
           </div>
         )}
       </div>
+      )}
 
       {/* Información de Discapacidad */}
-      {(record.disability_information || record.disability_data) ? (
+      {activeTab === 'discapacidad' && (record.disability_information || record.disability_data) ? (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-purple-100 rounded-lg">
@@ -538,7 +535,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'discapacidad' ? (
         /* Fallback message if no disability information is available */
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -551,10 +548,10 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
             <p>No hay información de discapacidad disponible</p>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Información Médica Adicional */}
-      {record.disability_information?.medical_additional && (
+      {activeTab === 'discapacidad' && record.disability_information?.medical_additional && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-red-100 rounded-lg">
@@ -653,7 +650,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
       )}
 
       {/* Fallback for disability data without medical_additional structure */}
-      {record.disability_information && !record.disability_information.medical_additional && (
+      {activeTab === 'discapacidad' && record.disability_information && !record.disability_information.medical_additional && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-purple-100 rounded-lg">
@@ -670,7 +667,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
       )}
 
       {/* Información Socioeconómica */}
-      {record.socioeconomic_information && (
+      {activeTab === 'socioeconomico' && record.socioeconomic_information && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-orange-100 rounded-lg">
@@ -735,7 +732,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
       )}
 
       {/* Boleta de Matrícula */}
-      {record.enrollment_form && (
+      {activeTab === 'socioeconomico' && record.enrollment_form && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-indigo-100 rounded-lg">
@@ -776,7 +773,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
       )}
 
       {/* Documentación y Requisitos */}
-      {record.registration_requirements && (
+      {activeTab === 'documentos' && record.registration_requirements && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-indigo-100 rounded-lg">
@@ -825,24 +822,75 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
                   { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', backendKey: 'cuenta_banco_nacional' },
                   { key: 'study_certificate', label: 'Constancia de Estudio', backendKey: 'study_certificate' }
                 ].map((doc) => {
-                  // Verificar si existe un documento subido para este tipo
+                  // Determinar el estado del documento combinando:
+                  // - Estados guardados en registration_requirements.document_statuses (Entregado, En trámite, No aplica, Pendiente)
+                  // - Presencia de un archivo subido (record.documents)
+
+                  // 1) Mapear el backendKey al tipo usado en el formulario/document_statuses
+                  const backendToFormTypeMap: { [key: string]: string } = {
+                    medical_diagnosis: 'dictamen_medico',
+                    birth_certificate: 'constancia_nacimiento',
+                    cedula: 'copia_cedula',
+                    copias_cedulas_familia: 'copias_cedulas_familia',
+                    photo: 'foto_pasaporte',
+                    pension_certificate: 'constancia_pension_ccss',
+                    pension_alimentaria: 'constancia_pension_alimentaria',
+                    study_certificate: 'constancia_estudio',
+                    cuenta_banco_nacional: 'cuenta_banco_nacional'
+                  };
+
+                  const formDocType = backendToFormTypeMap[doc.backendKey] || doc.backendKey;
+
+                  // 2) Leer estados guardados en registration_requirements.document_statuses
+                  let savedStatus: string | undefined;
+                  const savedStatuses = record.registration_requirements?.document_statuses;
+                  if (savedStatuses) {
+                    try {
+                      const list: unknown = Array.isArray(savedStatuses)
+                        ? savedStatuses
+                        : typeof savedStatuses === 'string'
+                          ? JSON.parse(savedStatuses)
+                          : null;
+                      if (Array.isArray(list)) {
+                        const entry = list.find(
+                          (item: unknown): item is DocumentStatusEntry =>
+                            typeof item === 'object' &&
+                            item !== null &&
+                            (item as DocumentStatusEntry).document_type === formDocType
+                        );
+                        if (entry && typeof entry.status === 'string') {
+                          savedStatus = entry.status as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
+                        }
+                      }
+                    } catch {
+                      // invalid document_statuses JSON — fall back to uploaded file / pendiente
+                    }
+                  }
+
+                  // 3) Verificar si existe un documento subido para este tipo (respaldo)
                   const uploadedDoc = record.documents?.find(d => d.document_type === doc.backendKey);
-                  const status = uploadedDoc ? 'entregado' : 'pendiente';
-                  
-                  // Debug: Log para cada documento
-                  console.log(`Documento ${doc.label}:`, {
-                    backendKey: doc.backendKey,
-                    uploadedDoc: uploadedDoc,
-                    status: status
-                  });
-                  
+
+                  // 4) Regla de combinación:
+                  //    - Si hay estado guardado, usarlo.
+                  //    - Si no hay estado guardado pero hay archivo, marcar como entregado.
+                  //    - En cualquier otro caso, pendiente.
+                  type DocStatus = 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
+                  const status: DocStatus =
+                    (savedStatus as DocStatus | undefined) ?? (uploadedDoc ? 'entregado' : 'pendiente');
+
                   return (
                     <div key={doc.key} className="flex items-center justify-between p-2 border border-gray-200 rounded-lg">
                       <span className="text-sm text-gray-700">{doc.label}</span>
                       <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(status)}`}>
                         {getStatusIcon(status)}
                         <span className="text-xs font-medium">
-                          {status === 'entregado' ? 'Entregado' : 'Pendiente'}
+                          {status === 'entregado'
+                            ? 'Entregado'
+                            : status === 'en_tramite'
+                              ? 'En trámite'
+                              : status === 'no_aplica'
+                                ? 'No aplica'
+                                : 'Pendiente'}
                         </span>
                       </div>
                     </div>
@@ -865,7 +913,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
       )}
 
       {/* Documentos Subidos */}
-      {record.documents && record.documents.length > 0 && (
+      {activeTab === 'documentos' && record.documents && record.documents.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -939,8 +987,48 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
         </div>
       )}
 
-      {/* Resumen del Expediente (solo para admin) */}
-      {isAdmin && (
+      {/* Notas del Expediente */}
+      {activeTab === 'notas' && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <FileText className="w-5 h-5 text-yellow-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">Notas del Expediente</h3>
+          </div>
+
+          {record.notes && record.notes.length > 0 ? (
+            <div className="space-y-3">
+              {record.notes.map((note, index) => (
+                <div key={note.id ?? index} className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{note.note}</p>
+                  <div className="mt-1 text-xs text-gray-500 flex flex-wrap gap-2">
+                    {note.created_at && (
+                      <span>{new Date(note.created_at).toLocaleString()}</span>
+                    )}
+                    {note.type && (
+                      <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">
+                        {note.type === 'milestone'
+                          ? 'Hito'
+                          : note.type === 'activity'
+                            ? 'Actividad'
+                            : 'Nota'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              <p>No hay notas registradas para este expediente.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resumen del Expediente (pestaña Resumen) */}
+      {activeTab === 'resumen' && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-green-100 rounded-lg">
@@ -949,19 +1037,12 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record, isAdmin
             <h3 className="text-lg font-medium text-gray-900">Resumen del Expediente</h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
                 {record.documents ? record.documents.length : 0}
               </div>
               <div className="text-sm text-blue-800">Documentos Subidos</div>
-            </div>
-            
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {record.documents ? record.documents.filter(d => d.document_type !== 'other').length : 0}
-              </div>
-              <div className="text-sm text-green-800">Documentos Clasificados</div>
             </div>
             
             <div className="text-center p-4 bg-yellow-50 rounded-lg">

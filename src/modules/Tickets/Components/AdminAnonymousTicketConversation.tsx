@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FaPaperPlane, FaUser, FaArrowLeft, FaCheck } from 'react-icons/fa';
 import { getAnonymousTicketMessages, sendAnonymousTicketMessage } from '../Services/anonymousTicketService';
 import type { AnonymousTicketMessage } from '../Services/anonymousTicketService';
-import { socketService } from '../../../shared/Services/socketService';
+import {
+  socketService,
+  type AnonymousSocketIncomingMessage,
+} from '../../../shared/Services/socketService';
 
 interface AdminAnonymousTicketConversationProps {
   ticket: {
@@ -26,19 +29,22 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageListenerRef = useRef<((message: any) => void) | null>(null);
+  const messageListenerRef = useRef<
+    ((message: AnonymousSocketIncomingMessage) => void) | null
+  >(null);
   const recentlySentMessagesRef = useRef<Set<string>>(new Set());
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const fetchedMessages = await getAnonymousTicketMessages(ticket.ticket_id);
       setMessages(fetchedMessages);
     } catch (error) {
       setError('Error loading messages');
       console.error('Error loading messages:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [ticket.ticket_id]);
 
@@ -49,6 +55,8 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
 
   // Setup WebSocket connection separately
   useEffect(() => {
+    const recentlySentMessages = recentlySentMessagesRef.current;
+
     // Setup WebSocket connection for real-time chat
     const setupSocket = async () => {
       try {
@@ -56,7 +64,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
         socketService.joinAnonymousTicketRoom(ticket.ticket_id);
         
         // Create message handler with improved duplicate detection
-        const messageHandler = (message: any) => {
+        const messageHandler = (message: AnonymousSocketIncomingMessage) => {
           // For admin messages, check if this is a recently sent message (prevent own broadcast duplicates)
           if (message.sender_type === 'admin') {
             // Check if we recently sent a message with this content
@@ -64,10 +72,10 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
             let foundMatch = false;
             
             // Check all recently sent message keys (they include timestamp, so we check the prefix)
-            recentlySentMessagesRef.current.forEach(key => {
+            recentlySentMessages.forEach(key => {
               if (key.startsWith(messageContentKey)) {
                 foundMatch = true;
-                recentlySentMessagesRef.current.delete(key);
+                recentlySentMessages.delete(key);
               }
             });
             
@@ -78,10 +86,14 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
           
           // Check if message already exists to prevent duplicates
           setMessages(prev => {
+            const createdAt =
+              message.timestamp ||
+              message.created_at ||
+              new Date().toISOString();
             const messageExists = prev.some(msg => {
               // More robust duplicate check: compare message content, sender type, and timestamp
               const msgTimestamp = new Date(msg.created_at).getTime();
-              const newTimestamp = new Date(message.timestamp || message.created_at).getTime();
+              const newTimestamp = new Date(createdAt).getTime();
               const timeDiff = Math.abs(msgTimestamp - newTimestamp);
               
               return msg.message === message.message && 
@@ -101,7 +113,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
               ticket_id: ticket.id,
               sender_type: message.sender_type,
               message: message.message,
-              created_at: message.timestamp || message.created_at
+              created_at: createdAt
             }];
           });
         };
@@ -128,8 +140,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
         socketService.removeListener('anonymous_message_received');
         messageListenerRef.current = null;
       }
-      // Clear recently sent messages when component unmounts
-      recentlySentMessagesRef.current.clear();
+      recentlySentMessages.clear();
     };
   }, [ticket.id, ticket.ticket_id]); // Removed loadMessages from dependencies
 
@@ -158,16 +169,27 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
       sender_type: 'admin' as const
     };
 
+    const messageTimestamp = new Date().toISOString();
+    const messageKey = `${messageText}-admin-${messageTimestamp}`;
+
     try {
       setNewMessage('');
 
-      // Create a unique key for this message to prevent duplicate handling
-      const messageTimestamp = new Date().toISOString();
-      const messageKey = `${messageText}-admin-${messageTimestamp}`;
-      
+      // Show immediately: WebSocket echo is skipped as duplicate and we used to skip reload when WS worked
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: -Date.now(),
+          ticket_id: ticket.id,
+          sender_type: 'admin',
+          message: messageText,
+          created_at: messageTimestamp,
+        },
+      ]);
+
       // Add to recently sent messages to prevent duplicate from WebSocket broadcast
       recentlySentMessagesRef.current.add(messageKey);
-      
+
       // Remove from recently sent after 3 seconds (enough time for broadcast)
       setTimeout(() => {
         recentlySentMessagesRef.current.delete(messageKey);
@@ -175,35 +197,34 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
 
       // Send via WebSocket for real-time delivery
       const isConnected = socketService.getConnectionStatus();
-      let messageSentViaWebSocket = false;
-      
+
       if (isConnected) {
         socketService.sendAnonymousMessage(ticket.ticket_id, messageData);
-        messageSentViaWebSocket = true;
       } else {
         try {
           await socketService.connect();
           if (socketService.getConnectionStatus()) {
             socketService.sendAnonymousMessage(ticket.ticket_id, messageData);
-            messageSentViaWebSocket = true;
           }
         } catch (reconnectError) {
           console.error('Failed to reconnect:', reconnectError);
         }
       }
-      
-      // Always send via API for persistence
+
+      // Always send via API for persistence, then sync list (silent = no full-panel loading flash)
       await sendAnonymousTicketMessage(messageData);
-      
-      // Only reload messages if WebSocket failed, to prevent duplicates
-      if (!messageSentViaWebSocket) {
-        await loadMessages();
-      }
-      
+      await loadMessages({ silent: true });
+
       onTicketUpdate();
     } catch (error) {
       setError('Error sending message');
       console.error('Error sending message:', error);
+      recentlySentMessagesRef.current.delete(messageKey);
+      try {
+        await loadMessages({ silent: true });
+      } catch {
+        /* ignore reload errors after send failure */
+      }
     }
   };
 
@@ -218,7 +239,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
   };
 
   return (
-    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden">
+    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden h-full min-h-0">
       {/* Header - Minimalista */}
       <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -252,7 +273,7 @@ const AdminAnonymousTicketConversation: React.FC<AdminAnonymousTicketConversatio
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container" style={{ maxHeight: '400px' }}>
+      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container">
         {loading ? (
           <div className="text-center text-gray-500">Cargando mensajes...</div>
         ) : error ? (

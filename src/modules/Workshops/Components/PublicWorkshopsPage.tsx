@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { WorkshopDetailsModal } from "../../Workshops/Pages/WorkshopDetailsModal";
 import { getAllWorkshops } from "../Services/workshopService";
 import type { Workshop } from "../Services/workshop";
-import { getAPIBaseURLSync } from '../../../shared/Services/config';
+
 
 export default function PublicWorkshopsPage() {
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
@@ -70,7 +70,7 @@ export default function PublicWorkshopsPage() {
         <h2 className="text-orange-600 text-4xl sm:text-5xl lg:text-6xl text-center tracking-wide mb-5">
           Nuestros talleres
         </h2>
-        <p className="text-neutral-700 text-center mb-10">
+        <p className="text-lg text-neutral-700 text-center mb-10">
           Descubre nuestros espacios de aprendizaje y creatividad.
         </p>
 
@@ -87,7 +87,7 @@ export default function PublicWorkshopsPage() {
         ) : (
           <div className="relative flex items-center justify-center">
             
-            {workshops.length > itemsPerView && (
+            {!isMobile && workshops.length > itemsPerView && (
               <button
                 onClick={prevSlide}
                 className="absolute left-0 bg-white rounded-full shadow p-2 hover:bg-gray-100 z-20"
@@ -97,61 +97,61 @@ export default function PublicWorkshopsPage() {
             )}
 
             <div
-              className={`w-full gap-8 justify-items-center ${
+              className={`w-full gap-8 ${
                 isMobile
-                  ? "flex justify-center"
-                  : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  ? "flex overflow-x-auto space-x-4 px-4 scroll-smooth snap-x snap-mandatory"
+                  : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-items-center"
               }`}
             >
-              {visibleWorkshops.map((workshop) => (
+              {(isMobile ? workshops : visibleWorkshops).map((workshop) => (
                 <div
                   key={workshop.id}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex flex-col border border-gray-200"
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex-shrink-0 snap-center flex flex-col border border-gray-200"
                 >
-                  <div className="h-[220px]">
+                  <div className="relative h-[220px]">
                     {workshop.imagen && !workshop.imagen.startsWith("blob:") ? (
-                      <img
-
-                        src={
-                          workshop.imagen.startsWith("http")
-                            ? workshop.imagen
-                            : `http://localhost:3000${workshop.imagen}`
-                        }
-
-                        alt={workshop.titulo}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                          const placeholder =
-                            target.parentElement?.querySelector(
-                              ".image-placeholder"
-                            ) as HTMLElement;
-                          if (placeholder) placeholder.classList.remove("hidden");
-                        }}
-                        onLoad={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          const placeholder =
-                            target.parentElement?.querySelector(
-                              ".image-placeholder"
-                            ) as HTMLElement;
-                          if (placeholder) placeholder.classList.add("hidden");
-                        }}
-                      />
+                      <>
+                        <img
+                          src={
+                            workshop.imagen.startsWith("http")
+                              ? workshop.imagen
+                              : `http://localhost:3000${workshop.imagen}`
+                          }
+                          alt={workshop.titulo}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                            const placeholder =
+                              target.parentElement?.querySelector(
+                                ".image-placeholder"
+                              ) as HTMLElement;
+                            if (placeholder) placeholder.classList.remove("hidden");
+                          }}
+                          onLoad={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const placeholder =
+                              target.parentElement?.querySelector(
+                                ".image-placeholder"
+                              ) as HTMLElement;
+                            if (placeholder) placeholder.classList.add("hidden");
+                          }}
+                        />
+                        <div className="image-placeholder absolute inset-0 hidden bg-gray-200">
+                          <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
+                            <span>Imagen no disponible</span>
+                          </div>
+                        </div>
+                      </>
                     ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
+                      <div className="flex h-full w-full items-center justify-center bg-gray-200 text-sm text-gray-500">
                         <span>Imagen no disponible</span>
                       </div>
                     )}
-
-                    {/* Placeholder cuando la imagen falla */}
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm image-placeholder hidden">
-                      <span>Imagen no disponible</span>
-                    </div>
                   </div>
 
                   <div className="p-5 flex flex-col items-start">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
                       {workshop.titulo}
                     </h3>
                     <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -168,7 +168,7 @@ export default function PublicWorkshopsPage() {
               ))}
             </div>
 
-            {workshops.length > itemsPerView && (
+            {!isMobile && workshops.length > itemsPerView && (
               <button
                 onClick={nextSlide}
                 className="absolute right-0 bg-white rounded-full shadow p-2 hover:bg-gray-100 z-20"

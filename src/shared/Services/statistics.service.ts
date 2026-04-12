@@ -27,8 +27,7 @@ export const getStatistics = async (): Promise<Statistics> => {
     }
     
     return await response.json();
-  } catch (error) {
-    console.error('Error fetching statistics:', error);
+  } catch {
     // Return default values if fetch fails
     return {
       users: 0,
@@ -51,8 +50,7 @@ export const getUpcomingCalendarActivities = async (limit: number = 10): Promise
     }
     
     return await response.json();
-  } catch (error) {
-    console.error('Error fetching upcoming calendar activities:', error);
+  } catch {
     return [];
   }
 };
@@ -67,8 +65,7 @@ export const getCalendarActivitiesByMonth = async (year: number, month: number):
     }
     
     return await response.json();
-  } catch (error) {
-    console.error('Error fetching calendar activities by month:', error);
+  } catch {
     return [];
   }
 };
@@ -76,7 +73,7 @@ export const getCalendarActivitiesByMonth = async (year: number, month: number):
 export interface RecentActivity {
   id: string;
   title: string;
-  type: 'expediente' | 'ticket' | 'taller' | 'voluntario';
+  type: 'expediente' | 'ticket' | 'taller' | 'voluntario' | 'propuesta_voluntariado';
   user?: string;
   workshop?: string;
   event?: string;
@@ -94,8 +91,7 @@ export const getRecentActivities = async (limit: number = 10): Promise<RecentAct
     }
     
     return await response.json();
-  } catch (error) {
-    console.error('Error fetching recent activities:', error);
+  } catch {
     return [];
   }
 };

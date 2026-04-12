@@ -14,9 +14,9 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
   };
 
   const getAttendanceTypeColor = () => {
-    return record.attendance_type === 'beneficiario' 
-      ? 'bg-blue-100 text-blue-800' 
-      : 'bg-purple-100 text-purple-800';
+    return record.attendance_type === 'beneficiario'
+      ? 'bg-emerald-100 text-emerald-800'
+      : 'bg-gray-100 text-gray-800';
   };
 
   const getAttendanceTypeText = () => {
@@ -28,9 +28,7 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
   };
 
   const getMethodColor = () => {
-    return record.attendance_method === 'qr_scan' 
-      ? 'text-green-600' 
-      : 'text-orange-600';
+    return record.attendance_method === 'qr_scan' ? 'text-emerald-600' : 'text-orange-600';
   };
 
   const getMethodText = () => {
@@ -48,16 +46,16 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1">
           {/* Avatar */}
-          <div className={`p-2 rounded-lg ${
-            record.attendance_type === 'beneficiario' 
-              ? 'bg-blue-100' 
-              : 'bg-purple-100'
-          }`}>
-            <FaUser className={`w-5 h-5 ${
-              record.attendance_type === 'beneficiario' 
-                ? 'text-blue-600' 
-                : 'text-purple-600'
-            }`} />
+          <div
+            className={`rounded-lg p-2 ${
+              record.attendance_type === 'beneficiario' ? 'bg-emerald-100' : 'bg-gray-100'
+            }`}
+          >
+            <FaUser
+              className={`h-5 w-5 ${
+                record.attendance_type === 'beneficiario' ? 'text-emerald-600' : 'text-gray-600'
+              }`}
+            />
           </div>
 
           {/* Main Info */}

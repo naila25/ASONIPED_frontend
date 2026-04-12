@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Users, CheckCircle } from 'lucide-react';
+import { MapPin, Users, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { getGeographicAnalytics } from '../../Records/Services/recordsApi';
 
 interface GeographicRecord {
@@ -27,6 +27,7 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
   const [records, setRecords] = useState<GeographicRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   useEffect(() => {
     const fetchGeographicData = async () => {
@@ -167,16 +168,15 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
   const cantonDistribution = getCantonDistribution();
   const coverageStats = getCoverageStats();
 
-  return (
-    <div className="space-y-6">
+  const fullContent = (
+    <>
       {/* Coverage Overview */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <MapPin className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Cobertura Geográfica</h3>
+      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <MapPin className="w-5 h-5 text-gray-600 flex-shrink-0" />
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Cobertura Geográfica</h3>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 min-w-0">
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-600">{coverageStats.totalCantons}</div>
             <div className="text-sm text-green-800">Cantones</div>
@@ -191,142 +191,184 @@ const GeographicAnalytics: React.FC<GeographicAnalyticsProps> = () => {
       </div>
 
       {/* Canton Distribution */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Users className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Distribución por Cantón</h3>
+      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <Users className="w-5 h-5 text-gray-600 flex-shrink-0" />
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Distribución por Cantón</h3>
         </div>
-        
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           {cantonDistribution.slice(0, 8).map(({ canton, province, count }) => {
-            const maxCount = Math.max(...cantonDistribution.map(c => c.count));
+            const maxCount = Math.max(...cantonDistribution.map(c => c.count), 1);
             const percentage = Math.round((count / maxCount) * 100);
-            
             return (
-              <div key={`${province}-${canton}`} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-gray-700">{canton}</span>
-                    <span className="text-xs text-gray-500 ml-2">({province})</span>
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">{count} beneficiarios</span>
+              <div key={`${province}-${canton}`} className="space-y-2 min-w-0 overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 min-w-0">
+                  <p className="text-sm font-medium text-gray-700 truncate min-w-0">{canton} <span className="text-xs text-gray-500">({province})</span></p>
+                  <span className="text-sm font-bold text-gray-900 flex-shrink-0">{count} beneficiarios</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${percentage}%` }}
-                  ></div>
+                <div className="w-full bg-gray-200 rounded-full h-2 min-w-0">
+                  <div className="bg-green-500 h-2 rounded-full transition-all duration-300" style={{ width: `${percentage}%` }} />
                 </div>
               </div>
             );
           })}
         </div>
-        
         {cantonDistribution.length > 8 && (
           <div className="mt-4 text-center">
-            <p className="text-sm text-gray-500">
-              Mostrando 8 de {cantonDistribution.length} cantones
-            </p>
+            <p className="text-sm text-gray-500">Mostrando 8 de {cantonDistribution.length} cantones</p>
           </div>
         )}
       </div>
 
       {/* District Distribution */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <MapPin className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Distribución por Distrito</h3>
+      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <MapPin className="w-5 h-5 text-gray-600 flex-shrink-0" />
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Distribución por Distrito</h3>
         </div>
-        
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           {geographicData.slice(0, 8).map(({ district, canton, province, count }) => {
-            const maxCount = Math.max(...geographicData.map(d => d.count));
+            const maxCount = Math.max(...geographicData.map(d => d.count), 1);
             const percentage = Math.round((count / maxCount) * 100);
-            
             return (
-              <div key={`${province}-${canton}-${district}`} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-gray-700">{district}</span>
-                    <span className="text-xs text-gray-500 ml-2">({canton}, {province})</span>
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">{count} beneficiarios</span>
+              <div key={`${province}-${canton}-${district}`} className="space-y-2 min-w-0 overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 min-w-0">
+                  <p className="text-sm font-medium text-gray-700 truncate min-w-0">{district} <span className="text-xs text-gray-500">({canton}, {province})</span></p>
+                  <span className="text-sm font-bold text-gray-900 flex-shrink-0">{count} beneficiarios</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${percentage}%` }}
-                  ></div>
+                <div className="w-full bg-gray-200 rounded-full h-2 min-w-0">
+                  <div className="bg-purple-500 h-2 rounded-full transition-all duration-300" style={{ width: `${percentage}%` }} />
                 </div>
               </div>
             );
           })}
         </div>
-        
         {geographicData.length > 8 && (
           <div className="mt-4 text-center">
-            <p className="text-sm text-gray-500">
-              Mostrando 8 de {geographicData.length} distritos
-            </p>
+            <p className="text-sm text-gray-500">Mostrando 8 de {geographicData.length} distritos</p>
           </div>
         )}
       </div>
 
-      {/* Detailed Geographic Data */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <CheckCircle className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Detalle Geográfico Completo</h3>
+      {/* Detailed Geographic Data - table on desktop, cards on mobile */}
+      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <CheckCircle className="w-5 h-5 text-gray-600 flex-shrink-0" />
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Detalle Geográfico Completo</h3>
         </div>
-        
-        <div className="overflow-x-auto">
+        {/* Mobile: card list (no horizontal scroll) */}
+        <div className="md:hidden space-y-2 min-w-0">
+          {geographicData.slice(0, 8).map((data, index) => (
+            <div key={`${data.province}-${data.canton}-${data.district}-${index}`} className="p-3 bg-gray-50 rounded-lg border border-gray-100 min-w-0">
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Provincia · Cantón · Distrito</p>
+              <p className="text-sm font-medium text-gray-900 truncate mt-0.5">{data.province} · {data.canton} · {data.district}</p>
+              <p className="text-xs font-semibold text-blue-600 mt-1">{data.count} beneficiarios</p>
+            </div>
+          ))}
+        </div>
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto min-w-0">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Provincia
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cantón
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Distrito
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Beneficiarios
-                </th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provincia</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantón</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distrito</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beneficiarios</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {geographicData.slice(0, 8).map((data, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {data.province}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {data.canton}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {data.district}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {data.count}
-                    </span>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{data.province}</td>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-700">{data.canton}</td>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-700">{data.district}</td>
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{data.count}</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        
         {geographicData.length > 8 && (
           <div className="mt-4 text-center">
-            <p className="text-sm text-gray-500">
-              Mostrando 8 de {geographicData.length} ubicaciones
-            </p>
+            <p className="text-sm text-gray-500">Mostrando 8 de {geographicData.length} ubicaciones</p>
           </div>
         )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-w-0 overflow-x-hidden space-y-4 md:space-y-6">
+      {/* Mobile: compact summary + expand */}
+      <div className="md:hidden min-w-0">
+        {!mobileExpanded ? (
+          <div className="bg-white rounded-lg shadow-sm p-4 min-w-0 overflow-hidden">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Resumen geográfico</h3>
+            <div className="mb-3">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Cobertura</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-center p-3 bg-green-50 rounded">
+                  <p className="text-xl font-bold text-green-600">{coverageStats.totalCantons}</p>
+                  <p className="text-[10px] text-green-700 uppercase">Cantones</p>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded">
+                  <p className="text-xl font-bold text-purple-600">{coverageStats.totalDistricts}</p>
+                  <p className="text-[10px] text-purple-700 uppercase">Distritos</p>
+                </div>
+              </div>
+            </div>
+            <div className="mb-3">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Top cantones</p>
+              <div className="space-y-1.5">
+                {cantonDistribution.slice(0, 3).map(({ canton, province, count }) => (
+                  <div key={`${province}-${canton}`} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded min-w-0">
+                    <span className="text-xs text-gray-700 truncate">{canton}</span>
+                    <span className="text-xs font-semibold text-gray-900 flex-shrink-0">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mb-4">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Top distritos</p>
+              <div className="space-y-1.5">
+                {geographicData.slice(0, 3).map(({ district, canton, province, count }) => (
+                  <div key={`${province}-${canton}-${district}`} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded min-w-0">
+                    <span className="text-xs text-gray-700 truncate">{district}</span>
+                    <span className="text-xs font-semibold text-gray-900 flex-shrink-0">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileExpanded(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-200 rounded-lg"
+            >
+              Ver análisis detallado
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <>
+            {fullContent}
+            <button
+              type="button"
+              onClick={() => setMobileExpanded(false)}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg"
+            >
+              Ocultar detalle
+              <ChevronUp className="w-4 h-4" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Desktop: full content */}
+      <div className="hidden md:block min-w-0 space-y-6">
+        {fullContent}
       </div>
     </div>
   );

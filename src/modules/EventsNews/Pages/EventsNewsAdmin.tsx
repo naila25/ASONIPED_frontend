@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews, createEventNews, updateEventNews, deleteEventNews } from '../Services/eventsNewsApi';
-import { Plus, Edit, Trash2, Image,  X, Search, Table, Grid3X3 } from 'lucide-react';
+import { Plus, Edit, Trash2, Image, X, Search, Table, Grid3X3, Newspaper } from 'lucide-react';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
+import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 
 // Format date string safely (handles M/D/YYYY format and ISO/UTC without TZ shift)
 const formatDisplayDate = (input: string): string => {
@@ -148,61 +149,82 @@ const EventsNewsAdmin: React.FC = () => {
     item.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const pageHeaderActions = (
+    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <button
+        type="button"
+        onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
+      >
+        {viewMode === 'cards' ? <Table className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
+        {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
+      </button>
+      <div className="relative w-full min-w-[12rem] sm:w-72">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <input
+          type="text"
+          placeholder="Buscar eventos..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => setShowCreateForm(true)}
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-violet-500 text-white rounded-lg hover:bg-violet-600 transition-colors whitespace-nowrap"
+      >
+        <Plus className="w-4 h-4" />
+        <span className="hidden sm:inline">Nuevo Evento/Noticia</span>
+        <span className="sm:hidden">Nuevo</span>
+      </button>
+    </div>
+  );
 
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          <p className="text-gray-600">Cargando eventos y noticias...</p>
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <AttendancePageHeader
+          accent="violet"
+          icon={<Newspaper className="h-6 w-6" />}
+          title="Eventos y Noticias"
+          description="Administra eventos y noticias publicados en el sitio."
+          actions={pageHeaderActions}
+          showSubNav={false}
+        />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500"></div>
+            <p className="text-gray-600">Cargando eventos y noticias...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 min-w-0">
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        accent="violet"
+        icon={<Newspaper className="h-6 w-6" />}
+        title="Eventos y Noticias"
+        description="Administra eventos y noticias publicados en el sitio."
+        actions={pageHeaderActions}
+        showSubNav={false}
+      />
+
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="space-y-6 min-w-0">
 
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
-          <h2 className="text-lg font-semibold text-gray-900">Eventos y Noticias</h2>
-          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-            {/* View Mode Toggle */}
-            <button
-              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
-            >
-              {viewMode === 'cards' ? <Table className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
-              {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
-            </button>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar eventos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nuevo Evento/Noticia</span>
-              <span className="sm:hidden">Nuevo</span>
-            </button>
-          </div>
-        </div>
 
         {/* Create Form */}
         {showCreateForm && (
           <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <Plus className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                <Plus className="w-5 h-5 text-violet-600 flex-shrink-0" />
                 <h3 className="text-lg font-semibold text-gray-900 truncate">Nuevo Evento/Noticia</h3>
               </div>
               <button
@@ -224,7 +246,7 @@ const EventsNewsAdmin: React.FC = () => {
                     value={form.title}
                     onChange={handleChange}
                     placeholder="Título del evento"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -235,7 +257,7 @@ const EventsNewsAdmin: React.FC = () => {
                     value={form.date}
                     onChange={handleChange}
                     type="date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -246,7 +268,7 @@ const EventsNewsAdmin: React.FC = () => {
                     value={form.hour}
                     onChange={handleChange}
                     type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -257,7 +279,7 @@ const EventsNewsAdmin: React.FC = () => {
                   value={form.description}
                   onChange={handleChange}
                   placeholder="Descripción del evento"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   required
                   rows={3}
                 />
@@ -268,7 +290,7 @@ const EventsNewsAdmin: React.FC = () => {
                  name="type"
                  value={form.type}
                  onChange={handleChange}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                  <option value="evento">Evento</option>
                  <option value="noticia">Noticia</option>
@@ -281,7 +303,7 @@ const EventsNewsAdmin: React.FC = () => {
                   value={form.imageUrl}
                   onChange={handleChange}
                   placeholder="https://ejemplo.com/imágen.jpg"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
@@ -298,7 +320,7 @@ const EventsNewsAdmin: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-violet-500 text-white rounded-lg hover:bg-violet-600 transition-colors disabled:opacity-50"
                 >
                   {submitting ? 'Creando...' : 'Crear Evento'}
                 </button>
@@ -319,7 +341,7 @@ const EventsNewsAdmin: React.FC = () => {
   <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <Edit className="w-5 h-5 text-orange-600 flex-shrink-0" />
+        <Edit className="w-5 h-5 text-violet-600 flex-shrink-0" />
         <h3 className="text-lg font-semibold text-gray-900 truncate">Editar Evento o Noticia</h3>
       </div>
       <button
@@ -342,7 +364,7 @@ const EventsNewsAdmin: React.FC = () => {
             value={editForm.title}
             onChange={handleEditChange}
             placeholder="Título del evento o noticia"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             required
           />
         </div>
@@ -353,7 +375,7 @@ const EventsNewsAdmin: React.FC = () => {
             value={editForm.date}
             onChange={handleEditChange}
             type="date"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             required
           />
         </div>
@@ -364,7 +386,7 @@ const EventsNewsAdmin: React.FC = () => {
             value={editForm.hour}
             onChange={handleEditChange}
             type="time"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -376,7 +398,7 @@ const EventsNewsAdmin: React.FC = () => {
           value={editForm.description}
           onChange={handleEditChange}
           placeholder="Escribe una breve descripción..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           rows={3}
           required
         />
@@ -388,7 +410,7 @@ const EventsNewsAdmin: React.FC = () => {
           name="type"
           value={editForm.type}
           onChange={handleEditChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         >
           <option value="evento">Evento</option>
           <option value="noticia">Noticia</option>
@@ -402,7 +424,7 @@ const EventsNewsAdmin: React.FC = () => {
           value={editForm.imageUrl}
           onChange={handleEditChange}
           placeholder="https://ejemplo.com/imágen.jpg"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         />
         {editForm.imageUrl && (
           <img
@@ -427,7 +449,7 @@ const EventsNewsAdmin: React.FC = () => {
         <button
           type="submit"
           disabled={submitting}
-          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50"
         >
           {submitting ? 'Guardando...' : 'Guardar Cambios'}
         </button>
@@ -580,7 +602,9 @@ const EventsNewsAdmin: React.FC = () => {
           </div>
         )}
      </div>
-  </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

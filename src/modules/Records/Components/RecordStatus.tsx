@@ -31,17 +31,41 @@ const RecordStatus: React.FC<RecordStatusProps> = ({ record }) => {
   const getPhaseInfo = () => {
     switch (record.phase) {
       case 'phase1':
-        return { text: 'Registro Inicial', description: 'Su solicitud inicial ha sido enviada y está siendo procesada.' };
+        return {
+          text: 'Registro Inicial',
+          description: 'Su solicitud inicial ha sido enviada y está siendo procesada.',
+          shortDescription: 'Su solicitud inicial está en proceso.'
+        };
       case 'phase2':
-        return { text: 'Revisión Administrativa', description: 'Su solicitud está siendo revisada por el administrador.' };
+        return {
+          text: 'Revisión Administrativa',
+          description: 'Su solicitud está siendo revisada por el administrador.',
+          shortDescription: 'Su solicitud está en revisión administrativa.'
+        };
       case 'phase3':
-        return { text: 'Formulario Completo', description: 'Su solicitud inicial fue aprobada. Puede completar el formulario completo.' };
+        return {
+          text: 'Formulario Completo',
+          description: 'Su solicitud inicial fue aprobada. Puede completar el formulario completo.',
+          shortDescription: 'Puede completar el formulario completo.'
+        };
       case 'phase4':
-        return { text: 'Revisión Final', description: 'Su expediente completo está siendo revisado para aprobación final.' };
+        return {
+          text: 'Revisión Final',
+          description: 'Su expediente completo está siendo revisado para aprobación final.',
+          shortDescription: 'Su expediente completo está en revisión final.'
+        };
       case 'completed':
-        return { text: 'Expediente Completado', description: 'Su expediente ha sido aprobado y está activo.' };
+        return {
+          text: 'Expediente Completado',
+          description: 'Su expediente ha sido aprobado y está activo.',
+          shortDescription: 'Su expediente está aprobado y activo.'
+        };
       default:
-        return { text: 'Fase Desconocida', description: 'Estado del expediente no determinado.' };
+        return {
+          text: 'Fase Desconocida',
+          description: 'Estado del expediente no determinado.',
+          shortDescription: 'Estado del expediente no determinado.'
+        };
     }
   };
 
@@ -50,27 +74,37 @@ const RecordStatus: React.FC<RecordStatusProps> = ({ record }) => {
   const Icon = statusInfo.icon;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+    <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <div className={`p-2 bg-${statusInfo.color}-100 rounded-lg`}>
             <Icon className={`w-6 h-6 text-${statusInfo.color}-600`} />
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Estado del Expediente</h3>
-            <p className={`text-${statusInfo.color}-600 font-medium`}>{statusInfo.text}</p>
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">Estado del Expediente</h3>
+            <p className={`text-${statusInfo.color}-600 font-medium text-sm sm:text-base truncate`}>{statusInfo.text}</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-600">Número de Expediente</p>
-          <p className="text-lg font-semibold text-gray-900">{record.record_number}</p>
+        <div className="text-left sm:text-right min-w-0">
+          <p className="text-xs sm:text-sm text-gray-600">Número de Expediente</p>
+          <p className="text-sm sm:text-lg font-semibold text-gray-900 break-all sm:break-normal">
+            {record.record_number}
+          </p>
         </div>
       </div>
 
       {/* Información de la Fase Actual */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h4 className="font-medium text-blue-900 mb-2">Fase Actual: {phaseInfo.text}</h4>
-        <p className="text-blue-800 text-sm">{phaseInfo.description}</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
+        <h4 className="font-medium text-blue-900 mb-1 sm:mb-2 text-sm sm:text-base">
+          Fase actual: {phaseInfo.text}
+        </h4>
+        {/* En móvil mostramos un texto resumido para evitar overflow; en sm+ el texto completo */}
+        <p className="text-blue-800 text-xs sm:hidden">
+          {phaseInfo.shortDescription}
+        </p>
+        <p className="text-blue-800 text-sm hidden sm:block">
+          {phaseInfo.description}
+        </p>
       </div>
 
       {record.personal_data && (

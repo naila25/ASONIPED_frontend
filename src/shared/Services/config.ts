@@ -3,17 +3,6 @@ import { simpleNetwork } from './simpleNetworkConfig';
 // Obtener VITE_BACKEND_URL al inicio (se inyecta durante el build en Vercel)
 const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// Debug: Log environment variable status
-if (typeof window !== 'undefined') {
-  console.log('🔍 Environment Debug:', {
-    VITE_BACKEND_URL: VITE_BACKEND_URL || 'NOT SET',
-    NODE_ENV: import.meta.env.MODE,
-    DEV: import.meta.env.DEV,
-    PROD: import.meta.env.PROD,
-    allEnvVars: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
-  });
-}
-
 // Configuración centralizada para las URLs del backend
 export const BACKEND_CONFIG = {
   // Para desarrollo local
@@ -24,7 +13,6 @@ export const BACKEND_CONFIG = {
     try {
       // PRIORIDAD 1: En producción, usar variable de entorno VITE_BACKEND_URL
       if (VITE_BACKEND_URL) {
-        console.log('🌐 Usando VITE_BACKEND_URL:', VITE_BACKEND_URL);
         return VITE_BACKEND_URL;
       }
 
@@ -42,10 +30,8 @@ export const BACKEND_CONFIG = {
       }
 
       // PRIORIDAD 3: Fallback a localhost si no hay configuración
-      console.warn('⚠️ No se encontró VITE_BACKEND_URL, usando localhost');
       return BACKEND_CONFIG.LOCAL;
-    } catch (error) {
-      console.warn('⚠️ Error en detección automática, usando localhost:', error);
+    } catch {
       return BACKEND_CONFIG.LOCAL;
     }
   }
@@ -57,13 +43,8 @@ let _API_BASE_URL = VITE_BACKEND_URL || 'http://localhost:3000';
 let _lastUpdate = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
-// Logging para debug
 if (VITE_BACKEND_URL) {
-  console.log('✅ VITE_BACKEND_URL encontrado:', VITE_BACKEND_URL);
   _API_BASE_URL = VITE_BACKEND_URL;
-} else {
-  console.warn('⚠️ VITE_BACKEND_URL no está configurado. Usando localhost por defecto.');
-  console.warn('⚠️ Para producción, configura VITE_BACKEND_URL en Vercel Environment Variables.');
 }
 
 // Función para obtener la URL del API con cache optimizado
@@ -74,7 +55,6 @@ export const getAPIBaseURL = async (): Promise<string> => {
     const currentViteUrl = import.meta.env.VITE_BACKEND_URL || VITE_BACKEND_URL;
     
     if (currentViteUrl) {
-      console.log('✅ getAPIBaseURL: Usando VITE_BACKEND_URL:', currentViteUrl);
       if (_API_BASE_URL !== currentViteUrl) {
         _API_BASE_URL = currentViteUrl;
         _lastUpdate = Date.now();
@@ -82,12 +62,9 @@ export const getAPIBaseURL = async (): Promise<string> => {
       return _API_BASE_URL;
     }
     
-    console.warn('⚠️ getAPIBaseURL: VITE_BACKEND_URL no está disponible');
-
     // PRIORIDAD 2: Verificar cache solo si no estamos en producción
     const now = Date.now();
     if (now - _lastUpdate < CACHE_DURATION && _API_BASE_URL !== 'http://localhost:3000') {
-      console.log(`🚀 Usando API URL cacheada: ${_API_BASE_URL}`);
       return _API_BASE_URL;
     }
 
@@ -96,7 +73,6 @@ export const getAPIBaseURL = async (): Promise<string> => {
     _lastUpdate = now;
     return _API_BASE_URL;
   } catch {
-    console.warn('⚠️ Usando URL por defecto:', _API_BASE_URL);
     return _API_BASE_URL;
   }
 };
@@ -125,8 +101,6 @@ export const getAPIBaseURLSync = (): string => {
         return _API_BASE_URL;
       }
       
-      // If we can't determine, log a warning but return the cached value
-      console.warn('⚠️ getAPIBaseURLSync: Could not determine production backend URL. Using cached value:', _API_BASE_URL);
     }
   }
   
@@ -134,12 +108,11 @@ export const getAPIBaseURLSync = (): string => {
   return _API_BASE_URL;
 };
 
-// Función para cambiar manualmente la URL del backend (útil para debugging)
+// Función para cambiar manualmente la URL del backend
 export const setBackendUrl = (url: string) => {
   _API_BASE_URL = url;
   _lastUpdate = Date.now();
   simpleNetwork.setBackendUrl(url);
-  console.log(`🔧 Backend URL cambiada manualmente a: ${url}`);
   return url;
 };
 
@@ -149,10 +122,8 @@ export const refreshBackendDetection = async () => {
     const newUrl = await simpleNetwork.refreshDetection();
     _API_BASE_URL = newUrl;
     _lastUpdate = Date.now();
-    console.log(`🔄 Nueva detección completada: ${_API_BASE_URL}`);
     return _API_BASE_URL;
-  } catch (error) {
-    console.error('❌ Error en nueva detección:', error);
+  } catch {
     return _API_BASE_URL;
   }
 };
