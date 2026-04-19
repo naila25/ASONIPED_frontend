@@ -142,7 +142,9 @@ export const donationService = {
     if (card.titulo_card) formData.append('titulo_card', card.titulo_card);
     if (card.descripcion_card) formData.append('descripcion_card', card.descripcion_card);
     if (card.texto_boton) formData.append('texto_boton', card.texto_boton);
-    if (card.color_boton) formData.append('color_boton', card.color_boton);
+    if (card.color_boton !== undefined && card.color_boton !== null) {
+      formData.append('color_boton', String(card.color_boton).trim());
+    }
     if (file) formData.append('imagen', file);
     if (card.URL_imagen && !file) formData.append('URL_imagen', card.URL_imagen);
 
