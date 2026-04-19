@@ -1,12 +1,19 @@
-import { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaArrowLeft, FaPlus, FaEdit, FaTrash, FaPlay, FaStop, FaEye } from 'react-icons/fa';
+import { useState, useEffect, useCallback } from 'react';
+import { FaCalendarAlt, FaPlus, FaEdit, FaTrash, FaEye, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { Link } from '@tanstack/react-router';
 import { activityTracksApi } from '../Services/attendanceNewApi';
+import AttendancePageHeader from '../Components/AttendancePageHeader';
 import type { ActivityTrack, ActivityTrackWithStats } from '../Types/attendanceNew';
+
+const PAGE_SIZES = [5, 10] as const;
 
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<ActivityTrackWithStats[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(5);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -22,27 +29,34 @@ export default function ActivitiesPage() {
     status: 'active' as 'active' | 'inactive' | 'completed',
   });
 
-  useEffect(() => {
-    // Defer initial data loading to improve initial render
-    const timer = setTimeout(() => {
-      loadActivities();
-    }, 0);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await activityTracksApi.getAll(1, 1000); // Get all activities
-      setActivities(response.data);
-    } catch (err) {
-      console.error('Error loading activities:', err);
+      const response = await activityTracksApi.getAll(currentPage, pageSize);
+      const data = response.data ?? [];
+      const tp = Math.max(1, response.totalPages ?? 1);
+      const total = response.total ?? 0;
+
+      setActivities(data);
+      setTotalPages(tp);
+      setTotalCount(total);
+
+      if (data.length === 0 && currentPage > 1) {
+        setCurrentPage((p) => Math.max(1, p - 1));
+      }
+    } catch {
       setError('Error al cargar actividades');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadActivities();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadActivities]);
 
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +84,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al crear actividad');
-      console.error('Error creating activity:', err);
     } finally {
       setLoading(false);
     }
@@ -104,7 +117,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al actualizar actividad');
-      console.error('Error updating activity:', err);
     } finally {
       setLoading(false);
     }
@@ -126,47 +138,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al eliminar actividad');
-      console.error('Error deleting activity:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStartScanning = async (id: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await activityTracksApi.startScanning(id);
-      setSuccess('Escaneo iniciado exitosamente');
-      await loadActivities();
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Error al iniciar escaneo');
-      console.error('Error starting scanning:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStopScanning = async (id: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await activityTracksApi.stopScanning(id);
-      setSuccess('Escaneo detenido exitosamente');
-      await loadActivities();
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Error al detener escaneo');
-      console.error('Error stopping scanning:', err);
     } finally {
       setLoading(false);
     }
@@ -211,40 +182,24 @@ export default function ActivitiesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/admin/attendance"
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <FaArrowLeft className="w-5 h-5" />
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-teal-100 rounded-lg">
-                  <FaCalendarAlt className="w-6 h-6 text-teal-600" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Gestión de Actividades</h1>
-                  <p className="text-sm text-gray-600">Crea y administra actividades de asistencia</p>
-                </div>
-              </div>
-            </div>
-            
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-            >
-              <FaPlus className="w-4 h-4" />
-              Nueva Actividad
-            </button>
-          </div>
-        </div>
-      </div>
+      <AttendancePageHeader
+        accent="emerald"
+        icon={<FaCalendarAlt className="h-6 w-6" />}
+        title="Gestión de actividades"
+        description="Crea y edita actividades; el escaneo QR se gestiona desde Escanear QR."
+        actions={
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          >
+            <FaPlus className="h-4 w-4" />
+            Nueva actividad
+          </button>
+        }
+      />
 
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8 ">
         {/* Messages */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -276,7 +231,7 @@ export default function ActivitiesPage() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     placeholder="Ej: Taller de Cocina"
                     required
                   />
@@ -294,7 +249,7 @@ export default function ActivitiesPage() {
                          setFormData({ ...formData, description: e.target.value });
                       }
                      }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     rows={3}
                     placeholder="Descripción de la actividad..."
                   />
@@ -311,7 +266,7 @@ export default function ActivitiesPage() {
                       value={formData.event_date}
                       onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
                        min={new Date().toISOString().split("T")[0]}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -330,7 +285,7 @@ export default function ActivitiesPage() {
                          ? new Date().toTimeString().slice(0, 5)
                          : undefined
                       } 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -344,7 +299,7 @@ export default function ActivitiesPage() {
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     placeholder="Ej: Salón Principal"
                   />
                 </div>
@@ -356,8 +311,8 @@ export default function ActivitiesPage() {
                   <select
                     id="status"
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'completed' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   >
                     <option value="active">Activa</option>
                     <option value="inactive">Inactiva</option>
@@ -369,7 +324,7 @@ export default function ActivitiesPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {loading ? (
                       <>
@@ -397,153 +352,294 @@ export default function ActivitiesPage() {
         )}
 
         {/* Activities List */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Actividades</h2>
+        <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Actividades</h2>
+              {!loading && totalCount > 0 && (
+                <p className="mt-1 text-sm text-gray-600">
+                  Mostrando {(currentPage - 1) * pageSize + 1}-
+                  {Math.min(currentPage * pageSize, totalCount)} de {totalCount}
+                </p>
+              )}
+            </div>
+            {!loading && totalCount > 0 && (
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                Por página:
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value) as (typeof PAGE_SIZES)[number]);
+                    setCurrentPage(1);
+                  }}
+                  className="min-h-[44px] rounded-lg border border-gray-300 px-2 py-1.5 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                >
+                  {PAGE_SIZES.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
-          
+
           {loading && !showCreateForm ? (
             <div className="p-6">
               <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                 <span className="ml-3 text-gray-600">Cargando actividades...</span>
               </div>
             </div>
-          ) : activities.length === 0 ? (
+          ) : !loading && totalCount === 0 ? (
             <div className="p-6 text-center">
               <FaCalendarAlt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No hay actividades</h3>
               <p className="text-gray-600 mb-4">Crea tu primera actividad para comenzar a gestionar la asistencia.</p>
               <button
                 onClick={() => setShowCreateForm(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 <FaPlus className="w-4 h-4" />
                 Crear Primera Actividad
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actividad
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Escaneo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Asistencia
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {activities.map((activity) => (
-                    <tr key={activity.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-wrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{activity.name}</div>
-                          {activity.description && (
-                            <div className="text-sm text-gray-500 break-words max-w-xs">
-                              {activity.description .length > 100
-                                ? `${activity.description.slice(0, 100)}…`
-                                : activity.description
-                            }</div>
+            <>
+              <ul className="md:hidden">
+                {activities.map((activity) => (
+                  <li key={activity.id} className="border-b border-gray-100 px-4 py-4 last:border-b-0">
+                    <article className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <h3 className="break-words text-base font-semibold leading-snug text-gray-900">
+                            {activity.name}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(activity.status || 'inactive')}`}
+                            >
+                              {getStatusText(activity.status || 'inactive')}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                          <span className="font-medium text-gray-800">
+                            {new Date(activity.event_date).toLocaleDateString('es-ES', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                          {activity.event_time && (
+                            <span>{activity.event_time.slice(0, 5)}</span>
                           )}
                           {activity.location && (
-                            <div className="text-sm text-gray-500"> {activity.location}</div>
+                            <span className="w-full text-gray-500 sm:w-auto">{activity.location}</span>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(activity.event_date).toLocaleDateString('es-ES')}
+
+                        {activity.description && (
+                          <p className="line-clamp-2 text-sm text-gray-500">
+                            {activity.description.length > 120
+                              ? `${activity.description.slice(0, 120)}…`
+                              : activity.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-between border-t border-gray-200/80 pt-3">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {activity.total_attendance || 0}{' '}
+                            <span className="font-normal text-gray-600">asistentes</span>
+                          </span>
                         </div>
-                        {activity.event_time && (
-                          <div className="text-sm text-gray-500">
-                            {activity.event_time.slice(0, 5)}
+
+                        <div className="flex flex-col gap-2 pt-1">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Link
+                              to="/admin/attendance/beneficiaries"
+                              search={{ activityId: activity.id }}
+                              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                            >
+                              <FaEye className="h-4 w-4 shrink-0" aria-hidden />
+                              Asistencia
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => openEditForm(activity)}
+                              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                            >
+                              <FaEdit className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
+                              Editar
+                            </button>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(activity.status || 'inactive')}`}>
-                          {getStatusText(activity.status || 'inactive')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {activity.scanning_active ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <FaPlay className="w-3 h-3 mr-1" />
-                            Activo
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            <FaStop className="w-3 h-3 mr-1" />
-                            Inactivo
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {activity.total_attendance || 0} asistentes
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            to="/admin/attendance/beneficiaries"
-                            search={{ activityId: activity.id }}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Ver asistencia"
-                          >
-                            <FaEye className="w-4 h-4" />
-                          </Link>
                           <button
-                            onClick={() => openEditForm(activity)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Editar"
-                          >
-                            <FaEdit className="w-4 h-4" />
-                          </button>
-                          {activity.scanning_active ? (
-                            <button
-                              onClick={() => handleStopScanning(activity.id!)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Detener escaneo"
-                            >
-                              <FaStop className="w-4 h-4" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleStartScanning(activity.id!)}
-                              className="text-green-600 hover:text-green-900"
-                              title="Iniciar escaneo"
-                            >
-                              <FaPlay className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
+                            type="button"
                             onClick={() => handleDeleteActivity(activity.id!)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Eliminar"
+                            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                           >
-                            <FaTrash className="w-4 h-4" />
+                            <FaTrash className="h-4 w-4 shrink-0" aria-hidden />
+                            Eliminar actividad
                           </button>
                         </div>
-                      </td>
+                      </div>
+                    </article>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Actividad
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Fecha
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Estado
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Asistencia
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Acciones
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {activities.map((activity) => (
+                      <tr key={activity.id} className="hover:bg-gray-50">
+                        <td className="whitespace-wrap px-6 py-4">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{activity.name}</div>
+                            {activity.description && (
+                              <div className="max-w-xs break-words text-sm text-gray-500">
+                                {activity.description.length > 100
+                                  ? `${activity.description.slice(0, 100)}…`
+                                  : activity.description}
+                              </div>
+                            )}
+                            {activity.location && (
+                              <div className="text-sm text-gray-500">{activity.location}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            {new Date(activity.event_date).toLocaleDateString('es-ES')}
+                          </div>
+                          {activity.event_time && (
+                            <div className="text-sm text-gray-500">{activity.event_time.slice(0, 5)}</div>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(activity.status || 'inactive')}`}
+                          >
+                            {getStatusText(activity.status || 'inactive')}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                          {activity.total_attendance || 0} asistentes
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              to="/admin/attendance/beneficiaries"
+                              search={{ activityId: activity.id }}
+                              className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                              title="Ver asistencia"
+                              aria-label={`Ver asistencia: ${activity.name}`}
+                            >
+                              <FaEye className="h-4 w-4" />
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => openEditForm(activity)}
+                              className="rounded-lg p-2 text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                              title="Editar"
+                              aria-label={`Editar: ${activity.name}`}
+                            >
+                              <FaEdit className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteActivity(activity.id!)}
+                              className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                              title="Eliminar"
+                              aria-label={`Eliminar: ${activity.name}`}
+                            >
+                              <FaTrash className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                  <div className="flex flex-wrap items-center justify-center gap-1 sm:justify-start">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label="Página anterior"
+                    >
+                      <FaChevronLeft className="h-4 w-4" />
+                    </button>
+                    <div className="flex flex-wrap items-center justify-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
+                              currentPage === pageNum
+                                ? 'bg-emerald-600 text-white'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label="Página siguiente"
+                    >
+                      <FaChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <span className="text-center text-sm text-gray-600 sm:text-right">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

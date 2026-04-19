@@ -10,6 +10,9 @@ const EventsNews: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // ✅ detectar móvil
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -25,6 +28,17 @@ const EventsNews: React.FC = () => {
     fetchData();
   }, []);
 
+  // ✅ detectar tamaño pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const latestItems = [...items]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
@@ -35,6 +49,24 @@ const EventsNews: React.FC = () => {
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev === latestItems.length - 1 ? 0 : prev + 1));
+  };
+
+  // ✅ swipe móvil
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    (e.currentTarget as any).startX = touch.clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touch = e.changedTouches[0];
+    const startX = (e.currentTarget as any).startX;
+    const diff = touch.clientX - startX;
+
+    if (diff > 50) {
+      prevSlide();
+    } else if (diff < -50) {
+      nextSlide();
+    }
   };
 
   return (
@@ -52,7 +84,11 @@ const EventsNews: React.FC = () => {
           No hay eventos o noticias disponibles.
         </div>
       ) : (
-        <div className="relative h-[500px] md:h-[600px] rounded-lg overflow-hidden shadow-lg">
+        <div 
+          className="relative h-[500px] md:h-[600px] rounded-lg overflow-hidden shadow-lg"
+          onTouchStart={isMobile ? handleTouchStart : undefined}
+          onTouchEnd={isMobile ? handleTouchEnd : undefined}
+        >
           <div
             className="w-full h-full bg-cover bg-center flex items-center"
             style={{
@@ -63,37 +99,49 @@ const EventsNews: React.FC = () => {
             <div className="absolute inset-0 bg-black/60"></div>
 
             {/* Contenido de la noticia */}
-            <div className="relative z-10 text-white max-w-lg px-8 ml-16 space-y-4">
-              <h3 className="text-4xl font-bold">{latestItems[currentIndex].title}</h3>
-              <p className="text-lg opacity-90"> {latestItems[currentIndex].description
-                 .split(' ')
-                 .slice(0, 30)
-                 .join(' ') + (latestItems[currentIndex].description.split(' ').length > 30 ? '...' : '')}
+            <div className="relative z-10 text-white max-w-lg px-6 sm:px-8 ml-4 sm:ml-16 space-y-4">
+              <h3 className="text-2xl sm:text-4xl font-bold">
+                {latestItems[currentIndex].title}
+              </h3>
+
+              <p className="text-sm sm:text-lg opacity-90">
+                {latestItems[currentIndex].description
+                  .split(' ')
+                  .slice(0, 30)
+                  .join(' ') +
+                  (latestItems[currentIndex].description.split(' ').length > 30
+                    ? '...'
+                    : '')}
               </p>
+
+              {/* ✅ botón arreglado */}
               <Link
                 to={`/events-news/${latestItems[currentIndex].id}` as any}
-                className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
+                className="inline-block mt-2 bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
               >
                 Leer más
               </Link>
             </div>
           </div>
 
-          {/* Flecha izquierda */}
-          <button
-            onClick={prevSlide}
-            className="absolute top-1/2 -translate-y-1/2 left-6 bg-black/50 hover:bg-black/70 p-3 rounded-full text-white"
-          >
-            <FaChevronLeft size={20} />
-          </button>
+          {/* ❌ Flechas ocultas en móvil */}
+          {!isMobile && (
+            <>
+              <button
+                onClick={prevSlide}
+                className="absolute top-1/2 -translate-y-1/2 left-6 bg-black/50 hover:bg-black/70 p-3 rounded-full text-white"
+              >
+                <FaChevronLeft size={20} />
+              </button>
 
-          {/* Flecha derecha */}
-          <button
-            onClick={nextSlide}
-            className="absolute top-1/2 -translate-y-1/2 right-6 bg-black/50 hover:bg-black/70 p-3 rounded-full text-white"
-          >
-            <FaChevronRight size={20} />
-          </button>
+              <button
+                onClick={nextSlide}
+                className="absolute top-1/2 -translate-y-1/2 right-6 bg-black/50 hover:bg-black/70 p-3 rounded-full text-white"
+              >
+                <FaChevronRight size={20} />
+              </button>
+            </>
+          )}
         </div>
       )}
 

@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import type { Workshop } from "../Types/workshop";
 import { FaCalendarAlt, FaClock, FaUsers, FaTools, FaRegLightbulb } from "react-icons/fa";
 import { MdLocationOn, MdDescription } from "react-icons/md";
-import { registerForWorkshop, cancelWorkshopEnrollment, getAvailableSpots } from '../Services/workshopEnrollments';
+import { registerForWorkshop, cancelWorkshopEnrollment, getAvailableSpots, getUserEnrollments } from '../Services/workshopEnrollments';
 import { getToken } from '../../Login/Services/auth';
 import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
@@ -18,13 +18,14 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
   const [submitting, setSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [justEnrolled, setJustEnrolled] = useState(false);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState<{
     is_enrolled: boolean;
     available_spots: number;
     enrolled_count: number;
   }>({
     is_enrolled: workshop?.is_enrolled || false,
-    available_spots: workshop?.available_spots || workshop?.capacidad || 0,
+    available_spots: workshop?.available_spots ?? workshop?.capacidad ?? 0,
     enrolled_count: workshop?.enrolled_count || 0,
   });
 
@@ -58,18 +59,35 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
     };
   }, [isOpen, onClose]);
 
-  // Detect auth and update enrollment status when modal opens
+  // Spots are public; is_enrolled comes from the user's enrollments (list endpoints often omit it).
   const fetchEnrollmentStatus = useCallback(async () => {
     if (!workshop?.id) return;
+    const token = getToken();
+    if (token) setEnrollmentLoading(true);
     try {
       const spots = await getAvailableSpots(workshop.id);
+      let isEnrolled = workshop.is_enrolled ?? false;
+      if (token) {
+        try {
+          const enrollments = await getUserEnrollments();
+          const list = Array.isArray(enrollments) ? enrollments : [];
+          isEnrolled = list.some(
+            (e: { workshop_id?: number; status?: string }) =>
+              Number(e.workshop_id) === Number(workshop.id) && e.status === 'enrolled'
+          );
+        } catch {
+          // keep workshop.is_enrolled
+        }
+      }
       setEnrollmentStatus({
-        is_enrolled: workshop.is_enrolled || false,
+        is_enrolled: isEnrolled,
         available_spots: spots.available_spots,
         enrolled_count: spots.enrolled_count,
       });
     } catch (e) {
       console.error('Error fetching enrollment status:', e);
+    } finally {
+      if (token) setEnrollmentLoading(false);
     }
   }, [workshop?.id, workshop?.is_enrolled]);
 
@@ -77,8 +95,8 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
     const token = getToken();
     setIsAuthenticated(!!token);
 
-    if (token && isOpen && workshop?.id) {
-      // Fetch current enrollment status
+    if (isOpen && workshop?.id) {
+      setJustEnrolled(false);
       fetchEnrollmentStatus();
     }
   }, [isOpen, workshop?.id, fetchEnrollmentStatus]);
@@ -226,35 +244,32 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                 <MdLocationOn className="text-orange-500" />
                 <span className="font-medium text-gray-900">Ubicación:</span> {workshop.ubicacion || 'Por definir'}
               </div>
-              {typeof workshop.capacidad === "number" && (
+              {enrollmentStatus.available_spots !== undefined && (
                 <div className="flex items-center gap-2">
                   <FaUsers className="text-orange-500" />
-                  <span className="font-medium text-gray-900">Capacidad:</span> 
-                  <span className="text-green-600">
-                    {workshop.capacidad} personas
+                  <span className="font-medium text-gray-900">Cupos:</span>
+                  <span className={enrollmentStatus.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
+                    {enrollmentStatus.available_spots} disponibles
                   </span>
+                  {enrollmentStatus.enrolled_count > 0 && (
+                    <span className="text-gray-500 text-sm">
+                      ({enrollmentStatus.enrolled_count} inscritos)
+                    </span>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Enrollment Status */}
-            {enrollmentStatus.available_spots !== undefined && (
-              <div className="text-center text-sm text-gray-600">
-                <span className="flex items-center justify-center gap-2">
-                  <FaUsers className="text-orange-500" />
-                  {enrollmentStatus.enrolled_count} de {workshop.capacidad} inscritos
-                  {enrollmentStatus.available_spots > 0 && (
-                    <span className="text-green-600">({enrollmentStatus.available_spots} disponibles)</span>
-                  )}
-                  {enrollmentStatus.available_spots === 0 && (
-                    <span className="text-red-600">(Sin cupos disponibles)</span>
-                  )}
-                </span>
-              </div>
-            )}
-
             {/* Actions */}
-            <div className="flex justify-center items-center">
+            <div className="flex flex-col justify-center items-center gap-3">
+              {enrollmentStatus.is_enrolled && !justEnrolled && isAuthenticated && (
+                <p
+                  className="text-center text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 w-full max-w-md"
+                  role="status"
+                >
+                  Ya estás inscrito en este taller.
+                </p>
+              )}
               {justEnrolled ? (
                 <div className="text-center space-y-3">
                   <div className="text-green-600 font-semibold mb-2">¡Te has inscrito exitosamente!</div>
@@ -270,7 +285,11 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
               ) : (
                 <button
                   onClick={handleEnroll}
-                  disabled={submitting || (!isAuthenticated && enrollmentStatus.available_spots === 0)}
+                  disabled={
+                    submitting ||
+                    enrollmentLoading ||
+                    (!isAuthenticated && enrollmentStatus.available_spots === 0)
+                  }
                   className={`px-6 py-2 rounded-lg transition disabled:opacity-50 ${
                     enrollmentStatus.is_enrolled
                       ? 'bg-red-600 text-white hover:bg-red-500'
@@ -281,7 +300,9 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                       : 'bg-blue-600 text-white hover:bg-blue-500'
                   }`}
                 >
-                  {submitting ? (
+                  {enrollmentLoading ? (
+                    'Comprobando inscripción...'
+                  ) : submitting ? (
                     'Procesando...'
                   ) : enrollmentStatus.is_enrolled ? (
                     'Cancelar Inscripción'
@@ -290,7 +311,7 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                   ) : enrollmentStatus.available_spots === 0 ? (
                     'Sin Cupos Disponibles'
                   ) : (
-                    'Inscribirse'
+                    'Registrarse'
                   )}
                 </button>
               )}

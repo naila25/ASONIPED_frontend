@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import { FaTicketAlt, FaSearch, FaExclamationTriangle } from 'react-icons/fa';
 import { getAnonymousTicketByTicketId } from '../Services/anonymousTicketService';
 import type { AnonymousTicket } from '../Services/anonymousTicketService';
-import AnonymousTicketConversation from './AnonymousTicketConversation';
 
-const AnonymousTicketLookup: React.FC = () => {
+type AnonymousTicketLookupProps = {
+  onTicketFound: (ticket: AnonymousTicket) => void;
+};
+
+const AnonymousTicketLookup: React.FC<AnonymousTicketLookupProps> = ({ onTicketFound }) => {
   const [ticketId, setTicketId] = useState('');
-  const [ticket, setTicket] = useState<AnonymousTicket | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!ticketId.trim()) {
       setError('Por favor ingresa un ID de ticket válido');
       return;
@@ -21,32 +23,16 @@ const AnonymousTicketLookup: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const ticketData = await getAnonymousTicketByTicketId(ticketId.trim());
-      setTicket(ticketData);
+      onTicketFound(ticketData);
+      setTicketId('');
     } catch {
       setError('Ticket no encontrado. Verifica el ID e intenta de nuevo.');
-      setTicket(null);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleCloseConversation = () => {
-    setTicket(null);
-    setTicketId('');
-    setError(null);
-  };
-
-  if (ticket) {
-    return (
-      <AnonymousTicketConversation 
-        ticket={ticket as { id: number; ticket_id: string; asunto: string; mensaje?: string | undefined; status: "open" | "closed" | "archived"; }} 
-        onClose={handleCloseConversation}
-        onTicketUpdate={() => {}} // No need to update anything in lookup mode
-      />
-    );
-  }
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
@@ -89,7 +75,7 @@ const AnonymousTicketLookup: React.FC = () => {
         <button
           type="submit"
           disabled={loading || !ticketId.trim()}
-          className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-500 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
             <>

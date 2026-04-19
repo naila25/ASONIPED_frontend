@@ -1,4 +1,4 @@
-import { getAuthHeader, getToken } from '../../Login/Services/auth';
+import { getAuthHeader } from '../../Login/Services/auth';
 import { getAPIBaseURLSync } from '../../../shared/Services/config';
 import type { 
   Record, 
@@ -11,94 +11,70 @@ import type {
 
 const getAPIUrl = () => `${getAPIBaseURLSync()}/records`;
 
+/** Non-empty `Authorization` value for XHR (skips header when unauthenticated). */
+function authorizationHeaderForXHR(): string | undefined {
+  const raw = getAuthHeader()['Authorization'];
+  const trimmed = typeof raw === 'string' ? raw.trim() : '';
+  return trimmed || undefined;
+}
+
 // ===== SERVICIOS BÁSICOS =====
 
 // Obtener expediente del usuario actual
 export const getUserRecord = async (): Promise<RecordWithDetails | null> => {
-  try {
-    const authHeader = getAuthHeader();
-    console.log('=== GET USER RECORD ===');
-    console.log('Auth header:', authHeader);
-    console.log('Token:', getToken());
-    
-    const response = await fetch(`${getAPIUrl()}/my-record`, {
-      headers: {
-        ...authHeader,
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-    
-    if (response.status === 404) {
-      console.log('User has no record');
-      return null; // Usuario no tiene expediente
-    }
-    
-    if (response.status === 401) {
-      console.log('User not authenticated');
-      throw new Error('Sesión expirada. Por favor, inicie sesión nuevamente.');
-    }
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response error:', errorText);
-      throw new Error(`Error obteniendo expediente: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('User record data:', data);
-    return data;
-  } catch (error) {
-    console.error('Error fetching user record:', error);
-    throw error;
+  const authHeader = getAuthHeader();
+
+  const response = await fetch(`${getAPIUrl()}/my-record`, {
+    headers: {
+      ...authHeader,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 404) {
+    return null; // Usuario no tiene expediente
   }
+
+  if (response.status === 401) {
+    throw new Error('Sesión expirada. Por favor, inicie sesión nuevamente.');
+  }
+
+  if (!response.ok) {
+    await response.text();
+    throw new Error(`Error obteniendo expediente: ${response.status}`);
+  }
+
+  return await response.json();
 };
 
 // Crear expediente inicial (Fase 1)
 export const createInitialRecord = async (phase1Data: Phase1Data): Promise<Record> => {
-  try {
-    const requestBody = {
-      phase: 'phase1',
-      personal_data: phase1Data
-    };
-    
-    console.log('=== CREATING INITIAL RECORD ===');
-    console.log('Request body:', requestBody);
-    console.log('Auth header:', getAuthHeader());
-    
-    const response = await fetch(`${getAPIUrl()}`, {
-      method: 'POST',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response error text:', errorText);
-      
-             try {
-         const error = JSON.parse(errorText);
-         throw new Error(error.error || 'Error creando expediente');
-       } catch {
-         throw new Error(`Error creando expediente: ${errorText}`);
-       }
+  const requestBody = {
+    phase: 'phase1',
+    personal_data: phase1Data
+  };
+
+  const response = await fetch(`${getAPIUrl()}`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    try {
+      const error = JSON.parse(errorText);
+      throw new Error(error.error || 'Error creando expediente');
+    } catch {
+      throw new Error(`Error creando expediente: ${errorText}`);
     }
-    
-    const data = await response.json();
-    console.log('Created record data:', data);
-    return data;
-  } catch (error) {
-    console.error('Error creating initial record:', error);
-    throw error;
   }
+
+  return await response.json();
 };
 
 // Completar expediente (Fase 3)
@@ -107,17 +83,7 @@ export const completeRecord = async (
   phase3Data: Phase3Data,
   onProgress?: (percent: number) => void
 ): Promise<Record> => {
-  try {
-    console.log('=== COMPLETANDO EXPEDIENTE ===');
-    console.log('Record ID:', recordId);
-    console.log('Phase3Data:', phase3Data);
-    console.log('Disability Information:', phase3Data.disability_information);
-    console.log('Medical Additional:', phase3Data.disability_information?.medical_additional);
-    console.log('Biomechanical Benefits:', phase3Data.disability_information?.medical_additional?.biomechanical_benefit);
-    console.log('Permanent Limitations:', phase3Data.disability_information?.medical_additional?.permanent_limitations);
-    console.log('Socioeconomic Information:', phase3Data.socioeconomic_information);
-    
-    const formData = new FormData();
+  const formData = new FormData();
     
     // Agregar datos JSON
     formData.append('data', JSON.stringify({
@@ -135,8 +101,8 @@ export const completeRecord = async (
       let documentType = 'other';
       
       // Si tenemos información de tipos de documentos del formulario, usarla
-      if ((phase3Data as any).documentTypes && (phase3Data as any).documentTypes[file.name]) {
-        documentType = (phase3Data as any).documentTypes[file.name];
+      if (phase3Data.documentTypes?.[file.name]) {
+        documentType = phase3Data.documentTypes[file.name];
       } else {
         // Fallback: mapeo inteligente basado en el nombre del archivo
         const fileName = file.name.toLowerCase();
@@ -183,20 +149,15 @@ export const completeRecord = async (
           }
         }
       }
-      
-      console.log(`Mapeando archivo "${file.name}" como tipo: ${documentType}`);
-      
+
       // Usar el tipo de documento como nombre del campo
       formData.append(documentType, file);
     });
-    
-    console.log('FormData preparado, enviando request...');
-    
-    // Usar XMLHttpRequest para poder reportar progreso de subida
-    const authHeader = getAuthHeader();
-    const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
 
-    const xhrResponse: any = await new Promise((resolve, reject) => {
+    // Usar XMLHttpRequest para poder reportar progreso de subida
+    const token = authorizationHeaderForXHR();
+
+    const xhrResponse = await new Promise<Record>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', `${getAPIUrl()}/${recordId}/complete`);
 
@@ -219,14 +180,14 @@ export const completeRecord = async (
         if (xhr.readyState === XMLHttpRequest.DONE) {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch (e) {
-              resolve({});
+              resolve(JSON.parse(xhr.responseText) as Record);
+            } catch {
+              resolve({} as Record);
             }
           } else {
             const errorText = xhr.responseText || `HTTP ${xhr.status}`;
             try {
-              const error = JSON.parse(errorText);
+              const error = JSON.parse(errorText) as { error?: string };
               reject(new Error(error.error || 'Error completando expediente'));
             } catch {
               reject(new Error(`Error completando expediente: ${errorText}`));
@@ -242,19 +203,7 @@ export const completeRecord = async (
       xhr.send(formData);
     });
 
-    const data = xhrResponse;
-    console.log('Expediente completado exitosamente:', data);
-    
-    // Log Google Drive integration info
-    if (data.uploadedFiles) {
-      console.log('Archivos subidos a Google Drive:', data.uploadedFiles);
-    }
-    
-    return data as Record;
-  } catch (error) {
-    console.error('Error completing record:', error);
-    throw error;
-  }
+    return xhrResponse;
 };
 
 // Crear expediente directamente por admin (bypass workflow)
@@ -262,132 +211,96 @@ export const createAdminDirectRecord = async (
   phase3Data: Phase3Data,
   onProgress?: (percent: number) => void
 ): Promise<Record> => {
-  try {
-    console.log('=== CREANDO EXPEDIENTE ADMIN DIRECTO ===');
-    console.log('Phase3Data:', phase3Data);
-    console.log('Disability Information:', phase3Data.disability_information);
-    console.log('Socioeconomic Information:', phase3Data.socioeconomic_information);
-    
-    const formData = new FormData();
-    
-    // Agregar datos JSON
-    formData.append('data', JSON.stringify({
-      complete_personal_data: phase3Data.complete_personal_data,
-      family_information: phase3Data.family_information,
-      disability_information: phase3Data.disability_information,
-      socioeconomic_information: phase3Data.socioeconomic_information,
-      documentation_requirements: phase3Data.documentation_requirements,
-    }));
-    
-    // Agregar documentos con nombres de campo específicos
-    console.log('=== PROCESSING DOCUMENTS FOR UPLOAD ===');
-    console.log('phase3Data.documents:', phase3Data.documents);
-    console.log('phase3Data.documents.length:', phase3Data.documents?.length);
-    console.log('documentTypes:', (phase3Data as any).documentTypes);
-    
-    if (phase3Data.documents && phase3Data.documents.length > 0) {
-      phase3Data.documents.forEach((file, index) => {
-        console.log(`Processing document ${index + 1}:`, {
-          name: file.name,
-          size: file.size,
-          type: file.type
-        });
-        
-        let documentType = 'other';
-        
-        if ((phase3Data as any).documentTypes && (phase3Data as any).documentTypes[file.name]) {
-          documentType = (phase3Data as any).documentTypes[file.name];
-          console.log(`Using documentTypes mapping: ${file.name} -> ${documentType}`);
-        } else {
-          const fileName = file.name.toLowerCase();
-          console.log(`Using filename-based mapping for: ${fileName}`);
-          
-          if (fileName.includes('dictamen') || fileName.includes('medico')) {
-            documentType = 'dictamen_medico';
-          } else if (fileName.includes('nacimiento') || fileName.includes('birth')) {
-            documentType = 'constancia_nacimiento';
-          } else if (fileName.includes('cedula') || fileName.includes('identificacion')) {
-            documentType = 'copia_cedula';
-          } else if (fileName.includes('foto') || fileName.includes('photo')) {
-            documentType = 'foto_pasaporte';
-          } else if (fileName.includes('pension') || fileName.includes('ccss')) {
-            documentType = 'constancia_pension_ccss';
-          } else if (fileName.includes('estudio') || fileName.includes('study')) {
-            documentType = 'constancia_estudio';
-          } else if (fileName.includes('banco') || fileName.includes('cuenta')) {
-            documentType = 'cuenta_banco_nacional';
-          }
+  const formData = new FormData();
+
+  // Agregar datos JSON
+  formData.append('data', JSON.stringify({
+    complete_personal_data: phase3Data.complete_personal_data,
+    family_information: phase3Data.family_information,
+    disability_information: phase3Data.disability_information,
+    socioeconomic_information: phase3Data.socioeconomic_information,
+    documentation_requirements: phase3Data.documentation_requirements,
+  }));
+
+  // Agregar documentos con nombres de campo específicos
+  if (phase3Data.documents && phase3Data.documents.length > 0) {
+    phase3Data.documents.forEach((file) => {
+      let documentType = 'other';
+
+      if (phase3Data.documentTypes?.[file.name]) {
+        documentType = phase3Data.documentTypes[file.name];
+      } else {
+        const fileName = file.name.toLowerCase();
+
+        if (fileName.includes('dictamen') || fileName.includes('medico')) {
+          documentType = 'dictamen_medico';
+        } else if (fileName.includes('nacimiento') || fileName.includes('birth')) {
+          documentType = 'constancia_nacimiento';
+        } else if (fileName.includes('cedula') || fileName.includes('identificacion')) {
+          documentType = 'copia_cedula';
+        } else if (fileName.includes('foto') || fileName.includes('photo')) {
+          documentType = 'foto_pasaporte';
+        } else if (fileName.includes('pension') || fileName.includes('ccss')) {
+          documentType = 'constancia_pension_ccss';
+        } else if (fileName.includes('estudio') || fileName.includes('study')) {
+          documentType = 'constancia_estudio';
+        } else if (fileName.includes('banco') || fileName.includes('cuenta')) {
+          documentType = 'cuenta_banco_nacional';
         }
-        
-        console.log(`Final document type for ${file.name}: ${documentType}`);
-        formData.append(documentType, file);
-      });
-    } else {
-      console.log('WARNING: No documents found in phase3Data.documents');
-    }
-    
-    console.log('FormData preparado, enviando request...');
-    
-    
-    const authHeader = getAuthHeader();
-    const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
-
-    const xhrResponse: any = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${getAPIUrl()}/admin-direct`);
-
-      // Agregar encabezados de autenticación si existen
-      if (token) {
-        xhr.setRequestHeader('Authorization', token);
       }
 
-      // Progreso de carga
-      if (xhr.upload && onProgress) {
-        xhr.upload.onprogress = (event: ProgressEvent) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            onProgress(percent);
-          }
-        };
-      }
-
-      xhr.onreadystatechange = () => {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch (e) {
-              resolve({});
-            }
-          } else {
-            const errorText = xhr.responseText || `HTTP ${xhr.status}`;
-            
-            
-            try {
-              const error = JSON.parse(errorText);
-              reject(new Error(error.error || 'Error creando expediente admin'));
-            } catch {
-              reject(new Error(`Error creando expediente admin: ${errorText}`));
-            }
-          }
-        }
-      };
-
-      xhr.onerror = () => {
-        reject(new Error('Error de red al crear expediente admin'));
-      };
-
-      xhr.send(formData);
+      formData.append(documentType, file);
     });
-
-    const data = xhrResponse;
-    console.log('Expediente admin creado exitosamente:', data);
-    
-    return data as Record;
-  } catch (error) {
-    console.error('Error creating admin record:', error);
-    throw error;
   }
+
+  const token = authorizationHeaderForXHR();
+
+  const xhrResponse = await new Promise<Record>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${getAPIUrl()}/admin-direct`);
+
+    if (token) {
+      xhr.setRequestHeader('Authorization', token);
+    }
+
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (event: ProgressEvent) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
+    }
+
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText) as Record);
+          } catch {
+            resolve({} as Record);
+          }
+        } else {
+          const errorText = xhr.responseText || `HTTP ${xhr.status}`;
+
+          try {
+            const error = JSON.parse(errorText) as { error?: string };
+            reject(new Error(error.error || 'Error creando expediente admin'));
+          } catch {
+            reject(new Error(`Error creando expediente admin: ${errorText}`));
+          }
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Error de red al crear expediente admin'));
+    };
+
+    xhr.send(formData);
+  });
+
+  return xhrResponse;
 };
 
 // ===== SERVICIOS DE ADMIN =====
@@ -402,24 +315,19 @@ export const getGeographicAnalytics = async (): Promise<Array<{
   district: string | null;
   created_at: string;
 }>> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/geographic-analytics`, {
-      method: 'GET',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-    });
+  const response = await fetch(`${getAPIUrl()}/geographic-analytics`, {
+    method: 'GET',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching geographic analytics:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+
+  return await response.json();
 };
 
 // Get disability analytics data only (lightweight)
@@ -453,45 +361,35 @@ export const getDisabilityAnalytics = async (): Promise<Array<{
     diseases: string | null;
   } | null;
 }>> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/disability-analytics`, {
-      method: 'GET',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-    });
+  const response = await fetch(`${getAPIUrl()}/disability-analytics`, {
+    method: 'GET',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching disability analytics:', error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+
+  return await response.json();
 };
 
-export const getDemographicRecords = async (limit: number = 1000): Promise<any[]> => {
-  try {
-    // getAPIUrl() already points to /records base; do not append /records again
-    const response = await fetch(`${getAPIUrl()}?page=1&limit=${limit}`, {
-      method: 'GET',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data.records || [];
-  } catch (error) {
-    console.error('Error fetching demographic records:', error);
-    throw error;
+export const getDemographicRecords = async (limit: number = 1000): Promise<Record[]> => {
+  // getAPIUrl() already points to /records base; do not append /records again
+  const response = await fetch(`${getAPIUrl()}?page=1&limit=${limit}`, {
+    method: 'GET',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+  const data = (await response.json()) as RecordsResponse;
+  return data.records ?? [];
 };
 
 export const getFamilyAnalytics = async (): Promise<Array<{
@@ -511,22 +409,17 @@ export const getFamilyAnalytics = async (): Promise<Array<{
     }> | [];
   } | null;
 }>> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/family-analytics`, {
-      method: 'GET',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching family analytics:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/family-analytics`, {
+    method: 'GET',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+  return await response.json();
 };
 
 export const getRecords = async (
@@ -537,126 +430,90 @@ export const getRecords = async (
   search?: string,
   creator?: string
 ): Promise<RecordsResponse> => {
-  try {
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: String(limit),
-    });
-    
-    if (status) params.append('status', status);
-    if (phase) params.append('phase', phase);
-    if (search) params.append('search', search);
-    if (creator) params.append('creator', creator);
-    
-    const response = await fetch(`${getAPIUrl()}?${params.toString()}`, {
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error obteniendo expedientes');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching records:', error);
-    throw error;
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  if (status) params.append('status', status);
+  if (phase) params.append('phase', phase);
+  if (search) params.append('search', search);
+  if (creator) params.append('creator', creator);
+
+  const response = await fetch(`${getAPIUrl()}?${params.toString()}`, {
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Error obteniendo expedientes');
   }
+
+  return await response.json();
 };
 
 // Obtener expediente por ID (admin)
 export const getRecordById = async (id: number): Promise<RecordWithDetails> => {
-  try {
-    console.log('=== GET RECORD BY ID ===');
-    console.log('Record ID:', id);
-    console.log('API URL:', `${getAPIUrl()}/${id}`);
-    console.log('Auth header:', getAuthHeader());
-    
-    const { authenticatedRequest } = await import('../../../shared/Services/api.service');
-    const response = await authenticatedRequest(`/records/${id}`, {
-      method: 'GET',
-    });
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response error:', errorText);
-      throw new Error('Error obteniendo expediente');
-    }
-    
-    const data = await response.json();
-    console.log('Record data received:', data);
-    return data;
-  } catch (error) {
-    console.error('Error fetching record by ID:', error);
-    throw error;
+  const { authenticatedRequest } = await import('../../../shared/Services/api.service');
+  const response = await authenticatedRequest(`/records/${id}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    await response.text();
+    throw new Error('Error obteniendo expediente');
   }
+
+  return await response.json();
 };
 
 // Aprobar fase 1
 export const approvePhase1 = async (recordId: number, comment?: string): Promise<void> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/${recordId}/approve-phase1`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ comment }),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error aprobando fase 1');
-    }
-  } catch (error) {
-    console.error('Error approving phase 1:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/${recordId}/approve-phase1`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ comment }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error aprobando fase 1');
   }
 };
 
 // Rechazar fase 1
 export const rejectPhase1 = async (recordId: number, comment: string): Promise<void> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/${recordId}/reject-phase1`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ comment }),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error rechazando fase 1');
-    }
-  } catch (error) {
-    console.error('Error rejecting phase 1:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/${recordId}/reject-phase1`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ comment }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error rechazando fase 1');
   }
 };
 
 // Solicitar modificación de fase 1
 export const requestPhase1Modification = async (recordId: number, comment?: string): Promise<void> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/${recordId}/request-modification`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ comment }),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error solicitando modificación');
-    }
-  } catch (error) {
-    console.error('Error requesting modification:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/${recordId}/request-modification`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ comment }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error solicitando modificación');
   }
 };
 
@@ -667,291 +524,180 @@ export const requestPhase3Modification = async (
   sectionsToModify: string[] = [],
   documentsToReplace: number[] = []
 ): Promise<void> => {
-  try {
-    console.log('=== API: REQUESTING PHASE 3 MODIFICATION ===');
-    console.log('Record ID:', recordId);
-    console.log('Comment:', comment);
-    console.log('Sections to modify:', sectionsToModify);
-    console.log('Sections to modify type:', typeof sectionsToModify);
-    console.log('Sections to modify length:', sectionsToModify?.length);
-    console.log('Documents to replace:', documentsToReplace);
-    console.log('Documents to replace type:', typeof documentsToReplace);
-    console.log('Documents to replace length:', documentsToReplace?.length);
-    
-    const requestUrl = `${getAPIUrl()}/${recordId}/request-phase3-modification`;
-    console.log('Request URL:', requestUrl);
-    console.log('API URL:', getAPIUrl());
-    const authHeader = getAuthHeader();
-    console.log('Auth header:', authHeader);
-    console.log('Full request details:', {
-      url: requestUrl,
-      method: 'PUT',
-      headers: authHeader
-    });
-    
-    console.log('Making fetch request...');
-    const response = await fetch(requestUrl, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        comment,
-        sections_to_modify: sectionsToModify,
-        documents_to_replace: documentsToReplace
-      }),
-    });
-    console.log('Fetch request completed');
-    
-    console.log('Response status:', response.status);
-    console.log('Response ok:', response.ok);
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error response:', errorData);
-      throw new Error(errorData.error || 'Error solicitando modificación de Fase 3');
-    }
-    
-    const responseData = await response.json();
-    console.log('Response data:', responseData);
-    console.log('Phase 3 modification request successful');
-  } catch (error) {
-    console.error('Error requesting phase 3 modification:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : undefined
-    });
-    throw error;
+  const requestUrl = `${getAPIUrl()}/${recordId}/request-phase3-modification`;
+  const response = await fetch(requestUrl, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      comment,
+      sections_to_modify: sectionsToModify,
+      documents_to_replace: documentsToReplace
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Error solicitando modificación de Fase 3');
   }
+
+  await response.json();
 };
 
 // Update phase 1 data (for modifications)
-export const updatePhase1Data = async (recordId: number, personalData: any): Promise<void> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/${recordId}/update-phase1`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(personalData),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error actualizando datos');
-    }
-  } catch (error) {
-    console.error('Error updating phase 1 data:', error);
-    throw error;
+export const updatePhase1Data = async (recordId: number, personalData: Phase1Data): Promise<void> => {
+  const response = await fetch(`${getAPIUrl()}/${recordId}/update-phase1`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(personalData),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error actualizando datos');
   }
 };
 
 // Aprobar expediente completo
 export const approveRecord = async (recordId: number, comment?: string): Promise<void> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/${recordId}/approve`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ comment }),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error aprobando expediente');
-    }
-  } catch (error) {
-    console.error('Error approving record:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/${recordId}/approve`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ comment }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error aprobando expediente');
   }
 };
 
 // Rechazar expediente completo
 export const rejectRecord = async (recordId: number, comment: string): Promise<void> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/${recordId}/reject`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ comment }),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error rechazando expediente');
-    }
-  } catch (error) {
-    console.error('Error rejecting record:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/${recordId}/reject`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ comment }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error rechazando expediente');
   }
 };
 
 // Agregar comentario
 export const addNote = async (recordId: number, note: string, type: string = 'activity'): Promise<void> => {
-  try {
-    console.log('=== AGREGANDO COMENTARIO ===');
-    console.log('Record ID:', recordId);
-    console.log('Note:', note);
-    console.log('Type:', type);
-    
-    const response = await fetch(`${getAPIUrl()}/${recordId}/notes`, {
-      method: 'POST',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ note, type }),
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response error text:', errorText);
-      throw new Error('Error agregando comentario');
-    }
-    
-    console.log('Comentario agregado exitosamente');
-  } catch (error) {
-    console.error('Error adding note:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/${recordId}/notes`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ note, type }),
+  });
+
+  if (!response.ok) {
+    await response.text();
+    throw new Error('Error agregando comentario');
   }
 };
 
 // Actualizar comentario
 export const updateNote = async (noteId: number, note: string, type?: string): Promise<void> => {
-  try {
-    console.log('=== ACTUALIZANDO COMENTARIO ===');
-    console.log('Note ID:', noteId);
-    console.log('Note:', note);
-    console.log('Type:', type);
-    
-    const response = await fetch(`${getAPIUrl()}/notes/${noteId}`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ note, type }),
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response error text:', errorText);
-      throw new Error('Error actualizando comentario');
-    }
-    
-    console.log('Comentario actualizado exitosamente');
-  } catch (error) {
-    console.error('Error updating note:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/notes/${noteId}`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ note, type }),
+  });
+
+  if (!response.ok) {
+    await response.text();
+    throw new Error('Error actualizando comentario');
   }
 };
 
 // Eliminar comentario
 export const deleteNote = async (noteId: number): Promise<void> => {
-  try {
-    console.log('=== ELIMINANDO COMENTARIO ===');
-    console.log('Note ID:', noteId);
-    
-    const response = await fetch(`${getAPIUrl()}/notes/${noteId}`, {
-      method: 'DELETE',
-      headers: {
-        ...getAuthHeader(),
-      },
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response error text:', errorText);
-      throw new Error('Error eliminando comentario');
-    }
-    
-    console.log('Comentario eliminado exitosamente');
-  } catch (error) {
-    console.error('Error deleting note:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/notes/${noteId}`, {
+    method: 'DELETE',
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+
+  if (!response.ok) {
+    await response.text();
+    throw new Error('Error eliminando comentario');
   }
 };
 
 // Eliminar expediente
 export const deleteRecord = async (recordId: number): Promise<void> => {
-  try {
-    console.log('=== ELIMINANDO EXPEDIENTE ===');
-    console.log('Record ID:', recordId);
-    
-    const response = await fetch(`${getAPIUrl()}/${recordId}`, {
-      method: 'DELETE',
-      headers: {
-        ...getAuthHeader(),
-      },
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Response error text:', errorText);
-      throw new Error('Error eliminando expediente');
-    }
-    
-    console.log('Expediente eliminado exitosamente');
-  } catch (error) {
-    console.error('Error deleting record:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/${recordId}`, {
+    method: 'DELETE',
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+
+  if (!response.ok) {
+    await response.text();
+    throw new Error('Error eliminando expediente');
   }
 };
 
 // Obtener estadísticas (admin)
 export const getRecordStats = async (): Promise<RecordStats> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/stats`, {
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error obteniendo estadísticas');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching record stats:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/stats`, {
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Error obteniendo estadísticas');
   }
+
+  return await response.json();
 };
 
 // ===== SERVICIOS DE VALIDACIÓN =====
 
 // Verificar si cédula está disponible
 export const checkCedulaAvailability = async (cedula: string, excludeRecordId?: number): Promise<boolean> => {
-  try {
-    const params = new URLSearchParams();
-    if (excludeRecordId) {
-      params.append('excludeRecordId', excludeRecordId.toString());
-    }
-    
-    const response = await fetch(`${getAPIUrl()}/check-cedula-availability/${cedula}?${params.toString()}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (response.status === 409) {
-      return false; // Cédula ya existe
-    }
-    
-    if (response.ok) {
-      return true; // Cédula disponible
-    }
-    
-    throw new Error('Error verificando cédula');
-  } catch (error) {
-    console.error('Error checking cedula availability:', error);
-    throw error;
+  const params = new URLSearchParams();
+  if (excludeRecordId) {
+    params.append('excludeRecordId', excludeRecordId.toString());
   }
+
+  const response = await fetch(`${getAPIUrl()}/check-cedula-availability/${cedula}?${params.toString()}`, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 409) {
+    return false; // Cédula ya existe
+  }
+
+  if (response.ok) {
+    return true; // Cédula disponible
+  }
+
+  throw new Error('Error verificando cédula');
 };
 
 // ===== SERVICIOS DE FASE 3 MODIFICACIONES =====
@@ -962,56 +708,49 @@ export const updatePhase3Data = async (
   phase3Data: Phase3Data,
   onProgress?: (percent: number) => void
 ): Promise<Record> => {
-  try {
-    console.log('=== ACTUALIZANDO DATOS FASE 3 ===');
-    console.log('Record ID:', recordId);
-    console.log('Phase3Data:', phase3Data);
-    
-    const formData = new FormData();
-    
-    // Agregar datos JSON
-    formData.append('data', JSON.stringify({
+  const formData = new FormData();
+
+  // Agregar datos JSON
+  formData.append('data', JSON.stringify({
       complete_personal_data: phase3Data.complete_personal_data,
       family_information: phase3Data.family_information,
       disability_information: phase3Data.disability_information,
       socioeconomic_information: phase3Data.socioeconomic_information,
       documentation_requirements: phase3Data.documentation_requirements,
     }));
-    
-    // Agregar documentos con nombres de campo específicos
-    phase3Data.documents.forEach((file) => {
-      let documentType = 'other';
-      
-      if ((phase3Data as any).documentTypes && (phase3Data as any).documentTypes[file.name]) {
-        documentType = (phase3Data as any).documentTypes[file.name];
-      } else {
-        const fileName = file.name.toLowerCase();
-        
-        if (fileName.includes('dictamen') || fileName.includes('medico')) {
-          documentType = 'dictamen_medico';
-        } else if (fileName.includes('nacimiento') || fileName.includes('birth')) {
-          documentType = 'constancia_nacimiento';
-        } else if (fileName.includes('cedula') || fileName.includes('identificacion')) {
-          documentType = 'copia_cedula';
-        } else if (fileName.includes('foto') || fileName.includes('photo')) {
-          documentType = 'foto_pasaporte';
-        } else if (fileName.includes('pension') || fileName.includes('ccss')) {
-          documentType = 'constancia_pension_ccss';
-        } else if (fileName.includes('estudio') || fileName.includes('study')) {
-          documentType = 'constancia_estudio';
-        } else if (fileName.includes('banco') || fileName.includes('cuenta')) {
-          documentType = 'cuenta_banco_nacional';
-        }
-      }
-      
-      formData.append(documentType, file);
-    });
-    
-    // Usar XMLHttpRequest para progreso
-    const authHeader = getAuthHeader();
-    const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
 
-    const xhrResponse: any = await new Promise((resolve, reject) => {
+  // Agregar documentos con nombres de campo específicos
+  phase3Data.documents.forEach((file) => {
+    let documentType = 'other';
+
+    if (phase3Data.documentTypes?.[file.name]) {
+      documentType = phase3Data.documentTypes[file.name];
+    } else {
+      const fileName = file.name.toLowerCase();
+
+      if (fileName.includes('dictamen') || fileName.includes('medico')) {
+        documentType = 'dictamen_medico';
+      } else if (fileName.includes('nacimiento') || fileName.includes('birth')) {
+        documentType = 'constancia_nacimiento';
+      } else if (fileName.includes('cedula') || fileName.includes('identificacion')) {
+        documentType = 'copia_cedula';
+      } else if (fileName.includes('foto') || fileName.includes('photo')) {
+        documentType = 'foto_pasaporte';
+      } else if (fileName.includes('pension') || fileName.includes('ccss')) {
+        documentType = 'constancia_pension_ccss';
+      } else if (fileName.includes('estudio') || fileName.includes('study')) {
+        documentType = 'constancia_estudio';
+      } else if (fileName.includes('banco') || fileName.includes('cuenta')) {
+        documentType = 'cuenta_banco_nacional';
+      }
+    }
+
+    formData.append(documentType, file);
+  });
+
+  const token = authorizationHeaderForXHR();
+
+  const xhrResponse = await new Promise<Record>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', `${getAPIUrl()}/${recordId}/update-phase3`);
 
@@ -1032,14 +771,14 @@ export const updatePhase3Data = async (
         if (xhr.readyState === XMLHttpRequest.DONE) {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch (e) {
-              resolve({});
+              resolve(JSON.parse(xhr.responseText) as Record);
+            } catch {
+              resolve({} as Record);
             }
           } else {
             const errorText = xhr.responseText || `HTTP ${xhr.status}`;
             try {
-              const error = JSON.parse(errorText);
+              const error = JSON.parse(errorText) as { error?: string };
               reject(new Error(error.error || 'Error actualizando datos de fase 3'));
             } catch {
               reject(new Error(`Error actualizando datos de fase 3: ${errorText}`));
@@ -1055,14 +794,7 @@ export const updatePhase3Data = async (
       xhr.send(formData);
     });
 
-    const data = xhrResponse;
-    console.log('Datos de fase 3 actualizados exitosamente:', data);
-    
-    return data as Record;
-  } catch (error) {
-    console.error('Error updating Phase 3 data:', error);
-    throw error;
-  }
+  return xhrResponse;
 };
 
 // Reemplazar documento específico
@@ -1071,18 +803,15 @@ export const replaceDocument = async (
   documentId: number, 
   file: File,
   onProgress?: (percent: number) => void
-): Promise<any> => {
-  try {
-    const formData = new FormData();
-    formData.append('document', file);
-    
-    // Usar XMLHttpRequest para progreso
-    const authHeader = getAuthHeader();
-    const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
+): Promise<unknown> => {
+  const formData = new FormData();
+  formData.append('document', file);
 
-    const xhrResponse: any = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('PUT', `${getAPIUrl().replace('/records', '/documents')}/${recordId}/documents/${documentId}/replace`);
+  const token = authorizationHeaderForXHR();
+
+  const xhrResponse = await new Promise<unknown>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', `${getAPIUrl().replace('/records', '/documents')}/${recordId}/documents/${documentId}/replace`);
 
       if (token) {
         xhr.setRequestHeader('Authorization', token);
@@ -1101,14 +830,14 @@ export const replaceDocument = async (
         if (xhr.readyState === XMLHttpRequest.DONE) {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch (e) {
+              resolve(JSON.parse(xhr.responseText) as unknown);
+            } catch {
               resolve({});
             }
           } else {
             const errorText = xhr.responseText || `HTTP ${xhr.status}`;
             try {
-              const error = JSON.parse(errorText);
+              const error = JSON.parse(errorText) as { error?: string };
               reject(new Error(error.error || 'Error reemplazando documento'));
             } catch {
               reject(new Error(`Error reemplazando documento: ${errorText}`));
@@ -1124,53 +853,39 @@ export const replaceDocument = async (
       xhr.send(formData);
     });
 
-    return xhrResponse;
-  } catch (error) {
-    console.error('Error replacing document:', error);
-    throw error;
-  }
+  return xhrResponse;
 };
 
 // ===== SERVICIOS DE NOTIFICACIONES =====
 
 // Obtener notificaciones del usuario
 export const getUserNotifications = async (): Promise<unknown[]> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/notifications`, {
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error obteniendo notificaciones');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/notifications`, {
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Error obteniendo notificaciones');
   }
+
+  return await response.json();
 };
 
 // Marcar notificación como leída
 export const markNotificationAsRead = async (notificationId: number): Promise<void> => {
-  try {
-    const response = await fetch(`${getAPIUrl()}/notifications/${notificationId}/read`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error marcando notificación como leída');
-    }
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    throw error;
+  const response = await fetch(`${getAPIUrl()}/notifications/${notificationId}/read`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Error marcando notificación como leída');
   }
 };
 
@@ -1180,31 +895,21 @@ export const updateRecordAdmin = async (
   data: Phase3Data,
   onProgress?: (percent: number) => void
 ): Promise<void> => {
-  try {
-    console.log('=== ADMIN RECORD UPDATE ===');
-    console.log('Record ID:', recordId);
-    console.log('Data:', data);
+  const formData = new FormData();
 
-    // Prepare FormData for file uploads
-    const formData = new FormData();
-    
-    // Add JSON data
-    formData.append('data', JSON.stringify(data));
-    
-    // Add files if any
-    if (data.documentation_requirements?.documents) {
-      data.documentation_requirements.documents.forEach((doc, index) => {
-        if ((doc as any).file) {
-          formData.append(`document_${index}`, (doc as any).file);
-        }
-      });
-    }
+  formData.append('data', JSON.stringify(data));
 
-    const authHeader = getAuthHeader();
-    const token = (authHeader && (authHeader as any)['Authorization']) || undefined;
+  if (data.documentation_requirements?.documents) {
+    data.documentation_requirements.documents.forEach((doc, index) => {
+      if (doc.file instanceof File) {
+        formData.append(`document_${index}`, doc.file);
+      }
+    });
+  }
 
-    // Use XMLHttpRequest for progress tracking
-    const xhrResponse: any = await new Promise((resolve, reject) => {
+  const token = authorizationHeaderForXHR();
+
+  await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       
       xhr.open('PUT', `${getAPIUrl()}/${recordId}/admin-edit`);
@@ -1227,16 +932,16 @@ export const updateRecordAdmin = async (
         if (xhr.readyState === 4) {
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
-              const response = JSON.parse(xhr.responseText);
-              resolve(response);
-            } catch (e) {
-              resolve(xhr.responseText);
+              JSON.parse(xhr.responseText);
+            } catch {
+              // non-JSON success body is still success
             }
+            resolve(undefined);
           } else {
             try {
-              const errorResponse = JSON.parse(xhr.responseText);
+              const errorResponse = JSON.parse(xhr.responseText) as { error?: string };
               reject(new Error(errorResponse.error || `HTTP ${xhr.status}`));
-            } catch (e) {
+            } catch {
               reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
             }
           }
@@ -1249,12 +954,6 @@ export const updateRecordAdmin = async (
       
       xhr.send(formData);
     });
-
-    console.log('Admin record update successful:', xhrResponse);
-  } catch (error) {
-    console.error('Error updating admin record:', error);
-    throw error;
-  }
 };
 
 // Hand over admin-created record to user
@@ -1262,30 +961,19 @@ export const handoverRecordToUser = async (
   recordId: number,
   userId: number
 ): Promise<{ message: string; record_id: number; user: { id: number; username: string; full_name: string } }> => {
-  try {
-    console.log('=== HANDOVER RECORD TO USER ===');
-    console.log('Record ID:', recordId);
-    console.log('User ID:', userId);
+  const response = await fetch(`${getAPIUrl()}/${recordId}/handover`, {
+    method: 'PUT',
+    headers: {
+      ...getAuthHeader(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ userId }),
+  });
 
-    const response = await fetch(`${getAPIUrl()}/${recordId}/handover`, {
-      method: 'PUT',
-      headers: {
-        ...getAuthHeader(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('Handover successful:', result);
-    return result;
-  } catch (error) {
-    console.error('Error handing over record:', error);
-    throw error;
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || `HTTP ${response.status}`);
   }
+
+  return await response.json();
 };

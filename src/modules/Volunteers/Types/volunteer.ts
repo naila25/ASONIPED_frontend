@@ -94,6 +94,8 @@ export interface VolunteerProposal {
   proposal: string;
   location: string;
   date: string;
+  hour?: string;
+  spots?: number;
   tools?: string;
   document_path?: string;
   status: string;

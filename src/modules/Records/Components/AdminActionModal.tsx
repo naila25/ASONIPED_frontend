@@ -7,6 +7,8 @@ interface AdminActionModalProps {
   comment: string;
   setComment: (value: string) => void;
   requireComment?: boolean;
+  /** When true, comment field is hidden (e.g. simple confirmations like delete) */
+  hideComment?: boolean;
   confirmLabel: string;
   loading?: boolean;
   onConfirm: () => void;
@@ -22,6 +24,7 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
   comment,
   setComment,
   requireComment = false,
+  hideComment = false,
   confirmLabel,
   loading = false,
   onConfirm,
@@ -30,8 +33,8 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
   recordName
 }) => {
   const isConfirmDisabled = useMemo(() => 
-    loading || (requireComment && !comment.trim()), 
-    [loading, requireComment, comment]
+    loading || (!hideComment && requireComment && !comment.trim()), 
+    [loading, hideComment, requireComment, comment]
   );
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -67,14 +70,14 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
     if (next.length <= 500) {
       setComment(next);
     }
-  }, []);
+  }, [setComment]);
 
   if (!isOpen) return null;
 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50"
+      className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-[110]"
       onMouseDown={handleOverlayClick}
       aria-modal="true"
       role="dialog"
@@ -101,22 +104,25 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
 
         <p className="text-gray-700 mb-4">{message}</p>
 
-        <div className="mb-1 flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-700">
-            Comentario {requireComment && <span className="text-red-600">(requerido)</span>}
-          </label>
-          <span className="text-xs text-gray-400">{comment.length}/500</span>
-        </div>
-        <textarea
-          value={comment}
-          onChange={handleCommentChange}
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
-          placeholder={requireComment ? 'Describa el motivo...' : 'Comentario (opcional)'}
-        />
-
-        {requireComment && !comment.trim() && (
-          <p className="text-xs text-red-600 -mt-3 mb-3">El comentario es obligatorio para esta acción.</p>
+        {!hideComment && (
+          <>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">
+                Comentario {requireComment && <span className="text-red-600">(requerido)</span>}
+              </label>
+              <span className="text-xs text-gray-400">{comment.length}/500</span>
+            </div>
+            <textarea
+              value={comment}
+              onChange={handleCommentChange}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              placeholder={requireComment ? 'Describa el motivo...' : 'Comentario (opcional)'}
+            />
+            {requireComment && !comment.trim() && (
+              <p className="text-xs text-red-600 -mt-3 mb-3">El comentario es obligatorio para esta acción.</p>
+            )}
+          </>
         )}
 
         <div className="flex justify-end space-x-3">
@@ -130,7 +136,7 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
             onClick={onConfirm}
             disabled={isConfirmDisabled}
             className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
-              requireComment ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-600 hover:bg-green-700'
+              requireComment ? 'bg-green-500 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'
             }`}
           >
             {loading ? 'Procesando...' : confirmLabel}
