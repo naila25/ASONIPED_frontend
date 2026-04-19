@@ -19,8 +19,6 @@ import {
   FileText,
   Users,
   Clock,
-  Table,
-  Grid3X3,
   ClipboardList,
   XCircle,
 } from 'lucide-react';
@@ -55,9 +53,6 @@ const WorkshopOptionsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
-
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(blankForm);
@@ -71,22 +66,10 @@ const WorkshopOptionsPage: React.FC = () => {
     const timer = setTimeout(() => {
       load();
     }, 0);
-    
-    detectZoomLevel();
-    
-    // Listen for zoom changes
-    window.addEventListener('resize', detectZoomLevel);
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', detectZoomLevel);
     };
   }, []);
-
-  // Detect zoom level based on device pixel ratio and visual viewport
-  const detectZoomLevel = () => {
-    const zoom = window.visualViewport ? window.visualViewport.scale : window.devicePixelRatio;
-    setZoomLevel(zoom);
-  };
 
   // Format HH:MM (24h) to 12-hour AM/PM for display
   const formatHour12 = (hhmm?: string): string => {
@@ -101,20 +84,7 @@ const WorkshopOptionsPage: React.FC = () => {
     }
   };
 
-  // Get character limit based on zoom level
-  const getCharacterLimit = (baseLimit: number) => {
-    if (zoomLevel <= 0.8) return Math.floor(baseLimit * 1.5); // More characters at lower zoom
-    if (zoomLevel <= 1.0) return baseLimit; // Normal at 100%
-    if (zoomLevel <= 1.2) return Math.floor(baseLimit * 0.8); // Fewer characters at higher zoom
-    if (zoomLevel <= 1.5) return Math.floor(baseLimit * 0.6); // Even fewer at very high zoom
-    return Math.floor(baseLimit * 0.4); // Minimum at extreme zoom
-  };
-
-  // Truncate text based on zoom level
-  const truncateText = (text: string, baseLimit: number) => {
-    const limit = getCharacterLimit(baseLimit);
-    return text.length > limit ? `${text.substring(0, limit)}...` : text;
-  };
+  // (Previously used for table view truncation; table view removed.)
 
   const getCapacitySummary = (workshop: Workshop) => {
     const total = workshop.capacidad;
@@ -328,14 +298,6 @@ const WorkshopOptionsPage: React.FC = () => {
 
   const pageHeaderActions = (
     <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-      <button
-        type="button"
-        onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-300 hover:bg-gray-50"
-      >
-        {viewMode === 'cards' ? <Table className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-        {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
-      </button>
       <div className="relative w-full min-w-[12rem] sm:w-72">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
@@ -650,111 +612,10 @@ const WorkshopOptionsPage: React.FC = () => {
         </div>
       )}
 
-        {/* Conditional Rendering: Table or Cards */}
-        {viewMode === 'table' ? (
-          /* Options Table - refined layout */
-          <div className="-mx-4 sm:mx-0 overflow-x-auto">
-            <div className="inline-block min-w-full align-middle">
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <table className="min-w-full table-auto text-sm">
-                  <thead className="bg-white sticky top-0 z-10 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-16">IMG</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider max-w-[12rem]">TÍTULO</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider max-w-[16rem]">DESCRIPCIÓN</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider max-w-[12rem]">MATERIALES</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider max-w-[12rem]">APRENDER</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-28">FECHA</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-24">HORA</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">UBICACIÓN</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-24">CAPACIDAD</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">ACCIONES</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((opt, idx) => (
-                      <tr key={opt.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
-                        <td className="px-4 py-3 align-top">
-                          <img
-                            src={opt.imagen || '/placeholder-image.png'}
-                            alt={opt.titulo}
-                            className="h-11 w-11 object-cover rounded-md border border-gray-200"
-                          />
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-[12rem]">
-                          <div className="font-semibold text-gray-900 leading-snug line-clamp-2 break-words" title={opt.titulo}>
-                            {opt.titulo}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-[16rem]">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2 break-words" title={opt.descripcion}>
-                            {opt.descripcion}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-[12rem]">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2 break-words" title={Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales || ''}>
-                            {Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-[12rem]">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2 break-words" title={opt.aprender || ''}>
-                            {opt.aprender || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={new Date(opt.fecha).toLocaleDateString('es-ES')}>
-                            {new Date(opt.fecha).toLocaleDateString('es-ES')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={opt.hora || 'No especificada'}>
-                            <Clock className="w-3 h-3 mr-1" />
-                            {opt.hora ? formatHour12(opt.hora) : '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={opt.ubicacion}>
-                            {truncateText(opt.ubicacion, 15)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 text-green-700 border border-green-200 text-xs font-medium" title={`${opt.capacidad || 'N/A'} cupos disponibles`}>
-                            <Users className="w-3 h-3 mr-1" />
-                            {opt.capacidad || '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col gap-2">
-                            <button
-                              onClick={() => startEdit(opt)}
-                              className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 transition-colors duration-200"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => handleDelete(opt.id)}
-                              className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-red-600 text-white rounded-md text-xs hover:bg-red-700 transition-colors duration-200"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-           
-            {/* Options Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {currentOptions.map((opt) => (
-                <div key={opt.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
+        {/* Options Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {currentOptions.map((opt) => (
+            <div key={opt.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
                   {/* Image Section */}
                   <div className="relative h-48 bg-gray-100 flex-shrink-0">
                     {opt.imagen ? (
@@ -844,8 +705,8 @@ const WorkshopOptionsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+          ))}
+        </div>
              {/* Pagination Info for Cards */}
              <div className="mb-6 text-center">
               <p className="text-gray-600">
@@ -900,8 +761,7 @@ const WorkshopOptionsPage: React.FC = () => {
                 </button>
               </div>
             )}
-          </>
-        )}
+        
 
         {filtered.length === 0 && (
           <div className="text-center py-8 text-gray-500">

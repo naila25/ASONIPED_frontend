@@ -9,18 +9,115 @@ import type {
   AttendanceStats,
   AttendanceAnalytics,
   CreateActivityTrackData,
+  CreateActivityTrackResponse,
+  ParkingPublicLinkResponse,
   CreateGuestAttendanceData,
   QRScanRequest,
   PaginatedResponse,
-  DashboardStats
+  DashboardStats,
+  PublicParkingActivityResponse,
+  ActivityParkingRegistration,
+  SubmitPublicParkingData,
 } from '../Types/attendanceNew';
 
 const API_URL = `${getAPIBaseURLSync()}/api/attendance`;
 
+/** Public parking link flow (no auth). */
+export const parkingPublicApi = {
+  getByToken: async (token: string): Promise<PublicParkingActivityResponse> => {
+    const safe = encodeURIComponent(token.trim());
+    const response = await fetch(`${API_URL}/public/parking/${safe}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = (await response.json().catch(() => null)) as PublicParkingActivityResponse | { error?: string } | null;
+    if (!response.ok) {
+      const msg = data && typeof data === 'object' && 'error' in data ? (data as { error?: string }).error : undefined;
+      if (response.status === 404 || response.status === 403) {
+        throw new Error(msg || 'Registro no disponible');
+      }
+      throw new Error(msg || 'Error al cargar la actividad');
+    }
+    return data as PublicParkingActivityResponse;
+  },
+
+  submit: async (token: string, data: SubmitPublicParkingData): Promise<{ message: string; id: number }> => {
+    const safe = encodeURIComponent(token.trim());
+    const response = await fetch(`${API_URL}/public/parking/${safe}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plate: data.plate,
+        full_name: data.full_name,
+        cedula: data.cedula,
+        phone: data.phone,
+      }),
+    });
+    const body = (await response.json().catch(() => null)) as { message?: string; id?: number; error?: string } | null;
+    if (!response.ok) {
+      const msg = body?.error;
+      if (response.status === 409) {
+        throw new Error(msg || 'Esta placa ya está registrada');
+      }
+      throw new Error(msg || 'Error al registrar el vehículo');
+    }
+    return body as { message: string; id: number };
+  },
+};
+
+/** Authenticated: parking rows for an activity. */
+export const parkingRegistrationsApi = {
+  listByActivity: async (activityTrackId: number): Promise<ActivityParkingRegistration[]> => {
+    const response = await fetch(`${API_URL}/activity-tracks/${activityTrackId}/parking-registrations`, {
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized: Please log in again');
+      }
+      throw new Error('Failed to fetch parking registrations');
+    }
+    const data = await response.json();
+    return data.registrations || [];
+  },
+
+  createAdmin: async (
+    activityTrackId: number,
+    body: SubmitPublicParkingData
+  ): Promise<{ message: string; id: number }> => {
+    const response = await fetch(`${API_URL}/activity-tracks/${activityTrackId}/parking-registrations`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        plate: body.plate,
+        full_name: body.full_name,
+        cedula: body.cedula,
+        phone: body.phone,
+      }),
+    });
+    const data = (await response.json().catch(() => null)) as { message?: string; id?: number; error?: string } | null;
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized: Please log in again');
+      }
+      if (response.status === 409) {
+        throw new Error(data?.error || 'Esta placa ya está registrada');
+      }
+      throw new Error(data?.error || 'Error al registrar el vehículo');
+    }
+    return data as { message: string; id: number };
+  },
+};
+
 // Activity Tracks API
 export const activityTracksApi = {
   // Create a new activity track
-  create: async (data: CreateActivityTrackData): Promise<{ activity_track_id: number }> => {
+  create: async (data: CreateActivityTrackData): Promise<CreateActivityTrackResponse> => {
       const response = await fetch(`${API_URL}/activity-tracks`, {
         method: 'POST',
         headers: {
@@ -42,12 +139,21 @@ export const activityTracksApi = {
   },
 
   // Get all activity tracks with pagination
-  getAll: async (page = 1, limit = 10, status?: string, createdBy?: number): Promise<PaginatedResponse<ActivityTrackWithStats>> => {
+  getAll: async (
+    page = 1,
+    limit = 10,
+    status?: string,
+    createdBy?: number,
+    includeArchived = false,
+    search?: string
+  ): Promise<PaginatedResponse<ActivityTrackWithStats>> => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
         ...(status && { status }),
-        ...(createdBy && { createdBy: createdBy.toString() })
+        ...(createdBy && { createdBy: createdBy.toString() }),
+        ...(includeArchived ? { includeArchived: 'true' } : {}),
+        ...(search && search.trim() ? { search: search.trim() } : {}),
       });
 
       const response = await fetch(`${API_URL}/activity-tracks?${params}`, {
@@ -96,6 +202,26 @@ export const activityTracksApi = {
       return await response.json();
   },
 
+  /** Current signed parking URL segment + expiry (authenticated). */
+  getParkingPublicLink: async (id: number): Promise<ParkingPublicLinkResponse> => {
+      const response = await fetch(`${API_URL}/activity-tracks/${id}/parking-link`, {
+        headers: {
+          ...getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Unauthorized: Please log in again');
+        }
+        const err = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error || 'No se pudo obtener el enlace de estacionamiento');
+      }
+
+      return (await response.json()) as ParkingPublicLinkResponse;
+  },
+
   // Update activity track
   update: async (id: number, data: Partial<ActivityTrack>): Promise<void> => {
       const response = await fetch(`${API_URL}/activity-tracks/${id}`, {
@@ -119,7 +245,43 @@ export const activityTracksApi = {
       }
   },
 
-  // Delete activity track
+  archive: async (id: number): Promise<void> => {
+      const response = await fetch(`${API_URL}/activity-tracks/${id}/archive`, {
+        method: 'PUT',
+        headers: {
+          ...getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Unauthorized: Please log in again');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error((errorData as { error?: string }).error || 'No se pudo archivar la actividad');
+      }
+  },
+
+  unarchive: async (id: number): Promise<void> => {
+      const response = await fetch(`${API_URL}/activity-tracks/${id}/unarchive`, {
+        method: 'PUT',
+        headers: {
+          ...getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Unauthorized: Please log in again');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error((errorData as { error?: string }).error || 'No se pudo restaurar la actividad');
+      }
+  },
+
+  // Delete activity track (hard delete; prefer archive)
   delete: async (id: number): Promise<void> => {
       const response = await fetch(`${API_URL}/activity-tracks/${id}`, {
         method: 'DELETE',
