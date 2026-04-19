@@ -138,7 +138,7 @@ export default function QRScannerPage() {
         accent="emerald"
         icon={<FaQrcode className="h-6 w-6" />}
         title="Escaneo QR — Beneficiarios"
-        description="Registra asistencia escaneando códigos QR del expediente."
+        description="Escanea el QR del expediente para registrar asistencia."
         actions={
           selectedActivity ? (
             <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
@@ -157,14 +157,15 @@ export default function QRScannerPage() {
         }
       />
 
-      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-6">
+      <div className="mx-auto max-w-8xl px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
           {/* Left Column - Activity Selection */}
           <div className="lg:col-span-1">
             <ActivitySelector
               onActivitySelect={handleActivitySelect}
               selectedActivity={selectedActivity || undefined}
               showCreateButton={true}
+              excludeParkingEnabled
               onCreateActivity={() => {
                 window.location.href = '/admin/attendance/activities';
               }}
@@ -172,7 +173,7 @@ export default function QRScannerPage() {
           </div>
 
           {/* Right column — flujo principal */}
-          <div className="flex flex-col gap-6 lg:col-span-2">
+          <div className="flex flex-col gap-3 lg:col-span-2">
             {/* Scanning Status */}
             {selectedActivity && (
                <ScanningStatus
@@ -188,8 +189,8 @@ export default function QRScannerPage() {
 
             {/* QR Scanner */}
             {selectedActivity && (
-              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Escáner de Códigos QR</h2>
+              <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+                <h2 className="mb-2 text-base font-semibold text-gray-900">Cámara</h2>
                  <QRScannerJSQR
                    onScanSuccess={handleQRScanSuccess}
                    onScanError={handleQRScanError}
@@ -202,52 +203,33 @@ export default function QRScannerPage() {
 
             {/* Instructions */}
             {!selectedActivity && (
-              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+              <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
                 <AttendanceEmptyState
-                  className="border-0 shadow-none sm:p-6"
-                  icon={<FaQrcode className="h-7 w-7" />}
+                  className="border-0 shadow-none sm:p-4"
+                  icon={<FaQrcode className="h-6 w-6" />}
                   title="Selecciona una actividad"
-                  description="Para escanear códigos QR, elige una actividad en el panel izquierdo."
+                  description="Elige una actividad a la izquierda para activar la cámara."
                 />
-              </div>
-            )}
-
-            {selectedActivity && !isScanning && (
-              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                <div className="text-center">
-                  <FaQrcode className="mx-auto mb-4 h-12 w-12 text-emerald-600" />
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">Listo para escanear</h3>
-                  <p className="mb-4 text-gray-600">
-                    Haz clic en &quot;Iniciar escaneo&quot; para comenzar a registrar asistencia con códigos QR.
-                  </p>
-                  <button
-                    onClick={handleStartScanning}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                  >
-                    <FaQrcode className="w-4 h-4" />
-                    Iniciar Escaneo
-                  </button>
-                </div>
               </div>
             )}
 
             {/* Attendance Records */}
             {selectedActivity && !loading && attendanceRecords.length === 0 && (
-              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+              <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
                 <AttendanceEmptyState
-                  className="border-0 shadow-none sm:p-6"
-                  icon={<FaUsers className="h-7 w-7" />}
+                  className="border-0 shadow-none sm:p-4"
+                  icon={<FaUsers className="h-6 w-6" />}
                   title="Aún no hay registros"
-                  description="Cuando escanees códigos QR, los asistentes aparecerán en esta lista."
+                  description="Los escaneos válidos aparecerán aquí."
                 />
               </div>
             )}
 
             {selectedActivity && attendanceRecords.length > 0 && (
-              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Registros de asistencia</h2>
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
+              <div className="min-w-0 rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="text-base font-semibold text-gray-900">Asistencias</h2>
+                  <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
                       <FaUsers className="h-4 w-4 text-emerald-600" />
                       <span className="text-gray-600">{getBeneficiariosCount()} beneficiarios</span>
@@ -259,7 +241,7 @@ export default function QRScannerPage() {
                   </div>
                 </div>
 
-                <div className="max-h-96 space-y-3 overflow-y-auto">
+                <div className="max-h-80 min-w-0 space-y-2 overflow-auto sm:max-h-96">
                   {attendanceRecords.map((record) => (
                     <BeneficiarioCard key={record.id} record={record} showActions={false} />
                   ))}
@@ -269,10 +251,10 @@ export default function QRScannerPage() {
 
             {/* Loading State */}
             {loading && (
-              <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                <div className="flex items-center justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
-                  <span className="ml-3 text-gray-600">Procesando...</span>
+              <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+                  <span className="text-sm text-gray-600">Procesando…</span>
                 </div>
               </div>
             )}

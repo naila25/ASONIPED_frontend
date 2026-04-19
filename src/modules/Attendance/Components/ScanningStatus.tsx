@@ -16,136 +16,109 @@ export default function ScanningStatus({
   };
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+    <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
       {(success || error) && (
-        <div className="mb-4 space-y-3">
+        <div className="mb-2 space-y-2">
           {success && (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-              <div className="flex items-center gap-3">
-                <FaCheckCircle className="h-5 w-5 shrink-0 text-green-500" />
-                <p className="text-green-800">{success}</p>
+            <div className="rounded-md border border-green-200 bg-green-50 px-2.5 py-2">
+              <div className="flex items-center gap-2">
+                <FaCheckCircle className="h-4 w-4 shrink-0 text-green-600" />
+                <p className="text-sm text-green-800">{success}</p>
               </div>
             </div>
           )}
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-              <div className="flex items-center gap-3">
-                <FaExclamationTriangle className="h-5 w-5 shrink-0 text-red-500" />
-                <p className="text-red-800">{error}</p>
+            <div className="rounded-md border border-red-200 bg-red-50 px-2.5 py-2">
+              <div className="flex items-center gap-2">
+                <FaExclamationTriangle className="h-4 w-4 shrink-0 text-red-600" />
+                <p className="text-sm text-red-800">{error}</p>
               </div>
             </div>
           )}
         </div>
       )}
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
-            <FaQrcode className="h-5 w-5" />
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="shrink-0 rounded-md bg-emerald-100 p-1.5 text-emerald-700">
+            <FaQrcode className="h-4 w-4" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Estado del escaneo</h2>
-            <p className="text-sm text-gray-600">Controla el escaneo de códigos QR</p>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold leading-tight text-gray-900">Escaneo QR</h2>
+            <p className="text-xs text-gray-500">Inicia o detén el registro por cámara</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           {isScanning ? (
-            <div className="h-3 w-3 animate-pulse rounded-full bg-emerald-500" aria-hidden />
+            <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" aria-hidden />
           ) : (
-            <div className="h-3 w-3 rounded-full bg-gray-400" aria-hidden />
+            <div className="h-2 w-2 rounded-full bg-gray-400" aria-hidden />
           )}
           <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-              isScanning ? 'bg-emerald-100 text-emerald-900' : 'bg-gray-100 text-gray-800'
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+              isScanning ? 'bg-emerald-100 text-emerald-900' : 'bg-gray-100 text-gray-700'
             }`}
           >
-            {isScanning ? 'Escaneando' : 'Inactivo'}
+            {isScanning ? 'Activo' : 'Inactivo'}
           </span>
         </div>
       </div>
 
       {currentActivity && (
-        <div className="mb-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
-          <h3 className="mb-2 font-medium text-gray-900">{currentActivity.name}</h3>
-          <div className="grid grid-cols-1 gap-4 text-sm text-gray-600 md:grid-cols-3">
-            <div className="flex items-center gap-2">
-              <FaClock className="h-4 w-4 shrink-0" />
-              <span>
-                {new Date(currentActivity.event_date).toLocaleDateString('es-ES')}
-                {currentActivity.event_time && ` • ${formatTime(currentActivity.event_time)}`}
-              </span>
-            </div>
+        <div className="mb-2 rounded-md border border-gray-100 bg-gray-50 px-2.5 py-2">
+          <p className="truncate text-sm font-medium text-gray-900">{currentActivity.name}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-600">
+            <span className="inline-flex items-center gap-1">
+              <FaClock className="h-3 w-3 shrink-0" />
+              {new Date(currentActivity.event_date).toLocaleDateString('es-ES')}
+              {currentActivity.event_time && ` · ${formatTime(currentActivity.event_time)}`}
+            </span>
             {currentActivity.location && (
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+              <span className="inline-flex max-w-[14rem] items-center gap-1 truncate" title={currentActivity.location}>
+                <svg className="h-3 w-3 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
                   <path
                     fillRule="evenodd"
                     d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
                     clipRule="evenodd"
                   />
                 </svg>
-                <span>{currentActivity.location}</span>
-              </div>
+                {currentActivity.location}
+              </span>
             )}
-            <div className="flex items-center gap-2">
-              <FaUsers className="h-4 w-4 shrink-0" />
-              <span>{attendanceCount} asistentes registrados</span>
-            </div>
+            <span className="inline-flex items-center gap-1">
+              <FaUsers className="h-3 w-3 shrink-0" />
+              {attendanceCount} registrados
+            </span>
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-2">
         {!isScanning ? (
           <button
             type="button"
             onClick={onStartScanning}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
           >
-            <FaPlay className="h-4 w-4" />
+            <FaPlay className="h-3.5 w-3.5" />
             Iniciar escaneo
           </button>
         ) : (
           <button
             type="button"
             onClick={onStopScanning}
-            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-3 font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
           >
-            <FaStop className="h-4 w-4" />
-            Detener escaneo
+            <FaStop className="h-3.5 w-3.5" />
+            Detener
           </button>
         )}
-        <div className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2">
-          <FaCheckCircle className="h-4 w-4 text-emerald-600" />
-          <span className="text-sm font-medium text-emerald-900">{attendanceCount} asistentes</span>
-        </div>
+        <p className="text-xs text-gray-500">
+          {isScanning
+            ? 'Apunta al QR del expediente; se registra al detectar un código válido.'
+            : 'Pulsa Iniciar y asegura buena luz en el código.'}
+        </p>
       </div>
-
-      <div className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50/80 p-3">
-        <div className="flex items-start gap-2">
-          <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
-          <div className="text-sm text-emerald-900">
-            {isScanning ? (
-              <p>
-                <strong>Escaneo activo:</strong> Apunta la cámara hacia el código QR del beneficiario. El sistema
-                registrará automáticamente la asistencia cuando detecte un código válido.
-              </p>
-            ) : (
-              <p>
-                <strong>Listo para escanear:</strong> Haz clic en &quot;Iniciar escaneo&quot; para comenzar a registrar
-                asistencia con códigos QR. Asegúrate de tener buena iluminación.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {isScanning && (
-        <div className="mt-4 flex items-center gap-2 text-sm text-emerald-700">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" aria-hidden />
-          <span>Escaneando códigos QR en tiempo real…</span>
-        </div>
-      )}
     </div>
   );
 }
