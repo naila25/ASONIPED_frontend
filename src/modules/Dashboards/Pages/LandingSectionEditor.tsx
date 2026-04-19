@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
-import type { SectionData, SectionKey, ValueItem } from "../Types/types";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import type { SectionData, SectionKey, TestimonialItem, ValueItem } from "../Types/types";
+import { historiasLandingService, type HistoriasHeader } from "../Services/historiasLandingService";
+import { ColorPicker } from "./ColorPicker";
 import { ModalSimple } from "./ModalSimple.tsx";
 import { heroService, type HeroSection } from "../Services/heroService.ts";
 import { aboutService, type AboutSection } from "../Services/aboutService";
@@ -9,6 +11,18 @@ import type { LandingWorkshop } from "../Types/types";
 
 // Extiendo ValueItem para incluir id, que es necesario para edición y eliminación
 type ValueItemWithId = ValueItem & { id: string };
+
+/** Coincide con `text-orange-600` en el sitio público; el color del título no es editable en el CMS. */
+const HISTORIAS_TITULO_COLOR_FIJO = "#ea580c";
+
+function createDefaultHistoriasHeader(): HistoriasHeader {
+  return {
+    titulo: "Testimonios de Vida",
+    descripcion:
+      "Descubre cómo la voz de quienes forman parte de ASONIPED refleja esperanza, inclusión y superación, a través de experiencias que inspiran y motivan a toda nuestra comunidad.",
+    color_titulo: HISTORIAS_TITULO_COLOR_FIJO,
+  };
+}
 
 export function LandingSectionEditor({
   section,
@@ -49,13 +63,25 @@ export function LandingSectionEditor({
     texto_boton: "",
     color_boton: "#1976d2"
   });
-  const [cardFile, setCardFile] = useState<File | undefined>(undefined);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const MAX_DONATION_CARDS = 3;
+  const MAX_HISTORIAS_ITEMS = 12;
   const donationMessageRef = useRef<HTMLDivElement | null>(null);
+  const [historiasData, setHistoriasData] = useState<{
+    header: HistoriasHeader;
+    items: TestimonialItem[];
+  } | null>(null);
+  const [itemForm, setItemForm] = useState({
+    name: "",
+    description: "",
+    videoUrl: "",
+    orden: 0,
+  });
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [historiasHeaderErrors, setHistoriasHeaderErrors] = useState<Record<string, string>>({});
   // Estado específico para workshop section del backend
   const [workshopData, setWorkshopData] = useState<LandingWorkshop>(
     section === "workshop"
@@ -185,14 +211,39 @@ export function LandingSectionEditor({
     return errors;
   };
 
+  // Reset local `data` when switching section only. Parent `initialData` changes on every keystroke
+  // (via onUpdate → GestionLanding); depending on it here caused redundant setState and work on each keypress.
   useEffect(() => {
-    // Avoid overriding locally edited dynamic sections
-    if (section === 'hero' || section === 'about' || section === 'volunteering') return;
+    if (section === "hero" || section === "about" || section === "volunteering" || section === "testimonials") {
+      return;
+    }
     setData({
       ...initialData,
-      values: 'values' in initialData ? addIdToValues(initialData.values) : [],
+      values: "values" in initialData ? addIdToValues(initialData.values) : [],
     } as SectionData);
-  }, [initialData, section]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: sync from props only when `section` changes (modal key remounts per open)
+  }, [section]);
+
+  const loadHistoriasData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { header, items } = await historiasLandingService.getSection();
+      setHistoriasHeaderErrors({});
+      setValidationErrors({});
+      setHistoriasData({
+        header: header
+          ? { ...header, color_titulo: HISTORIAS_TITULO_COLOR_FIJO }
+          : createDefaultHistoriasHeader(),
+        items,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error loading historias data");
+      setHistoriasData({ header: createDefaultHistoriasHeader(), items: [] });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Cargar datos del hero/about/volunteers/donation desde el backend
   useEffect(() => {
@@ -244,7 +295,10 @@ export function LandingSectionEditor({
     if (section === "donation") {
       loadDonationData();
     }
-  }, [section]);
+    if (section === "testimonials") {
+      loadHistoriasData();
+    }
+  }, [section, loadHistoriasData]);
 
   const loadHeroData = async () => {
     try {
@@ -312,9 +366,7 @@ export function LandingSectionEditor({
     setCardForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleCardFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // No longer needed - using URL input instead
-  };
+
   // Submit card (create or update)
   const handleCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -359,7 +411,6 @@ export function LandingSectionEditor({
         texto_boton: "",
         color_boton: "#1976d2"
       });
-      setCardFile(undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error saving card');
     } finally {
@@ -385,7 +436,6 @@ export function LandingSectionEditor({
     setEditingId(card.id ?? null);
     setValidationErrors({});
     setError(null);
-    setCardFile(undefined);
   };
 
   const handleDeleteCard = async (id: number) => {
@@ -413,271 +463,156 @@ export function LandingSectionEditor({
     setEditingId(null);
     setValidationErrors({});
     setError(null);
-    setCardFile(undefined);
   };
 
-  // Modern Color Picker Component
-  const ColorPicker = ({
-    value,
-    onChange,
-    label,
-    className = ""
-  }: {
-    value: string;
-    onChange: (color: string) => void;
-    label: string;
-    className?: string;
-  }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [hue, setHue] = useState(0);
-    const [saturation, setSaturation] = useState(50);
-    const [lightness, setLightness] = useState(50);
-
-    const predefinedColors = [
-      "#1976d2", "#2196f3", "#03a9f4", "#00bcd4", "#009688",
-      "#4caf50", "#8bc34a", "#cddc39", "#ffeb3b", "#ffc107",
-      "#ff9800", "#ff5722", "#f44336", "#e91e63", "#9c27b0",
-      "#673ab7", "#3f51b5", "#607d8b", "#795548", "#000000"
-    ];
-
-    // Convert HSL to Hex
-    const hslToHex = (h: number, s: number, l: number) => {
-      l /= 100;
-      const a = s * Math.min(l, 1 - l) / 100;
-      const f = (n: number) => {
-        const k = (n + h / 30) % 12;
-        const color = l - a * Math.min(k - 3, 9 - k, 1);
-        return Math.round(255 * color).toString(16).padStart(2, '0');
-      };
-      return `#${f(0)}${f(8)}${f(4)}`;
-    };
-
-    // Convert Hex to HSL
-    const hexToHsl = (hex: string) => {
-      const r = parseInt(hex.slice(1, 3), 16) / 255;
-      const g = parseInt(hex.slice(3, 5), 16) / 255;
-      const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      let h = 0, s = 0;
-      const l = (max + min) / 2;
-
-      if (max !== min) {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-          case g: h = (b - r) / d + 2; break;
-          case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-      }
-      return [h * 360, s * 100, l * 100];
-    };
-
-    // Initialize HSL values from current hex value
-    useEffect(() => {
-      if (value && value.startsWith('#')) {
-        const [h, s, l] = hexToHsl(value);
-        setHue(h);
-        setSaturation(s);
-        setLightness(l);
-      }
-    }, [value]);
-
-    const handleColorChange = (newHue: number, newSat: number, newLight: number) => {
-      setHue(newHue);
-      setSaturation(newSat);
-      setLightness(newLight);
-      const hexColor = hslToHex(newHue, newSat, newLight);
-      onChange(hexColor);
-    };
-
-    const currentColor = hslToHex(hue, saturation, lightness);
-
-    return (
-      <div className={`space-y-2 ${className}`}>
-        <label className="block text-sm font-medium text-gray-700">{label}</label>
-
-        {/* Color Preview Button */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="w-12 h-12 rounded-lg border-2 border-gray-300 shadow-sm hover:scale-105 transition-transform cursor-pointer"
-            style={{ backgroundColor: value }}
-            title="Click to open color picker"
-          />
-          <span className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
-            {value}
-          </span>
-        </div>
-
-        {/* Modern Color Picker Modal */}
-        {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Seleccionar Color</h3>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
-                >
-                  ×
-                </button>
-              </div>
-
-              {/* Color Spectrum */}
-              <div className="space-y-4">
-                {/* Main Color Picker */}
-                <div className="relative">
-                  <div
-                    className="w-full h-48 rounded-lg border border-gray-300 relative cursor-crosshair"
-                    style={{
-                      background: `linear-gradient(to right, white, hsl(${hue}, 100%, 50%)), linear-gradient(to bottom, transparent, black)`
-                    }}
-                    onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const x = e.clientX - rect.left;
-                      const y = e.clientY - rect.top;
-                      const newSat = Math.round((x / rect.width) * 100);
-                      const newLight = Math.round(100 - (y / rect.height) * 100);
-                      handleColorChange(hue, Math.max(0, Math.min(100, newSat)), Math.max(0, Math.min(100, newLight)));
-                    }}
-                  >
-                    {/* Crosshair */}
-                    <div
-                      className="absolute w-3 h-3 border-2 border-white rounded-full pointer-events-none shadow-lg"
-                      style={{
-                        left: `${saturation}%`,
-                        top: `${100 - lightness}%`,
-                        transform: 'translate(-50%, -50%)'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Hue Slider */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Matiz</label>
-                  <div className="relative">
-                    <div
-                      className="w-full h-6 rounded border border-gray-300 cursor-pointer"
-                      style={{
-                        background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)'
-                      }}
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const newHue = Math.round((x / rect.width) * 360);
-                        handleColorChange(newHue, saturation, lightness);
-                      }}
-                    />
-                    <div
-                      className="absolute top-0 w-2 h-6 border-2 border-white rounded pointer-events-none shadow-lg"
-                      style={{
-                        left: `${(hue / 360) * 100}%`,
-                        transform: 'translateX(-50%)'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Value Inputs */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-500">Matiz</label>
-                    <input
-                      type="number"
-                      value={Math.round(hue)}
-                      onChange={(e) => handleColorChange(Number(e.target.value), saturation, lightness)}
-                      className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-                      min="0"
-                      max="360"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500">Saturación</label>
-                    <input
-                      type="number"
-                      value={Math.round(saturation)}
-                      onChange={(e) => handleColorChange(hue, Number(e.target.value), lightness)}
-                      className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500">Luminosidad</label>
-                    <input
-                      type="number"
-                      value={Math.round(lightness)}
-                      onChange={(e) => handleColorChange(hue, saturation, Number(e.target.value))}
-                      className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-                </div>
-
-                {/* Hex Input */}
-                <div>
-                  <label className="text-xs text-gray-500">Color HEX</label>
-                  <input
-                    type="text"
-                    value={currentColor}
-                    onChange={(e) => {
-                      if (e.target.value.match(/^#[0-9A-Fa-f]{6}$/)) {
-                        onChange(e.target.value);
-                      }
-                    }}
-                    className="w-full text-sm border border-gray-300 rounded px-2 py-1 font-mono"
-                    placeholder="#000000"
-                  />
-                </div>
-
-                {/* Predefined Colors */}
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block">Colores predefinidos</label>
-                  <div className="grid grid-cols-10 gap-1">
-                    {predefinedColors.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        className={`w-6 h-6 rounded border-2 transition-all hover:scale-110 ${value === color ? 'border-gray-800 shadow-lg' : 'border-gray-200 hover:border-gray-400'
-                          }`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => onChange(color)}
-                        title={color}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
-                >
-                  Aceptar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+  const handleHistoriasHeaderChange = (field: keyof HistoriasHeader, value: string) => {
+    setHistoriasHeaderErrors((prev) => {
+      const next = { ...prev };
+      delete next[field as string];
+      return next;
+    });
+    setHistoriasData((prev) =>
+      prev
+        ? { ...prev, header: { ...prev.header, [field]: value } }
+        : null
     );
+  };
+
+  const handleItemFormChange = (field: keyof typeof itemForm, value: string | number) => {
+    setItemForm((prev) => ({ ...prev, [field]: value }));
+    setValidationErrors((prev) => {
+      const next = { ...prev };
+      delete next[field as string];
+      return next;
+    });
+  };
+
+  /** Alineado con landing-historias-component (backend). */
+  const validateHistoriasHeader = (header: HistoriasHeader): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    const titulo = header.titulo?.trim() ?? "";
+    if (titulo.length < 3 || titulo.length > 150) {
+      errors.titulo = "El título debe tener entre 3 y 150 caracteres.";
+    }
+    const descripcion = header.descripcion ?? "";
+    if (!descripcion.trim()) {
+      errors.descripcion = "La descripción es obligatoria.";
+    } else if (descripcion.length > 2000) {
+      errors.descripcion = "La descripción no puede superar 2000 caracteres.";
+    }
+    return errors;
+  };
+
+  /** Alineado con landing-historias-item (backend). */
+  const validateHistoriasItem = () => {
+    const errors: Record<string, string> = {};
+    const name = itemForm.name.trim();
+    if (!name || name.length > 255) {
+      errors.name = "Nombre requerido (máx. 255 caracteres).";
+    }
+    const desc = itemForm.description.trim();
+    if (!desc) {
+      errors.description = "La historia es obligatoria.";
+    } else if (desc.length > 8000) {
+      errors.description = "La historia no puede superar 8000 caracteres.";
+    }
+    const rawVideo = itemForm.videoUrl.trim();
+    if (rawVideo) {
+      if (rawVideo.length > 500) {
+        errors.videoUrl = "La URL no puede superar 500 caracteres.";
+      } else {
+        try {
+          const u = new URL(rawVideo);
+          if (u.protocol !== "http:" && u.protocol !== "https:") {
+            errors.videoUrl = "La URL del video debe ser http(s).";
+          }
+        } catch {
+          errors.videoUrl = "URL de video no válida.";
+        }
+      }
+    }
+    if (!Number.isFinite(itemForm.orden) || itemForm.orden < 0) {
+      errors.orden = "El orden debe ser un número mayor o igual a 0.";
+    }
+    return errors;
+  };
+
+  const handleItemSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationErrors({});
+    setError(null);
+
+    const count = historiasData?.items.length ?? 0;
+    const isCreating = editingItemId === null;
+    if (isCreating && count >= MAX_HISTORIAS_ITEMS) {
+      setError(`Solo se permiten ${MAX_HISTORIAS_ITEMS} testimonios.`);
+      return;
+    }
+
+    const errors = validateHistoriasItem();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    const payload = {
+      nombre: itemForm.name.trim(),
+      historia: itemForm.description.trim(),
+      video_url: itemForm.videoUrl.trim() || null,
+      orden: itemForm.orden,
+    };
+
+    setLoading(true);
+    try {
+      if (editingItemId != null) {
+        await historiasLandingService.updateItem(editingItemId, payload);
+        setEditingItemId(null);
+      } else {
+        await historiasLandingService.createItem(payload);
+      }
+      await loadHistoriasData();
+      setItemForm({ name: "", description: "", videoUrl: "", orden: 0 });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al guardar testimonio");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditHistoriasItem = (item: TestimonialItem) => {
+    setItemForm({
+      name: item.name,
+      description: item.description,
+      videoUrl: item.videoUrl || "",
+      orden: item.orden ?? 0,
+    });
+    setEditingItemId(Number(item.id));
+    setValidationErrors({});
+    setError(null);
+  };
+
+  const handleDeleteHistoriasItem = async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await historiasLandingService.deleteItem(Number(id));
+      await loadHistoriasData();
+      if (editingItemId === Number(id)) {
+        setEditingItemId(null);
+        setItemForm({ name: "", description: "", videoUrl: "", orden: 0 });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al eliminar testimonio");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetItemForm = () => {
+    setItemForm({ name: "", description: "", videoUrl: "", orden: 0 });
+    setEditingItemId(null);
+    setValidationErrors({});
+    setError(null);
   };
 
   const handleHeroSubmit = async (e: React.FormEvent) => {
@@ -854,7 +789,7 @@ export function LandingSectionEditor({
         {section === "about" && (
           <form onSubmit={handleSubmit}>
             <div className="mt-4 space-y-6">
-              <h2 className="text-2xl font-bold mb-4">Personalizar about</h2>
+              <h2 className="text-2xl font-bold mb-4">Personalizar Sobre Nosotros</h2>
               {Object.keys(validationErrors).length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                   <h3 className="text-red-800 font-medium mb-2">Errores de validación:</h3>
@@ -1613,25 +1548,274 @@ export function LandingSectionEditor({
           </div>
         )}
 
-        {/* Testimonials Section */}
-        {section === "testimonials" && (
-          <div className="mt-4 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Título de Testimonios</label>
-              <input
-                type="text"
-                value={data.testimonialsTitle || ""}
-                onChange={(e) => handleChange("testimonialsTitle", e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
+        {/* Testimonials / Historias de vida */}
+        {section === "testimonials" && !historiasData && (
+          <div className="mt-4 py-12 text-center text-gray-600">
+            {loading ? "Cargando testimonios..." : "No se pudieron cargar los datos."}
+          </div>
+        )}
+        {section === "testimonials" && historiasData && (
+          <div className="mt-4 space-y-6">
+            <h2 className="text-2xl font-bold mb-2">Testimonios (Historias de vida)</h2>
+            {loading && <div className="text-blue-600">Cargando datos...</div>}
+            {error && <div className="text-red-600 font-medium">Error: {error}</div>}
+
+            <div className="p-4 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-semibold mb-3">Encabezado</h3>
+              {Object.keys(historiasHeaderErrors).length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                  <ul className="text-red-700 text-sm space-y-1">
+                    {Object.entries(historiasHeaderErrors).map(([field, message]) => (
+                      <li key={field}>• {message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
+                  <input
+                    value={historiasData.header.titulo}
+                    onChange={(e) => handleHistoriasHeaderChange("titulo", e.target.value)}
+                    maxLength={150}
+                    className={`border rounded-lg px-3 py-2 w-full ${
+                      historiasHeaderErrors.titulo ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {historiasHeaderErrors.titulo && (
+                    <p className="text-red-600 text-xs mt-1">{historiasHeaderErrors.titulo}</p>
+                  )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(historiasData.header.titulo || "").length}/150 caracteres
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción / subtítulo</label>
+                  <textarea
+                    value={historiasData.header.descripcion}
+                    onChange={(e) => handleHistoriasHeaderChange("descripcion", e.target.value)}
+                    maxLength={500}
+                    rows={4}
+                    className={`border rounded-lg px-3 py-2 w-full ${
+                      historiasHeaderErrors.descripcion ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {historiasHeaderErrors.descripcion && (
+                    <p className="text-red-600 text-xs mt-1">{historiasHeaderErrors.descripcion}</p>
+                  )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(historiasData.header.descripcion || "").length}/500 caracteres
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!historiasData) return;
+                    const headerErrs = validateHistoriasHeader(historiasData.header);
+                    if (Object.keys(headerErrs).length > 0) {
+                      setHistoriasHeaderErrors(headerErrs);
+                      setError(null);
+                      return;
+                    }
+                    setHistoriasHeaderErrors({});
+                    try {
+                      setLoading(true);
+                      setError(null);
+                      if (historiasData.header.id) {
+                        await historiasLandingService.updateHeader({
+                          ...historiasData.header,
+                          color_titulo: HISTORIAS_TITULO_COLOR_FIJO,
+                        });
+                      } else {
+                        const result = await historiasLandingService.createHeader({
+                          titulo: historiasData.header.titulo,
+                          descripcion: historiasData.header.descripcion,
+                          color_titulo: HISTORIAS_TITULO_COLOR_FIJO,
+                        });
+                        setHistoriasData((prev) =>
+                          prev ? { ...prev, header: { ...prev.header, id: result.id } } : null
+                        );
+                      }
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Error al guardar encabezado");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? "Guardando..." : "Guardar encabezado"}
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Descripción de Testimonios</label>
-              <textarea
-                value={data.testimonialsDescription || ""}
-                onChange={(e) => handleChange("testimonialsDescription", e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-              />
+
+            <div className="p-4 rounded-lg border border-gray-200">
+              <h3 className="text-xl font-bold mb-2">{editingItemId ? "Editar testimonio" : "Agregar testimonio"}</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Testimonios: {historiasData.items.length}/{MAX_HISTORIAS_ITEMS}
+              </p>
+              <form onSubmit={handleItemSubmit} className="space-y-4">
+                {Object.keys(validationErrors).length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <ul className="text-red-700 text-sm space-y-1">
+                      {Object.entries(validationErrors).map(([field, message]) => (
+                        <li key={field}>• {message}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                  <input
+                    value={itemForm.name}
+                    onChange={(e) => handleItemFormChange("name", e.target.value)}
+                    maxLength={255}
+                    className={`border rounded-lg px-3 py-2 w-full ${
+                      validationErrors.name ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {validationErrors.name && (
+                    <p className="text-red-600 text-xs mt-1">{validationErrors.name}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Historia</label>
+                  <textarea
+                    value={itemForm.description}
+                    onChange={(e) => handleItemFormChange("description", e.target.value)}
+                    rows={5}
+                    maxLength={500}
+                    className={`border rounded-lg px-3 py-2 w-full ${
+                      validationErrors.description ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {validationErrors.description && (
+                    <p className="text-red-600 text-xs mt-1">{validationErrors.description}</p>
+                  )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {itemForm.description.length}/500 caracteres
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    URL de video (YouTube)
+                  </label>
+                  <input
+                    type="url"
+                    value={itemForm.videoUrl}
+                    onChange={(e) => handleItemFormChange("videoUrl", e.target.value)}
+                    placeholder="https://www.youtube.com/embed/..."
+                    maxLength={500}
+                    className={`border rounded-lg px-3 py-2 w-full ${
+                      validationErrors.videoUrl ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {validationErrors.videoUrl && (
+                    <p className="text-red-600 text-xs mt-1">{validationErrors.videoUrl}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Orden</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={itemForm.orden}
+                    onChange={(e) =>
+                      handleItemFormChange("orden", parseInt(e.target.value, 10) || 0)
+                    }
+                    className={`border rounded-lg px-3 py-2 w-32 ${
+                      validationErrors.orden ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {validationErrors.orden && (
+                    <p className="text-red-600 text-xs mt-1">{validationErrors.orden}</p>
+                  )}
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={resetItemForm}
+                    className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {editingItemId ? "Actualizar" : "Agregar"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="p-4 rounded-lg border border-gray-200">
+              <h3 className="text-xl font-bold mb-4">Testimonios publicados</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {historiasData.items.map((item) => (
+                  <div key={item.id} className="bg-white p-4 rounded shadow border border-gray-200">
+                    <h4 className="font-bold text-lg">{item.name}</h4>
+                    <p className="text-gray-600 text-sm line-clamp-3 mb-2">{item.description}</p>
+                    {item.videoUrl && (
+                      <p className="text-xs text-blue-600 truncate mb-2" title={item.videoUrl}>
+                        {item.videoUrl}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleEditHistoriasItem(item)}
+                        className="px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-white text-sm rounded"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteHistoriasItem(item.id)}
+                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {historiasData.items.length === 0 && (
+                  <p className="text-gray-500 col-span-2 text-center py-6">
+                    No hay testimonios guardados. La sección en el sitio solo aparece cuando hay al menos un encabezado
+                    guardado o un testimonio publicado.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!historiasData) return;
+                  onSave({
+                    ...data,
+                    testimonialsTitle: historiasData.header.titulo,
+                    testimonialsDescription: historiasData.header.descripcion,
+                    testimonialsTitleColor: HISTORIAS_TITULO_COLOR_FIJO,
+                    testimonials: historiasData.items,
+                  } as SectionData);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Guardar y cerrar
+              </button>
             </div>
           </div>
         )}

@@ -276,9 +276,7 @@ const TicketSupportForm: React.FC<TicketSupportFormProps> = ({
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`${
-            isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-500'
-          } text-white font-semibold py-2 px-6 rounded transition self-start`}
+          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-500 transition disabled:opacity-50 self-start"
         >
           {isSubmitting ? 'Enviando...' : 'Enviar ticket'}
         </button>

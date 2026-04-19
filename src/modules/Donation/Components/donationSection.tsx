@@ -77,7 +77,10 @@ const DonationSectionComponent = () => {
                 </div>
                 <a
                   href="/donaciones/formulario"
-                  className="mt-auto bg-orange-500 text-white py-2 px-4 rounded-full border hover:bg-orange-600 transition"
+                  className="mt-auto text-white py-2 px-4 rounded-full border border-transparent transition hover:opacity-90"
+                  style={{
+                    backgroundColor: card.color_boton?.trim() || "#f97316",
+                  }}
                 >
                   {card.texto_boton}
                 </a>
