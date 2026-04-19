@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaUserFriends, FaCheckCircle, FaExclamationTriangle, FaPlus, FaUsers } from 'react-icons/fa';
+import { FaUserFriends, FaCheckCircle, FaExclamationTriangle, FaPlus, FaUsers, FaCar } from 'react-icons/fa';
 import { useNavigate } from '@tanstack/react-router';
 import ActivitySelector from '../Components/ActivitySelector';
 import AttendancePageHeader from '../Components/AttendancePageHeader';
 import AttendanceEmptyState from '../Components/AttendanceEmptyState';
-import { attendanceRecordsApi } from '../Services/attendanceNewApi';
-import type { ActivityTrack, AttendanceRecord } from '../Types/attendanceNew';
+import { attendanceRecordsApi, parkingRegistrationsApi } from '../Services/attendanceNewApi';
+import type { ActivityParkingRegistration, ActivityTrack, AttendanceRecord } from '../Types/attendanceNew';
 
 export default function GuestAttendancePage() {
   const navigate = useNavigate();
@@ -15,20 +15,25 @@ export default function GuestAttendancePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [parkingRegistrations, setParkingRegistrations] = useState<ActivityParkingRegistration[]>([]);
+  const [parkingLoading, setParkingLoading] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     full_name: '',
     cedula: '',
     phone: '',
+    plate: '',
   });
 
   const loadAttendanceRecords = useCallback(async () => {
     if (!selectedActivity) return;
+    if (selectedActivity.parking_enabled) {
+      setAttendanceRecords([]);
+      return;
+    }
 
     try {
       setLoading(true);
-      // Load ALL attendance records (both beneficiaries and guests)
       const records = await attendanceRecordsApi.getByActivityTrack(selectedActivity.id!);
       setAttendanceRecords(records.data);
     } catch (err: unknown) {
@@ -38,10 +43,8 @@ export default function GuestAttendancePage() {
     }
   }, [selectedActivity]);
 
-  // Load attendance records when activity is selected
   useEffect(() => {
-    if (selectedActivity) {
-      // Defer data loading to improve initial render
+    if (selectedActivity && !selectedActivity.parking_enabled) {
       const timer = setTimeout(() => {
         loadAttendanceRecords();
       }, 0);
@@ -50,10 +53,38 @@ export default function GuestAttendancePage() {
     }
   }, [selectedActivity, loadAttendanceRecords]);
 
+  const loadParkingRegistrations = useCallback(async () => {
+    if (!selectedActivity?.id || !selectedActivity.parking_enabled) {
+      setParkingRegistrations([]);
+      return;
+    }
+    try {
+      setParkingLoading(true);
+      const rows = await parkingRegistrationsApi.listByActivity(selectedActivity.id);
+      setParkingRegistrations(rows);
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al cargar registros de estacionamiento');
+    } finally {
+      setParkingLoading(false);
+    }
+  }, [selectedActivity]);
+
+  useEffect(() => {
+    if (!selectedActivity?.parking_enabled) {
+      setParkingRegistrations([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void loadParkingRegistrations();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [selectedActivity, loadParkingRegistrations]);
+
   const handleActivitySelect = (activity: ActivityTrack) => {
     setSelectedActivity(activity);
     setError(null);
     setSuccess(null);
+    setFormData({ full_name: '', cedula: '', phone: '', plate: '' });
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -64,7 +95,16 @@ export default function GuestAttendancePage() {
       return;
     }
 
-    if (!formData.full_name.trim()) {
+    const parking = !!selectedActivity.parking_enabled;
+    const name = formData.full_name.trim();
+    const plate = formData.plate.trim();
+
+    if (parking) {
+      if (!plate || plate.length < 2) {
+        setError('La placa es obligatoria para esta actividad (estacionamiento habilitado)');
+        return;
+      }
+    } else if (!name) {
       setError('El nombre completo es requerido');
       return;
     }
@@ -73,25 +113,35 @@ export default function GuestAttendancePage() {
       setLoading(true);
       setError(null);
 
-      await attendanceRecordsApi.createManual({
-        activity_track_id: selectedActivity.id!,
-        attendance_type: 'guest',
-        full_name: formData.full_name.trim(),
-        cedula: formData.cedula.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
-      });
+      if (parking) {
+        await parkingRegistrationsApi.createAdmin(selectedActivity.id!, {
+          plate,
+          full_name: name || undefined,
+          cedula: formData.cedula.trim() || undefined,
+          phone: formData.phone.trim() || undefined,
+        });
+        await loadParkingRegistrations();
+      } else {
+        await attendanceRecordsApi.createManual({
+          activity_track_id: selectedActivity.id!,
+          attendance_type: 'guest',
+          full_name: name,
+          cedula: formData.cedula.trim() || undefined,
+          phone: formData.phone.trim() || undefined,
+        });
+        await loadAttendanceRecords();
+      }
 
-      // Reload attendance records
-      await loadAttendanceRecords();
+      const parts: string[] = [];
+      if (parking) parts.push(`Vehículo: ${plate}`);
+      else parts.push(name ? `Persona: ${name}` : '');
 
-      setSuccess(`Invitado registrado: ${formData.full_name}`);
-      setFormData({ full_name: '', cedula: '', phone: '' });
+      setSuccess(parts.filter(Boolean).join(' · ') || 'Registro guardado');
+      setFormData({ full_name: '', cedula: '', phone: '', plate: '' });
       setShowForm(false);
-
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: unknown) {
-      setError((err as Error).message || 'Error al registrar invitado');
+      setError((err as Error).message || 'Error al registrar');
     } finally {
       setLoading(false);
     }
@@ -105,13 +155,19 @@ export default function GuestAttendancePage() {
     return attendanceRecords.filter((record) => record.attendance_type === 'beneficiario').length;
   };
 
+  const parkingOn = !!selectedActivity?.parking_enabled;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AttendancePageHeader
         accent="emerald"
         icon={<FaUserFriends className="h-6 w-6" />}
         title="Registro manual"
-        description="Registra invitados y consulta la lista de asistencia por actividad."
+        description={
+          selectedActivity?.parking_enabled
+            ? 'Registro de vehículos para esta actividad (estacionamiento).'
+            : 'Registra invitados para la actividad seleccionada.'
+        }
         actions={
           selectedActivity ? (
             <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
@@ -132,7 +188,6 @@ export default function GuestAttendancePage() {
 
       <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-6">
-          {/* Left Column - Activity Selection */}
           <div className="lg:col-span-1">
             <ActivitySelector
               onActivitySelect={handleActivitySelect}
@@ -145,59 +200,80 @@ export default function GuestAttendancePage() {
           </div>
 
           <div className="flex flex-col gap-6 lg:col-span-2">
-            {/* Messages */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                 <div className="flex items-center gap-3">
-                  <FaExclamationTriangle className="w-5 h-5 text-red-500" />
+                  <FaExclamationTriangle className="h-5 w-5 text-red-500" />
                   <p className="text-red-800">{error}</p>
                 </div>
               </div>
             )}
 
             {success && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                 <div className="flex items-center gap-3">
-                  <FaCheckCircle className="w-5 h-5 text-green-500" />
+                  <FaCheckCircle className="h-5 w-5 text-green-500" />
                   <p className="text-green-800">{success}</p>
                 </div>
               </div>
             )}
 
-            {/* Instructions */}
             {!selectedActivity && (
               <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
                 <AttendanceEmptyState
                   className="border-0 shadow-none sm:p-6"
                   icon={<FaUserFriends className="h-7 w-7" />}
                   title="Selecciona una actividad"
-                  description="Para registrar invitados, elige una actividad en el panel izquierdo."
+                  description="Para registrar invitados o placas, elige una actividad en el panel izquierdo."
                 />
               </div>
             )}
 
-            {/* Guest Registration Form */}
             {selectedActivity && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900">Registro de Personas</h2>
+              <div className="rounded-lg bg-white p-6 shadow-sm">
+                <div className="mb-6 flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {parkingOn ? 'Registro de estacionamiento' : 'Registro'}
+                  </h2>
                   <button
+                    type="button"
                     onClick={() => setShowForm(!showForm)}
                     className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                   >
-                    <FaPlus className="w-4 h-4" />
+                    <FaPlus className="h-4 w-4" />
                     {showForm ? 'Cancelar' : 'Nuevo Registro'}
                   </button>
                 </div>
 
                 {showForm && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
+                    {parkingOn && (
+                      <div>
+                        <label htmlFor="plate" className="mb-1 block text-sm font-medium text-gray-700">
+                          Placa del vehículo *
+                        </label>
+                        <input
+                          type="text"
+                          id="plate"
+                          value={formData.plate}
+                          onChange={(e) => {
+                            setFormData({ ...formData, plate: e.target.value });
+                            setError(null);
+                          }}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 uppercase focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                          placeholder="Ej: ABC123"
+                          maxLength={32}
+                          required={parkingOn}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Obligatoria cuando la actividad tiene estacionamiento. Una fila por vehículo.
+                        </p>
+                      </div>
+                    )}
+
                     <div>
-                      <label
-                        htmlFor="full_name"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Nombre Completo *
+                      <label htmlFor="full_name" className="mb-1 block text-sm font-medium text-gray-700">
+                        Nombre completo{parkingOn ? ' (opcional si solo registras el vehículo)' : ' *'}
                       </label>
                       <input
                         type="text"
@@ -214,17 +290,14 @@ export default function GuestAttendancePage() {
                         }}
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                         placeholder="Ej: Juan Pérez"
-                        required
+                        required={!parkingOn}
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
-                        <label
-                          htmlFor="cedula"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Cédula (Opcional)
+                        <label htmlFor="cedula" className="mb-1 block text-sm font-medium text-gray-700">
+                          Cédula (opcional)
                         </label>
                         <input
                           type="text"
@@ -247,11 +320,8 @@ export default function GuestAttendancePage() {
                       </div>
 
                       <div>
-                        <label
-                          htmlFor="phone"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Teléfono (Opcional)
+                        <label htmlFor="phone" className="mb-1 block text-sm font-medium text-gray-700">
+                          Teléfono (opcional)
                         </label>
                         <input
                           type="tel"
@@ -269,7 +339,7 @@ export default function GuestAttendancePage() {
                             }
                           }}
                           className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
-                          placeholder="Ej: 555-1234"
+                          placeholder="Ej: 5551234"
                         />
                       </div>
                     </div>
@@ -278,46 +348,84 @@ export default function GuestAttendancePage() {
                       <button
                         type="submit"
                         disabled={loading}
-                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {loading ? (
                           <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            Registrando...
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            Registrando…
                           </>
                         ) : (
                           <>
-                            <FaCheckCircle className="w-4 h-4" />
-                            Registrar Persona 
+                            <FaCheckCircle className="h-4 w-4" />
+                            {parkingOn ? 'Guardar registro' : 'Registrar persona'}
                           </>
                         )}
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowForm(false)}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
                       >
                         Cancelar
                       </button>
                     </div>
                   </form>
                 )}
+
+                {parkingOn && (
+                  <div className="mt-8 border-t border-gray-100 pt-6">
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                      <FaCar className="h-4 w-4 text-amber-700" aria-hidden />
+                      Vehículos registrados
+                    </h3>
+                    {parkingLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+                        Cargando…
+                      </div>
+                    ) : parkingRegistrations.length === 0 ? (
+                      <p className="text-sm text-gray-500">Ningún vehículo aún. Usa «Nuevo Registro» y la placa arriba.</p>
+                    ) : (
+                      <div className="max-h-56 space-y-2 overflow-y-auto">
+                        {parkingRegistrations.map((reg) => (
+                          <div
+                            key={reg.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-sm"
+                          >
+                            <div>
+                              <p className="font-semibold text-gray-900">{reg.plate_raw}</p>
+                              <p className="text-xs text-gray-600">
+                                {[reg.full_name, reg.cedula ? `ID ${reg.cedula}` : null, reg.phone ? `Tel ${reg.phone}` : null]
+                                  .filter(Boolean)
+                                  .join(' · ') || 'Sin contacto en estacionamiento'}
+                              </p>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {reg.source === 'admin' ? 'Admin' : 'Público'}
+                              {reg.created_at ? ` · ${new Date(reg.created_at).toLocaleString('es-ES')}` : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
-            {selectedActivity && !loading && attendanceRecords.length === 0 && (
+            {selectedActivity && !parkingOn && !loading && attendanceRecords.length === 0 && (
               <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
                 <AttendanceEmptyState
                   className="border-0 shadow-none sm:p-6"
                   icon={<FaUsers className="h-7 w-7" />}
-                  title="Aún no hay registros"
+                  title="Aún no hay registros de asistencia"
                   description="Registra invitados con el formulario para verlos en esta lista."
                 />
               </div>
             )}
 
-            {/* Attendance Records */}
-            {selectedActivity && attendanceRecords.length > 0 && (
+            {selectedActivity && !parkingOn && attendanceRecords.length > 0 && (
               <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900">Registros de asistencia</h2>
@@ -333,19 +441,19 @@ export default function GuestAttendancePage() {
                   </div>
                 </div>
 
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="max-h-96 space-y-3 overflow-y-auto">
                   {attendanceRecords.map((record) => {
                     const isBeneficiario = record.attendance_type === 'beneficiario';
-                    
+
                     return (
                       <div
                         key={record.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${
-                            isBeneficiario ? 'bg-emerald-100' : 'bg-gray-100'
-                          }`}>
+                          <div
+                            className={`rounded-lg p-2 ${isBeneficiario ? 'bg-emerald-100' : 'bg-gray-100'}`}
+                          >
                             {isBeneficiario ? (
                               <FaUsers className="h-4 w-4 text-emerald-600" />
                             ) : (
@@ -354,7 +462,7 @@ export default function GuestAttendancePage() {
                           </div>
                           <div>
                             <h3 className="font-medium text-gray-900">{record.full_name}</h3>
-                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                               {record.cedula && <span>Cédula: {record.cedula}</span>}
                               {record.phone && <span>Tel: {record.phone}</span>}
                             </div>
@@ -362,14 +470,13 @@ export default function GuestAttendancePage() {
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">
-                            {record.created_at &&
-                              new Date(record.created_at).toLocaleString('es-ES')}
+                            {record.created_at && new Date(record.created_at).toLocaleString('es-ES')}
                           </p>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            isBeneficiario 
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                              isBeneficiario ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
                             {isBeneficiario ? 'Beneficiario' : 'Invitado'}
                           </span>
                         </div>
@@ -380,12 +487,11 @@ export default function GuestAttendancePage() {
               </div>
             )}
 
-            {/* Loading State */}
             {loading && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="rounded-lg bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-center">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
-                  <span className="ml-3 text-gray-600">Procesando...</span>
+                  <span className="ml-3 text-gray-600">Procesando…</span>
                 </div>
               </div>
             )}

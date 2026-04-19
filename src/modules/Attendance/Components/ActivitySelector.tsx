@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   FaCalendarAlt,
@@ -20,7 +20,8 @@ export default function ActivitySelector({
   onActivitySelect, 
   selectedActivity, 
   showCreateButton = false, 
-  onCreateActivity 
+  onCreateActivity,
+  excludeParkingEnabled = false,
 }: ActivitySelectorProps) {
   const [activities, setActivities] = useState<ActivityTrack[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,11 +31,6 @@ export default function ActivitySelector({
   /** Mobile: lista de actividades en modal / bottom sheet */
   const [pickerOpen, setPickerOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState('');
-
-  useEffect(() => {
-    fetchActivities();
-    checkScanningStatus();
-  }, []);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -56,19 +52,23 @@ export default function ActivitySelector({
     }
   }, [pickerOpen]);
 
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     try {
       setLoading(true);
       const response = await activityTracksApi.getAll(1, 50, 'active');
-      setActivities(response.data);
+      let list = response.data ?? [];
+      if (excludeParkingEnabled) {
+        list = list.filter((a) => !a.parking_enabled);
+      }
+      setActivities(list);
     } catch {
       setError('Error al cargar las actividades');
     } finally {
       setLoading(false);
     }
-  };
+  }, [excludeParkingEnabled]);
 
-  const checkScanningStatus = async () => {
+  const checkScanningStatus = useCallback(async () => {
     try {
       const activeActivity = await activityTracksApi.getActiveScanning();
       if (activeActivity) {
@@ -77,7 +77,12 @@ export default function ActivitySelector({
     } catch {
       // Optional: UI works without active-scanning state if this request fails
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchActivities();
+    void checkScanningStatus();
+  }, [fetchActivities, checkScanningStatus]);
 
   const handleStartScanning = async (activityId: number) => {
     setScanActionError(null);
@@ -280,7 +285,11 @@ export default function ActivitySelector({
         <div className="text-center py-8">
           <FaCalendarAlt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay actividades activas</h3>
-          <p className="text-gray-600 mb-4">Crea una nueva actividad para comenzar a gestionar la asistencia</p>
+          <p className="text-gray-600 mb-4">
+            {excludeParkingEnabled
+              ? 'Las actividades con estacionamiento público no aparecen aquí; el escaneo QR es solo para beneficiarios. Crea una actividad sin la opción de estacionamiento o desactívala en Gestión de actividades.'
+              : 'Crea una nueva actividad para comenzar a gestionar la asistencia'}
+          </p>
           {showCreateButton && onCreateActivity && (
             <button
               type="button"
@@ -448,7 +457,7 @@ export default function ActivitySelector({
                       ) : null}
                     </p>
                   </div>
-
+                  {/* Start scanning button (disabled for now)
                   {activity.status === 'active' && (
                     <div className="flex shrink-0">
                       {!isScanning ? (
@@ -479,7 +488,7 @@ export default function ActivitySelector({
                         </button>
                       )}
                     </div>
-                  )}
+                  )}*/}
                 </div>
               </div>
             );

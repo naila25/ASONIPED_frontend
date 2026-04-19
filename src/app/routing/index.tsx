@@ -39,6 +39,7 @@ import QRScannerPage from '../../modules/Attendance/Pages/QRScannerPage';
 import GuestAttendancePage from '../../modules/Attendance/Pages/GuestAttendancePage';
 import AttendanceListPage from '../../modules/Attendance/Pages/AttendanceListPage';
 import ActivitiesPage from '../../modules/Attendance/Pages/ActivitiesPage';
+import PublicParkingPage from '../../modules/Attendance/Pages/PublicParkingPage';
 import DonationForms from '../../modules/Donation/Pages/DonationForms';
 
 // Root route - SINGLE SOURCE OF TRUTH
@@ -313,6 +314,12 @@ const eventNewsDetailRoute = createRoute({
   component: EventNewsDetail,
 });
 
+const publicParkingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'estacionamiento/$token',
+  component: PublicParkingPage,
+});
+
 
 const GestionLandingRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
@@ -376,6 +383,7 @@ const routeTree = rootRoute.addChildren([
   ]),
   eventsNewsRoute,
   eventNewsDetailRoute,
+  publicParkingRoute,
 ]);
 
 

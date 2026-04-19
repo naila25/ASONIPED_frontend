@@ -10,8 +10,6 @@ import {
   MapPin,
   Image,
   FileText,
-  Table,
-  Grid3X3,
   Clock,
   Users,
   ClipboardList,
@@ -40,9 +38,6 @@ const VolunteerOptionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
-  
   // Pagination state for card view
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
@@ -66,38 +61,12 @@ const VolunteerOptionsPage = () => {
     const timer = setTimeout(() => {
       loadOptions();
     }, 0);
-    
-    detectZoomLevel();
-    
-    // Listen for zoom changes
-    window.addEventListener('resize', detectZoomLevel);
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', detectZoomLevel);
     };
   }, []);
 
-  // Detect zoom level based on device pixel ratio and visual viewport
-  const detectZoomLevel = () => {
-    const zoom = window.visualViewport ? window.visualViewport.scale : window.devicePixelRatio;
-    setZoomLevel(zoom);
-  };
-
-  // Get character limit based on zoom level
-  const getCharacterLimit = (baseLimit: number) => {
-    if (zoomLevel <= 0.8) return Math.floor(baseLimit * 1.5); // More characters at lower zoom
-    if (zoomLevel <= 1.0) return baseLimit; // Normal at 100%
-    if (zoomLevel <= 1.2) return Math.floor(baseLimit * 0.8); // Fewer characters at higher zoom
-    if (zoomLevel <= 1.5) return Math.floor(baseLimit * 0.6); // Even fewer at very high zoom
-    return Math.floor(baseLimit * 0.4); // Minimum at extreme zoom
-  };
-
-  // Truncate text based on zoom level
-  const truncateText = (text: string, baseLimit: number) => {
-    const limit = getCharacterLimit(baseLimit);
-    return text.length > limit ? `${text.substring(0, limit)}...` : text;
-  };
-
+  // (Previously used for table view truncation; table view removed.)
   // Remove noisy technical payloads rendered as plain text from API responses.
   const sanitizeTechnicalText = (value?: string) => {
     if (!value) return '';
@@ -293,14 +262,6 @@ const VolunteerOptionsPage = () => {
 
   const pageHeaderActions = (
     <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-      <button
-        type="button"
-        onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-        className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-      >
-        {viewMode === 'cards' ? <Table className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-        {viewMode === 'cards' ? 'Ver tabla' : 'Ver tarjetas'}
-      </button>
       <div className="relative w-full min-w-[12rem] sm:w-72">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
@@ -607,112 +568,10 @@ const VolunteerOptionsPage = () => {
           </div>
         )}
 
-        {/* Conditional Rendering: Table or Cards */}
-        {viewMode === 'table' ? (
-          /* Options Table - refined layout */
-          <div className="-mx-4 sm:mx-0 overflow-x-auto">
-            <div className="inline-block min-w-full align-middle">
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <table className="min-w-full table-auto text-sm">
-                  <thead className="bg-white sticky top-0 z-10 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-16">IMG</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-48">TÍTULO</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-64">DESCRIPCIÓN</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-48">HABILIDADES</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-48">HERRAMIENTAS</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-28">FECHA</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-24">HORA</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">UBICACIÓN</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-24">CUPOS</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">ACCIONES</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOptions.map((option, idx) => (
-                      <tr key={option.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
-                        <td className="px-4 py-3 align-top">
-                          <img
-                            src={option.imageUrl?.startsWith('http') ? option.imageUrl : `${getAPIBaseURLSync()}${option.imageUrl}`}
-                            alt={option.title}
-                            className="h-11 w-11 object-cover rounded-md border border-gray-200"
-                          />
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="font-semibold text-gray-900 leading-snug line-clamp-2" title={option.title}>
-                            {option.title}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2" title={option.description}>
-                            {option.description}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2" title={(option as unknown as { skills?: string }).skills || ''}>
-                            {(option as unknown as { skills?: string }).skills || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2" title={(option as unknown as { tools?: string }).tools || ''}>
-                            {(option as unknown as { tools?: string }).tools || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={option.date}>
-                            {truncateText(option.date, 12)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={(option as unknown as { hour?: string }).hour || 'No especificada'}>
-                            <Clock className="w-3 h-3 mr-1" />
-                            {formatHour12((option as unknown as { hour?: string }).hour) || '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={option.location}>
-                            {truncateText(option.location, 15)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 text-green-700 border border-green-200 text-xs font-medium" title={`${option.spots || 'N/A'} cupos disponibles`}>
-                            <Users className="w-3 h-3 mr-1" />
-                            {option.spots || '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col gap-2">
-                            <button
-                              onClick={() => handleEdit(option)}
-                              className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 transition-colors duration-200"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => handleDelete(option.id)}
-                              className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-red-600 text-white rounded-md text-xs hover:bg-red-700 transition-colors duration-200"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-
-
-            {/* Options Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {currentOptions.map((option) => (
-              <div key={option.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
+        {/* Options Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {currentOptions.map((option) => (
+            <div key={option.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
                 {/* Image Section */}
                 <div className="relative h-48 bg-gray-100">
                   {option.imageUrl ? (
@@ -789,8 +648,8 @@ const VolunteerOptionsPage = () => {
                   </div>
                 </div>
               </div>
-            ))}
-            </div>
+          ))}
+        </div>
 
             {/* Pagination Info for Cards */}
             <div className="mb-6 text-center">
@@ -846,8 +705,7 @@ const VolunteerOptionsPage = () => {
                 </button>
               </div>
             )}
-          </>
-        )}
+        
 
         {filteredOptions.length === 0 && (
           <div className="text-center py-8 text-gray-500">

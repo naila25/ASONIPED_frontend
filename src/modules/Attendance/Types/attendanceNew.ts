@@ -10,9 +10,13 @@ export interface ActivityTrack {
   location?: string;
   status?: 'active' | 'inactive' | 'completed';
   scanning_active?: boolean;
+  parking_enabled?: boolean;
+  parking_public_token?: string | null;
   created_by: number;
   created_at?: string;
   updated_at?: string;
+  /** Hidden from default lists; data kept */
+  archived?: boolean;
 }
 
 export interface ActivityTrackWithStats extends ActivityTrack {
@@ -106,6 +110,52 @@ export interface CreateActivityTrackData {
   event_time?: string;
   location?: string;
   status?: 'active' | 'inactive' | 'completed';
+  parking_enabled?: boolean;
+}
+
+export interface CreateActivityTrackResponse {
+  message: string;
+  activity_track_id: number;
+  parking_enabled?: boolean;
+  parking_public_token?: string | null;
+}
+
+/** Time-limited segment for /estacionamiento/:token (6h HMAC window). */
+export interface ParkingPublicLinkResponse {
+  token: string;
+  expiresAt: string;
+}
+
+export interface PublicParkingActivitySummary {
+  id?: number;
+  name: string;
+  event_date: string;
+  event_time?: string | null;
+  location?: string | null;
+}
+
+export interface PublicParkingActivityResponse {
+  activity: PublicParkingActivitySummary;
+}
+
+export interface ActivityParkingRegistration {
+  id: number;
+  activity_track_id: number;
+  plate_raw: string;
+  plate_normalized: string;
+  full_name?: string | null;
+  cedula?: string | null;
+  phone?: string | null;
+  source: 'public_link' | 'admin';
+  created_by?: number | null;
+  created_at?: string;
+}
+
+export interface SubmitPublicParkingData {
+  plate: string;
+  full_name?: string;
+  cedula?: string;
+  phone?: string;
 }
 
 export interface CreateGuestAttendanceData {
@@ -127,6 +177,8 @@ export interface ActivitySelectorProps {
   selectedActivity?: ActivityTrack;
   showCreateButton?: boolean;
   onCreateActivity?: () => void;
+  /** When true, omits activities with parking enabled (beneficiary QR scan only). */
+  excludeParkingEnabled?: boolean;
 }
 
 export interface QRScannerProps {
