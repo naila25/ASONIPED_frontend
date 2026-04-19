@@ -93,7 +93,7 @@ const VolunteerCard = ({
           <div className="flex justify-center items-center mt-auto">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
+              className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
             >
               Ver más
             </button>

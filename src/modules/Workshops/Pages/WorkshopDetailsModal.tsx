@@ -244,32 +244,21 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                 <MdLocationOn className="text-orange-500" />
                 <span className="font-medium text-gray-900">Ubicación:</span> {workshop.ubicacion || 'Por definir'}
               </div>
-              {typeof workshop.capacidad === "number" && (
+              {enrollmentStatus.available_spots !== undefined && (
                 <div className="flex items-center gap-2">
                   <FaUsers className="text-orange-500" />
-                  <span className="font-medium text-gray-900">Capacidad:</span> 
-                  <span className="text-green-600">
-                    {workshop.capacidad} personas
+                  <span className="font-medium text-gray-900">Cupos:</span>
+                  <span className={enrollmentStatus.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
+                    {enrollmentStatus.available_spots} disponibles
                   </span>
+                  {enrollmentStatus.enrolled_count > 0 && (
+                    <span className="text-gray-500 text-sm">
+                      ({enrollmentStatus.enrolled_count} inscritos)
+                    </span>
+                  )}
                 </div>
               )}
             </div>
-
-            {/* Enrollment Status */}
-            {enrollmentStatus.available_spots !== undefined && (
-              <div className="text-center text-sm text-gray-600">
-                <span className="flex items-center justify-center gap-2">
-                  <FaUsers className="text-orange-500" />
-                  {enrollmentStatus.enrolled_count} de {workshop.capacidad} inscritos
-                  {enrollmentStatus.available_spots > 0 && (
-                    <span className="text-green-600">({enrollmentStatus.available_spots} disponibles)</span>
-                  )}
-                  {enrollmentStatus.available_spots === 0 && (
-                    <span className="text-red-600">(Sin cupos disponibles)</span>
-                  )}
-                </span>
-              </div>
-            )}
 
             {/* Actions */}
             <div className="flex flex-col justify-center items-center gap-3">
@@ -322,7 +311,7 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                   ) : enrollmentStatus.available_spots === 0 ? (
                     'Sin Cupos Disponibles'
                   ) : (
-                    'Inscribirse'
+                    'Registrarse'
                   )}
                 </button>
               )}
