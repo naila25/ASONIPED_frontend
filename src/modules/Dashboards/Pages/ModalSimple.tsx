@@ -18,7 +18,7 @@ export const ModalSimple = React.memo(function ModalSimple({ onClose, children }
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
     >

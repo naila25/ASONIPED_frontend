@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Users, Plus, Edit, Trash2, Shield, Search, X, CheckCircle, AlertCircle, 
+  Users, Plus, Edit, Trash2, Shield, Search, X, CheckCircle, XCircle, AlertCircle, 
   Filter, ChevronUp, ChevronDown, Eye,
   FileText, Ticket, GraduationCap, Heart, ArrowLeft, ArrowRight
 } from 'lucide-react';
@@ -9,6 +9,9 @@ import {
   type User, type UserWithStatistics, type UserFilters, type UserSort, type UserFormData
 } from '../../../shared/Services/userManagement.service';
 import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
+
+/** Backend may send boolean or MySQL 0/1. */
+const isEmailVerifiedFlag = (v: unknown): boolean => Number(v) === 1;
 
 // Validation function
 const validateUserInput = (data: UserFormData): string | null => {
@@ -440,7 +443,7 @@ const UserManagement = () => {
           <>
         <div className="w-full overflow-x-auto">
           <div className="min-w-full inline-block align-middle">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+            <div className="overflow-hidden  ring-black ring-opacity-5 md:rounded-lg">
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
@@ -517,11 +520,17 @@ const UserManagement = () => {
                           <td className="px-3 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-2">
                                 <div className="text-sm text-gray-900">{user.email || 'N/A'}</div>
-                                {user.email_verified && (
-                                  <div title="Email verificado">
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                  </div>
-                                )}
+                                {user.email ? (
+                                  isEmailVerifiedFlag(user.email_verified) ? (
+                                    <div title="Email verificado">
+                                      <CheckCircle className="w-4 h-4 shrink-0 text-green-500" aria-hidden />
+                                    </div>
+                                  ) : (
+                                    <div title="Email sin verificar">
+                                      <XCircle className="w-4 h-4 shrink-0 text-amber-600" aria-hidden />
+                                    </div>
+                                  )
+                                ) : null}
                               </div>
                       </td>
                           <td className="px-3 py-4 whitespace-nowrap">
@@ -628,7 +637,7 @@ const UserManagement = () => {
       {/* User Details Modal */}
       {isDetailsModalOpen && userDetails && (
         <div 
-          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50 "
           onClick={() => setIsDetailsModalOpen(false)}
         >
           <div 
@@ -672,11 +681,17 @@ const UserManagement = () => {
                     <label className="text-sm font-medium text-gray-500">Email</label>
                     <div className="flex items-center gap-2">
                       <p className="text-gray-900">{userDetails.email || 'N/A'}</p>
-                      {userDetails.email_verified && (
-                        <div title="Verificado">
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                        </div>
-                      )}
+                      {userDetails.email ? (
+                        isEmailVerifiedFlag(userDetails.email_verified) ? (
+                          <div title="Email verificado">
+                            <CheckCircle className="w-4 h-4 shrink-0 text-green-500" aria-hidden />
+                          </div>
+                        ) : (
+                          <div title="Email sin verificar">
+                            <XCircle className="w-4 h-4 shrink-0 text-amber-600" aria-hidden />
+                          </div>
+                        )
+                      ) : null}
                     </div>
                   </div>
                   <div>
@@ -766,7 +781,7 @@ const UserManagement = () => {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && userToDelete && (
         <div 
-          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50"
           onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
         >
           <div 
@@ -817,7 +832,7 @@ const UserManagement = () => {
       {/* Create/Edit Modal */}
       {isModalOpen && (
         <div 
-          className="fixed inset-0 backdrop-blur-sm bg-gray-900/30 flex items-center justify-center z-50 p-4 overflow-y-auto"
+          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto bg-black/50"
           onClick={() => !isSubmitting && setIsModalOpen(false)}
         >
           <div 
