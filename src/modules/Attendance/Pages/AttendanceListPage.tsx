@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaChartLine, FaDownload, FaFilter, FaUsers, FaSearch, FaExclamationTriangle, FaCalendarAlt, FaTimes, FaSort, FaSortUp, FaSortDown, FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp, FaIdCard, FaPhone } from 'react-icons/fa';
-import { activityTracksApi, attendanceRecordsApi } from '../Services/attendanceNewApi';
+import { activityTracksApi, attendanceRecordsApi, parkingRegistrationsApi } from '../Services/attendanceNewApi';
 import AttendancePageHeader from '../Components/AttendancePageHeader';
 import AttendanceEmptyState from '../Components/AttendanceEmptyState';
-import type { ActivityTrack, ActivityTrackWithStats, AttendanceRecordWithDetails } from '../Types/attendanceNew';
+import type {
+  ActivityParkingRegistration,
+  ActivityTrack,
+  ActivityTrackWithStats,
+  AttendanceRecordWithDetails,
+} from '../Types/attendanceNew';
+import { formatParkingRegistrationsAsCsv } from '../utils/parkingCsvExport';
 
 type SortField = 'full_name' | 'attendance_type' | 'attendance_method' | 'cedula' | 'phone' | 'date';
 type SortDirection = 'asc' | 'desc';
@@ -28,6 +34,8 @@ export default function AttendanceListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [filtersOpenMobile, setFiltersOpenMobile] = useState(false);
+  const [parkingRegistrations, setParkingRegistrations] = useState<ActivityParkingRegistration[]>([]);
+  const [parkingListLoading, setParkingListLoading] = useState(false);
 
   const loadActivities = async () => {
     try {
@@ -83,27 +91,109 @@ export default function AttendanceListPage() {
     }
   }, [selectedActivity, loadAttendanceRecords, filters.startDate, filters.endDate, filters.attendanceType]);
 
+  const loadParkingRegistrations = useCallback(async () => {
+    if (!selectedActivity?.id || !selectedActivity.parking_enabled) {
+      setParkingRegistrations([]);
+      setParkingListLoading(false);
+      return;
+    }
+    try {
+      setParkingListLoading(true);
+      const rows = await parkingRegistrationsApi.listByActivity(selectedActivity.id);
+      setParkingRegistrations(rows);
+    } catch {
+      setParkingRegistrations([]);
+    } finally {
+      setParkingListLoading(false);
+    }
+  }, [selectedActivity]);
+
+  useEffect(() => {
+    if (!selectedActivity) {
+      setParkingRegistrations([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      void loadParkingRegistrations();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [selectedActivity, loadParkingRegistrations]);
+
   const handleExport = async (format: 'json' | 'csv') => {
-    if (!selectedActivity || sortedAndFilteredRecords.length === 0) {
+    if (!selectedActivity) {
+      setError('Selecciona una actividad');
+      return;
+    }
+
+    const safeName = selectedActivity.name.replace(/[^\w\s-]/g, '').slice(0, 60) || 'actividad';
+    const dateStamp = new Date().toISOString().split('T')[0];
+
+    /** Actividades con estacionamiento: solo exportamos placas / estacionamiento (no asistencia). */
+    if (selectedActivity.parking_enabled) {
+      if (parkingRegistrations.length === 0) {
+        setError('No hay registros de estacionamiento para exportar');
+        return;
+      }
+      try {
+        setExporting(true);
+        setError(null);
+        if (format === 'json') {
+          const jsonPayload = {
+            actividad: { id: selectedActivity.id, nombre: selectedActivity.name },
+            estacionamiento: parkingRegistrations,
+          };
+          const jsonBlob = new Blob([JSON.stringify(jsonPayload, null, 2)], { type: 'application/json' });
+          const url = window.URL.createObjectURL(jsonBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `estacionamiento_${safeName}_${dateStamp}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        } else {
+          const csv = formatParkingRegistrationsAsCsv(parkingRegistrations);
+          const csvBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = window.URL.createObjectURL(csvBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `estacionamiento_${safeName}_${dateStamp}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }
+        setSuccess(`${parkingRegistrations.length} registro(s) de estacionamiento exportado(s)`);
+        setTimeout(() => setSuccess(null), 3000);
+      } catch {
+        setError('Error al exportar datos');
+      } finally {
+        setExporting(false);
+      }
+      return;
+    }
+
+    if (sortedAndFilteredRecords.length === 0) {
       setError('No hay datos para exportar');
       return;
     }
-    
+
     try {
       setExporting(true);
       setError(null);
 
-      // Export filtered and sorted records
-      const dataToExport = sortedAndFilteredRecords.map(record => ({
+      const dataToExport = sortedAndFilteredRecords.map((record) => ({
         nombre: record.full_name,
         tipo: record.attendance_type === 'beneficiario' ? 'Beneficiario' : 'Invitado',
         metodo: record.attendance_method === 'qr_scan' ? 'QR Scan' : 'Manual',
         cedula: record.cedula || '',
         telefono: record.phone || '',
         expediente: record.record_number || '',
-        fecha: record.scanned_at 
+        fecha: record.scanned_at
           ? new Date(record.scanned_at).toLocaleString('es-ES')
-          : (record.created_at ? new Date(record.created_at).toLocaleString('es-ES') : ''),
+          : record.created_at
+            ? new Date(record.created_at).toLocaleString('es-ES')
+            : '',
         registrado_por: record.created_by_name || '',
       }));
 
@@ -112,37 +202,38 @@ export default function AttendanceListPage() {
         const url = window.URL.createObjectURL(jsonBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `asistencia_${selectedActivity.name}_${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `asistencia_${safeName}_${dateStamp}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } else {
-        // CSV export
         const csvHeaders = ['Nombre', 'Tipo', 'Método', 'Cédula', 'Teléfono', 'Expediente', 'Fecha', 'Registrado Por'];
-        const csvRows = dataToExport.map(record => [
-          `"${record.nombre}"`,
-          record.tipo,
-          record.metodo,
-          record.cedula,
-          record.telefono,
-          record.expediente,
-          `"${record.fecha}"`,
-          `"${record.registrado_por}"`
-        ].join(','));
+        const csvRows = dataToExport.map((record) =>
+          [
+            `"${record.nombre.replace(/"/g, '""')}"`,
+            record.tipo,
+            record.metodo,
+            record.cedula,
+            record.telefono,
+            record.expediente,
+            `"${record.fecha.replace(/"/g, '""')}"`,
+            `"${record.registrado_por.replace(/"/g, '""')}"`,
+          ].join(',')
+        );
         const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
         const csvBlob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(csvBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `asistencia_${selectedActivity.name}_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `asistencia_${safeName}_${dateStamp}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       }
-      
-      setSuccess(`${sortedAndFilteredRecords.length} registro(s) exportado(s) exitosamente`);
+
+      setSuccess(`${sortedAndFilteredRecords.length} registro(s) de asistencia exportado(s)`);
       setTimeout(() => setSuccess(null), 3000);
     } catch {
       setError('Error al exportar datos');
@@ -248,6 +339,18 @@ export default function AttendanceListPage() {
     setCurrentPage(1);
   }, [filters.searchTerm, filters.attendanceType, filters.startDate, filters.endDate]);
 
+  const exportReady =
+    !!selectedActivity &&
+    !recordsLoading &&
+    !(selectedActivity.parking_enabled && parkingListLoading);
+
+  const canExportData = useMemo(() => {
+    if (!selectedActivity) return false;
+    if (selectedActivity.parking_enabled) {
+      return parkingRegistrations.length > 0;
+    }
+    return sortedAndFilteredRecords.length > 0;
+  }, [selectedActivity, parkingRegistrations.length, sortedAndFilteredRecords.length]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -255,7 +358,7 @@ export default function AttendanceListPage() {
         accent="emerald"
         icon={<FaChartLine className="h-6 w-6" />}
         title="Analítica y reportes"
-        description="Filtra, ordena y exporta registros de asistencia por actividad."
+        description="Filtra y ordena asistencia por actividad. Exporta datos en formato Excel."
         actions={
           selectedActivity ? (
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -268,12 +371,18 @@ export default function AttendanceListPage() {
               <button
                 type="button"
                 onClick={() => handleExport('csv')}
-                disabled={exporting || recordsLoading || sortedAndFilteredRecords.length === 0}
+                disabled={exporting || !exportReady || !canExportData}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                title={`Exportar ${sortedAndFilteredRecords.length} registro(s)`}
+                title={
+                  canExportData
+                    ? selectedActivity?.parking_enabled
+                      ? 'Exportar solo estacionamiento (CSV)'
+                      : 'Exportar asistencia (CSV)'
+                    : 'Sin datos para exportar'
+                }
               >
                 <FaDownload className="h-4 w-4" />
-                Exportar Excel
+                {selectedActivity?.parking_enabled ? 'Exportar Excel' : 'Exportar Excel'}
               </button>
             </div>
           ) : null
@@ -472,7 +581,7 @@ export default function AttendanceListPage() {
               <AttendanceEmptyState
                 icon={<FaCalendarAlt className="h-7 w-7" />}
                 title="Selecciona una actividad"
-                description="Elige una actividad en el panel izquierdo para ver y exportar sus registros de asistencia."
+                description="Elige una actividad: verás asistencia o, si tiene estacionamiento, exportarás solo los vehículos registrados."
               />
             )}
 
@@ -481,13 +590,30 @@ export default function AttendanceListPage() {
                 <div className="flex flex-col gap-4 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                   <div className="min-w-0">
                     <h2 className="text-lg font-semibold text-gray-900">Registros de asistencia</h2>
-                    {sortedAndFilteredRecords.length > 0 && !recordsLoading && (
-                      <p className="mt-1 text-sm text-gray-600">
-                        Mostrando {startIndex + 1}-{Math.min(endIndex, sortedAndFilteredRecords.length)} de{' '}
-                        {sortedAndFilteredRecords.length} registro
-                        {sortedAndFilteredRecords.length !== 1 ? 's' : ''}
-                      </p>
-                    )}
+                    {!recordsLoading &&
+                      (selectedActivity.parking_enabled || sortedAndFilteredRecords.length > 0) && (
+                        <p className="mt-1 text-sm text-gray-600">
+                          {selectedActivity.parking_enabled && (
+                            <>
+                              {parkingListLoading
+                                ? 'Cargando estacionamiento…'
+                                : `${parkingRegistrations.length} vehículo${parkingRegistrations.length !== 1 ? 's' : ''} en estacionamiento`}
+                              {(sortedAndFilteredRecords.length > 0 || parkingRegistrations.length > 0) && ' · '}
+                            </>
+                          )}
+                          {sortedAndFilteredRecords.length > 0 ? (
+                            <>
+                              Mostrando {startIndex + 1}-{Math.min(endIndex, sortedAndFilteredRecords.length)} de{' '}
+                              {sortedAndFilteredRecords.length} registro
+                              {sortedAndFilteredRecords.length !== 1 ? 's' : ''} de asistencia
+                            </>
+                          ) : selectedActivity.parking_enabled ? (
+                            <span className="text-gray-500">
+                              Sin filas de asistencia en esta tabla; el export incluye solo estacionamiento.
+                            </span>
+                          ) : null}
+                        </p>
+                      )}
                   </div>
                   {sortedAndFilteredRecords.length > 0 && (
                     <div className="flex flex-wrap items-center gap-3">
@@ -522,11 +648,17 @@ export default function AttendanceListPage() {
                     <AttendanceEmptyState
                       className="border-0 p-4"
                       icon={<FaUsers className="h-7 w-7" />}
-                      title="No hay registros"
+                      title={
+                        selectedActivity.parking_enabled && parkingRegistrations.length > 0
+                          ? 'Sin registros de asistencia en tabla'
+                          : 'No hay registros'
+                      }
                       description={
                         filters.searchTerm || filters.attendanceType || filters.startDate || filters.endDate
                           ? 'No hay registros que coincidan con los filtros. Prueba a limpiar filtros o ajustar fechas.'
-                          : 'Aún no hay registros de asistencia para esta actividad.'
+                          : selectedActivity.parking_enabled && parkingRegistrations.length > 0
+                            ? `Hay ${parkingRegistrations.length} vehículo(s). Usa «Exportar estacionamiento» arriba para el CSV; esta tabla solo muestra asistencia.`
+                            : 'Aún no hay registros de asistencia para esta actividad.'
                       }
                     />
                   </div>

@@ -433,7 +433,7 @@ export default function GestionLanding() {
                   className={`mt-4 w-full text-center text-sm font-medium ${cardColor.colorText} ${cardColor.hoverBg} py-2 rounded transition-colors duration-200`}
                   onClick={() => handlePersonalize(sec.key)}
                 >
-                  {stats.count > 0 ? "Editar" : "Configurar"}
+                  {stats.count > 0 ? "Editar" : "Editar"}
                 </button>
               </div>
             );

@@ -49,7 +49,7 @@ const RecordDetailsModal: React.FC<RecordDetailsModalProps> = ({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
       onMouseDown={handleOverlayClick}
       aria-modal="true"
       role="dialog"

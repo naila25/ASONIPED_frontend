@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaUserFriends, FaCheckCircle, FaExclamationTriangle, FaPlus, FaUsers, FaCar } from 'react-icons/fa';
-import { useNavigate } from '@tanstack/react-router';
+import { FaUserFriends, FaCheckCircle, FaExclamationTriangle, FaPlus, FaUsers, FaCar, FaDownload } from 'react-icons/fa';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
 import ActivitySelector from '../Components/ActivitySelector';
 import AttendancePageHeader from '../Components/AttendancePageHeader';
 import AttendanceEmptyState from '../Components/AttendanceEmptyState';
-import { attendanceRecordsApi, parkingRegistrationsApi } from '../Services/attendanceNewApi';
+import { activityTracksApi, attendanceRecordsApi, parkingRegistrationsApi } from '../Services/attendanceNewApi';
 import type { ActivityParkingRegistration, ActivityTrack, AttendanceRecord } from '../Types/attendanceNew';
+import { formatParkingRegistrationsAsCsv } from '../utils/parkingCsvExport';
 
 export default function GuestAttendancePage() {
   const navigate = useNavigate();
+  const activityIdFromSearch = useRouterState({
+    select: (s) => (s.location.search as { activityId?: number }).activityId,
+  });
   const [selectedActivity, setSelectedActivity] = useState<ActivityTrack | null>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,11 +84,49 @@ export default function GuestAttendancePage() {
     return () => clearTimeout(timer);
   }, [selectedActivity, loadParkingRegistrations]);
 
-  const handleActivitySelect = (activity: ActivityTrack) => {
+  const handleActivitySelect = useCallback((activity: ActivityTrack) => {
     setSelectedActivity(activity);
     setError(null);
     setSuccess(null);
     setFormData({ full_name: '', cedula: '', phone: '', plate: '' });
+  }, []);
+
+  useEffect(() => {
+    const id = activityIdFromSearch;
+    if (id == null) return;
+    let cancelled = false;
+    void activityTracksApi
+      .getById(id)
+      .then((track) => {
+        if (cancelled) return;
+        handleActivitySelect(track);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('No se pudo cargar la actividad desde el enlace');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activityIdFromSearch, handleActivitySelect]);
+
+  const exportParkingCsv = () => {
+    if (!selectedActivity?.name || parkingRegistrations.length === 0) return;
+    const safeName = selectedActivity.name.replace(/[^\w\s-]/g, '').slice(0, 60) || 'actividad';
+    const dateStamp = new Date().toISOString().split('T')[0];
+    const csv = formatParkingRegistrationsAsCsv(parkingRegistrations);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `estacionamiento_${safeName}_${dateStamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    setSuccess(`${parkingRegistrations.length} registro(s) de estacionamiento exportado(s)`);
+    setTimeout(() => setSuccess(null), 3000);
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -375,10 +417,22 @@ export default function GuestAttendancePage() {
 
                 {parkingOn && (
                   <div className="mt-8 border-t border-gray-100 pt-6">
-                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
-                      <FaCar className="h-4 w-4 text-amber-700" aria-hidden />
-                      Vehículos registrados
-                    </h3>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                        <FaCar className="h-4 w-4 text-amber-700" aria-hidden />
+                        Vehículos registrados
+                      </h3>
+                      {!parkingLoading && parkingRegistrations.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => exportParkingCsv()}
+                          className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                        >
+                          <FaDownload className="h-4 w-4" aria-hidden />
+                          Exportar Excel (CSV)
+                        </button>
+                      )}
+                    </div>
                     {parkingLoading ? (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />

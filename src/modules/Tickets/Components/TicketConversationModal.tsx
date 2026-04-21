@@ -42,7 +42,7 @@ const TicketConversationModal: React.FC<TicketConversationModalProps> = ({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[110] flex items-stretch sm:items-center sm:justify-center bg-black/50 p-0 sm:p-4"
+      className="fixed inset-0 z-[110] flex items-stretch sm:items-center sm:justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
       onMouseDown={handleOverlayMouseDown}
       role="dialog"
       aria-modal="true"
