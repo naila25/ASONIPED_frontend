@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews, createEventNews, updateEventNews, deleteEventNews } from '../Services/eventsNewsApi';
-import { Plus, Edit, Trash2, Image, X, Search, Table, Grid3X3, Newspaper } from 'lucide-react';
+import { Plus, Edit, Trash2, Image, X, Search, Newspaper } from 'lucide-react';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
 import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 
@@ -59,7 +59,6 @@ const EventsNewsAdmin: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
 
   const fetchItems = async () => {
     setLoading(true);
@@ -151,14 +150,6 @@ const EventsNewsAdmin: React.FC = () => {
 
   const pageHeaderActions = (
     <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-      <button
-        type="button"
-        onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
-      >
-        {viewMode === 'cards' ? <Table className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
-        {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
-      </button>
       <div className="relative w-full min-w-[12rem] sm:w-72">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
         <input
@@ -458,143 +449,60 @@ const EventsNewsAdmin: React.FC = () => {
   </div>
 )}
 
-        {/* Conditional Rendering: Table or Cards */}
-        {viewMode === 'table' ? (
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <div className="inline-block min-w-full align-middle">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imágen</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          {item.imageUrl ? (
-                            <img
-                              src={item.imageUrl}
-                              alt={item.title}
-                              className="h-12 w-12 object-cover rounded-lg border border-gray-200"
-                            />
-                          ) : (
-                            <div className="h-12 w-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-                              <Image className="w-6 h-6 text-gray-400" />
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 max-w-[150px] truncate" title={item.title}>
-                            {item.title}
-                          </div>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDisplayDate(item.date)}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.hour ? formatTime12Hour(item.hour) : '—'}
-                        </td>
-                        <td className="px-3 py-4">
-                          <div className="text-sm text-gray-900 max-w-[200px] truncate" title={item.description}>
-                            {item.description}
-                          </div>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">
-                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            item.type === 'evento'
-                           ? 'bg-blue-100 text-blue-800'
-                           : 'bg-green-100 text-green-800'
-                          }`}>
-                           {item.type === 'evento' ? 'Evento' : 'Noticia'}
-                         </span>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="flex items-center justify-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
-                            >
-                              <Edit className="w-3 h-3" />
-                              <span className="hidden sm:inline">Editar</span>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="flex items-center justify-center gap-1 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span className="hidden sm:inline">Eliminar</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredItems.map((item) => (
+            <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
+              {/* Image */}
+              <div className="relative h-48 bg-gray-100">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <Image className="w-12 h-12 text-gray-400" />
+                  </div>
+                )}
+                <div className="absolute top-3 right-3">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
+                    item.type === 'evento' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-green-100 text-green-800 border-green-200'
+                  }`}>
+                    {item.type === 'evento' ? 'Evento' : 'Noticia'}
+                  </span>
+                </div>
+              </div>
+              {/* Content */}
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2" title={item.title}>{item.title}</h3>
+                <div className="text-sm text-gray-600 mb-3">
+                  {formatDisplayDate(item.date)}
+                  {item.hour && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium">
+                      {formatTime12Hour(item.hour)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow" title={item.description}>{item.description}</p>
+                <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(item)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(item.id)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
-                {/* Image */}
-                <div className="relative h-48 bg-gray-100">
-                  {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <Image className="w-12 h-12 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="absolute top-3 right-3">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                      item.type === 'evento' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-green-100 text-green-800 border-green-200'
-                    }`}>
-                      {item.type === 'evento' ? 'Evento' : 'Noticia'}
-                    </span>
-                  </div>
-                </div>
-                {/* Content */}
-                <div className="p-6 flex flex-col flex-grow">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2" title={item.title}>{item.title}</h3>
-                  <div className="text-sm text-gray-600 mb-3">
-                    {formatDisplayDate(item.date)}
-                    {item.hour && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium">
-                        {formatTime12Hour(item.hour)}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow" title={item.description}>{item.description}</p>
-                  <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
 
         {filteredItems.length === 0 && (
           <div className="text-center py-8 text-gray-500">

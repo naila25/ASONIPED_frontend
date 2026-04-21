@@ -77,7 +77,7 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-[110]"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[110]"
       onMouseDown={handleOverlayClick}
       aria-modal="true"
       role="dialog"
@@ -136,7 +136,7 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
             onClick={onConfirm}
             disabled={isConfirmDisabled}
             className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
-              requireComment ? 'bg-green-500 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'
+              requireComment ? 'bg-green-500 hover:bg-green-600' : 'bg-red-600 hover:bg-red-700'
             }`}
           >
             {loading ? 'Procesando...' : confirmLabel}

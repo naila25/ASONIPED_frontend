@@ -229,6 +229,19 @@ const donationsAdminRoute = createRoute({
   ),
 });
 
+/** Optional deep link from Gestión de actividades → asistencia. */
+function parseAttendanceActivitySearch(search: Record<string, unknown>) {
+  const raw = search.activityId;
+  if (raw === undefined || raw === null || raw === '') {
+    return {};
+  }
+  const n = typeof raw === 'number' ? raw : Number(String(raw));
+  if (!Number.isFinite(n) || n <= 0) {
+    return {};
+  }
+  return { activityId: Math.floor(n) };
+}
+
 // Attendance routes (direct children of adminDashboardRoute)
 const attendanceMainRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
@@ -241,12 +254,14 @@ const attendanceMainRoute = createRoute({
 const attendanceBeneficiariesRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance/beneficiaries',
+  validateSearch: parseAttendanceActivitySearch,
   component: QRScannerPage,
 });
 
 const attendanceGuestsRoute = createRoute({
   getParentRoute: () => adminDashboardRoute,
   path: 'attendance/guests',
+  validateSearch: parseAttendanceActivitySearch,
   component: GuestAttendancePage,
 });
 

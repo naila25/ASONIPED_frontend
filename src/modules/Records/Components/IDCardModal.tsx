@@ -106,7 +106,7 @@ const IDCardModal: React.FC<IDCardModalProps> = ({ isOpen, onClose, recordId }) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 print:p-0">
+    <div className="fixed inset-0 bg-black/50  backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 print:p-0">
       <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] min-w-0 flex flex-col overflow-hidden print:shadow-none print:max-h-none print:rounded-none print:max-w-none">
         <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 shrink-0 print:hidden">
           <div className="flex items-center gap-2 text-gray-900 font-semibold min-w-0 truncate">

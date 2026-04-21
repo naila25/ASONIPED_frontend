@@ -298,7 +298,8 @@ export const activityTracksApi = {
         if (response.status === 404) {
           throw new Error('Activity track not found');
         }
-        throw new Error('Failed to delete activity track');
+        const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errorData.error || 'No se pudo eliminar la actividad');
       }
   },
 

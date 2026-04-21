@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FaCalendarAlt, FaPlus, FaEdit, FaEye, FaChevronLeft, FaChevronRight, FaCar, FaCopy, FaArchive, FaUndo, FaSearch, FaTimes } from 'react-icons/fa';
+import { FaCalendarAlt, FaPlus, FaEdit, FaEye, FaChevronLeft, FaChevronRight, FaCar, FaCopy, FaArchive, FaUndo, FaSearch, FaTimes, FaTrash } from 'react-icons/fa';
 import { Link } from '@tanstack/react-router';
 import { activityTracksApi } from '../Services/attendanceNewApi';
 import AttendancePageHeader from '../Components/AttendancePageHeader';
@@ -20,6 +20,7 @@ export default function ActivitiesPage() {
   const [editingActivity, setEditingActivity] = useState<ActivityTrack | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [archiveConfirmForId, setArchiveConfirmForId] = useState<number | null>(null);
+  const [deleteConfirmForId, setDeleteConfirmForId] = useState<number | null>(null);
   const [parkingModalActivity, setParkingModalActivity] = useState<ActivityTrackWithStats | null>(null);
   const [parkingModalLoading, setParkingModalLoading] = useState(false);
   const [parkingModalPayload, setParkingModalPayload] = useState<{ url: string; expiresAt: string } | null>(null);
@@ -136,6 +137,15 @@ export default function ActivitiesPage() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [archiveConfirmForId]);
+
+  useEffect(() => {
+    if (deleteConfirmForId === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDeleteConfirmForId(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [deleteConfirmForId]);
 
   useEffect(() => {
     if (parkingModalActivity === null) return;
@@ -263,12 +273,57 @@ export default function ActivitiesPage() {
     }
   };
 
+  const performDeleteActivity = async (id: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await activityTracksApi.delete(id);
+      setDeleteConfirmForId(null);
+      setSuccess('Actividad eliminada del sistema');
+      await loadActivities();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al eliminar la actividad');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toDateInputValue = (value: string) => {
+    if (!value) return '';
+    // Accept ISO strings, "YYYY-MM-DD HH:MM:SS", or already-normalized YYYY-MM-DD
+    const datePart = value.includes('T') ? value.split('T')[0] : value.split(' ')[0];
+    const isoMatch = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) return datePart;
+    // Accept common "M/D/YYYY" or "MM/DD/YYYY" formats
+    if (value.includes('/')) {
+      const [mStr, dStr, yStr] = value.split('/');
+      const y = Number(yStr);
+      const m = Number(mStr);
+      const d = Number(dStr);
+      if (Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)) {
+        const mm = String(m).padStart(2, '0');
+        const dd = String(d).padStart(2, '0');
+        return `${y}-${mm}-${dd}`;
+      }
+    }
+    // Last resort: try Date parsing and normalize
+    const dt = new Date(value);
+    if (!isNaN(dt.getTime())) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return '';
+  };
+
   const openEditForm = (activity: ActivityTrack) => {
     setEditingActivity(activity);
     setFormData({
       name: activity.name,
       description: activity.description || '',
-      event_date: activity.event_date,
+      event_date: toDateInputValue(activity.event_date),
       event_time: activity.event_time || '',
       location: activity.location || '',
       parking_enabled: !!activity.parking_enabled,
@@ -313,7 +368,7 @@ export default function ActivitiesPage() {
         accent="emerald"
         icon={<FaCalendarAlt className="h-6 w-6" />}
         title="Gestión de actividades"
-        description="Crea y edita actividades. Las archivadas se ocultan pero conservan datos; actívalas en la lista con «Mostrar archivadas»."
+        description="Crea y edita actividades. Archivar oculta sin borrar; desde archivar o actividades archivadas puedes eliminar permanentemente si lo necesitas."
         actions={
           <button
             type="button"
@@ -372,12 +427,74 @@ export default function ActivitiesPage() {
                   onClick={() => {
                     const id = archiveConfirmForId;
                     setArchiveConfirmForId(null);
-                    void performArchiveActivity(id);
+                    void performArchiveActivity(id!);
                   }}
                   disabled={loading}
                   className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 disabled:opacity-50"
                 >
                   Archivar
+                </button>
+              </div>
+              <div className="mt-6 border-t border-gray-100 pt-4">
+                <p className="text-sm text-gray-600">
+                  Si en cambio quieres borrarla del sistema (asistencia, estacionamiento y todo lo asociado):
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = archiveConfirmForId;
+                    setArchiveConfirmForId(null);
+                    setDeleteConfirmForId(id);
+                  }}
+                  disabled={loading}
+                  className="mt-3 inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-800 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50"
+                >
+                  <FaTrash className="h-4 w-4 shrink-0" aria-hidden />
+                  Eliminar permanentemente…
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deleteConfirmForId !== null && (
+          <div
+            className="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+            onClick={() => setDeleteConfirmForId(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-xl border border-red-200 bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="delete-dialog-title" className="text-lg font-semibold text-red-900">
+                Eliminar actividad
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-gray-700">
+                Se eliminará esta actividad y los datos relacionados (registros de asistencia, estacionamiento, etc.).
+                Esta acción <strong>no se puede deshacer</strong>.
+              </p>
+              <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmForId(null)}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = deleteConfirmForId;
+                    void performDeleteActivity(id!);
+                  }}
+                  disabled={loading}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50"
+                >
+                  <FaTrash className="h-4 w-4 shrink-0" aria-hidden />
+                  Sí, eliminar
                 </button>
               </div>
             </div>
@@ -386,14 +503,14 @@ export default function ActivitiesPage() {
 
         {parkingModalActivity !== null && (
           <div
-            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="parking-dialog-title"
             onClick={() => closeParkingModal()}
           >
             <div
-              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-amber-200 bg-white p-6 shadow-xl"
+              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border  bg-white p-6 shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-3">
@@ -481,7 +598,8 @@ export default function ActivitiesPage() {
         )}
 
         {showCreateForm && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 bg-black/50 
+">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 {editingActivity ? 'Editar Actividad' : 'Nueva Actividad'}
@@ -817,12 +935,16 @@ export default function ActivitiesPage() {
                         <div className="flex flex-col gap-2 pt-1">
                           <div className="grid grid-cols-2 gap-2">
                             <Link
-                              to="/admin/attendance/beneficiaries"
+                              to={
+                                activity.parking_enabled
+                                  ? '/admin/attendance/guests'
+                                  : '/admin/attendance/beneficiaries'
+                              }
                               search={{ activityId: activity.id }}
                               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                             >
                               <FaEye className="h-4 w-4 shrink-0" aria-hidden />
-                              Asistencia
+                              {activity.parking_enabled ? 'Registro manual' : 'Asistencia'}
                             </Link>
                             <button
                               type="button"
@@ -835,14 +957,24 @@ export default function ActivitiesPage() {
                             </button>
                           </div>
                           {isActivityArchived(activity) ? (
-                            <button
-                              type="button"
-                              onClick={() => handleUnarchiveActivity(activity.id!)}
-                              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                            >
-                              <FaUndo className="h-4 w-4 shrink-0" aria-hidden />
-                              Restaurar
-                            </button>
+                            <div className="flex flex-col gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleUnarchiveActivity(activity.id!)}
+                                className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                              >
+                                <FaUndo className="h-4 w-4 shrink-0" aria-hidden />
+                                Restaurar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmForId(activity.id!)}
+                                className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-sm font-medium text-red-800 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                              >
+                                <FaTrash className="h-4 w-4 shrink-0" aria-hidden />
+                                Eliminar del sistema
+                              </button>
+                            </div>
                           ) : (
                             <button
                               type="button"
@@ -958,11 +1090,23 @@ export default function ActivitiesPage() {
                         <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
                           <div className="flex flex-wrap items-center gap-2">
                             <Link
-                              to="/admin/attendance/beneficiaries"
+                              to={
+                                activity.parking_enabled
+                                  ? '/admin/attendance/guests'
+                                  : '/admin/attendance/beneficiaries'
+                              }
                               search={{ activityId: activity.id }}
                               className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                              title="Ver asistencia"
-                              aria-label={`Ver asistencia: ${activity.name}`}
+                              title={
+                                activity.parking_enabled
+                                  ? 'Registro manual (estacionamiento)'
+                                  : 'Ver asistencia'
+                              }
+                              aria-label={
+                                activity.parking_enabled
+                                  ? `Registro manual: ${activity.name}`
+                                  : `Ver asistencia: ${activity.name}`
+                              }
                             >
                               <FaEye className="h-4 w-4" />
                             </Link>
@@ -977,15 +1121,26 @@ export default function ActivitiesPage() {
                               <FaEdit className="h-4 w-4" />
                             </button>
                             {isActivityArchived(activity) ? (
-                              <button
-                                type="button"
-                                onClick={() => handleUnarchiveActivity(activity.id!)}
-                                className="rounded-lg p-2 text-emerald-700 transition-colors hover:bg-emerald-50 hover:text-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                                title="Restaurar"
-                                aria-label={`Restaurar: ${activity.name}`}
-                              >
-                                <FaUndo className="h-4 w-4" />
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnarchiveActivity(activity.id!)}
+                                  className="rounded-lg p-2 text-emerald-700 transition-colors hover:bg-emerald-50 hover:text-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                  title="Restaurar"
+                                  aria-label={`Restaurar: ${activity.name}`}
+                                >
+                                  <FaUndo className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteConfirmForId(activity.id!)}
+                                  className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                                  title="Eliminar permanentemente"
+                                  aria-label={`Eliminar: ${activity.name}`}
+                                >
+                                  <FaTrash className="h-4 w-4" />
+                                </button>
+                              </>
                             ) : (
                               <button
                                 type="button"
