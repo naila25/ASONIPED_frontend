@@ -20,6 +20,18 @@ import AttendancePageHeader from '../../Attendance/Components/AttendancePageHead
 
 // Admin page for managing volunteer options (CRUD)
 const VolunteerOptionsPage = () => {
+  const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
+  const LIMITS = {
+    title: 255,
+    location: 255,
+    description: 4000,
+    skills: 4000,
+    tools: 4000,
+    imageUrl: 1000,
+    hour: 10,
+  } as const;
+
   // State for options, form, loading, error, and UI
   const [options, setOptions] = useState<VolunteerOption[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -36,6 +48,9 @@ const VolunteerOptionsPage = () => {
   });
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [optionToDelete, setOptionToDelete] = useState<VolunteerOption | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   // Pagination state for card view
@@ -164,44 +179,90 @@ const VolunteerOptionsPage = () => {
     setIsAdding(false);
   };
 
-  // Delete an option after confirmation
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar esta opción de voluntariado?')) {
-      return;
-    }
+  const openDeleteModal = (option: VolunteerOption) => {
+    setOptionToDelete(option);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!optionToDelete?.id) return;
     try {
-      await deleteVolunteerOption(Number(id));
+      setIsDeleting(true);
+      await deleteVolunteerOption(Number(optionToDelete.id));
       await loadOptions();
+      setIsDeleteModalOpen(false);
+      setOptionToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error deleting option');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const validateVolunteerOptionForm = (data: Omit<VolunteerOption, 'id'>): string | null => {
+    const title = data.title.trim();
+    const description = data.description.trim();
+    const location = data.location.trim();
+    const date = data.date?.trim();
+    const hour = data.hour?.trim();
+    const imageUrl = data.imageUrl?.trim();
+    const skills = (data.skills ?? '').trim();
+    const tools = (data.tools ?? '').trim();
+    const spots = typeof data.spots === 'number' ? data.spots : Number(data.spots);
+
+    if (!title) return 'El título es obligatorio.';
+    if (title.length > LIMITS.title) return `El título no puede superar ${LIMITS.title} caracteres.`;
+
+    if (!location) return 'La ubicación es obligatoria.';
+    if (location.length > LIMITS.location) return `La ubicación no puede superar ${LIMITS.location} caracteres.`;
+
+    if (!description) return 'La descripción es obligatoria.';
+    if (description.length > LIMITS.description) return `La descripción no puede superar ${LIMITS.description} caracteres.`;
+
+    if (skills.length > LIMITS.skills) return `Las habilidades no pueden superar ${LIMITS.skills} caracteres.`;
+    if (tools.length > LIMITS.tools) return `Las herramientas no pueden superar ${LIMITS.tools} caracteres.`;
+
+    if (!date) return 'La fecha es requerida.';
+
+    if (!hour) return 'La hora es requerida.';
+    if (hour.length > LIMITS.hour) return `La hora no puede superar ${LIMITS.hour} caracteres.`;
+    if (!/^\d{2}:\d{2}$/.test(hour)) return 'La hora debe tener formato HH:MM.';
+
+    if (!Number.isFinite(spots) || spots <= 0) return 'Los cupos deben ser un número mayor a 0.';
+    if (spots > 999) return 'Los cupos no pueden ser mayores a 999.';
+
+    if (imageUrl) {
+      if (imageUrl.length > LIMITS.imageUrl) return `La URL de la imagen no puede superar ${LIMITS.imageUrl} caracteres.`;
+      try {
+        const u = new URL(imageUrl);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'La URL de la imagen debe ser http(s).';
+      } catch {
+        return 'La URL de la imagen no es válida.';
+      }
+    }
+
+    // Prevent past dates (allow today)
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const inputDate = new Date(date);
+      if (!isNaN(inputDate.getTime()) && inputDate < today) return 'La fecha no puede ser anterior a hoy.';
+    } catch {
+      // ignore date parse failures; input type="date" already constrains format
+    }
+
+    return null;
   };
 
   // Submit add/edit form
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
     try {
-      // Validations
-      if (form.title.length > 100) throw new Error('El título no puede exceder 100 caracteres');
-      if (form.description.length > 500) throw new Error('La descripción no puede exceder 500 caracteres');
-      if ((form.skills || '').length > 500) throw new Error('Las habilidades no pueden exceder 500 caracteres');
-      if ((form.tools || '').length > 500) throw new Error('Las herramientas no pueden exceder 500 caracteres');
-      if (!form.date) throw new Error('La fecha es requerida');
-      // Prevent past dates
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      let inputDate;
-      try {
-        // Handle DD/MM/YYYY format
-        if (form.date.includes('/')) {
-          const [day, month, year] = form.date.split('/');
-          inputDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else {
-          inputDate = new Date(form.date);
-        }
-        if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
-      } catch {
-        throw new Error('Formato de fecha inválido. Use DD/MM/YYYY');
+      const validationError = validateVolunteerOptionForm(form);
+      if (validationError) {
+        setError(validationError);
+        return;
       }
 
       if (editingId) {
@@ -399,11 +460,13 @@ const VolunteerOptionsPage = () => {
                     name="title"
                     value={form.title}
                     onChange={handleChange}
-                    maxLength={100}
+                    maxLength={LIMITS.title}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     required
                   />
-                  <div className="text-xs text-gray-500 mt-1">{form.title.length}/100</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {form.title.length}/{LIMITS.title} caracteres ({remainingChars(form.title, LIMITS.title)} restantes)
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -414,11 +477,13 @@ const VolunteerOptionsPage = () => {
                     name="location"
                     value={form.location}
                     onChange={handleChange}
-                    maxLength={100}
+                    maxLength={LIMITS.location}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     required
                   />
-                  <div className="text-xs text-gray-500 mt-1">{form.location.length}/100</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {form.location.length}/{LIMITS.location} caracteres ({remainingChars(form.location, LIMITS.location)} restantes)
+                  </div>
                 </div>
               </div>
 
@@ -465,11 +530,13 @@ const VolunteerOptionsPage = () => {
                   value={form.description}
                   onChange={handleChange}
                   rows={3}
-                    maxLength={500}
+                  maxLength={LIMITS.description}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                   required
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.description.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.description.length}/{LIMITS.description} caracteres ({remainingChars(form.description, LIMITS.description)} restantes)
+                </div>
               </div>
 
               <div>
@@ -482,10 +549,13 @@ const VolunteerOptionsPage = () => {
         value={(form as { skills?: string }).skills || ""}
         onChange={handleChange}
         rows={3}
-        maxLength={500}
+        maxLength={LIMITS.skills}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
       />
-      <div className="text-xs text-gray-500 mt-1">{(form as { skills?: string }).skills?.length || 0}/500</div>
+      <div className="text-xs text-gray-500 mt-1">
+        {((form as { skills?: string }).skills || '').length}/{LIMITS.skills} caracteres (
+        {remainingChars((form as { skills?: string }).skills, LIMITS.skills)} restantes)
+      </div>
     </div>
 
      <div>
@@ -498,10 +568,13 @@ const VolunteerOptionsPage = () => {
         value={(form as { tools?: string }).tools || ""}
         onChange={handleChange}
         rows={3}
-        maxLength={500}
+        maxLength={LIMITS.tools}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
       />
-      <div className="text-xs text-gray-500 mt-1">{(form as { tools?: string }).tools?.length || 0}/500</div>
+      <div className="text-xs text-gray-500 mt-1">
+        {((form as { tools?: string }).tools || '').length}/{LIMITS.tools} caracteres (
+        {remainingChars((form as { tools?: string }).tools, LIMITS.tools)} restantes)
+      </div>
     </div>
     </div>
 
@@ -517,9 +590,13 @@ const VolunteerOptionsPage = () => {
                     onChange={handleChange}
                     placeholder="https://res.cloudinary.com/..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    maxLength={LIMITS.imageUrl}
                   />
                   <div className="text-xs text-gray-500 mt-1">
                     Pega aquí la URL de la imagen desde Cloudinary
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {form.imageUrl.length}/{LIMITS.imageUrl} caracteres ({remainingChars(form.imageUrl, LIMITS.imageUrl)} restantes)
                   </div>
                   {form.imageUrl && (
                     <div className="mt-4">
@@ -632,14 +709,18 @@ const VolunteerOptionsPage = () => {
                   {/* Actions */}
                   <div className="flex items-center gap-2 pt-4 border-t border-gray-100 mt-auto">
                     <button
+                      type="button"
                       onClick={() => handleEdit(option)}
+                      disabled={isDeleting}
                       className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
                     >
                       <Edit className="w-4 h-4" />
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(option.id)}
+                      type="button"
+                      onClick={() => openDeleteModal(option)}
+                      disabled={isDeleting}
                       className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -650,6 +731,57 @@ const VolunteerOptionsPage = () => {
               </div>
           ))}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {isDeleteModalOpen && optionToDelete && (
+          <div
+            className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50"
+            onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
+          >
+            <div
+              className="bg-white p-6 rounded-lg w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Confirmar Eliminación</h2>
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="p-1 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <XCircle className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <p className="text-gray-700 mb-6">
+                ¿Estás seguro de que deseas eliminar la opción <strong>{optionToDelete.title}</strong>? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    'Eliminar'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
             {/* Pagination Info for Cards */}
             <div className="mb-6 text-center">

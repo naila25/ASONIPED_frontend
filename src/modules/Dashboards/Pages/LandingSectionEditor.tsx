@@ -513,8 +513,8 @@ export function LandingSectionEditor({
     const desc = itemForm.description.trim();
     if (!desc) {
       errors.description = "La historia es obligatoria.";
-    } else if (desc.length > 8000) {
-      errors.description = "La historia no puede superar 8000 caracteres.";
+    } else if (desc.length > 1000) {
+      errors.description = "La historia no puede superar 1000 caracteres.";
     }
     const rawVideo = itemForm.videoUrl.trim();
     if (rawVideo) {
@@ -1680,6 +1680,9 @@ export function LandingSectionEditor({
                   {validationErrors.name && (
                     <p className="text-red-600 text-xs mt-1">{validationErrors.name}</p>
                   )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(itemForm.name || "").length}/255 caracteres
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Historia</label>
@@ -1716,6 +1719,9 @@ export function LandingSectionEditor({
                   {validationErrors.videoUrl && (
                     <p className="text-red-600 text-xs mt-1">{validationErrors.videoUrl}</p>
                   )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {(itemForm.videoUrl || "").length}/500 caracteres
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Orden</label>

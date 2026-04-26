@@ -5,6 +5,7 @@ const accentIconClasses = {
   sky: 'bg-sky-100 text-sky-700',
   teal: 'bg-teal-100 text-teal-700',
   amber: 'bg-amber-100 text-amber-800',
+  cyan: 'bg-cyan-200 text-cyan-900',
 
   orange: 'bg-orange-100 text-orange-800',
   violet: 'bg-violet-100 text-violet-800',

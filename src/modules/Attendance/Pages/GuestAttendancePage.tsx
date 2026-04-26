@@ -9,6 +9,15 @@ import type { ActivityParkingRegistration, ActivityTrack, AttendanceRecord } fro
 import { formatParkingRegistrationsAsCsv } from '../utils/parkingCsvExport';
 
 export default function GuestAttendancePage() {
+  const remainingChars = (value: string, max: number) => max - value.length;
+
+  const LIMITS = {
+    plate: 20,
+    fullName: 60,
+    cedula: 13,
+    phone: 8,
+  } as const;
+
   const navigate = useNavigate();
   const activityIdFromSearch = useRouterState({
     select: (s) => (s.location.search as { activityId?: number }).activityId,
@@ -28,6 +37,33 @@ export default function GuestAttendancePage() {
     phone: '',
     plate: '',
   });
+
+  const validateGuestForm = (parkingOn: boolean): string | null => {
+    const name = formData.full_name.trim();
+    const plate = formData.plate.trim();
+    const cedula = formData.cedula.trim();
+    const phone = formData.phone.trim();
+
+    if (parkingOn) {
+      if (!plate) return 'La placa es obligatoria para esta actividad (estacionamiento habilitado).';
+      if (plate.length < 2) return 'La placa debe tener al menos 2 caracteres.';
+      if (plate.length > LIMITS.plate) return `La placa no puede superar ${LIMITS.plate} caracteres.`;
+      if (!/^[A-Za-z0-9\s-]+$/.test(plate)) return 'La placa solo puede contener letras, números, espacios y guiones.';
+    } else {
+      if (!name) return 'El nombre completo es requerido.';
+    }
+
+    if (name.length > LIMITS.fullName) return `El nombre completo no puede superar ${LIMITS.fullName} caracteres.`;
+    if (name && !/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]*$/.test(name)) return 'Solo se permiten letras en el nombre completo.';
+
+    if (cedula.length > LIMITS.cedula) return `La cédula no puede tener más de ${LIMITS.cedula} dígitos.`;
+    if (cedula && !/^\d+$/.test(cedula)) return 'Solo se permiten números en la cédula.';
+
+    if (phone.length > LIMITS.phone) return `El teléfono no puede tener más de ${LIMITS.phone} dígitos.`;
+    if (phone && !/^\d+$/.test(phone)) return 'Solo se permiten números en el teléfono.';
+
+    return null;
+  };
 
   const loadAttendanceRecords = useCallback(async () => {
     if (!selectedActivity) return;
@@ -138,18 +174,13 @@ export default function GuestAttendancePage() {
     }
 
     const parking = !!selectedActivity.parking_enabled;
-    const name = formData.full_name.trim();
-    const plate = formData.plate.trim();
-
-    if (parking) {
-      if (!plate || plate.length < 2) {
-        setError('La placa es obligatoria para esta actividad (estacionamiento habilitado)');
-        return;
-      }
-    } else if (!name) {
-      setError('El nombre completo es requerido');
+    const validationError = validateGuestForm(parking);
+    if (validationError) {
+      setError(validationError);
       return;
     }
+    const name = formData.full_name.trim();
+    const plate = formData.plate.trim();
 
     try {
       setLoading(true);
@@ -304,9 +335,12 @@ export default function GuestAttendancePage() {
                           }}
                           className="w-full rounded-lg border border-gray-300 px-3 py-2 uppercase focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                           placeholder="Ej: ABC123"
-                          maxLength={32}
+                          maxLength={LIMITS.plate}
                           required={parkingOn}
                         />
+                        <div className="mt-1 text-xs text-gray-500">
+                          {formData.plate.length}/{LIMITS.plate} caracteres ({remainingChars(formData.plate, LIMITS.plate)} restantes)
+                        </div>
                         <p className="mt-1 text-xs text-gray-500">
                           Obligatoria cuando la actividad tiene estacionamiento. Una fila por vehículo.
                         </p>
@@ -333,7 +367,11 @@ export default function GuestAttendancePage() {
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                         placeholder="Ej: Juan Pérez"
                         required={!parkingOn}
+                        maxLength={LIMITS.fullName}
                       />
+                      <div className="mt-1 text-xs text-gray-500">
+                        {formData.full_name.length}/{LIMITS.fullName} caracteres ({remainingChars(formData.full_name, LIMITS.fullName)} restantes)
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -358,7 +396,11 @@ export default function GuestAttendancePage() {
                           }}
                           className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                           placeholder="Ej: 12345678"
+                          maxLength={LIMITS.cedula}
                         />
+                        <div className="mt-1 text-xs text-gray-500">
+                          {formData.cedula.length}/{LIMITS.cedula} caracteres ({remainingChars(formData.cedula, LIMITS.cedula)} restantes)
+                        </div>
                       </div>
 
                       <div>
@@ -382,7 +424,11 @@ export default function GuestAttendancePage() {
                           }}
                           className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
                           placeholder="Ej: 5551234"
+                          maxLength={LIMITS.phone}
                         />
+                        <div className="mt-1 text-xs text-gray-500">
+                          {formData.phone.length}/{LIMITS.phone} caracteres ({remainingChars(formData.phone, LIMITS.phone)} restantes)
+                        </div>
                       </div>
                     </div>
 

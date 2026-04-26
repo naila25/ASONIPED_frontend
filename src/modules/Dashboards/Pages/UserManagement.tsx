@@ -15,14 +15,23 @@ const isEmailVerifiedFlag = (v: unknown): boolean => Number(v) === 1;
 
 // Validation function
 const validateUserInput = (data: UserFormData): string | null => {
-  if (data.username && !/^[A-Za-z]{1,15}$/.test(data.username)) {
-    return 'El usuario solo debe contener letras y máximo 15 caracteres.';
+  if (data.username && !/^[A-Za-z0-9]{1,20}$/.test(data.username)) {
+    return 'El usuario solo debe contener letras y números y máximo 20 caracteres.';
   }
-  if (data.password && !/^[A-Za-z0-9]{6,20}$/.test(data.password)) {
-    return 'La contraseña debe tener mínimo 6 caracteres y máximo 20 caracteres y solo letras y números.';
+  if (data.password && data.password.length > 30) {
+    return 'La contraseña debe tener máximo 30 caracteres.';
+  }
+  if (data.password && data.password.length > 0 && data.password.length < 6) {
+    return 'La contraseña debe tener mínimo 6 caracteres.';
+  }
+  if (data.email && data.email.length > 50) {
+    return 'El correo electrónico debe tener máximo 50 caracteres.';
   }
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     return 'Debe ingresar un correo electrónico válido.';
+  }
+  if (data.full_name && data.full_name.length > 60) {
+    return 'El nombre completo debe tener máximo 60 caracteres.';
   }
   if (data.full_name && !/^([A-Za-zÁÉÍÓÚáéíóúÑñ]+(\s+|$)){2,}$/.test(data.full_name.trim())) {
     return 'Debe ingresar un nombre completo válido (al menos dos palabras).';
@@ -34,6 +43,8 @@ const validateUserInput = (data: UserFormData): string | null => {
 };
 
 const UserManagement = () => {
+  const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
   // Data state
   const [users, setUsers] = useState<User[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -69,7 +80,7 @@ const UserManagement = () => {
     full_name: '',
     phone: '',
     status: 'active',
-    roles: ['admin']
+    roles: ['user']
   });
 
   // Debounce search
@@ -121,7 +132,10 @@ const UserManagement = () => {
       setError('');
       setSuccess('');
       
-      await createUser(formData);
+      await createUser({
+        ...formData,
+        email_verified: 1
+      });
       await fetchUsers();
       setIsModalOpen(false);
       resetForm();
@@ -236,7 +250,7 @@ const UserManagement = () => {
       full_name: '',
       phone: '',
       status: 'active',
-      roles: ['admin']
+      roles: ['user']
     });
   };
 
@@ -873,9 +887,13 @@ const UserManagement = () => {
                       setError('');
                     }}
                     disabled={isSubmitting}
+                    maxLength={20}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
                   required
                 />
+                <p className="mt-1 text-xs text-gray-500 text-right">
+                  {remainingChars(formData.username, 20)} caracteres restantes
+                </p>
               </div>
 
                 <div>
@@ -891,9 +909,13 @@ const UserManagement = () => {
                       setError('');
                     }}
                     disabled={isSubmitting}
+                    maxLength={30}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
                     required={!editingUser}
                   />
+                  <p className="mt-1 text-xs text-gray-500 text-right">
+                    {remainingChars(formData.password, 30)} caracteres restantes
+                  </p>
                 </div>
 
                 <div>
@@ -906,8 +928,12 @@ const UserManagement = () => {
                       setError('');
                     }}
                     disabled={isSubmitting}
+                    maxLength={50}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
                   />
+                  <p className="mt-1 text-xs text-gray-500 text-right">
+                    {remainingChars(formData.email, 50)} caracteres restantes
+                  </p>
                 </div>
 
                 <div>
@@ -920,8 +946,12 @@ const UserManagement = () => {
                       setError('');
                     }}
                     disabled={isSubmitting}
+                    maxLength={60}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
                   />
+                  <p className="mt-1 text-xs text-gray-500 text-right">
+                    {remainingChars(formData.full_name, 60)} caracteres restantes
+                  </p>
                 </div>
 
                 <div>
@@ -930,13 +960,20 @@ const UserManagement = () => {
                     type="tel"
                     value={formData.phone || ''}
                     onChange={(e) => {
-                      setFormData({ ...formData, phone: e.target.value });
+                      const digitsOnly = e.target.value.replace(/\D+/g, '').slice(0, 8);
+                      setFormData({ ...formData, phone: digitsOnly });
                       setError('');
                     }}
                     disabled={isSubmitting}
+                    maxLength={8}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     placeholder="8 dígitos"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
                   />
+                  <p className="mt-1 text-xs text-gray-500 text-right">
+                    {remainingChars(formData.phone, 8)} caracteres restantes
+                  </p>
                 </div>
 
                 <div>
@@ -954,6 +991,27 @@ const UserManagement = () => {
                     <option value="inactive">Inactivo</option>
                   </select>
                 </div>
+
+                {!editingUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Rol <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.roles?.includes('admin') ? 'admin' : 'user'}
+                      onChange={(e) => {
+                        const role = e.target.value as 'admin' | 'user';
+                        setFormData({ ...formData, roles: [role] });
+                        setError('');
+                      }}
+                      disabled={isSubmitting}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                    >
+                      <option value="user">Usuario</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
