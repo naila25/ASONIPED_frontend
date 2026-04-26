@@ -12,6 +12,10 @@ export interface ActivityTrack {
   scanning_active?: boolean;
   parking_enabled?: boolean;
   parking_public_token?: string | null;
+  /** Allow multiple beneficiario attendance scans within same activity */
+  repeat_attendance_enabled?: boolean;
+  /** Cooldown in hours between beneficiario scans (3/6/12/24) */
+  repeat_attendance_cooldown_hours?: 3 | 6 | 12 | 24 | number | null;
   created_by: number;
   created_at?: string;
   updated_at?: string;
@@ -111,6 +115,8 @@ export interface CreateActivityTrackData {
   location?: string;
   status?: 'active' | 'inactive' | 'completed';
   parking_enabled?: boolean;
+  repeat_attendance_enabled?: boolean;
+  repeat_attendance_cooldown_hours?: 3 | 6 | 12 | 24 | number | null;
 }
 
 export interface CreateActivityTrackResponse {
