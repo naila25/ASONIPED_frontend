@@ -49,8 +49,23 @@ const blankForm: FormState = {
 };
 
 const WorkshopOptionsPage: React.FC = () => {
+  const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
+  const LIMITS = {
+    title: 255,
+    location: 255,
+    description: 4000,
+    materiales: 4000,
+    aprender: 4000,
+    imageUrl: 1000,
+    hour: 10,
+  } as const;
+
   const [options, setOptions] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [workshopToDelete, setWorkshopToDelete] = useState<Workshop | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -242,25 +257,71 @@ const WorkshopOptionsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     try {
-      if (!form.titulo.trim()) throw new Error('Título requerido');
-      if (form.titulo.length > 100) throw new Error('El título no puede exceder 100 caracteres');
-      if (form.descripcion.length > 500) throw new Error('La descripción no puede exceder 500 caracteres');
-      if (form.materiales.length > 500) throw new Error('Los materiales no pueden exceder 500 caracteres');
-      if (form.aprender.length > 500) throw new Error('El campo aprender no puede exceder 500 caracteres');
-      if (!form.fecha) throw new Error('La fecha es requerida');
-      if (!form.hora) throw new Error('La hora es requerida');
-      if (!form.capacidad) throw new Error('La capacidad es requerida');
+      const validationError = (() => {
+        const titulo = form.titulo.trim();
+        const descripcion = form.descripcion.trim();
+        const ubicacion = form.ubicacion.trim();
+        const fecha = form.fecha?.trim();
+        const hora = form.hora?.trim();
+        const imagen = form.imagen?.trim();
+        const materiales = form.materiales.trim();
+        const aprender = form.aprender.trim();
+        const capacidadStr = form.capacidad?.trim();
+
+        if (!titulo) return 'El título es obligatorio.';
+        if (titulo.length > LIMITS.title) return `El título no puede superar ${LIMITS.title} caracteres.`;
+
+        if (!ubicacion) return 'La ubicación es obligatoria.';
+        if (ubicacion.length > LIMITS.location) return `La ubicación no puede superar ${LIMITS.location} caracteres.`;
+
+        if (!descripcion) return 'La descripción es obligatoria.';
+        if (descripcion.length > LIMITS.description) return `La descripción no puede superar ${LIMITS.description} caracteres.`;
+
+        if (materiales.length > LIMITS.materiales) return `Los materiales no pueden superar ${LIMITS.materiales} caracteres.`;
+        if (aprender.length > LIMITS.aprender) return `El campo aprender no puede superar ${LIMITS.aprender} caracteres.`;
+
+        if (!fecha) return 'La fecha es requerida.';
+
+        if (!hora) return 'La hora es requerida.';
+        if (hora.length > LIMITS.hour) return `La hora no puede superar ${LIMITS.hour} caracteres.`;
+        if (!/^\d{2}:\d{2}$/.test(hora)) return 'La hora debe tener formato HH:MM.';
+
+        if (!capacidadStr) return 'La capacidad es requerida.';
+        const capNum = parseInt(capacidadStr, 10);
+        if (isNaN(capNum) || capNum <= 0) return 'La capacidad debe ser un número mayor a 0';
+        if (capNum > 999) return 'La capacidad no puede ser mayor a 999.';
+
+        if (imagen) {
+          if (imagen.length > LIMITS.imageUrl) return `La URL de la imagen no puede superar ${LIMITS.imageUrl} caracteres.`;
+          try {
+            const u = new URL(imagen);
+            if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'La URL de la imagen debe ser http(s).';
+          } catch {
+            return 'La URL de la imagen no es válida.';
+          }
+        }
+
+        // Prevent past dates (allow today)
+        try {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const inputDate = new Date(fecha);
+          if (!isNaN(inputDate.getTime()) && inputDate < today) return 'La fecha no puede ser anterior a hoy';
+        } catch {
+          // ignore
+        }
+
+        return null;
+      })();
+
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
 
       const capNum = parseInt(form.capacidad, 10);
-      if (isNaN(capNum) || capNum <= 0) throw new Error('La capacidad debe ser un número mayor a 0');
-      if (capNum > 10000) throw new Error('Capacidad demasiado alta');
-
-      // Prevent past dates
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const inputDate = new Date(form.fecha);
-      if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
 
       const payload = {
         titulo: form.titulo,
@@ -282,17 +343,27 @@ const WorkshopOptionsPage: React.FC = () => {
       cancelModals();
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error guardando taller');
+      setError(err instanceof Error ? err.message : 'Error guardando taller');
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('¿Eliminar este taller?')) return;
+  const openDeleteModal = (workshop: Workshop) => {
+    setWorkshopToDelete(workshop);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!workshopToDelete?.id) return;
     try {
-      await deleteWorkshop(id);
+      setIsDeleting(true);
+      await deleteWorkshop(workshopToDelete.id);
       await load();
+      setIsDeleteModalOpen(false);
+      setWorkshopToDelete(null);
     } catch {
       alert('Error eliminando');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -444,11 +515,13 @@ const WorkshopOptionsPage: React.FC = () => {
                     name="titulo"
                     value={form.titulo}
                   onChange={handleChange}
-                  maxLength={100}
+                  maxLength={LIMITS.title}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.titulo.length}/100</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.titulo.length}/{LIMITS.title} caracteres ({remainingChars(form.titulo, LIMITS.title)} restantes)
+                </div>
               </div>
               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -459,11 +532,13 @@ const WorkshopOptionsPage: React.FC = () => {
                     name="ubicacion"
                     value={form.ubicacion}
                   onChange={handleChange}
-                  maxLength={100}
+                  maxLength={LIMITS.location}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.ubicacion.length}/100</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.ubicacion.length}/{LIMITS.location} caracteres ({remainingChars(form.ubicacion, LIMITS.location)} restantes)
+                </div>
                 </div>
             </div>
 
@@ -484,12 +559,12 @@ const WorkshopOptionsPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Capacidad
+                    Cupos Disponibles
                   </label>
                   <input
                     type="number"
                     name="capacidad"
-                    value={form.capacidad}
+                    value={form.capacidad || 1}
                     onChange={handleChange}
                     min="1"
                     max="999"
@@ -510,11 +585,13 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.descripcion}
                   onChange={handleChange}
                   rows={3}
-                  maxLength={500}
+                  maxLength={LIMITS.description}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.descripcion.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.descripcion.length}/{LIMITS.description} caracteres ({remainingChars(form.descripcion, LIMITS.description)} restantes)
+                </div>
               </div>
 
               <div>
@@ -526,10 +603,12 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.materiales}
                   onChange={handleChange}
                   rows={3}
-                  maxLength={500}
+                  maxLength={LIMITS.materiales}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.materiales.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.materiales.length}/{LIMITS.materiales} caracteres ({remainingChars(form.materiales, LIMITS.materiales)} restantes)
+                </div>
               </div>
 
               <div>
@@ -541,10 +620,12 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.aprender}
                   onChange={handleChange}
                   rows={3}
-                  maxLength={500}
+                  maxLength={LIMITS.aprender}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.aprender.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.aprender.length}/{LIMITS.aprender} caracteres ({remainingChars(form.aprender, LIMITS.aprender)} restantes)
+                </div>
                 </div>
             </div>
 
@@ -560,9 +641,13 @@ const WorkshopOptionsPage: React.FC = () => {
                     onChange={handleImageChange}
                     placeholder="https://res.cloudinary.com/..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    maxLength={LIMITS.imageUrl}
                   />
                   <div className="text-xs text-gray-500 mt-1">
                     Pega aquí la URL de la imagen desde Cloudinary
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {form.imagen.length}/{LIMITS.imageUrl} caracteres ({remainingChars(form.imagen, LIMITS.imageUrl)} restantes)
                   </div>
                   {form.imagen && (
                     <div className="mt-4">
@@ -689,14 +774,18 @@ const WorkshopOptionsPage: React.FC = () => {
                     {/* Actions */}
                     <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
                       <button
+                        type="button"
                         onClick={() => startEdit(opt)}
+                        disabled={isDeleting}
                         className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
                       >
                         <Edit className="w-4 h-4" />
                         Editar
                       </button>
                       <button
-                        onClick={() => handleDelete(opt.id)}
+                        type="button"
+                        onClick={() => openDeleteModal(opt)}
+                        disabled={isDeleting}
                         className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -707,6 +796,57 @@ const WorkshopOptionsPage: React.FC = () => {
                 </div>
           ))}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {isDeleteModalOpen && workshopToDelete && (
+          <div
+            className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50"
+            onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
+          >
+            <div
+              className="bg-white p-6 rounded-lg w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Confirmar Eliminación</h2>
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="p-1 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <XCircle className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <p className="text-gray-700 mb-6">
+                ¿Estás seguro de que deseas eliminar el taller <strong>{workshopToDelete.titulo}</strong>? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    'Eliminar'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
              {/* Pagination Info for Cards */}
              <div className="mb-6 text-center">
               <p className="text-gray-600">

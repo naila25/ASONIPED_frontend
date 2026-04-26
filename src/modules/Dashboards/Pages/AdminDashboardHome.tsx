@@ -237,6 +237,7 @@ export default function AdminDashboardHome() {
         </div>
       </div>
 
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Usuarios Card */}
@@ -320,7 +321,7 @@ export default function AdminDashboardHome() {
         </div>
 
             {/* Tickets */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-teal-500">
+        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-cyan-500">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Tickets</p>
@@ -329,8 +330,8 @@ export default function AdminDashboardHome() {
               </p>
               <p className="text-xs text-gray-500">Tickets abiertos</p>
             </div>
-            <div className="p-3 bg-teal-100 rounded-lg">
-              <FaTicketAlt className="w-6 h-6 text-teal-600" />
+            <div className="p-3 bg-cyan-100 rounded-lg">
+              <FaTicketAlt className="w-6 h-6 text-cyan-600" />
             </div>
           </div>
         </div>

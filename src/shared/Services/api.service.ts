@@ -1,6 +1,8 @@
 import { getAPIBaseURL } from './config';
 import { logout } from '../../modules/Login/Services/auth';
 
+const SESSION_INVALIDATED_EVENT = 'asoniped:session-invalidated';
+
 // Enhanced fetch wrapper that handles session invalidation
 export const apiRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const base = await getAPIBaseURL();
@@ -19,16 +21,21 @@ export const apiRequest = async (url: string, options: RequestInit = {}): Promis
     try {
       const errorData = await response.json();
       if (errorData.code === 'SESSION_INVALIDATED') {
-        // Session was invalidated (user logged in elsewhere)
-        // Show alert to user
-        alert('Sesión Invalidada\n\nTu sesión ha sido invalidada porque has iniciado sesión desde otro navegador o dispositivo.\n\nSerás redirigido automáticamente al login.');
-        
+        // Session was invalidated (user logged in elsewhere).
+        // Use a project-style modal (not a native alert/confirm).
         await logout();
-        
-        // Small delay to let user read the message, then redirect
-        setTimeout(() => {
-          window.location.href = '/admin/login';
-        }, 1000);
+
+        window.dispatchEvent(
+          new CustomEvent(SESSION_INVALIDATED_EVENT, {
+            detail: {
+              title: 'Sesión invalidada',
+              message:
+                'Tu sesión ha sido invalidada porque has iniciado sesión desde otro navegador o dispositivo.',
+              redirectTo: '/admin/login',
+            },
+          })
+        );
+
         return response;
       }
     } catch {

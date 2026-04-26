@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, Outlet } from "@tanstack/react-router";
 import {
   Home,
@@ -61,16 +61,17 @@ const navLinks = [
 export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   //const [notifications] = useState(0);
-  const [username, setUsername] = useState<string | null>(null);
+  //const [username, setUsername] = useState<string | null>(null);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
+  /*
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
     if (storedUsername) {
       setUsername(storedUsername);
     }
   }, []);
-
+  */
   const toggleSubmenu = (label: string) => {
     setExpandedMenus(prev => {
       const newSet = new Set(prev);
@@ -91,12 +92,9 @@ export default function AdminDashboard() {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } transition-transform duration-200 ease-in-out md:relative md:translate-x-0 md:w-64`}
       >
-        <div className="p-6">
+        <div className="p-4">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-xl font-semibold text-gray-800">Admin Panel</h2>
-            </div>
+          <div className="mb-2">
             <p className="text-sm text-gray-600">ASONIPED Digital</p>
           </div>
 
@@ -199,36 +197,12 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Page title */}
+            {/* Page title 
             <div className="hidden md:block">
               <h1 className="text-xl font-semibold text-gray-800">
                 Panel de Administración
               </h1>
-            </div>
-
-            {/* Right side - Notifications and User */}
-            <div className="flex items-center gap-4">
-              {/* Notifications (disabled for now)
-              <button className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <Bell className="w-5 h-5" />
-                {notifications > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {notifications}
-                  </span>
-                )}
-              </button>
-              */}
-
-              {/* User menu */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <span className="hidden md:block text-sm font-medium text-gray-700">
-                  {username ? username : "Administrador"}
-                </span>
-              </div>
-            </div>
+            </div>*/}
           </div>
         </div>
 

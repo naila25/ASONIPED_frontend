@@ -52,6 +52,7 @@ export interface UserFormData {
   phone?: string;
   status?: 'active' | 'inactive';
   roles?: string[];
+  email_verified?: 0 | 1 | boolean;
 }
 
 // Get all users with pagination, filtering, and sorting

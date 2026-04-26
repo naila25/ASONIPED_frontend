@@ -7,7 +7,11 @@ const getOptionsAPIUrl = () => `${getAPIBaseURLSync()}/volunteer-options`;
 
 // Fetch a paginated list of volunteers (optionally filtered)
 export const fetchVolunteers = async (page = 1, limit = 10, status?: string, name?: string): Promise<{ volunteers: Volunteer[]; total: number; page: number; limit: number }> => {
-  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    _t: String(Date.now()), // Cache busting
+  });
   if (status) params.append('status', status);
   if (name) params.append('name', name);
 
@@ -15,6 +19,8 @@ export const fetchVolunteers = async (page = 1, limit = 10, status?: string, nam
     headers: {
       ...getAuthHeader(),
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
     },
   });
   if (!res.ok) throw new Error('Failed to fetch volunteers');
@@ -190,8 +196,8 @@ export const addVolunteerOption = async (option: Omit<VolunteerOption, 'id'>): P
     skills: option.skills || '',
     tools: option.tools || '',
     imageUrl: option.imageUrl || '',
-    hour: (option as any).hour || '',
-    spots: (option as any).spots || 1,
+    hour: option.hour ?? '',
+    spots: option.spots ?? 1,
   };
 
   const res = await fetch(getOptionsAPIUrl(), {
@@ -226,8 +232,8 @@ export const updateVolunteerOption = async (id: number, option: Omit<VolunteerOp
     skills: option.skills || '',
     tools: option.tools || '',
     imageUrl: option.imageUrl || '',
-    hour: (option as any).hour || '',
-    spots: (option as any).spots || 1,
+    hour: option.hour ?? '',
+    spots: option.spots ?? 1,
   };
 
   const res = await fetch(`${getOptionsAPIUrl()}/${id}`, {

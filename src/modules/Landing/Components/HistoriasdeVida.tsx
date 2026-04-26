@@ -43,9 +43,12 @@ function HistoriasdeVidaInner({
       )}
 
       {hasContent ? (
-        <div className="md:grid md:grid-cols-3 md:gap-10 flex md:flex-none overflow-x-auto md:overflow-visible snap-x snap-mandatory scrollbar-hide">
+        <div className="flex overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide gap-4 md:gap-10 px-2 md:px-0">
           {historias.map((historia, index) => (
-            <div key={`${historia.nombre}-${index}`} className="min-w-full md:min-w-0 snap-center px-2 md:px-0">
+            <div
+              key={`${historia.nombre}-${index}`}
+              className="snap-center min-w-full md:min-w-[32%]"
+            >
               <div className="w-full h-52 border border-gray-300 rounded-md overflow-hidden mb-3">
                 {historia.esVideo && historia.videoUrl ? (
                   <iframe

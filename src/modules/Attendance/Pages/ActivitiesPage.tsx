@@ -8,6 +8,15 @@ import type { ActivityTrack, ActivityTrackWithStats } from '../Types/attendanceN
 const PAGE_SIZES = [5, 10] as const;
 
 export default function ActivitiesPage() {
+  const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
+  const LIMITS = {
+    name: 255,
+    description: 400,
+    location: 255,
+    hour: 10,
+  } as const;
+
   const [activities, setActivities] = useState<ActivityTrackWithStats[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(5);
@@ -40,6 +49,40 @@ export default function ActivitiesPage() {
     location: '',
     parking_enabled: false,
   });
+
+  const validateActivityForm = (data: typeof formData): string | null => {
+    const name = data.name.trim();
+    const description = data.description.trim();
+    const event_date = data.event_date?.trim();
+    const event_time = data.event_time?.trim();
+    const location = data.location.trim();
+
+    if (!name) return 'El nombre de la actividad es obligatorio.';
+    if (name.length > LIMITS.name) return `El nombre no puede superar ${LIMITS.name} caracteres.`;
+
+    if (description.length > LIMITS.description) return `La descripción no puede superar ${LIMITS.description} caracteres.`;
+
+    if (!event_date) return 'La fecha del evento es obligatoria.';
+
+    if (event_time) {
+      if (event_time.length > LIMITS.hour) return `La hora no puede superar ${LIMITS.hour} caracteres.`;
+      if (!/^\d{2}:\d{2}$/.test(event_time)) return 'La hora debe tener formato HH:MM.';
+    }
+
+    if (location.length > LIMITS.location) return `La ubicación no puede superar ${LIMITS.location} caracteres.`;
+
+    // Prevent past dates (allow today)
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const inputDate = new Date(event_date);
+      if (!isNaN(inputDate.getTime()) && inputDate < today) return 'La fecha no puede ser anterior a hoy.';
+    } catch {
+      // ignore
+    }
+
+    return null;
+  };
 
   const openParkingModal = async (activity: ActivityTrackWithStats) => {
     setParkingModalActivity(activity);
@@ -167,6 +210,12 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
       setError(null);
+
+      const validationError = validateActivityForm(formData);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
       
       await activityTracksApi.create({
         name: formData.name.trim(),
@@ -208,6 +257,12 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
       setError(null);
+
+      const validationError = validateActivityForm(formData);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
       
       await activityTracksApi.update(editingActivity.id!, {
         name: formData.name.trim(),
@@ -615,10 +670,14 @@ export default function ActivitiesPage() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    maxLength={LIMITS.name}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     placeholder="Ej: Taller de Cocina"
                     required
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.name.length}/{LIMITS.name} caracteres ({remainingChars(formData.name, LIMITS.name)} restantes)
+                  </div>
                 </div>
 
                 <div>
@@ -629,14 +688,16 @@ export default function ActivitiesPage() {
                     id="description"
                     value={formData.description}
                     onChange={(e) => {
-                      if (e.target.value.length <= 400) {
-                         setFormData({ ...formData, description: e.target.value });
-                      }
-                     }}
+                      setFormData({ ...formData, description: e.target.value });
+                    }}
+                    maxLength={LIMITS.description}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     rows={3}
                     placeholder="Descripción de la actividad..."
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.description.length}/{LIMITS.description} caracteres ({remainingChars(formData.description, LIMITS.description)} restantes)
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -683,9 +744,13 @@ export default function ActivitiesPage() {
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    maxLength={LIMITS.location}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     placeholder="Ej: Salón Principal"
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.location.length}/{LIMITS.location} caracteres ({remainingChars(formData.location, LIMITS.location)} restantes)
+                  </div>
                 </div>
 
                 <div className="rounded-lg border border-amber-100 bg-amber-50/80 p-4">

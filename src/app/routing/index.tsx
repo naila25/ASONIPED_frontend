@@ -12,7 +12,6 @@ import EventsNewsAdmin from '../../modules/EventsNews/Pages/EventsNewsAdmin';
 import EventNewsDetail from '../../modules/EventsNews/Pages/EventNewsDetail';
 import ProtectedRoute from "./ProtectedRoute"; 
 import PublicWorkshopsPage from '../../modules/Workshops/Components/PublicWorkshopsPage';
-import AdminDashboard from '../../modules/Dashboards/Pages/AdminDashboard';
 import AdminDashboardHome from '../../modules/Dashboards/Pages/AdminDashboardHome';
 import ExpedientesAdminPage from '../../modules/Records/Pages/ExpedientesAdminPage';
 import AdminDirectRecordCreation from '../../modules/Records/Pages/AdminDirectRecordCreation';
@@ -41,6 +40,7 @@ import AttendanceListPage from '../../modules/Attendance/Pages/AttendanceListPag
 import ActivitiesPage from '../../modules/Attendance/Pages/ActivitiesPage';
 import PublicParkingPage from '../../modules/Attendance/Pages/PublicParkingPage';
 import DonationForms from '../../modules/Donation/Pages/DonationForms';
+import AdminProtectedRoute from './AdminProtectedRoute';
 
 // Root route - SINGLE SOURCE OF TRUTH
 const rootRoute = createRootRoute({
@@ -130,7 +130,7 @@ const protectedRoute = createRoute({
 const adminDashboardRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: 'admin',
-  component: AdminDashboard,
+  component: AdminProtectedRoute,
 });
 
 const adminHomeRoute = createRoute({

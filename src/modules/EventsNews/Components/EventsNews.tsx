@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews } from '../Services/eventsNewsApi';
 import { Link } from '@tanstack/react-router';
@@ -52,14 +52,17 @@ const EventsNews: React.FC = () => {
   };
 
   // ✅ swipe móvil
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const touchStartXRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     const touch = e.touches[0];
-    (e.currentTarget as any).startX = touch.clientX;
+    touchStartXRef.current = touch.clientX;
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
     const touch = e.changedTouches[0];
-    const startX = (e.currentTarget as any).startX;
+    const startX = touchStartXRef.current;
+    if (startX == null) return;
     const diff = touch.clientX - startX;
 
     if (diff > 50) {
@@ -116,7 +119,8 @@ const EventsNews: React.FC = () => {
 
               {/* ✅ botón arreglado */}
               <Link
-                to={`/events-news/${latestItems[currentIndex].id}` as any}
+                to="/events-news/$id"
+                params={{ id: String(latestItems[currentIndex].id) }}
                 className="inline-block mt-2 bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
               >
                 Leer más
