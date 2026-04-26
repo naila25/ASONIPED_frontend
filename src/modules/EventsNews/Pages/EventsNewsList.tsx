@@ -163,8 +163,9 @@ Mantenete al día con nuestros proyectos, logros y oportunidades para participar
                     </p>
                     {item.description.length > 100 && (
                       <Link
-                        to={`/events-news/${item.id}` as any}
-                        className="text-blue-600 hover:underline font-medium self-start"
+                        to="/events-news/$id"
+                        params={{ id: String(item.id) }}
+                        className="text-orange-600 hover:underline font-medium self-start"
                       >
                         Leer más
                       </Link>
@@ -180,19 +181,19 @@ Mantenete al día con nuestros proyectos, logros y oportunidades para participar
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className={`px-4 py-2 rounded bg-blue-600 text-white font-medium transition-colors hover:bg-blue-700 disabled:opacity-50`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors bg-orange-500 text-white hover:bg-orange-600`}
               >
-                Previous
+                Anterior
               </button>
               <span className="self-center text-gray-700">
-                Page {currentPage} of {totalPages}
+                Página {currentPage} de {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded bg-blue-600 text-white font-medium transition-colors hover:bg-blue-700 disabled:opacity-50`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors bg-orange-500 text-white hover:bg-orange-600`}
               >
-                Next
+                Siguiente
               </button>
             </div>
           </>

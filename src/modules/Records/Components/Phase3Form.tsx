@@ -52,7 +52,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [secondaryPhoneCharsLeft, setSecondaryPhoneCharsLeft] = useState(9);
 
   const [cedulaError, setCedulaError] = useState('');
-  const [cedulaCharsLeft, setCedulaCharsLeft] = useState(9);
+  const [cedulaCharsLeft, setCedulaCharsLeft] = useState(13);
 
   const [birthPlaceError, setBirthPlaceError] = useState('');
   const [birthPlaceCharsLeft, setBirthPlaceCharsLeft] = useState(20);
@@ -67,7 +67,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [motherNameCharsLeft, setMotherNameCharsLeft] = useState(40);
 
   const [motherCedulaError, setMotherCedulaError] = useState('');
-  const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(9);
+  const [motherCedulaCharsLeft, setMotherCedulaCharsLeft] = useState(13);
 
   const [motherOccupationError, setMotherOccupationError] = useState('');
   const [motherOccupationCharsLeft, setMotherOccupationCharsLeft] = useState(40);
@@ -80,7 +80,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [fatherNameCharsLeft, setFatherNameCharsLeft] = useState(40);
 
   const [fatherCedulaError, setFatherCedulaError] = useState('');
-  const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(9);
+  const [fatherCedulaCharsLeft, setFatherCedulaCharsLeft] = useState(13);
 
   const [fatherOccupationError, setFatherOccupationError] = useState('');
   const [fatherOccupationCharsLeft, setFatherOccupationCharsLeft] = useState(40);
@@ -94,7 +94,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [responsibleNameCharsLeft, setResponsibleNameCharsLeft] = useState(40);
 
   const [responsibleCedulaError, setResponsibleCedulaError] = useState('');
-  const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(9);
+  const [responsibleCedulaCharsLeft, setResponsibleCedulaCharsLeft] = useState(13);
 
   const [responsibleOccupationError, setResponsibleOccupationError] = useState('');
   const [responsibleOccupationCharsLeft, setResponsibleOccupationCharsLeft] = useState(40);
@@ -109,6 +109,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // observaciones generales
   const [generalObservationsError, setGeneralObservationsError] = useState('');
   const [generalObservationsCharsLeft, setGeneralObservationsCharsLeft] = useState(200);
+  const [documentsStepError, setDocumentsStepError] = useState('');
 
   // Helper function to check if a section needs modification
   const needsModification = (sectionName: string): boolean => {
@@ -219,7 +220,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // Reset form when resetTrigger changes
   useEffect(() => {
     if (resetTrigger > 0) {
-      console.log('🔄 Resetting form due to resetTrigger change');
       setForm(getInitialFormState());
       setDocumentFiles({
         dictamen_medico: null,
@@ -242,6 +242,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   }, [resetTrigger]);
 
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const mobileStepperLastTapRef = useRef(0);
   const [documentFiles, setDocumentFiles] = useState<{ [key: string]: File | null }>({
     dictamen_medico: null,
     constancia_nacimiento: null,
@@ -266,8 +267,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
       // Format as yyyy-MM-dd for input[type="date"]
       return date.toISOString().split('T')[0];
-    } catch (error) {
-      console.error('Error formatting date:', error);
+    } catch {
       return '';
     }
   };
@@ -275,15 +275,11 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // Pre-fill data from existing Phase 3 data when it's a modification
   useEffect(() => {
     if (isModification && currentRecord) {
-      console.log('=== PRE-FILLING PHASE 3 FORM FOR MODIFICATION ===');
-      console.log('Current record:', currentRecord);
-
       setForm(prev => {
         const newForm = { ...prev };
 
         // Pre-fill complete personal data
         if (currentRecord.complete_personal_data) {
-          console.log('Pre-filling complete personal data:', currentRecord.complete_personal_data);
           newForm.complete_personal_data = {
             ...prev.complete_personal_data,
             ...currentRecord.complete_personal_data,
@@ -294,7 +290,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill family information
         if (currentRecord.family_information) {
-          console.log('Pre-filling family information:', currentRecord.family_information);
           newForm.family_information = {
             ...prev.family_information,
             ...currentRecord.family_information
@@ -303,7 +298,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill disability information
         if (currentRecord.disability_information) {
-          console.log('Pre-filling disability information:', currentRecord.disability_information);
           newForm.disability_information = {
             ...prev.disability_information,
             ...currentRecord.disability_information
@@ -312,7 +306,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill socioeconomic information
         if (currentRecord.socioeconomic_information) {
-          console.log('Pre-filling socioeconomic information:', currentRecord.socioeconomic_information);
           newForm.socioeconomic_information = {
             ...prev.socioeconomic_information,
             ...currentRecord.socioeconomic_information
@@ -321,9 +314,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill documentation requirements
         if (currentRecord.documentation_requirements) {
-          console.log('Pre-filling documentation requirements:', currentRecord.documentation_requirements);
-          console.log('affiliation_fee_paid value:', currentRecord.documentation_requirements.affiliation_fee_paid);
-          console.log('affiliation_fee_paid type:', typeof currentRecord.documentation_requirements.affiliation_fee_paid);
           newForm.documentation_requirements = {
             ...prev.documentation_requirements,
             ...currentRecord.documentation_requirements,
@@ -341,8 +331,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   useEffect(() => {
     if (!isModification && currentRecord?.personal_data) {
       const phase1Data = currentRecord.personal_data;
-
-      console.log('Pre-filling Phase 3 form with Phase 1 data:', phase1Data);
 
       setForm(prev => ({
         ...prev,
@@ -401,42 +389,30 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       if (currentRecord?.personal_data && provinces.length > 0) {
         const phase1Data = currentRecord.personal_data;
 
-        console.log('Preloading geographic data:', {
-          province: phase1Data.province,
-          canton: phase1Data.canton,
-          district: phase1Data.district,
-          provincesLoaded: provinces.length
-        });
-
         // Load cantons if province is pre-filled
         if (phase1Data.province) {
           try {
             const selectedProvince = provinces.find(p => p.name === phase1Data.province);
-            console.log('Selected province for preloading:', selectedProvince);
 
             if (selectedProvince) {
               setLoadingCantons(true);
               const cantonsData = await getCantonsByProvince(selectedProvince.id);
-              console.log('Loaded cantons for preloading:', cantonsData.length);
               setCantons(cantonsData);
               setLoadingCantons(false);
 
               // Load districts if canton is pre-filled
               if (phase1Data.canton) {
                 const selectedCanton = cantonsData.find(c => c.name === phase1Data.canton);
-                console.log('Selected canton for preloading:', selectedCanton);
 
                 if (selectedCanton) {
                   setLoadingDistricts(true);
                   const districtsData = await getDistrictsByCanton(selectedCanton.id);
-                  console.log('Loaded districts for preloading:', districtsData.length);
                   setDistricts(districtsData);
                   setLoadingDistricts(false);
                 }
               }
             }
-          } catch (error) {
-            console.error('Error preloading geographic data:', error);
+          } catch {
             setLoadingCantons(false);
             setLoadingDistricts(false);
           }
@@ -454,8 +430,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       try {
         const provincesData = await getProvinces();
         setProvinces(provincesData);
-      } catch (error) {
-        console.error('Error loading provinces:', error);
+      } catch {
+        // keep empty provinces list on failure
       } finally {
         setLoadingProvinces(false);
       }
@@ -474,8 +450,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             const cantonsData = await getCantonsByProvince(selectedProvince.id);
             setCantons(cantonsData);
           }
-        } catch (error) {
-          console.error('Error loading cantons:', error);
+        } catch {
+          // keep cantons empty on failure
         } finally {
           setLoadingCantons(false);
         }
@@ -498,8 +474,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             const districtsData = await getDistrictsByCanton(selectedCanton.id);
             setDistricts(districtsData);
           }
-        } catch (error) {
-          console.error('Error loading districts:', error);
+        } catch {
+          // keep districts empty on failure
         } finally {
           setLoadingDistricts(false);
         }
@@ -520,90 +496,67 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     { key: 'constancia_pension_ccss', label: 'Constancia de Pensión CCSS', required: false },
     { key: 'constancia_pension_alimentaria', label: 'Constancia de Pensión Alimentaria', required: false },
     { key: 'constancia_estudio', label: 'Constancia de Estudio (En caso de solicitante este en estudio)', required: false },
-    { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false },
-    { key: 'informacion_pago', label: 'Información de Pago', required: true }
+    { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
   ], []);
 
-  // Initialize document status based on existing documents
+  // Initialize document status from saved document_statuses and/or uploaded files
   useEffect(() => {
-    // Always initialize documents array, even if no existing documents
+    const documentStatusMap = new Map<string, string>();
+
+    // 1) Restore statuses saved from dropdown (Entregado, En trámite, No aplica, Pendiente)
+    const savedStatuses = currentRecord?.registration_requirements?.document_statuses;
+    if (savedStatuses) {
+      const list = typeof savedStatuses === 'string' ? JSON.parse(savedStatuses) : savedStatuses;
+      if (Array.isArray(list)) {
+        list.forEach((item: { document_type?: string; status?: string }) => {
+          if (item.document_type && item.status) {
+            documentStatusMap.set(item.document_type, item.status);
+          }
+        });
+      }
+    }
+
+    // 2) Override with 'entregado' for any document type that has an uploaded file
+    if (currentRecord?.documents && currentRecord.documents.length > 0) {
+      currentRecord.documents.forEach((doc: { document_type?: string; file_name?: string }) => {
+        const formDocumentType = mapBackendDocumentType(doc.document_type || '');
+        if (formDocumentType) {
+          documentStatusMap.set(formDocumentType, 'entregado');
+        }
+        if ((doc.document_type as string) === 'payment_info') {
+          documentStatusMap.set('informacion_pago', 'entregado');
+        }
+      });
+    }
+
+    const updatedDocuments = documentTypes.map(doc => ({
+      document_type: doc.key as RequiredDocument['document_type'],
+      status: (documentStatusMap.get(doc.key) as RequiredDocument['status']) || 'pendiente',
+      observations: ''
+    }));
+
+    const isPaymentPaid = documentStatusMap.get('informacion_pago') === 'entregado';
+    // Load affiliation_fee_paid and general_observations from API (registration_requirements);
+    // API returns registration_requirements, not documentation_requirements
+    const rr = currentRecord?.registration_requirements;
+    const affiliationFromApi = rr?.affiliation_fee_paid !== undefined && rr?.affiliation_fee_paid !== null
+      ? Boolean(rr.affiliation_fee_paid)
+      : undefined;
+    const generalObsFromApi = rr?.general_observations != null ? String(rr.general_observations) : undefined;
+
     setForm(prev => ({
       ...prev,
       documentation_requirements: {
         ...prev.documentation_requirements,
-        documents: documentTypes.map(doc => ({
-          document_type: doc.key as RequiredDocument['document_type'],
-          status: 'pendiente',
-          observations: ''
-        }))
+        documents: updatedDocuments,
+        affiliation_fee_paid: affiliationFromApi ?? prev.documentation_requirements.affiliation_fee_paid ?? isPaymentPaid,
+        general_observations: generalObsFromApi ?? prev.documentation_requirements.general_observations ?? ''
       }
     }));
-
-    // If there are existing documents, update their status
-    console.log('=== CHECKING FOR EXISTING DOCUMENTS ===');
-    console.log('Current record:', currentRecord);
-    console.log('Current record documents:', currentRecord?.documents);
-    console.log('Documents length:', currentRecord?.documents?.length || 0);
-
-    if (currentRecord?.documents && currentRecord.documents.length > 0) {
-      const existingDocuments = currentRecord.documents;
-      console.log('=== LOADING EXISTING DOCUMENTS ===');
-      console.log('Existing documents:', existingDocuments);
-
-      // Create a mapping of document types to their status
-      const documentStatusMap = new Map();
-      existingDocuments.forEach(doc => {
-        // Map backend document types to form document types
-        const formDocumentType = mapBackendDocumentType(doc.document_type, doc.file_name);
-        if (formDocumentType) {
-          documentStatusMap.set(formDocumentType, 'entregado');
-          console.log(`Document ${doc.document_type} (${doc.file_name}) mapped to ${formDocumentType} with status entregado`);
-        } else {
-          console.log(`Document ${doc.document_type} (${doc.file_name}) could not be mapped to form document type`);
-        }
-
-        // Special handling for payment_info documents
-        if ((doc.document_type as string) === 'payment_info') {
-          documentStatusMap.set('informacion_pago', 'entregado');
-          console.log(`Payment info document mapped to informacion_pago with status entregado`);
-        }
-      });
-
-      console.log('Document status map:', documentStatusMap);
-
-      // Update form with existing document statuses
-      const updatedDocuments = documentTypes.map(doc => ({
-        document_type: doc.key as RequiredDocument['document_type'],
-        status: documentStatusMap.get(doc.key) || 'pendiente',
-        observations: ''
-      }));
-
-      console.log('Updated form documents before setForm:', updatedDocuments);
-
-      // Check if payment information document is entregado and set payment status accordingly
-      const paymentDocStatus = documentStatusMap.get('informacion_pago');
-      const isPaymentPaid = paymentDocStatus === 'entregado';
-
-      console.log('Payment document status:', paymentDocStatus);
-      console.log('Setting affiliation_fee_paid to:', isPaymentPaid);
-
-      setForm(prev => ({
-        ...prev,
-        documentation_requirements: {
-          ...prev.documentation_requirements,
-          documents: updatedDocuments,
-          affiliation_fee_paid: isPaymentPaid
-        }
-      }));
-
-      console.log('Updated form documents after setForm:', updatedDocuments);
-    }
   }, [currentRecord, documentTypes]);
 
   // Helper function to map backend document types to form document types
-  const mapBackendDocumentType = (backendType: string, fileName?: string): string | null => {
-    console.log(`Mapping backend type: ${backendType}, fileName: ${fileName}`);
-
+  const mapBackendDocumentType = (backendType: string): string | null => {
     // Direct mapping based on backend document types
     const mapping: { [key: string]: string } = {
       'medical_diagnosis': 'dictamen_medico',
@@ -619,24 +572,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       'other': 'cuenta_banco_nacional' // Default for 'other' type
     };
 
-    const result = mapping[backendType] || null;
-    console.log(`Mapped ${backendType} to ${result}`);
-    return result;
+    return mapping[backendType] || null;
   };
-
-  // Debug: Log form state changes
-  useEffect(() => {
-    console.log('Form state updated:', {
-      documents: form.documentation_requirements.documents,
-      documentFiles: Object.keys(documentFiles).filter(key => documentFiles[key] !== null)
-    });
-
-    // Specifically log document statuses
-    console.log('Document statuses in form:', form.documentation_requirements.documents.map(doc => ({
-      type: doc.document_type,
-      status: doc.status
-    })));
-  }, [form.documentation_requirements.documents, documentFiles]);
 
   const handleChange = (section: keyof Phase3Data, field: string, value: string | number | boolean | string[] | RequiredDocument[] | AvailableService[]) => {
     setForm(prev => ({
@@ -648,9 +585,22 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     }));
   };
 
-  const handleDocumentChange = (documentType: string, file: File | null) => {
-    console.log('handleDocumentChange called:', { documentType, file: file?.name });
+  const updateDocumentStatus = (
+    documentType: string,
+    status: 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica'
+  ) => {
+    setForm(prev => ({
+      ...prev,
+      documentation_requirements: {
+        ...prev.documentation_requirements,
+        documents: prev.documentation_requirements.documents.map(doc =>
+          doc.document_type === documentType ? { ...doc, status } : doc
+        )
+      }
+    }));
+  };
 
+  const handleDocumentChange = (documentType: string, file: File | null) => {
     setDocumentFiles(prev => ({
       ...prev,
       [documentType]: file
@@ -658,18 +608,14 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
     // Actualizar automáticamente el estado del documento cuando se sube un archivo
     if (file) {
-      console.log('File uploaded, updating document status to entregado');
-
       setForm(prev => {
         const existingDoc = prev.documentation_requirements.documents.find(doc => doc.document_type === documentType);
-        console.log('Existing doc:', existingDoc);
 
         if (existingDoc) {
           // Update existing document status to 'entregado'
           const updatedDocs = prev.documentation_requirements.documents.map(doc =>
             doc.document_type === documentType ? { ...doc, status: 'entregado' as const } : doc
           );
-          console.log('Updated docs:', updatedDocs);
 
           const updatedForm = {
             ...prev,
@@ -682,7 +628,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           // Si es el documento de información de pago, marcar el pago como pagado
           if (documentType === 'informacion_pago') {
             updatedForm.documentation_requirements.affiliation_fee_paid = true;
-            console.log('Payment information document uploaded, setting affiliation_fee_paid to true');
           }
 
           return updatedForm;
@@ -694,7 +639,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             observations: ''
           };
           const updatedDocs = [...prev.documentation_requirements.documents, newDoc];
-          console.log('Added new doc:', updatedDocs);
 
           const updatedForm = {
             ...prev,
@@ -707,15 +651,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           // Si es el documento de información de pago, marcar el pago como pagado
           if (documentType === 'informacion_pago') {
             updatedForm.documentation_requirements.affiliation_fee_paid = true;
-            console.log('Payment information document uploaded, setting affiliation_fee_paid to true');
           }
 
           return updatedForm;
         }
       });
     } else {
-      console.log('File removed, updating document status to pendiente');
-
       setForm(prev => {
         const existingDoc = prev.documentation_requirements.documents.find(doc => doc.document_type === documentType);
 
@@ -735,7 +676,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           // Si se elimina el documento de información de pago, marcar el pago como pendiente
           if (documentType === 'informacion_pago') {
             updatedForm.documentation_requirements.affiliation_fee_paid = false;
-            console.log('Payment information document removed, setting affiliation_fee_paid to false');
           }
 
           return updatedForm;
@@ -813,8 +753,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       ok = false;
     } else setSecondaryPhoneError('');
     const cedula = form.complete_personal_data.cedula;
-    if (!/^\d+$/.test(cedula) || cedula.length > 9 || cedula.length === 0) {
-      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' : cedula.length > 9 ? 'Máximo 9 caracteres.' : 'Solo se permiten números.');
+    if (!/^\d+$/.test(cedula) || cedula.length === 0) {
+      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' : 'Solo se permiten números.');
+    } else if (cedula.length < 9 || cedula.length > 13) {
+      setCedulaError(cedula.length < 9 ? 'Mínimo 9 dígitos.' : 'Máximo 13 caracteres.');
       ok = false;
     } else setCedulaError('');
     const birthPlace = form.complete_personal_data.birth_place;
@@ -837,8 +779,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     let ok = true;
     if (showParents) {
       const mCed = form.family_information.mother_cedula;
-      if (mCed && (mCed.length !== 9 || !/^\d+$/.test(mCed))) {
-        setMotherCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (mCed && (!/^\d+$/.test(mCed) || mCed.length < 9 || mCed.length > 13)) {
+        setMotherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         ok = false;
       } else setMotherCedulaError('');
       const mName = form.family_information.mother_name;
@@ -857,8 +799,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         ok = false;
       } else setMotherPhoneError('');
       const fCed = form.family_information.father_cedula;
-      if (fCed && (fCed.length !== 9 || !/^\d+$/.test(fCed))) {
-        setFatherCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (fCed && (!/^\d+$/.test(fCed) || fCed.length < 9 || fCed.length > 13)) {
+        setFatherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         ok = false;
       } else setFatherCedulaError('');
       const fName = form.family_information.father_name;
@@ -884,8 +826,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     } else setResponsibleNameError('');
     if (showLegalGuardian) {
       const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula;
-      if (rCed && (rCed.length !== 9 || !/^\d+$/.test(rCed))) {
-        setResponsibleCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (rCed && (!/^\d+$/.test(rCed) || rCed.length < 9 || rCed.length > 13)) {
+        setResponsibleCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         ok = false;
       } else setResponsibleCedulaError('');
     }
@@ -912,20 +854,47 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     return true;
   };
 
+  const validateStepDocuments = (): boolean => {
+    // No permitir avanzar si hay documentos requeridos en estado "pendiente"
+    const hasPendingRequired = documentTypes.some(doc => {
+      if (!doc.required) return false;
+      const status = form.documentation_requirements.documents.find(d => d.document_type === doc.key)?.status || 'pendiente';
+      return status === 'pendiente';
+    });
+
+    if (hasPendingRequired) {
+      setDocumentsStepError('Por favor, actualice el estado de todos los documentos requeridos. Ninguno puede quedar en "Pendiente" antes de continuar.');
+      return false;
+    }
+
+    setDocumentsStepError('');
+    return true;
+  };
+
   const validateStepSocioeconomic = (): boolean => {
     return true;
   };
 
   const goToNextStep = () => {
+    // Admin edit/creation: allow free step navigation without validation (same as desktop step pills)
+    if (isAdminEdit || isAdminCreation) {
+      setCurrentStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (currentStep === 0 && !validateStepPersonal()) return;
     if (currentStep === 1 && !validateStepFamily()) return;
     if (currentStep === 2 && !validateStepDisability()) return;
     if (currentStep === 3 && !validateStepSocioeconomic()) return;
+    if (currentStep === 4 && !validateStepDocuments()) return;
     setCurrentStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
+    // Scroll to top when changing steps so the user sees the start of the next section
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const goToPrevStep = () => {
     setCurrentStep(s => Math.max(s - 1, 0));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -934,13 +903,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       goToNextStep();
       return;
     }
-    console.log('=== FORM SUBMISSION HANDLER CALLED ===');
-    console.log('Is modification:', isModification);
-    console.log('Document files:', documentFiles);
-    console.log('Form documents:', form.documentation_requirements.documents);
-    console.log('Loading state:', loading);
-    console.log('Form state:', form);
-
     // Validaciones manuales antes del envío
     let hasErrors = false;
 
@@ -969,10 +931,11 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
     // Cédula
     const cedula = form.complete_personal_data.cedula;
-    if (!/^\d+$/.test(cedula) || cedula.length > 9 || cedula.length === 0) {
-      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' :
-        cedula.length > 9 ? 'Máximo 9 caracteres.' :
-          'Solo se permiten números.');
+    if (!/^\d+$/.test(cedula) || cedula.length === 0) {
+      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' : 'Solo se permiten números.');
+      hasErrors = true;
+    } else if (cedula.length < 9 || cedula.length > 13) {
+      setCedulaError(cedula.length < 9 ? 'Mínimo 9 dígitos.' : 'Máximo 13 caracteres.');
       hasErrors = true;
     }
 
@@ -986,7 +949,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     }
 
     if (hasErrors) {
-      console.log('❌ Validación fallida. No se envía el formulario.');
       return;
     }
 
@@ -1007,8 +969,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     if (showParents) {
       // Madre
       const mCed = form.family_information.mother_cedula;
-      if (mCed && (mCed.length !== 9 || !/^\d+$/.test(mCed))) {
-        setMotherCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (mCed && (!/^\d+$/.test(mCed) || mCed.length < 9 || mCed.length > 13)) {
+        setMotherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         hasFamilyErrors = true;
       }
 
@@ -1036,8 +998,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
       // Padre
       const fCed = form.family_information.father_cedula;
-      if (fCed && (fCed.length !== 9 || !/^\d+$/.test(fCed))) {
-        setFatherCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (fCed && (!/^\d+$/.test(fCed) || fCed.length < 9 || fCed.length > 13)) {
+        setFatherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         hasFamilyErrors = true;
       }
 
@@ -1065,7 +1027,6 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     }
 
     if (hasFamilyErrors) {
-      console.log('❌ Validación familiar fallida');
       return;
     }
 
@@ -1082,8 +1043,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     // Cédula del Encargado Legal
     if (showLegalGuardian) {
       const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula;
-      if (rCed && (rCed.length !== 9 || !/^\d+$/.test(rCed))) {
-        setResponsibleCedulaError('La cédula debe tener 9 dígitos numéricos.');
+      if (rCed && (!/^\d+$/.test(rCed) || rCed.length < 9 || rCed.length > 13)) {
+        setResponsibleCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
         hasErrors = true;
       }
     }
@@ -1121,9 +1082,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
     // Observaciones Generales
     const generalObs = form.documentation_requirements.general_observations;
-    if (generalObs && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(generalObs) || generalObs.length > 200)) {
+    if (generalObs && (!/^[0-9a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(generalObs) || generalObs.length > 200)) {
       setGeneralObservationsError(
-        generalObs.length > 200 ? 'Máximo 200 caracteres.' : 'No se permiten números.'
+        generalObs.length > 200 ? 'Máximo 200 caracteres.' : 'Solo se permiten letras, números y signos de puntuación básicos.'
       );
       hasErrors = true;
     }
@@ -1131,42 +1092,17 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     // Combinar todos los documentos
     const allDocuments = [...specificDocuments];
 
-    console.log('All documents to upload:', allDocuments);
-
-    // In modification mode, if no new documents are uploaded but existing documents are marked as 'entregado',
-    // we should still allow the form submission
-    if (isModification && allDocuments.length === 0) {
-      const hasExistingDocuments = form.documentation_requirements.documents.some(doc => doc.status === 'entregado');
-      console.log('Has existing documents:', hasExistingDocuments);
-      console.log('Document statuses:', form.documentation_requirements.documents.map(doc => ({
-        type: doc.document_type,
-        status: doc.status
-      })));
-
-      if (hasExistingDocuments) {
-        console.log('Modification mode with existing documents - allowing submission without new files');
-      } else {
-        console.log('No existing documents and no new files - this might be an issue');
-        // Don't prevent submission in modification mode - let the backend handle it
-        console.log('Allowing submission anyway in modification mode');
-      }
-    }
-
     const formData: Phase3Data = {
       ...form,
       documents: allDocuments.map(doc => doc.file) // Keep the original format for now
     };
 
-    // Store document types for API service
-    (formData as Phase3Data & { documentTypes: { [key: string]: string } }).documentTypes = allDocuments.reduce((acc, doc) => {
+    formData.documentTypes = allDocuments.reduce<Record<string, string>>((acc, doc) => {
       acc[doc.file.name] = doc.type;
       return acc;
-    }, {} as { [key: string]: string });
+    }, {});
 
-    console.log('Final form data:', formData);
-    console.log('Calling onSubmit with form data...');
     onSubmit(formData);
-    console.log('onSubmit called successfully');
   };
 
   return (
@@ -1195,68 +1131,104 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         </div>
       </div>
 
-      {/* Step progress: carousel (3 steps visible) to avoid overflow */}
-      <div className="mb-6 sm:mb-8">
-        <div className="flex items-center gap-1">
+      {/* Step progress */}
+      <div className="mb-6 sm:mb-8 min-w-0">
+        {/* Mobile: single-step + arrows (no overflow); debounce to avoid double-tap skip */}
+        <div className="sm:hidden flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={() => setStepperViewStart(s => Math.max(0, s - 1))}
-            disabled={stepperViewStart === 0}
-            className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
-            aria-label="Ver pasos anteriores"
+            onClick={() => {
+              const now = Date.now();
+              if (now - mobileStepperLastTapRef.current < 400) return;
+              mobileStepperLastTapRef.current = now;
+              setCurrentStep(s => Math.max(0, s - 1));
+            }}
+            disabled={currentStep === 0}
+            className="flex-shrink-0 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
+            aria-label="Paso anterior"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="flex flex-1 items-center justify-center gap-1 min-w-0">
-            {Array.from({ length: STEPS_VISIBLE }, (_, i) => {
-              const index = stepperViewStart + i;
-              if (index >= TOTAL_STEPS) return null;
-              const label = STEP_LABELS[index];
-              const isCurrent = index === currentStep;
-              const isPast = index < currentStep;
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => index <= currentStep && setCurrentStep(index)}
-                  className={`flex flex-col items-center flex-1 min-w-0 max-w-[100px] min-h-[44px] py-2 px-1 rounded-lg transition-colors touch-manipulation ${
-                    isCurrent
-                      ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 ring-offset-2'
-                      : isPast
-                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
-                        : 'text-gray-400 cursor-default'
-                  }`}
-                >
-                  <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold flex-shrink-0 ${
-                    isCurrent ? 'bg-blue-600 text-white' : isPast ? 'bg-gray-300 text-gray-700' : 'bg-gray-200 text-gray-500'
-                  }`}>
-                    {index + 1}
-                  </span>
-                  <span className="text-xs mt-1 truncate w-full text-center">{label}</span>
-                </button>
-              );
-            })}
+          <div className="flex-1 min-w-0 flex items-center justify-center">
+            <span className="text-sm font-medium text-gray-900 truncate text-center block w-full">
+              {currentStep + 1}/{TOTAL_STEPS} · {STEP_LABELS[currentStep]}
+            </span>
           </div>
           <button
             type="button"
-            onClick={() => setStepperViewStart(s => Math.min(TOTAL_STEPS - STEPS_VISIBLE, s + 1))}
-            disabled={stepperViewStart >= TOTAL_STEPS - STEPS_VISIBLE}
-            className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
-            aria-label="Ver siguientes pasos"
+            onClick={() => {
+              const now = Date.now();
+              if (now - mobileStepperLastTapRef.current < 400) return;
+              mobileStepperLastTapRef.current = now;
+              setCurrentStep(s => Math.min(TOTAL_STEPS - 1, s + 1));
+            }}
+            disabled={currentStep >= TOTAL_STEPS - 1}
+            className="flex-shrink-0 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
+            aria-label="Siguiente paso"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
-        <p className="text-sm text-gray-500 mt-2 text-center">
-          Paso {currentStep + 1} de {TOTAL_STEPS}: {STEP_LABELS[currentStep]}
-        </p>
+
+        {/* Desktop: carousel with 3 steps visible */}
+        <div className="hidden sm:block">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setStepperViewStart(s => Math.max(0, s - 1))}
+              disabled={stepperViewStart === 0}
+              className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
+              aria-label="Ver pasos anteriores"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex flex-1 items-center justify-center gap-1 min-w-0">
+              {Array.from({ length: STEPS_VISIBLE }, (_, i) => {
+                const index = stepperViewStart + i;
+                if (index >= TOTAL_STEPS) return null;
+                const label = STEP_LABELS[index];
+                const isCurrent = index === currentStep;
+                const canGoToStep = (isAdminEdit || isAdminCreation) ? true : index <= currentStep;
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => canGoToStep && setCurrentStep(index)}
+                    className={`flex flex-col items-center flex-1 min-w-0 max-w-[100px] min-h-[44px] py-2 px-1 rounded-lg transition-colors touch-manipulation ${
+                      isCurrent
+                        ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 ring-offset-2'
+                        : canGoToStep
+                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 cursor-pointer'
+                          : 'text-gray-400 cursor-default'
+                    }`}
+                  >
+                    <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold flex-shrink-0 ${
+                      isCurrent ? 'bg-blue-600 text-white' : canGoToStep ? 'bg-gray-300 text-gray-700' : 'bg-gray-200 text-gray-500'
+                    }`}>
+                      {index + 1}
+                    </span>
+                    <span className="text-xs mt-1 truncate w-full text-center">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setStepperViewStart(s => Math.min(TOTAL_STEPS - STEPS_VISIBLE, s + 1))}
+              disabled={stepperViewStart >= TOTAL_STEPS - STEPS_VISIBLE}
+              className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
+              aria-label="Ver siguientes pasos"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 mt-2 text-center">
+            Paso {currentStep + 1} de {TOTAL_STEPS}: {STEP_LABELS[currentStep]}
+          </p>
+        </div>
       </div>
 
-      <form onSubmit={(e) => {
-        console.log('=== FORM ONSUBMIT EVENT TRIGGERED ===');
-        console.log('Event:', e);
-        handleSubmit(e);
-      }} className="min-w-0 w-full max-w-full overflow-x-hidden box-border break-words space-y-6 sm:space-y-8 [&_input]:text-base [&_select]:text-base [&_textarea]:text-base">
+      <form onSubmit={handleSubmit} className="min-w-0 w-full max-w-full overflow-x-hidden box-border break-words space-y-6 sm:space-y-8 [&_input]:text-base [&_select]:text-base [&_textarea]:text-base">
         {loading && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1">
@@ -1356,7 +1328,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 onChange={(e) => {
                   const rawValue = e.target.value;
                   const isValid = /^\d*$/.test(rawValue); // Solo dígitos o vacío
-                  const isLengthValid = rawValue.length <= 9;
+                  const isLengthValid = rawValue.length <= 13;
 
                   if (!isValid) {
                     setCedulaError('Solo se permiten números.');
@@ -1365,22 +1337,24 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   }
 
                   if (!isLengthValid) {
-                    setCedulaError('Máximo 9 caracteres.');
+                    setCedulaError('Máximo 13 caracteres.');
                     return;
                   }
 
                   // Si todo es válido, limpiamos el error y actualizamos
                   setCedulaError('');
                   handleChange('complete_personal_data', 'cedula', rawValue);
-                  setCedulaCharsLeft(9 - rawValue.length);
+                  setCedulaCharsLeft(13 - rawValue.length);
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${cedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {cedulaCharsLeft} caracteres restantes (máximo 9)
-              </p>
+              {form.complete_personal_data.cedula.length < 9 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {cedulaCharsLeft} caracteres restantes (entre 9 y 13 dígitos)
+                </p>
+              )}
               {cedulaError && <p className="text-xs text-red-500 mt-1">{cedulaError}</p>}
             </div>
             <div>
@@ -1539,7 +1513,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               Dirección de domicilio exacta *
             </label>
             <textarea
-              value={form.complete_personal_data.exact_address}
+              value={form.complete_personal_data.exact_address ?? ''}
               onChange={(e) => {
                 const value = e.target.value;
                 const length = value.length;
@@ -1563,8 +1537,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </p>
             {addressError && <p className="text-xs text-red-500 mt-1">{addressError}</p>}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mt-4 min-w-0">
+            <div className="min-w-0">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Provincia *
               </label>
@@ -1648,18 +1622,18 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           ? 'border-orange-300 bg-orange-50'
           : 'border-gray-200'
           }`}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium text-gray-900">Información Familiar, al menos uno es requerido</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 min-w-0">Información Familiar, al menos uno es requerido</h3>
               {needsModification('family_information') && (
-                <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full flex-shrink-0">
                   Requiere Modificación
                 </span>
               )}
             </div>
 
-            {/* Toggle between Parents and Legal Guardian (mobile: larger touch targets) */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            {/* Toggle between Parents and Legal Guardian (mobile: full width, larger touch targets) */}
+            <div className="flex bg-gray-100 rounded-lg p-1 w-full sm:w-auto min-w-0">
               <button
                 type="button"
                 onClick={() => handleFamilyModeToggle('parents')}
@@ -1732,25 +1706,27 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     value={form.family_information.mother_cedula}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, '');
-                      if (value.length > 9) return;
+                      if (value.length > 13) return;
 
-                      if (value.length > 9) {
-                        setMotherCedulaError('Máximo 9 caracteres.');
+                      if (value.length > 13) {
+                        setMotherCedulaError('Máximo 13 caracteres.');
                         return;
                       }
 
                       setMotherCedulaError('');
                       handleChange('family_information', 'mother_cedula', value);
-                      setMotherCedulaCharsLeft(9 - value.length);
+                      setMotherCedulaCharsLeft(13 - value.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${motherCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     placeholder='Opcional'
                   />
+                  {form.family_information.mother_cedula.length < 9 && form.family_information.mother_cedula.length > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {motherCedulaCharsLeft} caracteres restantes (máx. 9)
+                    {motherCedulaCharsLeft} caracteres restantes (entre 9 y 13)
                   </p>
-                  {motherCedulaError && <p className="text-xs text-red-500 mt-1">{motherCedulaError}</p>}
+                )}
+                {motherCedulaError && <p className="text-xs text-red-500 mt-1">{motherCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1869,25 +1845,27 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     value={form.family_information.father_cedula}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, '');
-                      if (value.length > 9) return;
+                      if (value.length > 13) return;
 
-                      if (value.length > 9) {
-                        setFatherCedulaError('Máximo 9 caracteres.');
+                      if (value.length > 13) {
+                        setFatherCedulaError('Máximo 13 caracteres.');
                         return;
                       }
 
                       setFatherCedulaError('');
                       handleChange('family_information', 'father_cedula', value);
-                      setFatherCedulaCharsLeft(9 - value.length);
+                      setFatherCedulaCharsLeft(13 - value.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fatherCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     placeholder='Opcional'
                   />
+                  {form.family_information.father_cedula.length < 9 && form.family_information.father_cedula.length > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {fatherCedulaCharsLeft} caracteres restantes (máx. 9)
+                    {fatherCedulaCharsLeft} caracteres restantes (entre 9 y 13)
                   </p>
-                  {fatherCedulaError && <p className="text-xs text-red-500 mt-1">{fatherCedulaError}</p>}
+                )}
+                {fatherCedulaError && <p className="text-xs text-red-500 mt-1">{fatherCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2007,26 +1985,31 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     value={(form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula ?? ''}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, ''); // Elimina todo lo que no sea número
-                      if (value.length > 9) return; // Bloquea si ya tiene 9 dígitos
+                      if (value.length > 13) return; // Bloquea si ya tiene 13 dígitos (máx.)
 
                       if (value.length > 0 && value.length < 9) {
-                        setResponsibleCedulaError('Debe tener 9 dígitos.');
-                      } else if (value.length > 9) {
-                        setResponsibleCedulaError('Máximo 9 caracteres.');
+                        setResponsibleCedulaError('Debe tener entre 9 y 13 dígitos.');
+                      } else if (value.length > 13) {
+                        setResponsibleCedulaError('Máximo 13 caracteres.');
                       } else {
                         setResponsibleCedulaError('');
                       }
 
                       handleChange('family_information', 'responsible_cedula', value);
-                      setResponsibleCedulaCharsLeft(9 - value.length);
+                      setResponsibleCedulaCharsLeft(13 - value.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${responsibleCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
                   />
+                  {(() => {
+                  const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula ?? '';
+                  return rCed.length > 0 && rCed.length < 9;
+                })() && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {responsibleCedulaCharsLeft} caracteres restantes (máximo 9)
+                    {responsibleCedulaCharsLeft} caracteres restantes (entre 9 y 13 dígitos)
                   </p>
-                  {responsibleCedulaError && <p className="text-xs text-red-500 mt-1">{responsibleCedulaError}</p>}
+                )}
+                {responsibleCedulaError && <p className="text-xs text-red-500 mt-1">{responsibleCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2099,9 +2082,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         {currentStep === 2 && (
         <>
         {/* Datos de Discapacidad */}
-        <div className="border border-gray-200 rounded-lg p-3 sm:p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Información de Discapacidad</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="border border-gray-200 rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3">Información de Discapacidad</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Discapacidad *
@@ -2189,10 +2172,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         </div>
 
         {/* Información Médica Adicional */}
-        <div className="border border-gray-200 rounded-lg p-3 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Información Médica Adicional</h3>
+        <div className="border border-gray-200 rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 mb-4 min-w-0">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Información Médica Adicional</h3>
               <p className="text-sm text-gray-600">Complete la información médica relevante del beneficiario</p>
             </div>
           </div>
@@ -2234,7 +2217,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   Enfermedades que Padece <span className="text-gray-500 text-sm">(Opcional)</span>
                 </label>
                 <textarea
-                  value={form.disability_information.medical_additional.diseases}
+                  value={form.disability_information.medical_additional.diseases ?? ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     // Permitir letras, espacios, y signos de puntuación comunes (sin números)
@@ -2511,7 +2494,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Servicios Disponibles
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
               {[
                 { key: 'luz', label: 'Luz' },
                 { key: 'agua', label: 'Agua' },
@@ -2519,7 +2502,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 { key: 'alcantarillado', label: 'Alcantarillado' },
                 { key: 'internet', label: 'Internet' }
               ].map((service) => (
-                <div key={service.key} className="flex items-center">
+                <div key={service.key} className="flex items-center min-w-0">
                   <input
                     type="checkbox"
                     id={service.key}
@@ -2549,15 +2532,15 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
           </div>
 
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+          <div className="mt-4 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+              <label className="block text-sm font-medium text-gray-700 min-w-0">
                 Personas que Trabajan en la Familia
               </label>
               <button
                 type="button"
                 onClick={addWorkingFamilyMember}
-                className="flex items-center gap-1 px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="flex items-center justify-center gap-1 px-3 py-2 sm:py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 min-h-[44px] sm:min-h-0 touch-manipulation w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 Agregar Familiar
@@ -2565,7 +2548,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
             <div className="space-y-3">
               {form.socioeconomic_information.working_family_members.map((member, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-gray-200 rounded">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-gray-200 rounded min-w-0">
                   <input
                     type="text"
                     placeholder="Nombre"
@@ -2619,6 +2602,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         {/* Subida de Documentos - compact on mobile */}
         <div className="border border-gray-200 rounded-lg p-3 sm:p-6">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Documentos Requeridos</h3>
+
+          {documentsStepError && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm text-red-700">
+              {documentsStepError}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 sm:gap-2">
             {documentTypes.map((doc) => {
               const documentStatus = form.documentation_requirements.documents.find(d => d.document_type === doc.key)?.status || 'pendiente';
@@ -2633,9 +2622,19 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   <div className="flex sm:hidden flex-col gap-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-medium text-gray-700 truncate min-w-0 flex-1">{doc.label}{doc.required ? ' *' : ''}</span>
-                      <span className={`px-1.5 py-0.5 text-[10px] rounded-full flex-shrink-0 ${documentStatus === 'entregado' ? 'bg-green-100 text-green-800' : documentStatus === 'en_tramite' ? 'bg-yellow-100 text-yellow-800' : documentStatus === 'no_aplica' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800'}`}>
-                        {documentStatus === 'entregado' ? 'OK' : documentStatus === 'en_tramite' ? 'Trámite' : documentStatus === 'no_aplica' ? 'N/A' : 'Pend.'}
-                      </span>
+                      <select
+                        className="text-[10px] border border-gray-300 rounded px-1.5 py-0.5 bg-white flex-shrink-0"
+                        value={documentStatus}
+                        onChange={(e) => {
+                          const status = e.target.value as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
+                          updateDocumentStatus(doc.key, status);
+                        }}
+                      >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="entregado">Entregado</option>
+                        <option value="en_tramite">En trámite</option>
+                        <option value="no_aplica">No aplica</option>
+                      </select>
                       <button type="button" onClick={() => fileInputRefs.current[doc.key]?.click()} className="flex-shrink-0 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded min-h-[36px] touch-manipulation">
                         Elegir archivo
                       </button>
@@ -2660,15 +2659,25 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     {documentStatus === 'entregado' && !hasFile && (
                       <div className="mb-2 p-2 bg-green-100 border border-green-300 rounded text-sm text-green-800 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4" />
-                        <span>Documento ya subido anteriormente</span>
+                        <span>Documento entregado a ASONIPED.</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-gray-700">{doc.label} {doc.required && <span className="text-red-500">*</span>}</label>
-                        <span className={`px-2 py-1 text-xs rounded-full ${documentStatus === 'entregado' ? 'bg-green-100 text-green-800' : documentStatus === 'en_tramite' ? 'bg-yellow-100 text-yellow-800' : documentStatus === 'no_aplica' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800'}`}>
-                          {documentStatus === 'entregado' ? 'Entregado' : documentStatus === 'en_tramite' ? 'En trámite' : documentStatus === 'no_aplica' ? 'No aplica' : 'Pendiente'}
-                        </span>
+                        <select
+                          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                          value={documentStatus}
+                          onChange={(e) => {
+                            const status = e.target.value as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
+                            updateDocumentStatus(doc.key, status);
+                          }}
+                        >
+                          <option value="pendiente">Pendiente</option>
+                          <option value="entregado">Entregado</option>
+                          <option value="en_tramite">En trámite</option>
+                          <option value="no_aplica">No aplica</option>
+                        </select>
                       </div>
                       {hasFile && (
                         <button type="button" onClick={() => handleDocumentChange(doc.key, null)} className="text-red-500 hover:text-red-700">
@@ -2729,63 +2738,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             <p className="text-xs text-blue-700 mt-2">Subir comprobante en Documentos requeridos.</p>
           </div>
 
-          {/* Lista de documentos requeridos */}
-          <h4 className="font-medium text-gray-900 mb-3">Documentos Requeridos</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
-            {[
-              { key: 'dictamen_medico', label: 'Dictamen Médico', required: true },
-              { key: 'constancia_nacimiento', label: 'Constancia de Nacimiento', required: true },
-              { key: 'copia_cedula', label: 'Copia de Cédula (solicitante)', required: true },
-              { key: 'copias_cedulas_familia', label: 'Copias de Cédulas (familia)', required: true },
-              { key: 'foto_pasaporte', label: 'Foto Tamaño Pasaporte', required: true },
-              { key: 'constancia_pension_ccss', label: 'Constancia de Pensión CCSS', required: false },
-              { key: 'constancia_pension_alimentaria', label: 'Constancia de Pensión Alimentaria', required: false },
-              { key: 'constancia_estudio', label: 'Constancia de Estudio (En caso de solicitante este en estudio)', required: false },
-              { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
-            ].map((req) => (
-              <div key={req.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 p-2.5 sm:p-3 border border-gray-200 rounded-lg">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${req.required ? 'bg-red-500' : 'bg-gray-400'}`} aria-hidden />
-                  <label className="text-xs sm:text-sm text-gray-700 truncate" title={req.label}>
-                    {req.label} {req.required && <span className="text-red-500">*</span>}
-                  </label>
-                </div>
-                <select
-                  className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1.5 sm:px-3 sm:py-1 bg-white w-full sm:w-auto sm:min-w-[100px] flex-shrink-0 min-h-[40px] touch-manipulation"
-                  onChange={(e) => {
-                    const status = e.target.value as 'entregado' | 'pendiente' | 'en_tramite' | 'no_aplica';
-                    const existingDoc = form.documentation_requirements.documents.find(doc => doc.document_type === req.key);
-
-                    if (existingDoc) {
-                      const updatedDocs = form.documentation_requirements.documents.map(doc =>
-                        doc.document_type === req.key ? { ...doc, status } : doc
-                      );
-                      handleChange('documentation_requirements', 'documents', updatedDocs);
-                    } else {
-                      const newDoc: RequiredDocument = {
-                        document_type: req.key as RequiredDocument['document_type'],
-                        status,
-                        observations: ''
-                      };
-                      const updatedDocs = [...form.documentation_requirements.documents, newDoc];
-                      handleChange('documentation_requirements', 'documents', updatedDocs);
-                    }
-                  }}
-                  value={form.documentation_requirements.documents.find(doc => doc.document_type === req.key)?.status || 'pendiente'}
-                >
-                  <option value="pendiente">Pendiente</option>
-                  <option value="entregado">Entregado</option>
-                  <option value="en_tramite">En trámite</option>
-                  <option value="no_aplica">No aplica</option>
-                </select>
-              </div>
-            ))}
-          </div>
-
           {/* Resumen de documentos */}
-          <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-3">Resumen de Documentación</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="mt-4 sm:mt-6 bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 min-w-0">
+            <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Resumen de Documentación</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm min-w-0">
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
                   {form.documentation_requirements.documents.filter(doc => doc.status === 'entregado').length}
@@ -2812,15 +2768,15 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               Observaciones Generales
             </label>
             <textarea
-              value={form.documentation_requirements.general_observations}
+              value={form.documentation_requirements.general_observations ?? ''}
               onChange={(e) => {
                 const value = e.target.value;
-                // Solo permitir letras, espacios, signos de puntuación básicos (sin números)
-                const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(value);
+                // Permitir letras, números, espacios y signos de puntuación básicos
+                const isValid = /^[0-9a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(value);
                 const length = value.length;
 
                 if (!isValid) {
-                  setGeneralObservationsError('No se permiten números.');
+                  setGeneralObservationsError('Solo se permiten letras, números y signos de puntuación básicos.');
                   return;
                 }
 

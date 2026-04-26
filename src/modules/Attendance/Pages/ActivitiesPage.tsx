@@ -1,16 +1,45 @@
-import { useState, useEffect } from 'react';
-import { FaCalendarAlt, FaArrowLeft, FaPlus, FaEdit, FaTrash, FaPlay, FaStop, FaEye } from 'react-icons/fa';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { FaCalendarAlt, FaPlus, FaEdit, FaEye, FaChevronLeft, FaChevronRight, FaCar, FaCopy, FaArchive, FaUndo, FaSearch, FaTimes, FaTrash } from 'react-icons/fa';
 import { Link } from '@tanstack/react-router';
 import { activityTracksApi } from '../Services/attendanceNewApi';
+import AttendancePageHeader from '../Components/AttendancePageHeader';
 import type { ActivityTrack, ActivityTrackWithStats } from '../Types/attendanceNew';
 
+const PAGE_SIZES = [5, 10] as const;
+
 export default function ActivitiesPage() {
+  const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
+  const LIMITS = {
+    name: 255,
+    description: 400,
+    location: 255,
+    hour: 10,
+  } as const;
+
   const [activities, setActivities] = useState<ActivityTrackWithStats[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(5);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ActivityTrack | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveConfirmForId, setArchiveConfirmForId] = useState<number | null>(null);
+  const [deleteConfirmForId, setDeleteConfirmForId] = useState<number | null>(null);
+  const [parkingModalActivity, setParkingModalActivity] = useState<ActivityTrackWithStats | null>(null);
+  const [mobileActionsActivity, setMobileActionsActivity] = useState<ActivityTrackWithStats | null>(null);
+  const [parkingModalLoading, setParkingModalLoading] = useState(false);
+  const [parkingModalPayload, setParkingModalPayload] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [parkingModalError, setParkingModalError] = useState<string | null>(null);
+  const [searchDraft, setSearchDraft] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const prevDebouncedSearchRef = useRef<string | null>(null);
+
+  const isActivityArchived = (a: ActivityTrackWithStats) => !!(a.archived ?? false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -19,30 +48,172 @@ export default function ActivitiesPage() {
     event_date: '',
     event_time: '',
     location: '',
-    status: 'active' as 'active' | 'inactive' | 'completed',
+    parking_enabled: false,
+    repeat_attendance_enabled: false,
+    repeat_attendance_cooldown_hours: 3 as 3 | 6 | 12 | 24,
   });
 
-  useEffect(() => {
-    // Defer initial data loading to improve initial render
-    const timer = setTimeout(() => {
-      loadActivities();
-    }, 0);
-    
-    return () => clearTimeout(timer);
-  }, []);
+  const validateActivityForm = (data: typeof formData): string | null => {
+    const name = data.name.trim();
+    const description = data.description.trim();
+    const event_date = data.event_date?.trim();
+    const event_time = data.event_time?.trim();
+    const location = data.location.trim();
+    const repeatEnabled = !!data.repeat_attendance_enabled;
+    const cooldown = data.repeat_attendance_cooldown_hours;
 
-  const loadActivities = async () => {
+    if (!name) return 'El nombre de la actividad es obligatorio.';
+    if (name.length > LIMITS.name) return `El nombre no puede superar ${LIMITS.name} caracteres.`;
+
+    if (description.length > LIMITS.description) return `La descripción no puede superar ${LIMITS.description} caracteres.`;
+
+    if (!event_date) return 'La fecha del evento es obligatoria.';
+
+    if (event_time) {
+      if (event_time.length > LIMITS.hour) return `La hora no puede superar ${LIMITS.hour} caracteres.`;
+      if (!/^\d{2}:\d{2}$/.test(event_time)) return 'La hora debe tener formato HH:MM.';
+    }
+
+    if (location.length > LIMITS.location) return `La ubicación no puede superar ${LIMITS.location} caracteres.`;
+
+    if (repeatEnabled) {
+      if (![3, 6, 12, 24].includes(Number(cooldown))) {
+        return 'Selecciona una frecuencia válida (3, 6, 12 o 24 horas) para múltiples asistencias.';
+      }
+    }
+
+    // Prevent past dates (allow today)
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const inputDate = new Date(event_date);
+      if (!isNaN(inputDate.getTime()) && inputDate < today) return 'La fecha no puede ser anterior a hoy.';
+    } catch {
+      // ignore
+    }
+
+    return null;
+  };
+
+  const openParkingModal = async (activity: ActivityTrackWithStats) => {
+    setParkingModalActivity(activity);
+    setParkingModalPayload(null);
+    setParkingModalError(null);
+    setParkingModalLoading(true);
+    try {
+      const res = await activityTracksApi.getParkingPublicLink(activity.id!);
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      setParkingModalPayload({
+        url: `${origin}/estacionamiento/${encodeURIComponent(res.token)}`,
+        expiresAt: res.expiresAt,
+      });
+    } catch (e: unknown) {
+      setParkingModalError((e as Error).message || 'Error al cargar el enlace');
+    } finally {
+      setParkingModalLoading(false);
+    }
+  };
+
+  const closeParkingModal = () => {
+    setParkingModalActivity(null);
+    setParkingModalPayload(null);
+    setParkingModalError(null);
+    setParkingModalLoading(false);
+  };
+
+  const copyParkingUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setError(null);
+      setSuccess('Enlace copiado');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch {
+      setSuccess(null);
+      setError('No se pudo copiar al portapapeles');
+    }
+  };
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchDraft.trim()), 400);
+    return () => clearTimeout(t);
+  }, [searchDraft]);
+
+  const loadActivities = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await activityTracksApi.getAll(1, 1000); // Get all activities
-      setActivities(response.data);
-    } catch (err) {
-      console.error('Error loading activities:', err);
+      const searchChanged =
+        prevDebouncedSearchRef.current !== null &&
+        prevDebouncedSearchRef.current !== debouncedSearch;
+      const pageToUse = searchChanged ? 1 : currentPage;
+      prevDebouncedSearchRef.current = debouncedSearch;
+      if (searchChanged) {
+        setCurrentPage(1);
+      }
+
+      const response = await activityTracksApi.getAll(
+        pageToUse,
+        pageSize,
+        undefined,
+        undefined,
+        showArchived,
+        debouncedSearch || undefined
+      );
+      const data = response.data ?? [];
+      const tp = Math.max(1, response.totalPages ?? 1);
+      const total = response.total ?? 0;
+
+      setActivities(data);
+      setTotalPages(tp);
+      setTotalCount(total);
+
+      if (data.length === 0 && pageToUse > 1) {
+        setCurrentPage((p) => Math.max(1, p - 1));
+      }
+    } catch {
       setError('Error al cargar actividades');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, showArchived, debouncedSearch]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadActivities();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadActivities]);
+
+  useEffect(() => {
+    if (archiveConfirmForId === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setArchiveConfirmForId(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [archiveConfirmForId]);
+
+  useEffect(() => {
+    if (deleteConfirmForId === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDeleteConfirmForId(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [deleteConfirmForId]);
+
+  useEffect(() => {
+    if (parkingModalActivity === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setParkingModalActivity(null);
+        setParkingModalPayload(null);
+        setParkingModalError(null);
+        setParkingModalLoading(false);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [parkingModalActivity]);
 
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +221,12 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
       setError(null);
+
+      const validationError = validateActivityForm(formData);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
       
       await activityTracksApi.create({
         name: formData.name.trim(),
@@ -57,11 +234,25 @@ export default function ActivitiesPage() {
         event_date: formData.event_date,
         event_time: formData.event_time || undefined,
         location: formData.location.trim() || undefined,
-        status: formData.status,
+        status: 'active',
+        parking_enabled: formData.parking_enabled,
+        repeat_attendance_enabled: formData.repeat_attendance_enabled,
+        repeat_attendance_cooldown_hours: formData.repeat_attendance_enabled
+          ? formData.repeat_attendance_cooldown_hours
+          : null,
       });
 
       setSuccess('Actividad creada exitosamente');
-      setFormData({ name: '', description: '', event_date: '', event_time: '', location: '', status: 'active' });
+      setFormData({
+        name: '',
+        description: '',
+        event_date: '',
+        event_time: '',
+        location: '',
+        parking_enabled: false,
+        repeat_attendance_enabled: false,
+        repeat_attendance_cooldown_hours: 3,
+      });
       setShowCreateForm(false);
       await loadActivities();
       
@@ -70,7 +261,6 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al crear actividad');
-      console.error('Error creating activity:', err);
     } finally {
       setLoading(false);
     }
@@ -84,6 +274,12 @@ export default function ActivitiesPage() {
     try {
       setLoading(true);
       setError(null);
+
+      const validationError = validateActivityForm(formData);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
       
       await activityTracksApi.update(editingActivity.id!, {
         name: formData.name.trim(),
@@ -91,12 +287,25 @@ export default function ActivitiesPage() {
         event_date: formData.event_date,
         event_time: formData.event_time || undefined,
         location: formData.location.trim() || undefined,
-        status: formData.status,
+        status: editingActivity.status || 'active',
+        repeat_attendance_enabled: formData.repeat_attendance_enabled,
+        repeat_attendance_cooldown_hours: formData.repeat_attendance_enabled
+          ? formData.repeat_attendance_cooldown_hours
+          : null,
       });
 
       setSuccess('Actividad actualizada exitosamente');
       setEditingActivity(null);
-      setFormData({ name: '', description: '', event_date: '', event_time: '', location: '', status: 'active' });
+      setFormData({
+        name: '',
+        description: '',
+        event_date: '',
+        event_time: '',
+        location: '',
+        parking_enabled: false,
+        repeat_attendance_enabled: false,
+        repeat_attendance_cooldown_hours: 3,
+      });
       await loadActivities();
       
       // Clear success message after 3 seconds
@@ -104,83 +313,102 @@ export default function ActivitiesPage() {
       
     } catch (err: unknown) {
       setError((err as Error).message || 'Error al actualizar actividad');
-      console.error('Error updating activity:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteActivity = async (id: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta actividad?')) return;
-    
+  const performArchiveActivity = async (id: number) => {
     try {
       setLoading(true);
       setError(null);
-      
+
+      await activityTracksApi.archive(id);
+      setSuccess('Actividad archivada');
+      await loadActivities();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al archivar actividad');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUnarchiveActivity = async (id: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      await activityTracksApi.unarchive(id);
+      setSuccess('Actividad restaurada');
+      await loadActivities();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al restaurar actividad');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const performDeleteActivity = async (id: number) => {
+    try {
+      setLoading(true);
+      setError(null);
       await activityTracksApi.delete(id);
-      setSuccess('Actividad eliminada exitosamente');
+      setDeleteConfirmForId(null);
+      setSuccess('Actividad eliminada del sistema');
       await loadActivities();
-      
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
-      
     } catch (err: unknown) {
-      setError((err as Error).message || 'Error al eliminar actividad');
-      console.error('Error deleting activity:', err);
+      setError((err as Error).message || 'Error al eliminar la actividad');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStartScanning = async (id: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await activityTracksApi.startScanning(id);
-      setSuccess('Escaneo iniciado exitosamente');
-      await loadActivities();
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Error al iniciar escaneo');
-      console.error('Error starting scanning:', err);
-    } finally {
-      setLoading(false);
+  const toDateInputValue = (value: string) => {
+    if (!value) return '';
+    // Accept ISO strings, "YYYY-MM-DD HH:MM:SS", or already-normalized YYYY-MM-DD
+    const datePart = value.includes('T') ? value.split('T')[0] : value.split(' ')[0];
+    const isoMatch = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) return datePart;
+    // Accept common "M/D/YYYY" or "MM/DD/YYYY" formats
+    if (value.includes('/')) {
+      const [mStr, dStr, yStr] = value.split('/');
+      const y = Number(yStr);
+      const m = Number(mStr);
+      const d = Number(dStr);
+      if (Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)) {
+        const mm = String(m).padStart(2, '0');
+        const dd = String(d).padStart(2, '0');
+        return `${y}-${mm}-${dd}`;
+      }
     }
-  };
-
-  const handleStopScanning = async (id: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      await activityTracksApi.stopScanning(id);
-      setSuccess('Escaneo detenido exitosamente');
-      await loadActivities();
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
-      
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Error al detener escaneo');
-      console.error('Error stopping scanning:', err);
-    } finally {
-      setLoading(false);
+    // Last resort: try Date parsing and normalize
+    const dt = new Date(value);
+    if (!isNaN(dt.getTime())) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
+    return '';
   };
 
   const openEditForm = (activity: ActivityTrack) => {
     setEditingActivity(activity);
+    const cooldownRaw = activity.repeat_attendance_cooldown_hours;
+    const cooldown =
+      cooldownRaw === 3 || cooldownRaw === 6 || cooldownRaw === 12 || cooldownRaw === 24 ? cooldownRaw : 3;
     setFormData({
       name: activity.name,
       description: activity.description || '',
-      event_date: activity.event_date,
+      event_date: toDateInputValue(activity.event_date),
       event_time: activity.event_time || '',
       location: activity.location || '',
-      status: activity.status || 'active',
+      parking_enabled: !!activity.parking_enabled,
+      repeat_attendance_enabled: !!activity.repeat_attendance_enabled,
+      repeat_attendance_cooldown_hours: cooldown,
     });
     setShowCreateForm(true);
   };
@@ -188,7 +416,16 @@ export default function ActivitiesPage() {
   const closeForm = () => {
     setShowCreateForm(false);
     setEditingActivity(null);
-    setFormData({ name: '', description: '', event_date: '', event_time: '', location: '', status: 'active' });
+    setFormData({
+      name: '',
+      description: '',
+      event_date: '',
+      event_time: '',
+      location: '',
+      parking_enabled: false,
+      repeat_attendance_enabled: false,
+      repeat_attendance_cooldown_hours: 3,
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -211,40 +448,35 @@ export default function ActivitiesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/admin/attendance"
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <FaArrowLeft className="w-5 h-5" />
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-teal-100 rounded-lg">
-                  <FaCalendarAlt className="w-6 h-6 text-teal-600" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Gestión de Actividades</h1>
-                  <p className="text-sm text-gray-600">Crea y administra actividades de asistencia</p>
-                </div>
-              </div>
-            </div>
-            
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-            >
-              <FaPlus className="w-4 h-4" />
-              Nueva Actividad
-            </button>
-          </div>
-        </div>
-      </div>
+      <AttendancePageHeader
+        accent="emerald"
+        icon={<FaCalendarAlt className="h-6 w-6" />}
+        title="Gestión de actividades"
+        description="Crea y edita actividades."
+        actions={
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(true)}
+            className="hidden min-h-[44px] items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 sm:inline-flex"
+          >
+            <FaPlus className="h-4 w-4" />
+            Nueva actividad
+          </button>
+        }
+      />
 
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Mobile primary action (floating button) */}
+      <button
+        type="button"
+        onClick={() => setShowCreateForm(true)}
+        aria-label="Nueva actividad"
+        title="Nueva actividad"
+        className="fixed bottom-6 right-6 z-[55] inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 sm:hidden"
+      >
+        <FaPlus className="h-5 w-5" />
+      </button>
+
+      <div className="mx-auto max-w-8xl px-4 py-6 pb-28 sm:pb-6 sm:px-6 lg:px-8 ">
         {/* Messages */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -259,8 +491,210 @@ export default function ActivitiesPage() {
         )}
 
         {/* Create/Edit Form Modal */}
+        {archiveConfirmForId !== null && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="archive-dialog-title"
+            onClick={() => setArchiveConfirmForId(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="archive-dialog-title" className="text-lg font-semibold text-gray-900">
+                Archivar actividad
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                ¿Archivar esta actividad? Dejará de mostrarse en listas y enlaces públicos; los datos se conservan.
+              </p>
+              <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => setArchiveConfirmForId(null)}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = archiveConfirmForId;
+                    setArchiveConfirmForId(null);
+                    void performArchiveActivity(id!);
+                  }}
+                  disabled={loading}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 disabled:opacity-50"
+                >
+                  Archivar
+                </button>
+              </div>
+              <div className="mt-6 border-t border-gray-100 pt-4">
+                <p className="text-sm text-gray-600">
+                  Si en cambio quieres borrarla del sistema (asistencia, estacionamiento y todo lo asociado):
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = archiveConfirmForId;
+                    setArchiveConfirmForId(null);
+                    setDeleteConfirmForId(id);
+                  }}
+                  disabled={loading}
+                  className="mt-3 inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-800 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50"
+                >
+                  <FaTrash className="h-4 w-4 shrink-0" aria-hidden />
+                  Eliminar permanentemente…
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deleteConfirmForId !== null && (
+          <div
+            className="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+            onClick={() => setDeleteConfirmForId(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-xl border border-red-200 bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="delete-dialog-title" className="text-lg font-semibold text-red-900">
+                Eliminar actividad
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-gray-700">
+                Se eliminará esta actividad y los datos relacionados (registros de asistencia, estacionamiento, etc.).
+                Esta acción <strong>no se puede deshacer</strong>.
+              </p>
+              <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmForId(null)}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = deleteConfirmForId;
+                    void performDeleteActivity(id!);
+                  }}
+                  disabled={loading}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50"
+                >
+                  <FaTrash className="h-4 w-4 shrink-0" aria-hidden />
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {parkingModalActivity !== null && (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="parking-dialog-title"
+            onClick={() => closeParkingModal()}
+          >
+            <div
+              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border  bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 id="parking-dialog-title" className="text-lg font-semibold text-gray-900">
+                    Estacionamiento público
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-600">{parkingModalActivity.name}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => closeParkingModal()}
+                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                  aria-label="Cerrar"
+                >
+                  <FaTimes className="h-5 w-5" aria-hidden />
+                </button>
+              </div>
+
+              <p className="mt-4 text-sm leading-relaxed text-gray-600">
+                El enlace público caduca cada <strong>6 horas</strong> y se renueva automáticamente. Vuelve a abrir
+                este cuadro para obtener el enlace y el QR vigentes.
+              </p>
+
+              {parkingModalLoading && (
+                <div className="mt-8 flex items-center justify-center gap-3 py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-amber-600" />
+                  <span className="text-sm text-gray-600">Generando enlace…</span>
+                </div>
+              )}
+
+              {!parkingModalLoading && parkingModalError && (
+                <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                  {parkingModalError}
+                  <button
+                    type="button"
+                    onClick={() => void openParkingModal(parkingModalActivity)}
+                    className="mt-3 text-sm font-medium text-red-900 underline hover:no-underline"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              )}
+
+              {!parkingModalLoading && parkingModalPayload && (
+                <div className="mt-6 space-y-4">
+                  <div className="flex flex-col items-center gap-4 rounded-xl border border-amber-100 bg-amber-50/50 p-6">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
+                        parkingModalPayload.url
+                      )}`}
+                      alt="Código QR del enlace de estacionamiento"
+                      className="h-[min(280px,70vw)] w-[min(280px,70vw)] max-w-full rounded-lg border border-amber-200 bg-white p-2"
+                    />
+                    <p className="text-center text-xs text-amber-900/90">
+                      Válido hasta{' '}
+                      <time dateTime={parkingModalPayload.expiresAt}>
+                        {new Date(parkingModalPayload.expiresAt).toLocaleString('es-ES', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </time>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Enlace
+                    </label>
+                    <p className="break-all rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+                      {parkingModalPayload.url}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void copyParkingUrl(parkingModalPayload.url)}
+                    className="inline-flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                  >
+                    <FaCopy className="h-4 w-4" aria-hidden />
+                    Copiar enlace
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {showCreateForm && (
-          <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 bg-black/50 
+">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 {editingActivity ? 'Editar Actividad' : 'Nueva Actividad'}
@@ -276,10 +710,14 @@ export default function ActivitiesPage() {
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    maxLength={LIMITS.name}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     placeholder="Ej: Taller de Cocina"
                     required
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.name.length}/{LIMITS.name} caracteres ({remainingChars(formData.name, LIMITS.name)} restantes)
+                  </div>
                 </div>
 
                 <div>
@@ -290,14 +728,16 @@ export default function ActivitiesPage() {
                     id="description"
                     value={formData.description}
                     onChange={(e) => {
-                      if (e.target.value.length <= 400) {
-                         setFormData({ ...formData, description: e.target.value });
-                      }
-                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      setFormData({ ...formData, description: e.target.value });
+                    }}
+                    maxLength={LIMITS.description}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     rows={3}
                     placeholder="Descripción de la actividad..."
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.description.length}/{LIMITS.description} caracteres ({remainingChars(formData.description, LIMITS.description)} restantes)
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -311,7 +751,7 @@ export default function ActivitiesPage() {
                       value={formData.event_date}
                       onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
                        min={new Date().toISOString().split("T")[0]}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -330,7 +770,7 @@ export default function ActivitiesPage() {
                          ? new Date().toTimeString().slice(0, 5)
                          : undefined
                       } 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -344,32 +784,100 @@ export default function ActivitiesPage() {
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    maxLength={LIMITS.location}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     placeholder="Ej: Salón Principal"
                   />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.location.length}/{LIMITS.location} caracteres ({remainingChars(formData.location, LIMITS.location)} restantes)
+                  </div>
                 </div>
 
-                <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado
-                  </label>
-                  <select
-                    id="status"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  >
-                    <option value="active">Activa</option>
-                    <option value="inactive">Inactiva</option>
-                    <option value="completed">Completada</option>
-                  </select>
-                </div>
+                {!editingActivity && (
+                  <div className="rounded-lg border border-amber-100 bg-amber-50/80 p-4">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={formData.parking_enabled}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          setFormData({
+                            ...formData,
+                            parking_enabled: enabled,
+                            ...(enabled
+                              ? {
+                                  repeat_attendance_enabled: false,
+                                  repeat_attendance_cooldown_hours: 3 as 3 | 6 | 12 | 24,
+                                }
+                              : {}),
+                          });
+                        }}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span>
+                        <span className="block text-sm font-medium text-gray-900">Estacionamiento</span>
+                        <span className="mt-0.5 block text-sm text-gray-600">
+                          Enlace público para registrar placas (una por vehículo por actividad). El QR apunta solo a la
+                          URL.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {!formData.parking_enabled && (
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={formData.repeat_attendance_enabled}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              repeat_attendance_enabled: e.target.checked,
+                            })
+                          }
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>
+                          <span className="block text-sm font-medium text-gray-900">
+                            Múltiples asistencias (Beneficiarios)
+                          </span>
+                          <span className="mt-0.5 block text-sm text-gray-600">
+                            Permite escanear el mismo QR varias veces en esta actividad, con una frecuencia de tiempo.
+                          </span>
+                        </span>
+                      </label>
+
+                      <div className="min-w-[140px]">
+                        <label className="block text-xs font-medium text-gray-700">Frecuencia</label>
+                        <select
+                          value={formData.repeat_attendance_cooldown_hours}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              repeat_attendance_cooldown_hours: Number(e.target.value) as 3 | 6 | 12 | 24,
+                            })
+                          }
+                          disabled={!formData.repeat_attendance_enabled}
+                          className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+                        >
+                          <option value={3}>3 horas</option>
+                          <option value={6}>6 horas</option>
+                          <option value={12}>12 horas</option>
+                          <option value={24}>24 horas</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {loading ? (
                       <>
@@ -397,153 +905,523 @@ export default function ActivitiesPage() {
         )}
 
         {/* Activities List */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Actividades</h2>
+        <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:px-6">
+            <div className="relative w-full sm:max-w-xl">
+              <label htmlFor="activity-search" className="sr-only">
+                Buscar actividades
+              </label>
+              <FaSearch
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                aria-hidden
+              />
+              <input
+                id="activity-search"
+                type="search"
+                value={searchDraft}
+                onChange={(e) => setSearchDraft(e.target.value)}
+                placeholder="Buscar por nombre, descripción o ubicación…"
+                autoComplete="off"
+                className="w-full min-h-[44px] rounded-lg border border-gray-300 py-2 pl-10 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              {searchDraft ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchDraft('')}
+                  className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <FaTimes className="h-4 w-4" aria-hidden />
+                </button>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Actividades</h2>
+              {!loading && totalCount > 0 && (
+                <p className="mt-1 text-sm text-gray-600">
+                  Mostrando {(currentPage - 1) * pageSize + 1}-
+                  {Math.min(currentPage * pageSize, totalCount)} de {totalCount}
+                </p>
+              )}
+            </div>
+            {!loading && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={showArchived}
+                    onChange={(e) => {
+                      setShowArchived(e.target.checked);
+                      setCurrentPage(1);
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  Mostrar archivadas
+                </label>
+                {totalCount > 0 && (
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    Por página:
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value) as (typeof PAGE_SIZES)[number]);
+                        setCurrentPage(1);
+                      }}
+                      className="min-h-[44px] rounded-lg border border-gray-300 px-2 py-1.5 focus:border-transparent focus:ring-2 focus:ring-emerald-500"
+                    >
+                      {PAGE_SIZES.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+            )}
+            </div>
           </div>
-          
+
           {loading && !showCreateForm ? (
             <div className="p-6">
               <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                 <span className="ml-3 text-gray-600">Cargando actividades...</span>
               </div>
             </div>
-          ) : activities.length === 0 ? (
+          ) : !loading && totalCount === 0 ? (
             <div className="p-6 text-center">
               <FaCalendarAlt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No hay actividades</h3>
-              <p className="text-gray-600 mb-4">Crea tu primera actividad para comenzar a gestionar la asistencia.</p>
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-              >
-                <FaPlus className="w-4 h-4" />
-                Crear Primera Actividad
-              </button>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {debouncedSearch
+                  ? 'Sin resultados'
+                  : showArchived
+                    ? 'No hay actividades archivadas'
+                    : 'No hay actividades'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {debouncedSearch
+                  ? 'Prueba con otras palabras o revisa que «Mostrar archivadas» coincida con lo que buscas.'
+                  : showArchived
+                    ? 'No hay elementos en el archivo.'
+                    : 'Crea tu primera actividad para comenzar a gestionar la asistencia. Si solo ves vacío porque todo está archivado, activa «Mostrar archivadas» arriba.'}
+              </p>
+              {!showArchived && !debouncedSearch && (
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  <FaPlus className="w-4 h-4" />
+                  Crear Primera Actividad
+                </button>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actividad
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Escaneo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Asistencia
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {activities.map((activity) => (
-                    <tr key={activity.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-wrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{activity.name}</div>
-                          {activity.description && (
-                            <div className="text-sm text-gray-500 break-words max-w-xs">
-                              {activity.description .length > 100
-                                ? `${activity.description.slice(0, 100)}…`
-                                : activity.description
-                            }</div>
-                          )}
-                          {activity.location && (
-                            <div className="text-sm text-gray-500"> {activity.location}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(activity.event_date).toLocaleDateString('es-ES')}
-                        </div>
-                        {activity.event_time && (
-                          <div className="text-sm text-gray-500">
-                            {activity.event_time.slice(0, 5)}
+            <>
+              <ul className="md:hidden">
+                {activities.map((activity) => (
+                  <li key={activity.id} className="border-b border-gray-100 px-3 py-3 last:border-b-0">
+                    <article
+                      className={`rounded-xl border border-gray-200 bg-white p-3 shadow-sm ${isActivityArchived(activity) ? 'opacity-80' : ''}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
+                              {activity.name}
+                            </h3>
+                            {isActivityArchived(activity) && (
+                              <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-800">
+                                Archivada
+                              </span>
+                            )}
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${getStatusColor(activity.status || 'inactive')}`}
+                            >
+                              {getStatusText(activity.status || 'inactive')}
+                            </span>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(activity.status || 'inactive')}`}>
-                          {getStatusText(activity.status || 'inactive')}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {activity.scanning_active ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <FaPlay className="w-3 h-3 mr-1" />
-                            Activo
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            <FaStop className="w-3 h-3 mr-1" />
-                            Inactivo
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {activity.total_attendance || 0} asistentes
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            to="/admin/attendance/beneficiaries"
-                            search={{ activityId: activity.id }}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Ver asistencia"
-                          >
-                            <FaEye className="w-4 h-4" />
-                          </Link>
-                          <button
-                            onClick={() => openEditForm(activity)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Editar"
-                          >
-                            <FaEdit className="w-4 h-4" />
-                          </button>
-                          {activity.scanning_active ? (
-                            <button
-                              onClick={() => handleStopScanning(activity.id!)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Detener escaneo"
-                            >
-                              <FaStop className="w-4 h-4" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleStartScanning(activity.id!)}
-                              className="text-green-600 hover:text-green-900"
-                              title="Iniciar escaneo"
-                            >
-                              <FaPlay className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDeleteActivity(activity.id!)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Eliminar"
-                          >
-                            <FaTrash className="w-4 h-4" />
-                          </button>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                            <span className="font-medium text-gray-800">
+                              {new Date(activity.event_date).toLocaleDateString('es-ES', {
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </span>
+                            {activity.event_time && <span>{activity.event_time.slice(0, 5)}</span>}
+                            <span className="text-gray-700">
+                              {activity.total_attendance || 0}{' '}
+                              <span className="text-gray-500">asist.</span>
+                            </span>
+                          </div>
                         </div>
-                      </td>
+
+                        <button
+                          type="button"
+                          onClick={() => setMobileActionsActivity(activity)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                          aria-label="Más acciones"
+                          title="Más acciones"
+                        >
+                          <span className="text-xl leading-none">⋯</span>
+                        </button>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Link
+                          to={
+                            activity.parking_enabled ? '/admin/attendance/guests' : '/admin/attendance/beneficiaries'
+                          }
+                          search={{ activityId: activity.id }}
+                          className="inline-flex min-h-[38px] items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                        >
+                          <FaEye className="h-4 w-4 shrink-0" aria-hidden />
+                          {activity.parking_enabled ? 'Registro' : 'Asistencia'}
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => openEditForm(activity)}
+                          disabled={isActivityArchived(activity)}
+                          className="inline-flex min-h-[38px] items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-800 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <FaEdit className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
+                          Editar
+                        </button>
+                      </div>
+                    </article>
+                  </li>
+                ))}
+              </ul>
+
+              {mobileActionsActivity !== null && (
+                <div
+                  className="fixed inset-0 z-[75] flex items-end justify-center bg-black/40 backdrop-blur-sm md:hidden"
+                  role="dialog"
+                  aria-modal="true"
+                  onClick={() => setMobileActionsActivity(null)}
+                >
+                  <div
+                    className="w-full max-w-lg rounded-t-2xl border border-gray-200 bg-white p-4 shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Acciones</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-gray-900">
+                          {mobileActionsActivity.name}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMobileActionsActivity(null)}
+                        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                        aria-label="Cerrar"
+                      >
+                        <FaTimes className="h-5 w-5" aria-hidden />
+                      </button>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 gap-2">
+                      {!!mobileActionsActivity.parking_enabled && mobileActionsActivity.parking_public_token && (
+                        <button
+                          type="button"
+                          disabled={isActivityArchived(mobileActionsActivity)}
+                          onClick={() => {
+                            const a = mobileActionsActivity;
+                            setMobileActionsActivity(null);
+                            void openParkingModal(a);
+                          }}
+                          className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <FaCar className="h-4 w-4 shrink-0" aria-hidden />
+                          Ver enlace y QR de estacionamiento
+                        </button>
+                      )}
+
+                      {isActivityArchived(mobileActionsActivity) ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const id = mobileActionsActivity.id!;
+                              setMobileActionsActivity(null);
+                              void handleUnarchiveActivity(id);
+                            }}
+                            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-4 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                          >
+                            <FaUndo className="h-4 w-4 shrink-0" aria-hidden />
+                            Restaurar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const id = mobileActionsActivity.id!;
+                              setMobileActionsActivity(null);
+                              setDeleteConfirmForId(id);
+                            }}
+                            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-800 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                          >
+                            <FaTrash className="h-4 w-4 shrink-0" aria-hidden />
+                            Eliminar del sistema
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const id = mobileActionsActivity.id!;
+                            setMobileActionsActivity(null);
+                            setArchiveConfirmForId(id);
+                          }}
+                          className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                        >
+                          <FaArchive className="h-4 w-4 shrink-0" aria-hidden />
+                          Archivar
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setMobileActionsActivity(null)}
+                        className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Actividad
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Fecha
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Estado
+                      </th>
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                        title="Enlace público con caducidad de 6 horas; ábrelo desde el botón para ver QR y copiar."
+                      >
+                        Estacionamiento
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Asistencia
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Acciones
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {activities.map((activity) => (
+                      <tr
+                        key={activity.id}
+                        className={`hover:bg-gray-50 ${isActivityArchived(activity) ? 'opacity-80' : ''}`}
+                      >
+                        <td className="whitespace-wrap px-6 py-4">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">{activity.name}</span>
+                              {isActivityArchived(activity) && (
+                                <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-800">
+                                  Archivada
+                                </span>
+                              )}
+                            </div>
+                            {activity.description && (
+                              <div className="max-w-xs break-words text-sm text-gray-500">
+                                {activity.description.length > 100
+                                  ? `${activity.description.slice(0, 100)}…`
+                                  : activity.description}
+                              </div>
+                            )}
+                            {activity.location && (
+                              <div className="text-sm text-gray-500">{activity.location}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            {new Date(activity.event_date).toLocaleDateString('es-ES')}
+                          </div>
+                          {activity.event_time && (
+                            <div className="text-sm text-gray-500">{activity.event_time.slice(0, 5)}</div>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(activity.status || 'inactive')}`}
+                          >
+                            {getStatusText(activity.status || 'inactive')}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          {!!activity.parking_enabled && activity.parking_public_token ? (
+                            isActivityArchived(activity) ? (
+                              <span className="text-sm text-gray-500" title="Archivada">
+                                —
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => void openParkingModal(activity)}
+                                className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                                title="Ver enlace y código QR (válido 6 h)"
+                                aria-label={`Enlace de estacionamiento: ${activity.name}`}
+                              >
+                                <FaCar className="h-4 w-4 shrink-0" aria-hidden />
+                                QR / enlace
+                              </button>
+                            )
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                          {activity.total_attendance || 0} asistentes
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              to={
+                                activity.parking_enabled
+                                  ? '/admin/attendance/guests'
+                                  : '/admin/attendance/beneficiaries'
+                              }
+                              search={{ activityId: activity.id }}
+                              className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                              title={
+                                activity.parking_enabled
+                                  ? 'Registro manual (estacionamiento)'
+                                  : 'Ver asistencia'
+                              }
+                              aria-label={
+                                activity.parking_enabled
+                                  ? `Registro manual: ${activity.name}`
+                                  : `Ver asistencia: ${activity.name}`
+                              }
+                            >
+                              <FaEye className="h-4 w-4" />
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => openEditForm(activity)}
+                              disabled={isActivityArchived(activity)}
+                              className="rounded-lg p-2 text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+                              title="Editar"
+                              aria-label={`Editar: ${activity.name}`}
+                            >
+                              <FaEdit className="h-4 w-4" />
+                            </button>
+                            {isActivityArchived(activity) ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnarchiveActivity(activity.id!)}
+                                  className="rounded-lg p-2 text-emerald-700 transition-colors hover:bg-emerald-50 hover:text-emerald-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                  title="Restaurar"
+                                  aria-label={`Restaurar: ${activity.name}`}
+                                >
+                                  <FaUndo className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteConfirmForId(activity.id!)}
+                                  className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 hover:text-red-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                                  title="Eliminar permanentemente"
+                                  aria-label={`Eliminar: ${activity.name}`}
+                                >
+                                  <FaTrash className="h-4 w-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setArchiveConfirmForId(activity.id!)}
+                                className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                                title="Archivar"
+                                aria-label={`Archivar: ${activity.name}`}
+                              >
+                                <FaArchive className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                  <div className="flex flex-wrap items-center justify-center gap-1 sm:justify-start">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label="Página anterior"
+                    >
+                      <FaChevronLeft className="h-4 w-4" />
+                    </button>
+                    <div className="flex flex-wrap items-center justify-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
+                              currentPage === pageNum
+                                ? 'bg-emerald-600 text-white'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label="Página siguiente"
+                    >
+                      <FaChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <span className="text-center text-sm text-gray-600 sm:text-right">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

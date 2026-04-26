@@ -93,7 +93,7 @@ const VolunteerCard = ({
           <div className="flex justify-center items-center mt-auto">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
+              className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
             >
               Ver más
             </button>
@@ -144,7 +144,6 @@ const Voluntariados = () => {
   const [pHour, setPHour] = useState("");
   const [pSpots, setPSpots] = useState("1");
   const [pFile, setPFile] = useState<File | null>(null);
-  const [fileName, setFileName] = useState<string>("");
 
   // Fetch volunteer options from backend - refreshes on every mount
   useEffect(() => {
@@ -297,7 +296,6 @@ const Voluntariados = () => {
       setPHour("");
       setPSpots("");
       setPFile(null);
-      setFileName("");
       setProposalSubmitted(true);
     } catch {
       alert("No se pudo enviar la propuesta. Inténtalo nuevamente.");
@@ -606,7 +604,7 @@ const Voluntariados = () => {
                       return date.toISOString().split('T')[0];
                     }
                     return '';
-                  } catch (error) {
+                  } catch {
                     return '';
                   }
                 })() : ''}
@@ -675,57 +673,6 @@ const Voluntariados = () => {
                 </span>
               </div>
             </div>
-
-            {/* Texto explicativo antes de adjuntar 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Documento adjunto (Opcional)
-              </label>
-              <p className="text-sm text-gray-600 mb-2">
-                Adjunta un documento que nos ayude a conocerte mejor, como tu
-                currículum, título académico o una referencia profesional.
-              </p>
-
-              <div>
-              <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500 transition">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-6 h-6 text-gray-500 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16V4a1 1 0 011-1h8a1 1 0 011 1v12m-4-4l-4 4m0 0l-4-4m4 4V10"
-                  />
-                </svg>
-                <span className="text-gray-600">Adjuntar archivo</span>
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setPFile(file);
-                    setFileName(file ? file.name : "");
-                  }} 
-                />
-              </label>
-              {fileName && (
-                <div className="mt-2 text-sm text-green-600 flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  {fileName}
-                </div>
-              )}
-              </div>
-            </div>
-            */}
-
             <button
               type="submit"
               disabled={submitting}

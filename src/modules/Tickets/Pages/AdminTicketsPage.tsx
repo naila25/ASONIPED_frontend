@@ -1,20 +1,21 @@
-import { FaTicketAlt } from "react-icons/fa";
 import AdminTicketsDashboard from "../Components/AdminTicketsDashboard";
+import AttendancePageHeader from "../../Attendance/Components/AttendancePageHeader";
+import { Ticket } from "lucide-react";
 
 export default function AdminTicketsPage() {
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <FaTicketAlt className="text-orange-500 text-2xl" />
-          <h1 className="text-2xl font-bold text-gray-800">Gestión de Tickets</h1>
-        </div>
-        <p className="text-gray-600">
-          Administra y responde a las tickets de los usuarios
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        accent="teal"
+        icon={<Ticket className="h-6 w-6" />}
+        title="Gestión de tickets"
+        description="Consulta, filtra y administra los tickets de soporte y donaciones."
+        showSubNav={false}
+      />
 
-      <AdminTicketsDashboard />
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        <AdminTicketsDashboard />
+      </div>
     </div>
   );
 }

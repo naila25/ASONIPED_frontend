@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { EventNewsItem } from '../Types/eventsNews';
 import { fetchEventsNews, createEventNews, updateEventNews, deleteEventNews } from '../Services/eventsNewsApi';
-import { Plus, Edit, Trash2, Image,  X, Search, Table, Grid3X3 } from 'lucide-react';
+import { Plus, Edit, Trash2, Image, X, Search, Newspaper } from 'lucide-react';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
+import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 
 // Format date string safely (handles M/D/YYYY format and ISO/UTC without TZ shift)
 const formatDisplayDate = (input: string): string => {
@@ -48,6 +49,8 @@ const initialForm: Omit<EventNewsItem, 'id'> = {
 };
 
 const EventsNewsAdmin: React.FC = () => {
+  const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
   const [items, setItems] = useState<EventNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +61,9 @@ const EventsNewsAdmin: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<EventNewsItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -85,11 +90,64 @@ const EventsNewsAdmin: React.FC = () => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
+  const validateEventNewsForm = (data: Omit<EventNewsItem, 'id'>): string | null => {
+    const title = data.title.trim();
+    const description = data.description.trim();
+    const date = data.date?.trim();
+    const hour = data.hour?.trim();
+    const imageUrl = data.imageUrl?.trim();
+
+    if (!title) return 'El título es obligatorio.';
+    if (title.length > 255) return 'El título no puede superar 255 caracteres.';
+
+    if (!description) return 'La descripción es obligatoria.';
+
+    if (!date) return 'La fecha es obligatoria.';
+    if (date.length > 50) return 'La fecha no puede superar 50 caracteres.';
+
+    if (hour) {
+      if (hour.length > 10) return 'La hora no puede superar 10 caracteres.';
+      if (!/^\d{2}:\d{2}$/.test(hour)) return 'La hora debe tener formato HH:MM.';
+    }
+
+    if (imageUrl) {
+      if (imageUrl.length > 1000) return 'La URL de la imagen no puede superar 1000 caracteres.';
+      try {
+        const u = new URL(imageUrl);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+          return 'La URL de la imagen debe ser http(s).';
+        }
+      } catch {
+        return 'La URL de la imagen no es válida.';
+      }
+    }
+
+    if (data.type !== 'evento' && data.type !== 'noticia') {
+      return 'El tipo debe ser "evento" o "noticia".';
+    }
+
+    return null;
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    const validationError = validateEventNewsForm(form);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await createEventNews(form);
+      await createEventNews({
+        ...form,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        imageUrl: form.imageUrl?.trim() || '',
+        hour: form.hour?.trim() || '',
+      });
       setForm(initialForm);
       setShowCreateForm(false);
       fetchItems();
@@ -116,9 +174,23 @@ const EventsNewsAdmin: React.FC = () => {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingId) return;
+    setError(null);
+
+    const validationError = validateEventNewsForm(editForm);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await updateEventNews(editingId, editForm);
+      await updateEventNews(editingId, {
+        ...editForm,
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        imageUrl: editForm.imageUrl?.trim() || '',
+        hour: editForm.hour?.trim() || '',
+      });
       setEditingId(null);
       setShowEditModal(false);
       fetchItems();
@@ -129,16 +201,23 @@ const EventsNewsAdmin: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('¿Estás seguro de eliminar este evento/noticia?')) return;
-    setSubmitting(true);
+  const openDeleteModal = (item: EventNewsItem) => {
+    setItemToDelete(item);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!itemToDelete?.id) return;
+    setIsDeleting(true);
     try {
-      await deleteEventNews(id.toString());
-      fetchItems();
+      await deleteEventNews(itemToDelete.id.toString());
+      await fetchItems();
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
     } catch {
       setError('Error deleting event/news.');
     } finally {
-      setSubmitting(false);
+      setIsDeleting(false);
     }
   };
 
@@ -148,61 +227,74 @@ const EventsNewsAdmin: React.FC = () => {
     item.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const pageHeaderActions = (
+    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="relative w-full min-w-[12rem] sm:w-72">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <input
+          type="text"
+          placeholder="Buscar eventos..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => setShowCreateForm(true)}
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-cyan-300 text-gray-900 rounded-lg hover:bg-cyan-400 transition-colors whitespace-nowrap"
+      >
+        <Plus className="w-4 h-4" />
+        <span className="hidden sm:inline">Nuevo Evento/Noticia</span>
+        <span className="sm:hidden">Nuevo</span>
+      </button>
+    </div>
+  );
 
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          <p className="text-gray-600">Cargando eventos y noticias...</p>
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <AttendancePageHeader
+          accent="cyan"
+          icon={<Newspaper className="h-6 w-6" />}
+          title="Eventos y Noticias"
+          description="Administra eventos y noticias publicados en el sitio."
+          actions={pageHeaderActions}
+          showSubNav={false}
+        />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-300"></div>
+            <p className="text-gray-600">Cargando eventos y noticias...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 min-w-0">
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        accent="cyan"
+        icon={<Newspaper className="h-6 w-6" />}
+        title="Eventos y Noticias"
+        description="Administra eventos y noticias publicados en el sitio."
+        actions={pageHeaderActions}
+        showSubNav={false}
+      />
+
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="space-y-6 min-w-0">
 
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
-          <h2 className="text-lg font-semibold text-gray-900">Eventos y Noticias</h2>
-          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-            {/* View Mode Toggle */}
-            <button
-              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
-            >
-              {viewMode === 'cards' ? <Table className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
-              {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
-            </button>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar eventos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nuevo Evento/Noticia</span>
-              <span className="sm:hidden">Nuevo</span>
-            </button>
-          </div>
-        </div>
 
         {/* Create Form */}
         {showCreateForm && (
-          <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
+          <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-300">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <Plus className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                <Plus className="w-5 h-5 text-cyan-600 flex-shrink-0" />
                 <h3 className="text-lg font-semibold text-gray-900 truncate">Nuevo Evento/Noticia</h3>
               </div>
               <button
@@ -224,9 +316,13 @@ const EventsNewsAdmin: React.FC = () => {
                     value={form.title}
                     onChange={handleChange}
                     placeholder="Título del evento"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    maxLength={255}
+                    className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
                     required
                   />
+                  <p className="mt-1 text-xs text-gray-500 text-right">
+                    {remainingChars(form.title, 255)} caracteres restantes
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
@@ -235,7 +331,8 @@ const EventsNewsAdmin: React.FC = () => {
                     value={form.date}
                     onChange={handleChange}
                     type="date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    maxLength={50}
+                    className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
                     required
                   />
                 </div>
@@ -246,7 +343,8 @@ const EventsNewsAdmin: React.FC = () => {
                     value={form.hour}
                     onChange={handleChange}
                     type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    maxLength={10}
+                    className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -257,10 +355,14 @@ const EventsNewsAdmin: React.FC = () => {
                   value={form.description}
                   onChange={handleChange}
                   placeholder="Descripción del evento"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={8000}
+                  className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
                   required
                   rows={3}
                 />
+                <p className="mt-1 text-xs text-gray-500 text-right">
+                  {remainingChars(form.description, 8000)} caracteres restantes
+                </p>
               </div>
               <div>
                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
@@ -268,7 +370,7 @@ const EventsNewsAdmin: React.FC = () => {
                  name="type"
                  value={form.type}
                  onChange={handleChange}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                 className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
                 >
                  <option value="evento">Evento</option>
                  <option value="noticia">Noticia</option>
@@ -281,8 +383,12 @@ const EventsNewsAdmin: React.FC = () => {
                   value={form.imageUrl}
                   onChange={handleChange}
                   placeholder="https://ejemplo.com/imágen.jpg"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={1000}
+                  className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
                 />
+                <p className="mt-1 text-xs text-gray-500 text-right">
+                  {remainingChars(form.imageUrl, 1000)} caracteres restantes
+                </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
@@ -291,14 +397,14 @@ const EventsNewsAdmin: React.FC = () => {
                     setShowCreateForm(false);
                     setForm(initialForm);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-gray-400 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-cyan-300 text-gray-900 rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50"
                 >
                   {submitting ? 'Creando...' : 'Crear Evento'}
                 </button>
@@ -309,17 +415,17 @@ const EventsNewsAdmin: React.FC = () => {
 
         {/* Error */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-4 p-4 bg-red-50 border border-red-300 rounded-lg">
             <p className="text-red-600">{error}</p>
           </div>
         )}
 
        {/* Edit Form (ya no es modal) */}
 {showEditModal && (
-  <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
+  <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-300">
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <Edit className="w-5 h-5 text-orange-600 flex-shrink-0" />
+        <Edit className="w-5 h-5 text-cyan-600 flex-shrink-0" />
         <h3 className="text-lg font-semibold text-gray-900 truncate">Editar Evento o Noticia</h3>
       </div>
       <button
@@ -342,9 +448,13 @@ const EventsNewsAdmin: React.FC = () => {
             value={editForm.title}
             onChange={handleEditChange}
             placeholder="Título del evento o noticia"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            maxLength={255}
+            className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
             required
           />
+          <p className="mt-1 text-xs text-gray-500 text-right">
+            {remainingChars(editForm.title, 255)} caracteres restantes
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
@@ -353,7 +463,8 @@ const EventsNewsAdmin: React.FC = () => {
             value={editForm.date}
             onChange={handleEditChange}
             type="date"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            maxLength={50}
+            className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
             required
           />
         </div>
@@ -364,7 +475,8 @@ const EventsNewsAdmin: React.FC = () => {
             value={editForm.hour}
             onChange={handleEditChange}
             type="time"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            maxLength={10}
+            className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
           />
         </div>
       </div>
@@ -376,10 +488,14 @@ const EventsNewsAdmin: React.FC = () => {
           value={editForm.description}
           onChange={handleEditChange}
           placeholder="Escribe una breve descripción..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          maxLength={8000}
+          className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
           rows={3}
           required
         />
+        <p className="mt-1 text-xs text-gray-500 text-right">
+          {remainingChars(editForm.description, 8000)} caracteres restantes
+        </p>
       </div>
 
       <div>
@@ -388,7 +504,7 @@ const EventsNewsAdmin: React.FC = () => {
           name="type"
           value={editForm.type}
           onChange={handleEditChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
         >
           <option value="evento">Evento</option>
           <option value="noticia">Noticia</option>
@@ -402,8 +518,12 @@ const EventsNewsAdmin: React.FC = () => {
           value={editForm.imageUrl}
           onChange={handleEditChange}
           placeholder="https://ejemplo.com/imágen.jpg"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          maxLength={1000}
+          className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
         />
+        <p className="mt-1 text-xs text-gray-500 text-right">
+          {remainingChars(editForm.imageUrl, 1000)} caracteres restantes
+        </p>
         {editForm.imageUrl && (
           <img
             src={editForm.imageUrl}
@@ -420,14 +540,14 @@ const EventsNewsAdmin: React.FC = () => {
             setShowEditModal(false);
             setEditingId(null);
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="px-4 py-2 border border-gray-400 rounded-lg hover:bg-gray-50 transition-colors"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-cyan-300 text-gray-900 rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50"
         >
           {submitting ? 'Guardando...' : 'Guardar Cambios'}
         </button>
@@ -436,141 +556,110 @@ const EventsNewsAdmin: React.FC = () => {
   </div>
 )}
 
-        {/* Conditional Rendering: Table or Cards */}
-        {viewMode === 'table' ? (
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <div className="inline-block min-w-full align-middle">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imágen</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          {item.imageUrl ? (
-                            <img
-                              src={item.imageUrl}
-                              alt={item.title}
-                              className="h-12 w-12 object-cover rounded-lg border border-gray-200"
-                            />
-                          ) : (
-                            <div className="h-12 w-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-                              <Image className="w-6 h-6 text-gray-400" />
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900 max-w-[150px] truncate" title={item.title}>
-                            {item.title}
-                          </div>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDisplayDate(item.date)}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {item.hour ? formatTime12Hour(item.hour) : '—'}
-                        </td>
-                        <td className="px-3 py-4">
-                          <div className="text-sm text-gray-900 max-w-[200px] truncate" title={item.description}>
-                            {item.description}
-                          </div>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm">
-                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            item.type === 'evento'
-                           ? 'bg-blue-100 text-blue-800'
-                           : 'bg-green-100 text-green-800'
-                          }`}>
-                           {item.type === 'evento' ? 'Evento' : 'Noticia'}
-                         </span>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="flex items-center justify-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
-                            >
-                              <Edit className="w-3 h-3" />
-                              <span className="hidden sm:inline">Editar</span>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="flex items-center justify-center gap-1 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition-colors"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span className="hidden sm:inline">Eliminar</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredItems.map((item) => (
+            <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-300 hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col">
+              {/* Image */}
+              <div className="relative h-48 bg-gray-100">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <Image className="w-12 h-12 text-gray-400" />
+                  </div>
+                )}
+                <div className="absolute top-3 right-3">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
+                    item.type === 'evento' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-green-100 text-green-800 border-green-300'
+                  }`}>
+                    {item.type === 'evento' ? 'Evento' : 'Noticia'}
+                  </span>
+                </div>
+              </div>
+              {/* Content */}
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2" title={item.title}>{item.title}</h3>
+                <div className="text-sm text-gray-600 mb-3">
+                  {formatDisplayDate(item.date)}
+                  {item.hour && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-300 text-xs font-medium">
+                      {formatTime12Hour(item.hour)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow" title={item.description}>{item.description}</p>
+                <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(item)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-300"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openDeleteModal(item)}
+                    disabled={isDeleting}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-300"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
-                {/* Image */}
-                <div className="relative h-48 bg-gray-100">
-                  {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <Image className="w-12 h-12 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="absolute top-3 right-3">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                      item.type === 'evento' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-green-100 text-green-800 border-green-200'
-                    }`}>
-                      {item.type === 'evento' ? 'Evento' : 'Noticia'}
-                    </span>
-                  </div>
-                </div>
-                {/* Content */}
-                <div className="p-6 flex flex-col flex-grow">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2" title={item.title}>{item.title}</h3>
-                  <div className="text-sm text-gray-600 mb-3">
-                    {formatDisplayDate(item.date)}
-                    {item.hour && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium">
-                        {formatTime12Hour(item.hour)}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow" title={item.description}>{item.description}</p>
-                  <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
+          ))}
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {isDeleteModalOpen && itemToDelete && (
+          <div
+            className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50"
+            onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
+          >
+            <div
+              className="bg-white p-6 rounded-lg w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Confirmar Eliminación</h2>
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="p-1 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
               </div>
-            ))}
+              <p className="text-gray-700 mb-6">
+                ¿Estás seguro de que deseas eliminar <strong>{itemToDelete.title}</strong>? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    'Eliminar'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -580,7 +669,9 @@ const EventsNewsAdmin: React.FC = () => {
           </div>
         )}
      </div>
-  </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

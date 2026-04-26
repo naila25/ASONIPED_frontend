@@ -21,6 +21,7 @@ const VoluntariadoSection = () => {
   const subtitulo = data?.subtitulo || "¿Quieres conocer más sobre los voluntariados disponibles, perfil del voluntariado y cómo unirte?";
   const descripcion = data?.descripcion || "En ASONIPED creemos en el valor de la solidaridad y la entrega hacia quienes más lo necesitan. Tu participación como voluntario nos ayuda a seguir construyendo un futuro digno y lleno de esperanza.";
   const textoBoton = data?.texto_boton || "Ver más información";
+  const colorBoton = data?.color_boton?.trim() || "#ffffff";
 
   return (
     <section
@@ -57,8 +58,13 @@ const VoluntariadoSection = () => {
           href="/VolunteerCard" 
           aria-label="Ir a la página con más información sobre voluntariado en ASONIPED"
         >
-          <button 
-            className="bg-transparent text-white font-semibold py-3 px-8 rounded-full border border-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
+          <button
+            type="button"
+            className="inline-flex items-center justify-center bg-transparent text-white font-semibold py-3 px-8 rounded-full border border-white hover:bg-white/20 transition focus:outline-none focus:ring-2 focus:ring-white"
+            style={{
+              borderColor: colorBoton,
+              color: colorBoton,
+            }}
           >
             {textoBoton}
           </button>

@@ -8,12 +8,69 @@ import {
   Heart,
   Clock,
   MapPin,
+  Inbox,
 } from "lucide-react";
-import { getStatistics, getUpcomingCalendarActivities, getRecentActivities, type RecentActivity } from "../../../shared/Services/statistics.service";
+import {
+  getStatistics,
+  getUpcomingCalendarActivities,
+  getRecentActivities,
+  type RecentActivity,
+  type CalendarActivity,
+} from "../../../shared/Services/statistics.service";
+import { adminFetchAllProposals } from "../../Volunteers/Services/fetchVolunteers";
+import type { VolunteerProposal } from "../../Volunteers/Types/volunteer";
 import { FaTicketAlt } from "react-icons/fa";
 import type { UserCalendarEvent } from "../Services/userDashboard.service";
 
+function startOfLocalToday(): Date {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+}
 
+/** Parse activity/proposal date string to a local calendar day (DD/MM/YYYY or YYYY-MM-DD). */
+function parseLocalCalendarDay(dateString: string): Date | null {
+  if (!dateString?.trim()) return null;
+  try {
+    if (dateString.includes("/")) {
+      const parts = dateString.split("/");
+      if (parts.length !== 3) return null;
+      const [d, m, y] = parts;
+      const day = parseInt(d, 10);
+      const month = parseInt(m, 10);
+      const year = parseInt(y, 10);
+      if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) return null;
+      return new Date(year, month - 1, day);
+    }
+    const datePart = dateString.includes("T") ? dateString.split("T")[0] : dateString.split(" ")[0];
+    const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    }
+    const dt = new Date(dateString);
+    if (Number.isNaN(dt.getTime())) return null;
+    return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  } catch {
+    return null;
+  }
+}
+
+function isArchivedVolunteerProposal(p: VolunteerProposal): boolean {
+  return p.status === "filed" || (p.admin_note?.includes("[ARCHIVED]") ?? false);
+}
+
+function proposalRawDateToIso(raw: string): string {
+  const s = raw.trim();
+  if (!s) return "";
+  if (s.includes("/")) {
+    const parts = s.split("/");
+    if (parts.length !== 3) return "";
+    const [d, m, y] = parts;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  const datePart = s.includes("T") ? s.split("T")[0] : s.split(" ")[0];
+  const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : "";
+}
 
 export default function AdminDashboardHome() {
   const [stats, setStats] = useState({
@@ -74,23 +131,66 @@ export default function AdminDashboardHome() {
     }
   };
 
-  // Fetch upcoming activities for admin dashboard home (limited to 10)
+  // Upcoming system activities + approved volunteer proposals (same idea as admin calendar).
   const fetchUpcomingActivities = useCallback(async (): Promise<UserCalendarEvent[]> => {
+    const mapActivity = (activity: CalendarActivity): UserCalendarEvent => ({
+      id: activity.id,
+      title: activity.title,
+      type: activity.type === "event" ? "attendance" : activity.type,
+      date: activity.date,
+      time: activity.time || "10:00",
+      location: activity.location || undefined,
+      status: "registered" as const,
+    });
+
     try {
-      const activities = await getUpcomingCalendarActivities(10);
-      
-      // Transform to UserCalendarEvent format
-      return activities.map((activity) => ({
-        id: activity.id,
-        title: activity.title,
-        type: activity.type === 'event' ? 'attendance' : activity.type,
-        date: activity.date,
-        time: activity.time,
-        location: activity.location || undefined,
-        status: 'registered' as const
-      }));
+      const [activities, proposalsRes] = await Promise.all([
+        getUpcomingCalendarActivities(20),
+        adminFetchAllProposals().catch(() => ({ proposals: [] as VolunteerProposal[] })),
+      ]);
+
+      const fromApi = activities.map(mapActivity);
+      const todayStart = startOfLocalToday();
+
+      const fromProposals: UserCalendarEvent[] = (proposalsRes.proposals || [])
+        .filter((p) => p.status === "approved" && !isArchivedVolunteerProposal(p))
+        .flatMap((p): UserCalendarEvent[] => {
+          const raw = (p.date || "").toString();
+          if (!raw) return [];
+          const iso = proposalRawDateToIso(raw).slice(0, 10);
+          if (iso.length !== 10) return [];
+          const day = parseLocalCalendarDay(iso);
+          if (!day) return [];
+          const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+          if (dayStart < todayStart) return [];
+          const time =
+            typeof p.hour === "string" && p.hour.trim() ? p.hour : "00:00";
+          return [
+            {
+              id: `proposal-${p.id}`,
+              title: p.title || "Propuesta de voluntariado",
+              type: "volunteer" as const,
+              date: iso,
+              time,
+              location: p.location || undefined,
+              status: "registered" as const,
+            },
+          ];
+        });
+
+      const merged = [...fromApi, ...fromProposals];
+      merged.sort((a, b) => {
+        const da = parseLocalCalendarDay(a.date);
+        const db = parseLocalCalendarDay(b.date);
+        const ta = da ? new Date(da.getFullYear(), da.getMonth(), da.getDate()).getTime() : 0;
+        const tb = db ? new Date(db.getFullYear(), db.getMonth(), db.getDate()).getTime() : 0;
+        if (ta !== tb) return ta - tb;
+        return (a.time || "").localeCompare(b.time || "");
+      });
+
+      return merged.slice(0, 10);
     } catch (error) {
-      console.error('Error fetching upcoming activities:', error);
+      console.error("Error fetching upcoming activities:", error);
       return [];
     }
   }, []);
@@ -136,6 +236,7 @@ export default function AdminDashboardHome() {
           </div>
         </div>
       </div>
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -220,7 +321,7 @@ export default function AdminDashboardHome() {
         </div>
 
             {/* Tickets */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-teal-500">
+        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-cyan-500">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Tickets</p>
@@ -229,8 +330,8 @@ export default function AdminDashboardHome() {
               </p>
               <p className="text-xs text-gray-500">Tickets abiertos</p>
             </div>
-            <div className="p-3 bg-teal-100 rounded-lg">
-              <FaTicketAlt className="w-6 h-6 text-teal-600" />
+            <div className="p-3 bg-cyan-100 rounded-lg">
+              <FaTicketAlt className="w-6 h-6 text-cyan-600" />
             </div>
           </div>
         </div>
@@ -264,6 +365,7 @@ export default function AdminDashboardHome() {
                     activity.type === 'ticket' ? 'bg-green-100' :
                     activity.type === 'taller' ? 'bg-orange-100' :
                     activity.type === 'voluntario' ? 'bg-purple-100' :
+                    activity.type === 'propuesta_voluntariado' ? 'bg-rose-100' :
                     'bg-indigo-100'
                   }`}>
                     {activity.type === 'expediente' ? (
@@ -274,6 +376,8 @@ export default function AdminDashboardHome() {
                       <GraduationCap className="w-4 h-4 text-orange-600" />
                     ) : activity.type === 'voluntario' ? (
                       <Heart className="w-4 h-4 text-purple-600" />
+                    ) : activity.type === 'propuesta_voluntariado' ? (
+                      <Inbox className="w-4 h-4 text-rose-600" />
                     ) : (
                       <Calendar className="w-4 h-4 text-indigo-600" />
                     )}

@@ -6,6 +6,7 @@ import {
   updateWorkshop,
   deleteWorkshop
 } from '../Services/workshopService';
+import { getAvailableSpots } from '../Services/workshopEnrollments';
 
 import {
   Search,
@@ -18,9 +19,10 @@ import {
   FileText,
   Users,
   Clock,
-  Table,
-  Grid3X3
+  ClipboardList,
+  XCircle,
 } from 'lucide-react';
+import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 
 interface FormState {
   titulo: string;
@@ -47,13 +49,25 @@ const blankForm: FormState = {
 };
 
 const WorkshopOptionsPage: React.FC = () => {
+  const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
+  const LIMITS = {
+    title: 255,
+    location: 255,
+    description: 4000,
+    materiales: 4000,
+    aprender: 4000,
+    imageUrl: 1000,
+    hour: 10,
+  } as const;
+
   const [options, setOptions] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [workshopToDelete, setWorkshopToDelete] = useState<Workshop | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
-
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(blankForm);
@@ -67,22 +81,10 @@ const WorkshopOptionsPage: React.FC = () => {
     const timer = setTimeout(() => {
       load();
     }, 0);
-    
-    detectZoomLevel();
-    
-    // Listen for zoom changes
-    window.addEventListener('resize', detectZoomLevel);
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', detectZoomLevel);
     };
   }, []);
-
-  // Detect zoom level based on device pixel ratio and visual viewport
-  const detectZoomLevel = () => {
-    const zoom = window.visualViewport ? window.visualViewport.scale : window.devicePixelRatio;
-    setZoomLevel(zoom);
-  };
 
   // Format HH:MM (24h) to 12-hour AM/PM for display
   const formatHour12 = (hhmm?: string): string => {
@@ -97,25 +99,56 @@ const WorkshopOptionsPage: React.FC = () => {
     }
   };
 
-  // Get character limit based on zoom level
-  const getCharacterLimit = (baseLimit: number) => {
-    if (zoomLevel <= 0.8) return Math.floor(baseLimit * 1.5); // More characters at lower zoom
-    if (zoomLevel <= 1.0) return baseLimit; // Normal at 100%
-    if (zoomLevel <= 1.2) return Math.floor(baseLimit * 0.8); // Fewer characters at higher zoom
-    if (zoomLevel <= 1.5) return Math.floor(baseLimit * 0.6); // Even fewer at very high zoom
-    return Math.floor(baseLimit * 0.4); // Minimum at extreme zoom
-  };
+  // (Previously used for table view truncation; table view removed.)
 
-  // Truncate text based on zoom level
-  const truncateText = (text: string, baseLimit: number) => {
-    const limit = getCharacterLimit(baseLimit);
-    return text.length > limit ? `${text.substring(0, limit)}...` : text;
+  const getCapacitySummary = (workshop: Workshop) => {
+    const total = workshop.capacidad;
+    const available = workshop.available_spots;
+    const enrolled = workshop.enrolled_count;
+
+    if (typeof total === 'number' && typeof available === 'number') {
+      return `${available}/${total} cupos disponibles`;
+    }
+
+    if (typeof total === 'number' && typeof enrolled === 'number') {
+      const availableFromEnrolled = Math.max(total - enrolled, 0);
+      return `${availableFromEnrolled}/${total} cupos disponibles`;
+    }
+
+    if (typeof total === 'number') {
+      return `${total} cupos`;
+    }
+
+    return 'Capacidad no definida';
   };
 
   const load = async () => {
     try {
       setLoading(true);
       const list = await getAllWorkshops();
+
+      // Enrich workshops with real-time occupancy when endpoint is available.
+      const workshopsWithSpots = await Promise.all(
+        list.map(async (workshop) => {
+          try {
+            const spots = await getAvailableSpots(workshop.id);
+            return {
+              ...workshop,
+              available_spots:
+                typeof spots?.available_spots === 'number'
+                  ? spots.available_spots
+                  : workshop.available_spots,
+              enrolled_count:
+                typeof spots?.enrolled_count === 'number'
+                  ? spots.enrolled_count
+                  : workshop.enrolled_count,
+            };
+          } catch {
+            return workshop;
+          }
+        })
+      );
+
       // Sort newest first by date (supports YYYY-MM-DD and DD/MM/YYYY)
       const getTime = (d: string) => {
         try {
@@ -131,7 +164,7 @@ const WorkshopOptionsPage: React.FC = () => {
           return isNaN(f.getTime()) ? -Infinity : f.getTime();
         } catch { return -Infinity; }
       };
-      const sorted = [...list].sort((a, b) => {
+      const sorted = [...workshopsWithSpots].sort((a, b) => {
         const tb = getTime(b.fecha as unknown as string);
         const ta = getTime(a.fecha as unknown as string);
         if (tb !== ta) return tb - ta;
@@ -224,25 +257,71 @@ const WorkshopOptionsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     try {
-      if (!form.titulo.trim()) throw new Error('Título requerido');
-      if (form.titulo.length > 100) throw new Error('El título no puede exceder 100 caracteres');
-      if (form.descripcion.length > 500) throw new Error('La descripción no puede exceder 500 caracteres');
-      if (form.materiales.length > 500) throw new Error('Los materiales no pueden exceder 500 caracteres');
-      if (form.aprender.length > 500) throw new Error('El campo aprender no puede exceder 500 caracteres');
-      if (!form.fecha) throw new Error('La fecha es requerida');
-      if (!form.hora) throw new Error('La hora es requerida');
-      if (!form.capacidad) throw new Error('La capacidad es requerida');
+      const validationError = (() => {
+        const titulo = form.titulo.trim();
+        const descripcion = form.descripcion.trim();
+        const ubicacion = form.ubicacion.trim();
+        const fecha = form.fecha?.trim();
+        const hora = form.hora?.trim();
+        const imagen = form.imagen?.trim();
+        const materiales = form.materiales.trim();
+        const aprender = form.aprender.trim();
+        const capacidadStr = form.capacidad?.trim();
+
+        if (!titulo) return 'El título es obligatorio.';
+        if (titulo.length > LIMITS.title) return `El título no puede superar ${LIMITS.title} caracteres.`;
+
+        if (!ubicacion) return 'La ubicación es obligatoria.';
+        if (ubicacion.length > LIMITS.location) return `La ubicación no puede superar ${LIMITS.location} caracteres.`;
+
+        if (!descripcion) return 'La descripción es obligatoria.';
+        if (descripcion.length > LIMITS.description) return `La descripción no puede superar ${LIMITS.description} caracteres.`;
+
+        if (materiales.length > LIMITS.materiales) return `Los materiales no pueden superar ${LIMITS.materiales} caracteres.`;
+        if (aprender.length > LIMITS.aprender) return `El campo aprender no puede superar ${LIMITS.aprender} caracteres.`;
+
+        if (!fecha) return 'La fecha es requerida.';
+
+        if (!hora) return 'La hora es requerida.';
+        if (hora.length > LIMITS.hour) return `La hora no puede superar ${LIMITS.hour} caracteres.`;
+        if (!/^\d{2}:\d{2}$/.test(hora)) return 'La hora debe tener formato HH:MM.';
+
+        if (!capacidadStr) return 'La capacidad es requerida.';
+        const capNum = parseInt(capacidadStr, 10);
+        if (isNaN(capNum) || capNum <= 0) return 'La capacidad debe ser un número mayor a 0';
+        if (capNum > 999) return 'La capacidad no puede ser mayor a 999.';
+
+        if (imagen) {
+          if (imagen.length > LIMITS.imageUrl) return `La URL de la imagen no puede superar ${LIMITS.imageUrl} caracteres.`;
+          try {
+            const u = new URL(imagen);
+            if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'La URL de la imagen debe ser http(s).';
+          } catch {
+            return 'La URL de la imagen no es válida.';
+          }
+        }
+
+        // Prevent past dates (allow today)
+        try {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const inputDate = new Date(fecha);
+          if (!isNaN(inputDate.getTime()) && inputDate < today) return 'La fecha no puede ser anterior a hoy';
+        } catch {
+          // ignore
+        }
+
+        return null;
+      })();
+
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
 
       const capNum = parseInt(form.capacidad, 10);
-      if (isNaN(capNum) || capNum <= 0) throw new Error('La capacidad debe ser un número mayor a 0');
-      if (capNum > 10000) throw new Error('Capacidad demasiado alta');
-
-      // Prevent past dates
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const inputDate = new Date(form.fecha);
-      if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
 
       const payload = {
         titulo: form.titulo,
@@ -264,47 +343,93 @@ const WorkshopOptionsPage: React.FC = () => {
       cancelModals();
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error guardando taller');
+      setError(err instanceof Error ? err.message : 'Error guardando taller');
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('¿Eliminar este taller?')) return;
+  const openDeleteModal = (workshop: Workshop) => {
+    setWorkshopToDelete(workshop);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!workshopToDelete?.id) return;
     try {
-      await deleteWorkshop(id);
+      setIsDeleting(true);
+      await deleteWorkshop(workshopToDelete.id);
       await load();
+      setIsDeleteModalOpen(false);
+      setWorkshopToDelete(null);
     } catch {
       alert('Error eliminando');
+    } finally {
+      setIsDeleting(false);
     }
   };
+
+  const pageHeaderActions = (
+    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="relative w-full min-w-[12rem] sm:w-72">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Buscar opciones..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={startAdd}
+        className="flex items-center gap-2 whitespace-nowrap rounded-lg bg-teal-500 px-4 py-2 text-white transition-colors hover:bg-teal-600"
+      >
+        <Plus className="h-4 w-4" />
+        <span className="hidden sm:inline">Nueva Opción</span>
+        <span className="sm:hidden">Nuevo</span>
+      </button>
+    </div>
+  );
 
   // Show skeleton UI instead of full loading screen for better perceived performance
   if (loading && options.length === 0) {
     return (
-      <div className="space-y-6 min-w-0">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-          <div className="flex items-center gap-4 mb-20">
-            <div className="min-w-0 flex-1">
-              <div className="h-6 bg-gray-200 rounded w-64 animate-pulse"></div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
-              <div className="h-10 bg-gray-200 rounded w-48 animate-pulse"></div>
-              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="h-48 bg-gray-200 animate-pulse"></div>
-              <div className="p-6 space-y-3">
-                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+      <div className="min-h-screen bg-gray-50">
+        <AttendancePageHeader
+          accent="teal"
+          icon={<ClipboardList className="h-6 w-6" />}
+          title="Opciones de talleres"
+          description="Administra los talleres publicados, cupos y detalles para inscripciones."
+          actions={pageHeaderActions}
+          showSubNav={false}
+        />
+        <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="space-y-6 min-w-0">
+            <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+              <div className="mb-20 flex items-center gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="h-6 w-64 animate-pulse rounded bg-gray-200" />
+                </div>
+                <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+                  <div className="h-10 w-32 animate-pulse rounded bg-gray-200" />
+                  <div className="h-10 w-48 animate-pulse rounded bg-gray-200" />
+                  <div className="h-10 w-32 animate-pulse rounded bg-gray-200" />
+                </div>
               </div>
             </div>
-          ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="h-48 bg-gray-200 animate-pulse"></div>
+                  <div className="p-6 space-y-3">
+                    <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -313,75 +438,60 @@ const WorkshopOptionsPage: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full">
-          <div className="flex items-center space-x-3 text-red-600 mb-4">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <h3 className="text-lg font-medium">Error</h3>
-          </div>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+      <div className="min-h-screen bg-gray-50">
+        <AttendancePageHeader
+          accent="teal"
+          icon={<ClipboardList className="h-6 w-6" />}
+          title="Opciones de talleres"
+          description="Administra los talleres publicados, cupos y detalles para inscripciones."
+          actions={pageHeaderActions}
+          showSubNav={false}
+        />
+        <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+          <div
+            className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
           >
-            Intentar nuevamente
-          </button>
+            <div className="flex items-start gap-2">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+              <span>{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="shrink-0 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              Reintentar
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 min-w-0">
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        accent="teal"
+        icon={<ClipboardList className="h-6 w-6" />}
+        title="Opciones de talleres"
+        description="Administra los talleres publicados, cupos y detalles para inscripciones."
+        actions={pageHeaderActions}
+        showSubNav={false}
+      />
+
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="space-y-6 min-w-0">
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex items-center gap-4 mb-20">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-semibold text-gray-900 truncate">
-              Gestión de Opciones de Talleres
-            </h1>
-          </div>
-               {/* Actions moved to header */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-           {/* View Mode Toggle */}
-            <button
-              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
-            >
-              {viewMode === 'cards' ? <Table className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
-              {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
-            </button>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar opciones..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={startAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nueva Opción</span>
-              <span className="sm:hidden">Nuevo</span>
-            </button>
-        </div>
-       </div>
 
         {/* Add/Edit Option Form */}
       {(isAdding || editingId) && (
           <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
+              <FileText className="w-5 h-5 text-teal-600 flex-shrink-0" />
               <h3 className="text-lg font-semibold text-gray-900 truncate">
-                {editingId ? 'Editar Taller' : 'Nuevo Taller'}
+                {editingId ? 'Editar Taller' : 'Nueva Opción'}
               </h3>
             </div>
             <button
@@ -405,11 +515,13 @@ const WorkshopOptionsPage: React.FC = () => {
                     name="titulo"
                     value={form.titulo}
                   onChange={handleChange}
-                  maxLength={100}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={LIMITS.title}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.titulo.length}/100</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.titulo.length}/{LIMITS.title} caracteres ({remainingChars(form.titulo, LIMITS.title)} restantes)
+                </div>
               </div>
               <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -420,11 +532,13 @@ const WorkshopOptionsPage: React.FC = () => {
                     name="ubicacion"
                     value={form.ubicacion}
                   onChange={handleChange}
-                  maxLength={100}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={LIMITS.location}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.ubicacion.length}/100</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.ubicacion.length}/{LIMITS.location} caracteres ({remainingChars(form.ubicacion, LIMITS.location)} restantes)
+                </div>
                 </div>
             </div>
 
@@ -439,22 +553,22 @@ const WorkshopOptionsPage: React.FC = () => {
                     name="hora"
                     value={form.hora}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Capacidad
+                    Cupos Disponibles
                   </label>
                   <input
                     type="number"
                     name="capacidad"
-                    value={form.capacidad}
+                    value={form.capacidad || 1}
                     onChange={handleChange}
                     min="1"
                     max="999"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -471,11 +585,13 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.descripcion}
                   onChange={handleChange}
                   rows={3}
-                  maxLength={500}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={LIMITS.description}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.descripcion.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.descripcion.length}/{LIMITS.description} caracteres ({remainingChars(form.descripcion, LIMITS.description)} restantes)
+                </div>
               </div>
 
               <div>
@@ -487,10 +603,12 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.materiales}
                   onChange={handleChange}
                   rows={3}
-                  maxLength={500}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={LIMITS.materiales}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.materiales.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.materiales.length}/{LIMITS.materiales} caracteres ({remainingChars(form.materiales, LIMITS.materiales)} restantes)
+                </div>
               </div>
 
               <div>
@@ -502,10 +620,12 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.aprender}
                   onChange={handleChange}
                   rows={3}
-                  maxLength={500}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={LIMITS.aprender}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.aprender.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.aprender.length}/{LIMITS.aprender} caracteres ({remainingChars(form.aprender, LIMITS.aprender)} restantes)
+                </div>
                 </div>
             </div>
 
@@ -520,10 +640,14 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.imagen}
                     onChange={handleImageChange}
                     placeholder="https://res.cloudinary.com/..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    maxLength={LIMITS.imageUrl}
                   />
                   <div className="text-xs text-gray-500 mt-1">
                     Pega aquí la URL de la imagen desde Cloudinary
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {form.imagen.length}/{LIMITS.imageUrl} caracteres ({remainingChars(form.imagen, LIMITS.imageUrl)} restantes)
                   </div>
                   {form.imagen && (
                     <div className="mt-4">
@@ -548,7 +672,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     value={form.fecha}
                     onChange={handleChange}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   />
               </div>
@@ -564,7 +688,7 @@ const WorkshopOptionsPage: React.FC = () => {
               </button>
               <button
                 type="submit"
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                  className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
               >
                 {editingId ? 'Actualizar' : 'Crear'}
               </button>
@@ -573,111 +697,10 @@ const WorkshopOptionsPage: React.FC = () => {
         </div>
       )}
 
-        {/* Conditional Rendering: Table or Cards */}
-        {viewMode === 'table' ? (
-          /* Options Table - refined layout */
-          <div className="-mx-4 sm:mx-0 overflow-x-auto">
-            <div className="inline-block min-w-full align-middle">
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <table className="min-w-full table-auto text-sm">
-                  <thead className="bg-white sticky top-0 z-10 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-16">IMG</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider max-w-[12rem]">TÍTULO</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider max-w-[16rem]">DESCRIPCIÓN</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider max-w-[12rem]">MATERIALES</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider max-w-[12rem]">APRENDER</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-28">FECHA</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-24">HORA</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">UBICACIÓN</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-24">CAPACIDAD</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">ACCIONES</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((opt, idx) => (
-                      <tr key={opt.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
-                        <td className="px-4 py-3 align-top">
-                          <img
-                            src={opt.imagen || '/placeholder-image.png'}
-                            alt={opt.titulo}
-                            className="h-11 w-11 object-cover rounded-md border border-gray-200"
-                          />
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-[12rem]">
-                          <div className="font-semibold text-gray-900 leading-snug line-clamp-2 break-words" title={opt.titulo}>
-                            {opt.titulo}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-[16rem]">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2 break-words" title={opt.descripcion}>
-                            {opt.descripcion}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-[12rem]">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2 break-words" title={Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales || ''}>
-                            {Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top max-w-[12rem]">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2 break-words" title={opt.aprender || ''}>
-                            {opt.aprender || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={new Date(opt.fecha).toLocaleDateString('es-ES')}>
-                            {new Date(opt.fecha).toLocaleDateString('es-ES')}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={opt.hora || 'No especificada'}>
-                            <Clock className="w-3 h-3 mr-1" />
-                            {opt.hora ? formatHour12(opt.hora) : '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={opt.ubicacion}>
-                            {truncateText(opt.ubicacion, 15)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 text-green-700 border border-green-200 text-xs font-medium" title={`${opt.capacidad || 'N/A'} cupos disponibles`}>
-                            <Users className="w-3 h-3 mr-1" />
-                            {opt.capacidad || '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col gap-2">
-                            <button
-                              onClick={() => startEdit(opt)}
-                              className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 transition-colors duration-200"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => handleDelete(opt.id)}
-                              className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-red-600 text-white rounded-md text-xs hover:bg-red-700 transition-colors duration-200"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-           
-            {/* Options Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {currentOptions.map((opt) => (
-                <div key={opt.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
+        {/* Options Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {currentOptions.map((opt) => (
+            <div key={opt.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
                   {/* Image Section */}
                   <div className="relative h-48 bg-gray-100 flex-shrink-0">
                     {opt.imagen ? (
@@ -694,7 +717,7 @@ const WorkshopOptionsPage: React.FC = () => {
                     {/* Status Badge */}
                     <div className="absolute top-3 right-3">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                        Activo
+                        Taller
                       </span>
                     </div>
                   </div>
@@ -712,73 +735,57 @@ const WorkshopOptionsPage: React.FC = () => {
                     </p>
 
                     {/* Meta Information */}
-                    <div className="space-y-3 mb-4 flex-shrink-0">
-                      {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium">Fecha:</span>
-                        <span>{new Date(opt.fecha).toLocaleDateString('es-ES')}</span>
+                    <div className="mb-4 flex-shrink-0">
+                      <div className="text-sm text-gray-600 mb-2 flex flex-wrap items-center gap-2" title={`Fecha: ${new Date(opt.fecha).toLocaleDateString('es-ES')}`}>
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span><span className="font-medium text-gray-700">Fecha:</span> {new Date(opt.fecha).toLocaleDateString('es-ES')}</span>
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={`Hora: ${opt.hora ? formatHour12(opt.hora) : 'Hora no definida'}`}>
+                          <Clock className="w-3.5 h-3.5 mr-1" />
+                          {opt.hora ? formatHour12(opt.hora) : 'Hora no definida'}
+                        </span>
                       </div>
 
-                      {/* Hour */}
-                      {opt.hora && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">Hora:</span>
-                          <span>{formatHour12(opt.hora)}</span>
-                        </div>
-                      )}
-
-                      {/* Location */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium">Ubicación:</span>
-                        <span className="truncate" title={opt.ubicacion}>{opt.ubicacion}</span>
+                      <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2 mb-2">
+                        <span className="inline-flex items-center gap-1 min-w-0" title={opt.ubicacion}>
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="truncate"><span className="font-medium text-gray-700">Ubicación:</span> {opt.ubicacion}</span>
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={getCapacitySummary(opt)}>
+                          <Users className="w-3.5 h-3.5 mr-1" />
+                          {getCapacitySummary(opt)}
+                        </span>
                       </div>
 
-                      {/* Capacity */}
-                      {opt.capacidad && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Users className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">Capacidad:</span>
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                            {opt.capacidad} cupos
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Materials */}
                       {opt.materiales && opt.materiales.length > 0 && (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-700 block mb-1">Materiales:</span>
-                          <p className="text-gray-600 text-xs line-clamp-2" title={Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}>
-                            {Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}
-                          </p>
-                        </div>
+                        <p className="text-xs text-gray-600 line-clamp-1 mb-1" title={Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}>
+                          <span className="font-medium text-gray-700">Materiales:</span> {Array.isArray(opt.materiales) ? opt.materiales.join(', ') : opt.materiales}
+                        </p>
                       )}
 
-                      {/* Learning */}
                       {opt.aprender && (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-700 block mb-1">Aprenderás:</span>
-                          <p className="text-gray-600 text-xs line-clamp-2" title={opt.aprender}>
-                            {opt.aprender}
-                          </p>
-                        </div>
+                        <p className="text-xs text-gray-600 line-clamp-1" title={opt.aprender}>
+                          <span className="font-medium text-gray-700">Aprenderás:</span> {opt.aprender}
+                        </p>
                       )}
                     </div>
 
                     {/* Actions */}
                     <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
                       <button
+                        type="button"
                         onClick={() => startEdit(opt)}
+                        disabled={isDeleting}
                         className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
                       >
                         <Edit className="w-4 h-4" />
                         Editar
                       </button>
                       <button
-                        onClick={() => handleDelete(opt.id)}
+                        type="button"
+                        onClick={() => openDeleteModal(opt)}
+                        disabled={isDeleting}
                         className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -787,8 +794,59 @@ const WorkshopOptionsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+          ))}
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {isDeleteModalOpen && workshopToDelete && (
+          <div
+            className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50"
+            onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
+          >
+            <div
+              className="bg-white p-6 rounded-lg w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Confirmar Eliminación</h2>
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="p-1 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <XCircle className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <p className="text-gray-700 mb-6">
+                ¿Estás seguro de que deseas eliminar el taller <strong>{workshopToDelete.titulo}</strong>? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    'Eliminar'
+                  )}
+                </button>
+              </div>
             </div>
+          </div>
+        )}
              {/* Pagination Info for Cards */}
              <div className="mb-6 text-center">
               <p className="text-gray-600">
@@ -843,14 +901,15 @@ const WorkshopOptionsPage: React.FC = () => {
                 </button>
               </div>
             )}
-          </>
-        )}
+        
 
         {filtered.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             {search ? 'No se encontraron talleres que coincidan con la búsqueda' : 'No hay talleres disponibles'}
           </div>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );

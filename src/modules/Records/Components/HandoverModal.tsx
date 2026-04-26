@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Users, AlertCircle, CheckCircle, Search } from 'lucide-react';
 import { getAPIBaseURL } from '../../../shared/Services/config';
 import { getAuthHeader } from '../../Login/Services/auth';
@@ -27,37 +27,18 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
   loading
 }) => {
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
-  // Load users when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      loadUsers();
-    }
-  }, [isOpen]);
-
-  // Filter users based on search term
-  useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredUsers(users);
-    } else {
-      const filtered = users.filter(user => 
-        user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-    }
-  }, [searchTerm, users]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setLoadingUsers(true);
       setError(null);
+      const requestId = ++requestIdRef.current;
       
       // Fetch users from backend with shared base URL and auth header
       const apiBase = await getAPIBaseURL();
@@ -74,7 +55,10 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
       const list = Array.isArray(payload)
         ? payload
         : payload?.users || payload?.data || [];
-      setUsers(list);
+      // Ignore stale responses (e.g. modal reopened quickly)
+      if (requestId === requestIdRef.current) {
+        setUsers(list);
+      }
     } catch (err) {
       console.error('Error loading users:', err);
       setError('Error cargando usuarios');
@@ -82,9 +66,33 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
     } finally {
       setLoadingUsers(false);
     }
-  };
+  }, []);
 
-  const handleHandover = async () => {
+  // Load users when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      void loadUsers();
+    }
+  }, [isOpen, loadUsers]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedSearch(searchTerm), 150);
+    return () => window.clearTimeout(handle);
+  }, [searchTerm]);
+
+  const filteredUsers = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((user) => {
+      return (
+        user.username.toLowerCase().includes(q) ||
+        user.full_name.toLowerCase().includes(q) ||
+        user.email.toLowerCase().includes(q)
+      );
+    });
+  }, [debouncedSearch, users]);
+
+  const handleHandover = useCallback(async () => {
     if (!selectedUserId) return;
     
     try {
@@ -93,19 +101,28 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
     } catch (err) {
       console.error('Error during handover:', err);
     }
-  };
+  }, [onClose, onHandover, selectedUserId]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setSearchTerm('');
+    setDebouncedSearch('');
     setSelectedUserId(null);
     setError(null);
     onClose();
-  };
+  }, [onClose]);
+
+  const handleSelectUser = useCallback((userId: number) => {
+    setSelectedUserId(userId);
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -144,8 +161,7 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
                 </h3>
                 <div className="mt-2 text-sm text-orange-700">
                   <p>
-                    Al entregar este expediente a un usuario, el usuario podrá gestionar 
-                    y modificar su propio expediente. Esta acción no se puede deshacer.
+                    Al entregar este expediente a un usuario, el usuario podrá ver su expediente.
                   </p>
                 </div>
               </div>
@@ -160,7 +176,7 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
                 type="text"
                 placeholder="Buscar usuarios..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
             </div>
@@ -201,7 +217,7 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
                         ? 'bg-orange-50 border-l-4 border-orange-500'
                         : 'hover:bg-gray-50'
                     }`}
-                    onClick={() => setSelectedUserId(user.id)}
+                    onClick={() => handleSelectUser(user.id)}
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -246,7 +262,7 @@ const HandoverModal: React.FC<HandoverModalProps> = ({
           <button
             onClick={handleHandover}
             disabled={!selectedUserId || loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-transparent rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? (
               <>
