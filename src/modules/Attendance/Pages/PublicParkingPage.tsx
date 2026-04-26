@@ -6,6 +6,15 @@ import { parkingPublicApi } from '../Services/attendanceNewApi';
 import type { PublicParkingActivitySummary } from '../Types/attendanceNew';
 
 export default function PublicParkingPage() {
+  const remainingChars = (value: string, max: number) => max - value.length;
+
+  const LIMITS = {
+    plate: 20,
+    fullName: 60,
+    cedula: 13,
+    phone: 8,
+  } as const;
+
   const { token } = useParams({ strict: false }) as { token?: string };
   const [activity, setActivity] = useState<PublicParkingActivitySummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -18,6 +27,29 @@ export default function PublicParkingPage() {
   const [fullName, setFullName] = useState('');
   const [cedula, setCedula] = useState('');
   const [phone, setPhone] = useState('');
+
+  const validateParkingForm = (): string | null => {
+    const plateTrim = plate.trim();
+    const fullNameTrim = fullName.trim();
+    const cedulaTrim = cedula.trim();
+    const phoneTrim = phone.trim();
+
+    if (!plateTrim) return 'La placa es obligatoria.';
+    if (plateTrim.length < 2) return 'La placa debe tener al menos 2 caracteres.';
+    if (plateTrim.length > LIMITS.plate) return `La placa no puede superar ${LIMITS.plate} caracteres.`;
+    // Keep it permissive but block obviously unsafe input
+    if (!/^[A-Za-z0-9\s-]+$/.test(plateTrim)) return 'La placa solo puede contener letras, números, espacios y guiones.';
+
+    if (fullNameTrim.length > LIMITS.fullName) return `El nombre no puede superar ${LIMITS.fullName} caracteres.`;
+
+    if (cedulaTrim.length > LIMITS.cedula) return `La cédula no puede superar ${LIMITS.cedula} caracteres.`;
+    if (cedulaTrim && !/^[0-9A-Za-z]+$/.test(cedulaTrim)) return 'La cédula no debe contener espacios ni símbolos.';
+
+    if (phoneTrim.length > LIMITS.phone) return `El teléfono no puede superar ${LIMITS.phone} caracteres.`;
+    if (phoneTrim && !/^\d+$/.test(phoneTrim)) return 'El teléfono solo debe contener números.';
+
+    return null;
+  };
 
   const loadActivity = useCallback(async () => {
     if (!token?.trim()) {
@@ -46,9 +78,9 @@ export default function PublicParkingPage() {
     e.preventDefault();
     if (!token?.trim()) return;
 
-    const plateTrim = plate.trim();
-    if (!plateTrim || plateTrim.length < 2) {
-      setSubmitError('La placa es obligatoria');
+    const validationError = validateParkingForm();
+    if (validationError) {
+      setSubmitError(validationError);
       return;
     }
 
@@ -56,7 +88,7 @@ export default function PublicParkingPage() {
       setSubmitting(true);
       setSubmitError(null);
       await parkingPublicApi.submit(token, {
-        plate: plateTrim,
+        plate: plate.trim(),
         full_name: fullName.trim() || undefined,
         cedula: cedula.trim() || undefined,
         phone: phone.trim() || undefined,
@@ -165,8 +197,11 @@ export default function PublicParkingPage() {
                     placeholder="Ej: ABC123"
                     autoComplete="off"
                     required
-                    maxLength={32}
+                    maxLength={LIMITS.plate}
                   />
+                  <div className="mt-1 text-xs text-gray-500">
+                    {plate.length}/{LIMITS.plate} caracteres ({remainingChars(plate, LIMITS.plate)} restantes)
+                  </div>
                 </div>
 
                 <div>
@@ -181,8 +216,11 @@ export default function PublicParkingPage() {
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-amber-500"
                     placeholder="Quien registra o conductor"
                     autoComplete="name"
-                    maxLength={200}
+                    maxLength={LIMITS.fullName}
                   />
+                  <div className="mt-1 text-xs text-gray-500">
+                    {fullName.length}/{LIMITS.fullName} caracteres ({remainingChars(fullName, LIMITS.fullName)} restantes)
+                  </div>
                 </div>
 
                 <div>
@@ -197,8 +235,11 @@ export default function PublicParkingPage() {
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-amber-500"
                     placeholder="Sin guiones, si aplica"
                     autoComplete="off"
-                    maxLength={32}
+                    maxLength={LIMITS.cedula}
                   />
+                  <div className="mt-1 text-xs text-gray-500">
+                    {cedula.length}/{LIMITS.cedula} caracteres ({remainingChars(cedula, LIMITS.cedula)} restantes)
+                  </div>
                 </div>
 
                 <div>
@@ -214,14 +255,17 @@ export default function PublicParkingPage() {
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-amber-500"
                     placeholder="Ej: 88881234"
                     autoComplete="tel"
-                    maxLength={15}
+                    maxLength={LIMITS.phone}
                   />
+                  <div className="mt-1 text-xs text-gray-500">
+                    {phone.length}/{LIMITS.phone} caracteres ({remainingChars(phone, LIMITS.phone)} restantes)
+                  </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full rounded-lg bg-amber-600 px-4 py-3 font-medium text-white transition-colors hover:bg-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-lg bg-green-600 px-4 py-3 font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submitting ? 'Enviando…' : 'Registrar vehículo'}
                 </button>

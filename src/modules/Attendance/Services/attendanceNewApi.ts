@@ -404,6 +404,19 @@ export const attendanceRecordsApi = {
         if (response.status === 401) {
           throw new Error('Unauthorized: Please log in again');
         }
+        if (response.status === 429) {
+          const errorData = (await response.json().catch(() => ({}))) as { error?: string; nextAllowedAt?: string };
+          if (errorData?.nextAllowedAt) {
+            const next = new Date(errorData.nextAllowedAt);
+            throw new Error(
+              `${errorData.error || 'Ya fue registrado recientemente.'} Próximo registro: ${next.toLocaleString('es-ES', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}`
+            );
+          }
+          throw new Error(errorData.error || 'Ya fue registrado recientemente.');
+        }
         if (response.status === 409) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Attendance already recorded');
@@ -434,6 +447,19 @@ export const attendanceRecordsApi = {
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Unauthorized: Please log in again');
+        }
+        if (response.status === 429) {
+          const errorData = (await response.json().catch(() => ({}))) as { error?: string; nextAllowedAt?: string };
+          if (errorData?.nextAllowedAt) {
+            const next = new Date(errorData.nextAllowedAt);
+            throw new Error(
+              `${errorData.error || 'Ya fue registrado recientemente.'} Próximo registro: ${next.toLocaleString('es-ES', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}`
+            );
+          }
+          throw new Error(errorData.error || 'Ya fue registrado recientemente.');
         }
         if (response.status === 409) {
           const errorData = await response.json();
