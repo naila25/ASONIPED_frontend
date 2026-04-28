@@ -43,6 +43,11 @@ const validateUserInput = (data: UserFormData): string | null => {
 };
 
 const UserManagement = () => {
+  const truncateText = (value: string, max: number) => {
+    const v = value ?? '';
+    if (v.length <= max) return v;
+    return `${v.slice(0, max)}…`;
+  };
   const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
 
   // Data state
@@ -56,6 +61,7 @@ const UserManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [mobileActionsUser, setMobileActionsUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [userDetails, setUserDetails] = useState<UserWithStatistics | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -446,7 +452,7 @@ const UserManagement = () => {
           </div>
         )}
 
-        {/* Users Table */}
+        {/* Users list */}
         {loading ? (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -455,10 +461,148 @@ const UserManagement = () => {
           </div>
         ) : (
           <>
-        <div className="w-full overflow-x-auto">
-          <div className="min-w-full inline-block align-middle">
-            <div className="overflow-hidden  ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
+        {/* Mobile cards */}
+        <div className="space-y-3 md:hidden">
+          {users.map((user) => (
+            <div key={user.id} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="truncate text-sm font-semibold text-gray-900"
+                      title={user.username}
+                    >
+                      {truncateText(user.username, 20)}
+                    </div>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                        user.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {user.status === 'active' ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-gray-600">
+                    <span
+                      className="min-w-0 truncate"
+                      title={user.email || ''}
+                    >
+                      {user.email ? truncateText(user.email, 20) : 'Sin correo'}
+                    </span>
+                    {user.email ? (
+                      isEmailVerifiedFlag(user.email_verified) ? (
+                        <div title="Email verificado">
+                          <CheckCircle className="w-4 h-4 shrink-0 text-green-500" aria-hidden />
+                        </div>
+                      ) : (
+                        <div title="Email sin verificar">
+                          <XCircle className="w-4 h-4 shrink-0 text-amber-600" aria-hidden />
+                        </div>
+                      )
+                    ) : null}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileActionsUser(user)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50"
+                  title="Acciones"
+                  aria-label="Acciones"
+                >
+                  <span className="text-xl leading-none">⋯</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile actions sheet */}
+        {mobileActionsUser !== null && (
+          <div
+            className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 backdrop-blur-sm md:hidden"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setMobileActionsUser(null)}
+          >
+            <div
+              className="w-full max-w-lg rounded-t-2xl border border-gray-200 bg-white p-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Acciones</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-gray-900">{mobileActionsUser.username}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileActionsUser(null)}
+                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                  aria-label="Cerrar"
+                >
+                  <X className="h-5 w-5" aria-hidden />
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const u = mobileActionsUser;
+                    setMobileActionsUser(null);
+                    handleViewDetails(u);
+                  }}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-50"
+                >
+                  <Eye className="h-4 w-4" aria-hidden />
+                  Ver detalles
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const u = mobileActionsUser;
+                    setMobileActionsUser(null);
+                    openModal(u);
+                  }}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-50"
+                >
+                  <Edit className="h-4 w-4" aria-hidden />
+                  Editar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const u = mobileActionsUser;
+                    setMobileActionsUser(null);
+                    openDeleteModal(u);
+                  }}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-800 transition-colors hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                  Eliminar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileActionsUser(null)}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop table */}
+        <div className="hidden md:block">
+          <div className="overflow-hidden ring-black ring-opacity-5 md:rounded-lg">
+            <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
                         <th 
@@ -589,7 +733,6 @@ const UserManagement = () => {
                 </tbody>
               </table>
             </div>
-          </div>
         </div>
 
             {/* Pagination */}
@@ -612,7 +755,7 @@ const UserManagement = () => {
                   <span className="text-sm text-gray-700">por página</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-700">
+                  <span className="hidden sm:inline text-sm text-gray-700">
                     Página {currentPage} de {totalPages} ({totalUsers} usuarios)
                   </span>
                   <button
