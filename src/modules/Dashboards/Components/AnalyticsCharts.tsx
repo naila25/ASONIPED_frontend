@@ -134,18 +134,19 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ records, stats, onTab
                     </div>
                   ))}
                 </div>
-                <div className="flex items-end justify-between h-30 space-x-2 min-w-0">
+                {/* Note: percentage heights require an explicit parent height */}
+                <div className="flex items-end justify-between h-32 space-x-2 min-w-0">
                   {statusData.data.map((value, index) => {
                     const maxValue = Math.max(...statusData.data);
                     const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
                     return (
-                      <div key={index} className="flex flex-col justify-end items-center flex-1 min-w-0">
+                      <div key={index} className="flex h-full flex-col justify-end items-center flex-1 min-w-0">
                         <div
                           className="w-full rounded-t"
                           style={{
                             height: `${height}%`,
                             backgroundColor: statusData.colors[index],
-                            minHeight: value > 0 ? '4px' : '0px'
+                            minHeight: value > 0 ? '4px' : '0px',
                           }}
                         />
                       </div>
