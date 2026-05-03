@@ -10,6 +10,9 @@ interface RecordDetailsModalProps {
   editHref?: string;
   /** Optional footer (e.g. action buttons: approve, reject, add note) */
   children?: React.ReactNode;
+  /** When false, Escape and overlay click do not close (e.g. a stacked confirmation modal is open). */
+  closeOnEscape?: boolean;
+  closeOnOverlayClick?: boolean;
 }
 
 const RecordDetailsModal: React.FC<RecordDetailsModalProps> = ({
@@ -18,6 +21,8 @@ const RecordDetailsModal: React.FC<RecordDetailsModalProps> = ({
   onClose,
   editHref,
   children,
+  closeOnEscape = true,
+  closeOnOverlayClick = true,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -32,16 +37,16 @@ const RecordDetailsModal: React.FC<RecordDetailsModalProps> = ({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && closeOnEscape) onClose();
     };
     if (isOpen) {
       document.addEventListener('keydown', onKeyDown);
       return () => document.removeEventListener('keydown', onKeyDown);
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, closeOnEscape]);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === overlayRef.current) onClose();
+    if (e.target === overlayRef.current && closeOnOverlayClick) onClose();
   };
 
   if (!isOpen || !record) return null;

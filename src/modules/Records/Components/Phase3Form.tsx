@@ -1,8 +1,126 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { FileText, Upload, X, Plus, Trash2, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Phase3Data, RecordWithDetails, RequiredDocument, AvailableService, FamilyInformation } from '../Types/records';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Upload, X, Plus, Trash2, CheckCircle, ChevronLeft, ChevronRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import type { Phase3Data, RecordWithDetails, RequiredDocument, AvailableService, FamilyInformation, DisabilityTypeOption, WorkingFamilyMember } from '../Types/records';
+import {
+  DISABILITY_TYPE_OPTIONS,
+  normalizeDisabilityTypes,
+  parseGeneralObservationsStored,
+  serializeGeneralObservationsStored,
+  MAX_GENERAL_OBSERVATION_NOTE_LENGTH,
+  MAX_GENERAL_OBSERVATION_NOTE_COUNT,
+  GENERAL_OBSERVATIONS_CHAR_PATTERN
+} from '../Types/records';
 import { useAuth } from '../../Login/Hooks/useAuth';
 import { getProvinces, getCantonsByProvince, getDistrictsByCanton, type Province, type Canton, type District } from '../Services/geographicApi';
+
+const WORKING_FAMILY_MEMBER_NAME_MIN = 5;
+const WORKING_FAMILY_MEMBER_NAME_MAX = 40;
+const WORKING_FAMILY_WORK_FIELD_MAX = 40;
+const WORKING_FAMILY_PHONE_DIGITS_MAX = 8;
+
+/** Errores por campo por cada fila de “Personas que trabajan en la familia”. */
+type WorkingMemberFieldErrors = {
+  name?: string;
+  work_type?: string;
+  work_place?: string;
+  work_phone?: string;
+};
+
+function validateWorkingFamilyMemberRow(m: WorkingFamilyMember): WorkingMemberFieldErrors {
+  const err: WorkingMemberFieldErrors = {};
+  const name = (m.name || '').trim();
+  if (!name) err.name = 'Este campo es obligatorio.';
+  else if (name.length < WORKING_FAMILY_MEMBER_NAME_MIN)
+    err.name = `Mínimo ${WORKING_FAMILY_MEMBER_NAME_MIN} caracteres.`;
+  else if (name.length > WORKING_FAMILY_MEMBER_NAME_MAX)
+    err.name = `Máximo ${WORKING_FAMILY_MEMBER_NAME_MAX} caracteres.`;
+  else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'.-]+$/.test(name)) err.name = 'Solo letras y espacios.';
+
+  const wt = (m.work_type || '').trim();
+  if (!wt) err.work_type = 'Este campo es obligatorio.';
+  else if (wt.length > WORKING_FAMILY_WORK_FIELD_MAX)
+    err.work_type = `Máximo ${WORKING_FAMILY_WORK_FIELD_MAX} caracteres.`;
+
+  const wplace = (m.work_place || '').trim();
+  if (!wplace) err.work_place = 'Este campo es obligatorio.';
+  else if (wplace.length > WORKING_FAMILY_WORK_FIELD_MAX)
+    err.work_place = `Máximo ${WORKING_FAMILY_WORK_FIELD_MAX} caracteres.`;
+
+  const phoneDigits = (m.work_phone || '').replace(/\D/g, '');
+  if (!phoneDigits) err.work_phone = 'Este campo es obligatorio.';
+  else if (!new RegExp(`^\\d{${WORKING_FAMILY_PHONE_DIGITS_MAX}}$`).test(phoneDigits))
+    err.work_phone = `Use ${WORKING_FAMILY_PHONE_DIGITS_MAX} dígitos (ej. 88888888).`;
+
+  return err;
+}
+
+function validateAllWorkingFamilyMembers(members: WorkingFamilyMember[]): {
+  ok: boolean;
+  errors: WorkingMemberFieldErrors[];
+} {
+  const errors = members.map(validateWorkingFamilyMemberRow);
+  const ok = errors.every((e) => !e.name && !e.work_type && !e.work_place && !e.work_phone);
+  return { ok, errors };
+}
+
+const WORKING_MEMBER_FIELD_LABELS: Record<keyof WorkingMemberFieldErrors, string> = {
+  name: 'Nombre completo',
+  work_type: 'Tipo de trabajo',
+  work_place: 'Lugar de trabajo',
+  work_phone: 'Teléfono'
+};
+
+function formatWorkingFamilyRowIssues(errors: WorkingMemberFieldErrors[]): string[] {
+  const items: string[] = [];
+  errors.forEach((rowErr, idx) => {
+    (Object.keys(rowErr) as (keyof WorkingMemberFieldErrors)[]).forEach((key) => {
+      const msg = rowErr[key];
+      if (msg) {
+        items.push(`Persona ${idx + 1} (${WORKING_MEMBER_FIELD_LABELS[key]}): ${msg}`);
+      }
+    });
+  });
+  return items;
+}
+
+/** Grouped issues for the final-step submission checklist (paso → detalle). */
+type FinalSubmitGap = { stepIndex: number; stepLabel: string; items: string[] };
+
+function isWorkingFamilyMemberRowValid(m: WorkingFamilyMember): boolean {
+  const e = validateWorkingFamilyMemberRow(m);
+  return !e.name && !e.work_type && !e.work_place && !e.work_phone;
+}
+
+/** Cleared file slots — keep keys in sync with resetTrigger / backend mapping. */
+const EMPTY_PHASE3_DOCUMENT_FILES: Record<string, File | null> = {
+  dictamen_medico: null,
+  constancia_nacimiento: null,
+  copia_cedula: null,
+  copias_cedulas_familia: null,
+  foto_pasaporte: null,
+  constancia_pension_ccss: null,
+  constancia_pension_alimentaria: null,
+  constancia_estudio: null,
+  cuenta_banco_nacional: null,
+  informacion_pago: null,
+  otros: null
+};
+
+/** Extra uploads: unique multipart filename so `documentTypes` map stays unambiguous. */
+function buildUniqueExtraFile(id: string, title: string, file: File): File {
+  const originalName = file.name || 'documento';
+  const ext = originalName.includes('.') ? originalName.slice(originalName.lastIndexOf('.')) : '';
+  const safe = (title.trim() || 'documento')
+    .replace(/[^\w\u00C0-\u024F\s-]/g, '_')
+    .replace(/\s+/g, '_')
+    .slice(0, 35);
+  const name = `extra_${id.replace(/-/g, '').slice(0, 12)}_${safe}_${Date.now()}${ext}`;
+  return new File([file], name, { type: file.type, lastModified: file.lastModified });
+}
+
+type ExtraDocumentRow = { id: string; title: string; file: File | null };
+
+const MAX_RECORD_UPLOAD_FILES = 10;
 
 interface Phase3FormProps {
   onSubmit: (data: Phase3Data) => void;
@@ -18,6 +136,9 @@ interface Phase3FormProps {
     comment: string;
   } | null;
   resetTrigger?: number; // Add reset trigger prop
+  /** Set when submit/upload fails so the user sees the message on the final step before retrying documents. */
+  submitError?: string | null;
+  onClearSubmitError?: () => void;
 }
 
 const Phase3Form: React.FC<Phase3FormProps> = ({
@@ -29,9 +150,20 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   isAdminCreation = false,
   isAdminEdit = false,
   modificationDetails = null,
-  resetTrigger = 0
+  resetTrigger = 0,
+  submitError = null,
+  onClearSubmitError
 }) => {
   const { user } = useAuth();
+
+  const birthDateLimits = useMemo(() => {
+    const today = new Date();
+    const max = today.toISOString().slice(0, 10); // YYYY-MM-DD
+    const minDate = new Date(today);
+    minDate.setFullYear(today.getFullYear() - 120);
+    const min = minDate.toISOString().slice(0, 10);
+    return { min, max };
+  }, []);
 
   // Geographic data state
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -46,19 +178,25 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [fullNameCharsLeft, setFullNameCharsLeft] = useState(40);
 
   const [primaryPhoneError, setPrimaryPhoneError] = useState('');
-  const [primaryPhoneCharsLeft, setPrimaryPhoneCharsLeft] = useState(9);
+  const [primaryPhoneCharsLeft, setPrimaryPhoneCharsLeft] = useState(8);
 
   const [secondaryPhoneError, setSecondaryPhoneError] = useState('');
-  const [secondaryPhoneCharsLeft, setSecondaryPhoneCharsLeft] = useState(9);
+  const [secondaryPhoneCharsLeft, setSecondaryPhoneCharsLeft] = useState(8);
 
   const [cedulaError, setCedulaError] = useState('');
   const [cedulaCharsLeft, setCedulaCharsLeft] = useState(13);
 
   const [birthPlaceError, setBirthPlaceError] = useState('');
-  const [birthPlaceCharsLeft, setBirthPlaceCharsLeft] = useState(20);
+  const [birthPlaceCharsLeft, setBirthPlaceCharsLeft] = useState(40);
+
+  const [emailError, setEmailError] = useState('');
+  const [emailCharsLeft, setEmailCharsLeft] = useState(50);
 
   const [addressError, setAddressError] = useState('');
   const [addressCharsLeft, setAddressCharsLeft] = useState(150);
+
+  const [birthDateError, setBirthDateError] = useState('');
+  const [locationStepError, setLocationStepError] = useState('');
 
   // === Validaciones para Información Familiar ===
 
@@ -73,7 +211,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [motherOccupationCharsLeft, setMotherOccupationCharsLeft] = useState(40);
 
   const [motherPhoneError, setMotherPhoneError] = useState('');
-  const [motherPhoneCharsLeft, setMotherPhoneCharsLeft] = useState(9);
+  const [motherPhoneCharsLeft, setMotherPhoneCharsLeft] = useState(8);
 
   // Padre
   const [fatherNameError, setFatherNameError] = useState('');
@@ -86,7 +224,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [fatherOccupationCharsLeft, setFatherOccupationCharsLeft] = useState(40);
 
   const [fatherPhoneError, setFatherPhoneError] = useState('');
-  const [fatherPhoneCharsLeft, setFatherPhoneCharsLeft] = useState(9);
+  const [fatherPhoneCharsLeft, setFatherPhoneCharsLeft] = useState(8);
 
   // === Validaciones para Encargado Legal ===
 
@@ -100,16 +238,27 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const [responsibleOccupationCharsLeft, setResponsibleOccupationCharsLeft] = useState(40);
 
   const [responsiblePhoneError, setResponsiblePhoneError] = useState('');
-  const [responsiblePhoneCharsLeft, setResponsiblePhoneCharsLeft] = useState(9);
+  const [responsiblePhoneCharsLeft, setResponsiblePhoneCharsLeft] = useState(8);
 
   // === Validaciones para Información Médica ===
   const [diseasesError, setDiseasesError] = useState('');
   const [diseasesCharsLeft, setDiseasesCharsLeft] = useState(50);
+  const [disabilityTypesError, setDisabilityTypesError] = useState('');
+  const [insuranceTypeError, setInsuranceTypeError] = useState('');
+  const [disabilityOriginError, setDisabilityOriginError] = useState('');
+  const [disabilityCertificateError, setDisabilityCertificateError] = useState('');
+  const [workingFamilyMemberErrors, setWorkingFamilyMemberErrors] = useState<WorkingMemberFieldErrors[]>([]);
+  /** Controlled value for the optional "add another type" select (always reset after pick). */
+  const [disabilityTypeAddMore, setDisabilityTypeAddMore] = useState('');
+  /** Second dropdown is hidden until the user chooses to add another disability type. */
+  const [showDisabilityTypeAddMore, setShowDisabilityTypeAddMore] = useState(false);
 
   // observaciones generales
   const [generalObservationsError, setGeneralObservationsError] = useState('');
-  const [generalObservationsCharsLeft, setGeneralObservationsCharsLeft] = useState(200);
+  const [generalObsRowErrors, setGeneralObsRowErrors] = useState<Record<number, string>>({});
   const [documentsStepError, setDocumentsStepError] = useState('');
+  const [finalSubmitGaps, setFinalSubmitGaps] = useState<FinalSubmitGap[] | null>(null);
+  const [familyBlockError, setFamilyBlockError] = useState('');
 
   // Helper function to check if a section needs modification
   const needsModification = (sectionName: string): boolean => {
@@ -126,11 +275,13 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   // Family information display mode
   const [showParents, setShowParents] = useState(true);
   const [showLegalGuardian, setShowLegalGuardian] = useState(false);
+  const [motherSectionOpen, setMotherSectionOpen] = useState(true);
+  const [fatherSectionOpen, setFatherSectionOpen] = useState(true);
 
   // Multi-step form: 0 = Personal, 1 = Family, 2 = Disability+Medical, 3 = Socioeconomic, 4 = Documents
   const TOTAL_STEPS = 6;
   const LAST_STEP_INDEX = TOTAL_STEPS - 1; // 5 = Requisitos y Pago (only step that submits)
-  const STEP_LABELS = ['Datos Personales', 'Información Familiar', 'Discapacidad y Salud', 'Ficha Socioeconómica', 'Subir Documentos', 'Requisitos y Pago'];
+  const STEP_LABELS = ['Datos Personales', 'Familiar', 'Discapacidad', 'Socioeconómica', 'Documentos', 'Requisitos'];
   const [currentStep, setCurrentStep] = useState(0);
   const STEPS_VISIBLE = 3; // carousel window size
   const [stepperViewStart, setStepperViewStart] = useState(0);
@@ -146,6 +297,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       birth_place: '',
       exact_address: '',
       province: '',
+      canton: '',
       district: '',
       primary_phone: '',
       secondary_phone: '',
@@ -168,15 +320,15 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       responsible_cedula: ''
     } as FamilyInformation & { responsible_cedula: string },
     disability_information: {
-      disability_type: 'fisica',
+      disability_type: [] as DisabilityTypeOption[],
       medical_diagnosis: '',
-      insurance_type: 'rnc',
-      disability_origin: 'nacimiento',
-      disability_certificate: 'no',
+      insurance_type: '',
+      disability_origin: '',
+      disability_certificate: '',
       conapdis_registration: 'no',
       medical_additional: {
         diseases: '',
-        blood_type: 'A+' as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-',
+        blood_type: '',
         biomechanical_benefit: [],
         permanent_limitations: [],
         medical_observations: ''
@@ -207,6 +359,39 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
   const [form, setForm] = useState<Phase3Data>(getInitialFormState());
 
+  /** Al menos un padre/madre (nombre válido) o encargado legal (nombre válido). */
+  const familyPathCompletion = useMemo(() => {
+    const isDisplayNameValid = (s: string) => {
+      const t = (s || '').trim();
+      return t.length >= 5 && t.length <= 40 && /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(t);
+    };
+    const m = (form.family_information.mother_name ?? '').trim();
+    const f = (form.family_information.father_name ?? '').trim();
+    const r = (form.family_information.responsible_person ?? '').trim();
+    const motherNameValid = m.length > 0 && isDisplayNameValid(m);
+    const fatherNameValid = f.length > 0 && isDisplayNameValid(f);
+    const guardianNameValid = r.length > 0 && isDisplayNameValid(r);
+    const hasParentPathComplete = motherNameValid || fatherNameValid;
+    const hasGuardianPathComplete = guardianNameValid;
+    // Si ya hay un padre/madre válido o el encargado, el otro progenitor pasa a opcional.
+    const motherFieldsOptional = fatherNameValid || hasGuardianPathComplete;
+    const fatherFieldsOptional = motherNameValid || hasGuardianPathComplete;
+    return {
+      hasParentPathComplete,
+      hasGuardianPathComplete,
+      motherFieldsOptional,
+      fatherFieldsOptional,
+      guardianFieldsOptional: hasParentPathComplete
+    };
+  }, [form.family_information.mother_name, form.family_information.father_name, form.family_information.responsible_person]);
+
+  /** Permite agregar el primero con lista vacía; siguientes solo si todas las filas actuales están completas. */
+  const canAddWorkingFamilyMember = useMemo(() => {
+    const members = form.socioeconomic_information.working_family_members;
+    if (members.length === 0) return true;
+    return members.every(isWorkingFamilyMemberRowValid);
+  }, [form.socioeconomic_information.working_family_members]);
+
   // Keep stepper carousel in view when current step changes
   useEffect(() => {
     const maxStart = Math.max(0, TOTAL_STEPS - STEPS_VISIBLE);
@@ -221,40 +406,51 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   useEffect(() => {
     if (resetTrigger > 0) {
       setForm(getInitialFormState());
-      setDocumentFiles({
-        dictamen_medico: null,
-        constancia_nacimiento: null,
-        copia_cedula: null,
-        copias_cedulas_familia: null,
-        foto_pasaporte: null,
-        constancia_pension_ccss: null,
-        constancia_pension_alimentaria: null,
-        constancia_estudio: null,
-        cuenta_banco_nacional: null,
-        informacion_pago: null,
-        otros: null
-      });
+      setDocumentFiles({ ...EMPTY_PHASE3_DOCUMENT_FILES });
       setShowParents(true);
       setShowLegalGuardian(false);
       setCurrentStep(0);
       setStepperViewStart(0);
+      setDisabilityTypeAddMore('');
+      setShowDisabilityTypeAddMore(false);
+      setDisabilityTypesError('');
+      setInsuranceTypeError('');
+      setDisabilityOriginError('');
+      setDisabilityCertificateError('');
+      setWorkingFamilyMemberErrors([]);
+      setBirthDateError('');
+      setLocationStepError('');
+      setFinalSubmitGaps(null);
+      setExtraDocuments([]);
+      Object.values(extraFileInputRefs.current).forEach(el => {
+        if (el) el.value = '';
+      });
+      extraFileInputRefs.current = {};
     }
   }, [resetTrigger]);
 
+  const disabilityTypesCount = form.disability_information.disability_type.length;
+
+  useEffect(() => {
+    if (disabilityTypesCount >= DISABILITY_TYPE_OPTIONS.length) {
+      setShowDisabilityTypeAddMore(false);
+      setDisabilityTypeAddMore('');
+    }
+  }, [disabilityTypesCount]);
+
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const mobileStepperLastTapRef = useRef(0);
-  const [documentFiles, setDocumentFiles] = useState<{ [key: string]: File | null }>({
-    dictamen_medico: null,
-    constancia_nacimiento: null,
-    copia_cedula: null,
-    copias_cedulas_familia: null,
-    foto_pasaporte: null,
-    constancia_pension_ccss: null,
-    constancia_pension_alimentaria: null,
-    constancia_estudio: null,
-    cuenta_banco_nacional: null,
-    informacion_pago: null
-  });
+  const uploadFailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onClearSubmitErrorRef = useRef(onClearSubmitError);
+  useEffect(() => {
+    onClearSubmitErrorRef.current = onClearSubmitError;
+  }, [onClearSubmitError]);
+
+  const [documentFiles, setDocumentFiles] = useState<Record<string, File | null>>(() => ({
+    ...EMPTY_PHASE3_DOCUMENT_FILES
+  }));
+  const [extraDocuments, setExtraDocuments] = useState<ExtraDocumentRow[]>([]);
+  const extraFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Estado para documentos genéricos que necesitan asignación manual
   // Helper function to format date for input[type="date"]
@@ -298,9 +494,15 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         // Pre-fill disability information
         if (currentRecord.disability_information) {
-          newForm.disability_information = {
+          const mergedDi = {
             ...prev.disability_information,
             ...currentRecord.disability_information
+          };
+          const normalizedTypes = normalizeDisabilityTypes(mergedDi.disability_type);
+          newForm.disability_information = {
+            ...mergedDi,
+            disability_type:
+              normalizedTypes.length > 0 ? normalizedTypes : prev.disability_information.disability_type
           };
         }
 
@@ -324,6 +526,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         return newForm;
       });
+
+      const existingBirthPlace = currentRecord.complete_personal_data?.birth_place ?? '';
+      setBirthPlaceCharsLeft(Math.max(0, 40 - String(existingBirthPlace).length));
+
+      const existingEmail = currentRecord.complete_personal_data?.email ?? '';
+      setEmailCharsLeft(Math.max(0, 50 - String(existingEmail).length));
     }
   }, [isModification, currentRecord, isAdminCreation, isAdminEdit]);
 
@@ -356,19 +564,24 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           ...prev.family_information,
           mother_name: phase1Data.mother_name || '',
           mother_cedula: phase1Data.mother_cedula || '',
-          mother_phone: phase1Data.mother_phone || '',
+          mother_phone: (phase1Data.mother_phone || '').replace(/\D/g, '').slice(0, 8),
+          mother_occupation: phase1Data.mother_occupation || '',
           father_name: phase1Data.father_name || '',
           father_cedula: phase1Data.father_cedula || '',
-          father_phone: phase1Data.father_phone || '',
+          father_phone: (phase1Data.father_phone || '').replace(/\D/g, '').slice(0, 8),
+          father_occupation: phase1Data.father_occupation || '',
           // Pre-fill legal guardian info if available
           responsible_person: phase1Data.legal_guardian_name || '',
           responsible_cedula: phase1Data.legal_guardian_cedula || '',
-          responsible_phone: phase1Data.legal_guardian_phone || ''
+          responsible_phone: (phase1Data.legal_guardian_phone || '').replace(/\D/g, '').slice(0, 8),
+          responsible_occupation: phase1Data.legal_guardian_occupation || ''
         },
         disability_information: {
           ...prev.disability_information,
-          // Pre-fill disability type from Phase 1
-          disability_type: (phase1Data.pcd_name as 'fisica' | 'visual' | 'auditiva' | 'psicosocial' | 'cognitiva' | 'intelectual' | 'multiple') || 'fisica'
+          disability_type: (() => {
+            const fromPhase1 = normalizeDisabilityTypes(phase1Data.pcd_name);
+            return fromPhase1.length > 0 ? fromPhase1 : ([] as DisabilityTypeOption[]);
+          })()
         }
       }));
 
@@ -380,6 +593,19 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         setShowParents(true);
         setShowLegalGuardian(false);
       }
+
+      const initialBirthPlace = phase1Data.birth_place || '';
+      setBirthPlaceCharsLeft(Math.max(0, 40 - initialBirthPlace.length));
+
+      const initialEmail = (!isAdminCreation && !isAdminEdit) ? (user?.email || '') : '';
+      setEmailCharsLeft(Math.max(0, 50 - initialEmail.length));
+
+      const mp = (phase1Data.mother_phone || '').replace(/\D/g, '').slice(0, 8);
+      const fp = (phase1Data.father_phone || '').replace(/\D/g, '').slice(0, 8);
+      const rp = (phase1Data.legal_guardian_phone || '').replace(/\D/g, '').slice(0, 8);
+      setMotherPhoneCharsLeft(Math.max(0, 8 - mp.length));
+      setFatherPhoneCharsLeft(Math.max(0, 8 - fp.length));
+      setResponsiblePhoneCharsLeft(Math.max(0, 8 - rp.length));
     }
   }, [currentRecord, user, isModification, isAdminCreation, isAdminEdit]);
 
@@ -498,6 +724,55 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     { key: 'constancia_estudio', label: 'Constancia de Estudio (En caso de solicitante este en estudio)', required: false },
     { key: 'cuenta_banco_nacional', label: 'Cuenta Banco Nacional', required: false }
   ], []);
+
+  const applyDocumentRetryReset = useCallback((msg: string) => {
+    if (uploadFailTimerRef.current) {
+      clearTimeout(uploadFailTimerRef.current);
+      uploadFailTimerRef.current = null;
+    }
+    setDocumentFiles({ ...EMPTY_PHASE3_DOCUMENT_FILES });
+    setExtraDocuments([]);
+    Object.values(extraFileInputRefs.current).forEach(el => {
+      if (el) el.value = '';
+    });
+    extraFileInputRefs.current = {};
+    setForm(prev => ({
+      ...prev,
+      documentation_requirements: {
+        ...prev.documentation_requirements,
+        documents: documentTypes.map(doc => ({
+          document_type: doc.key as RequiredDocument['document_type'],
+          status: 'pendiente' as const,
+          observations: ''
+        }))
+      }
+    }));
+    Object.values(fileInputRefs.current).forEach(el => {
+      if (el) el.value = '';
+    });
+    setCurrentStep(4);
+    setDocumentsStepError(
+      `${msg} Vuelva a cargar los documentos y complete este paso antes de enviar de nuevo.`
+    );
+    onClearSubmitErrorRef.current?.();
+  }, [documentTypes]);
+
+  useEffect(() => {
+    if (!submitError) return;
+    setCurrentStep(LAST_STEP_INDEX);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const msg = submitError;
+    uploadFailTimerRef.current = window.setTimeout(() => {
+      uploadFailTimerRef.current = null;
+      applyDocumentRetryReset(msg);
+    }, 4000);
+    return () => {
+      if (uploadFailTimerRef.current) {
+        clearTimeout(uploadFailTimerRef.current);
+        uploadFailTimerRef.current = null;
+      }
+    };
+  }, [submitError, applyDocumentRetryReset, LAST_STEP_INDEX]);
 
   // Initialize document status from saved document_statuses and/or uploaded files
   useEffect(() => {
@@ -687,30 +962,41 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
   // Handle working family members dynamically
   const addWorkingFamilyMember = () => {
-    setForm(prev => ({
-      ...prev,
-      socioeconomic_information: {
-        ...prev.socioeconomic_information,
-        working_family_members: [
-          ...prev.socioeconomic_information.working_family_members,
-          { name: '', work_type: '', work_place: '', work_phone: '' }
-        ]
+    setForm((prev) => {
+      const prevMembers = prev.socioeconomic_information.working_family_members;
+      if (prevMembers.length > 0 && !prevMembers.every(isWorkingFamilyMemberRowValid)) {
+        return prev;
       }
-    }));
+      return {
+        ...prev,
+        socioeconomic_information: {
+          ...prev.socioeconomic_information,
+          working_family_members: [
+            ...prevMembers,
+            { name: '', work_type: '', work_place: '', work_phone: '' }
+          ]
+        }
+      };
+    });
   };
 
   const removeWorkingFamilyMember = (index: number) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       socioeconomic_information: {
         ...prev.socioeconomic_information,
         working_family_members: prev.socioeconomic_information.working_family_members.filter((_, i) => i !== index)
       }
     }));
+    setWorkingFamilyMemberErrors((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateWorkingFamilyMember = (index: number, field: keyof typeof form.socioeconomic_information.working_family_members[0], value: string) => {
-    setForm(prev => ({
+  const updateWorkingFamilyMember = (
+    index: number,
+    field: keyof WorkingFamilyMember,
+    value: string
+  ) => {
+    setForm((prev) => ({
       ...prev,
       socioeconomic_information: {
         ...prev.socioeconomic_information,
@@ -719,6 +1005,16 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         )
       }
     }));
+    setWorkingFamilyMemberErrors((prev) => {
+      const row = prev[index];
+      const key = field as keyof WorkingMemberFieldErrors;
+      if (!row?.[key]) return prev;
+      const next = [...prev];
+      const updated = { ...row };
+      delete updated[key];
+      next[index] = updated;
+      return next;
+    });
   };
 
   // Handle family information display mode toggle
@@ -738,23 +1034,24 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
   const validateStepPersonal = (): boolean => {
     let ok = true;
     const fullName = form.complete_personal_data.full_name;
-    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(fullName) || fullName.length < 5 || fullName.length > 30) {
-      setFullNameError(fullName.length < 5 && fullName.length > 0 ? 'Mínimo 5 caracteres.' : fullName.length > 30 ? 'Máximo 30 caracteres.' : 'Solo se permiten letras y espacios.');
+    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(fullName) || fullName.length < 5 || fullName.length > 40) {
+      setFullNameError(fullName.length < 5 && fullName.length > 0 ? 'Mínimo 5 caracteres.' : fullName.length > 40 ? 'Máximo 40 caracteres.' : 'Solo se permiten letras y espacios.');
       ok = false;
     } else setFullNameError('');
     const primaryPhone = form.complete_personal_data.primary_phone;
-    if (!/^\d{4}-\d{4}$/.test(primaryPhone)) {
-      setPrimaryPhoneError('Formato inválido. Use 9999-9999.');
+    if (!/^\d{8}$/.test(primaryPhone)) {
+      setPrimaryPhoneError('Formato inválido. Use 88888888.');
       ok = false;
     } else setPrimaryPhoneError('');
     const secondaryPhone = form.complete_personal_data.secondary_phone;
-    if (secondaryPhone && !/^\d{4}-\d{4}$/.test(secondaryPhone)) {
-      setSecondaryPhoneError('Formato inválido. Use 9999-9999.');
+    if (!/^\d{8}$/.test((secondaryPhone || '').trim())) {
+      setSecondaryPhoneError('Use 8 dígitos (ej. 88888888). Este campo es obligatorio.');
       ok = false;
     } else setSecondaryPhoneError('');
     const cedula = form.complete_personal_data.cedula;
     if (!/^\d+$/.test(cedula) || cedula.length === 0) {
       setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' : 'Solo se permiten números.');
+      ok = false;
     } else if (cedula.length < 9 || cedula.length > 13) {
       setCedulaError(cedula.length < 9 ? 'Mínimo 9 dígitos.' : 'Máximo 13 caracteres.');
       ok = false;
@@ -764,6 +1061,20 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       setBirthPlaceError(birthPlace.length === 0 ? 'Este campo es obligatorio.' : birthPlace.length > 40 ? 'Máximo 40 caracteres.' : 'Solo se permiten letras y espacios.');
       ok = false;
     } else setBirthPlaceError('');
+
+    const bd = form.complete_personal_data.birth_date;
+    if (!bd || bd < birthDateLimits.min || bd > birthDateLimits.max) {
+      setBirthDateError(
+        !bd ? 'Este campo es obligatorio.' : 'La fecha de nacimiento debe estar entre el rango permitido'
+      );
+      ok = false;
+    } else setBirthDateError('');
+
+    if (!form.complete_personal_data.province?.trim() || !form.complete_personal_data.canton?.trim() || !form.complete_personal_data.district?.trim()) {
+      setLocationStepError('Seleccione provincia, cantón y distrito.');
+      ok = false;
+    } else setLocationStepError('');
+
     const exactAddress = form.complete_personal_data.exact_address;
     if (exactAddress.length === 0) {
       setAddressError('Este campo es obligatorio.');
@@ -772,86 +1083,168 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       setAddressError('Máximo 150 caracteres.');
       ok = false;
     } else setAddressError('');
+
+    const email = form.complete_personal_data.email;
+    if (!email || String(email).trim().length === 0) {
+      setEmailError('Este campo es obligatorio.');
+      ok = false;
+    } else if (String(email).length > 50) {
+      setEmailError('Máximo 50 caracteres.');
+      ok = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+      setEmailError('Debe ingresar un correo electrónico válido.');
+      ok = false;
+    } else setEmailError('');
     return ok;
   };
 
   const validateStepFamily = (): boolean => {
     let ok = true;
-    if (showParents) {
-      const mCed = form.family_information.mother_cedula;
-      if (mCed && (!/^\d+$/.test(mCed) || mCed.length < 9 || mCed.length > 13)) {
-        setMotherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
-        ok = false;
-      } else setMotherCedulaError('');
-      const mName = form.family_information.mother_name;
-      if (mName && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(mName) || mName.length < 5 || mName.length > 30)) {
-        setMotherNameError(mName.length < 5 ? 'Mínimo 5 caracteres.' : mName.length > 30 ? 'Máximo 30 caracteres.' : 'Solo letras y espacios.');
+
+    const isDisplayNameValid = (s: string) => {
+      const t = (s || '').trim();
+      return t.length >= 5 && t.length <= 40 && /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(t);
+    };
+
+    const mName = (form.family_information.mother_name ?? '').trim();
+    const fName = (form.family_information.father_name ?? '').trim();
+    const rName = (form.family_information.responsible_person ?? '').trim();
+
+    const motherNameValid = mName.length > 0 && isDisplayNameValid(mName);
+    const fatherNameValid = fName.length > 0 && isDisplayNameValid(fName);
+    const guardianNameValid = rName.length > 0 && isDisplayNameValid(rName);
+    const hasParentPathComplete = motherNameValid || fatherNameValid;
+    const hasGuardianPathComplete = guardianNameValid;
+
+    if (!hasParentPathComplete && !hasGuardianPathComplete) {
+      setFamilyBlockError('Debe completar al menos la información de un padre o madre, o del encargado legal (nombre con mínimo 5 caracteres).');
+      ok = false;
+    } else {
+      setFamilyBlockError('');
+    }
+
+    // Madre
+    const mCed = form.family_information.mother_cedula;
+    if (mCed && (!/^\d+$/.test(mCed) || mCed.length < 9 || mCed.length > 13)) {
+      setMotherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
+      ok = false;
+    } else setMotherCedulaError('');
+
+    if (mName) {
+      if (!isDisplayNameValid(mName)) {
+        setMotherNameError(mName.length < 5 ? 'Mínimo 5 caracteres.' : mName.length > 40 ? 'Máximo 40 caracteres.' : 'Solo letras y espacios.');
         ok = false;
       } else setMotherNameError('');
-      const mOcc = form.family_information.mother_occupation;
-      if (mOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(mOcc) || mOcc.length > 20)) {
-        setMotherOccupationError('Máximo 20 caracteres, solo letras.');
-        ok = false;
-      } else setMotherOccupationError('');
-      const mPhone = form.family_information.mother_phone;
-      if (mPhone && !/^\d{4}-\d{4}$/.test(mPhone)) {
-        setMotherPhoneError('Formato inválido. Use 9999-9999.');
-        ok = false;
-      } else setMotherPhoneError('');
-      const fCed = form.family_information.father_cedula;
-      if (fCed && (!/^\d+$/.test(fCed) || fCed.length < 9 || fCed.length > 13)) {
-        setFatherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
-        ok = false;
-      } else setFatherCedulaError('');
-      const fName = form.family_information.father_name;
-      if (fName && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(fName) || fName.length < 5 || fName.length > 30)) {
-        setFatherNameError(fName.length < 5 ? 'Mínimo 5 caracteres.' : fName.length > 30 ? 'Máximo 30 caracteres.' : 'Solo letras y espacios.');
+    } else setMotherNameError('');
+
+    const mOcc = form.family_information.mother_occupation;
+    if (mOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(mOcc) || mOcc.length > 40)) {
+      setMotherOccupationError('Máximo 40 caracteres, solo letras.');
+      ok = false;
+    } else setMotherOccupationError('');
+
+    const mPhoneDigits = (form.family_information.mother_phone || '').replace(/\D/g, '');
+    if (mPhoneDigits && !/^\d{8}$/.test(mPhoneDigits)) {
+      setMotherPhoneError('Formato inválido. Use 88888888 (8 dígitos).');
+      ok = false;
+    } else setMotherPhoneError('');
+
+    // Padre
+    const fCed = form.family_information.father_cedula;
+    if (fCed && (!/^\d+$/.test(fCed) || fCed.length < 9 || fCed.length > 13)) {
+      setFatherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
+      ok = false;
+    } else setFatherCedulaError('');
+
+    if (fName) {
+      if (!isDisplayNameValid(fName)) {
+        setFatherNameError(fName.length < 5 ? 'Mínimo 5 caracteres.' : fName.length > 40 ? 'Máximo 40 caracteres.' : 'Solo letras y espacios.');
         ok = false;
       } else setFatherNameError('');
-      const fOcc = form.family_information.father_occupation;
-      if (fOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(fOcc) || fOcc.length > 20)) {
-        setFatherOccupationError('Máximo 20 caracteres, solo letras.');
-        ok = false;
-      } else setFatherOccupationError('');
-      const fPhone = form.family_information.father_phone;
-      if (fPhone && !/^\d{4}-\d{4}$/.test(fPhone)) {
-        setFatherPhoneError('Formato inválido. Use 9999-9999.');
-        ok = false;
-      } else setFatherPhoneError('');
-    }
-    const responsibleName = form.family_information.responsible_person;
-    if (showLegalGuardian && responsibleName && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(responsibleName) || responsibleName.length < 5 || responsibleName.length > 30)) {
-      setResponsibleNameError(responsibleName.length < 5 ? 'Mínimo 5 caracteres.' : responsibleName.length > 30 ? 'Máximo 30 caracteres.' : 'Solo se permiten letras y espacios.');
+    } else setFatherNameError('');
+
+    const fOcc = form.family_information.father_occupation;
+    if (fOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(fOcc) || fOcc.length > 40)) {
+      setFatherOccupationError('Máximo 40 caracteres, solo letras.');
       ok = false;
-    } else setResponsibleNameError('');
-    if (showLegalGuardian) {
-      const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula;
-      if (rCed && (!/^\d+$/.test(rCed) || rCed.length < 9 || rCed.length > 13)) {
-        setResponsibleCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
+    } else setFatherOccupationError('');
+
+    const fPhoneDigits = (form.family_information.father_phone || '').replace(/\D/g, '');
+    if (fPhoneDigits && !/^\d{8}$/.test(fPhoneDigits)) {
+      setFatherPhoneError('Formato inválido. Use 88888888 (8 dígitos).');
+      ok = false;
+    } else setFatherPhoneError('');
+
+    // Encargado legal
+    if (rName) {
+      if (!isDisplayNameValid(rName)) {
+        setResponsibleNameError(rName.length < 5 ? 'Mínimo 5 caracteres.' : rName.length > 40 ? 'Máximo 40 caracteres.' : 'Solo se permiten letras y espacios.');
         ok = false;
-      } else setResponsibleCedulaError('');
-    }
+      } else setResponsibleNameError('');
+    } else setResponsibleNameError('');
+
+    const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula;
+    if (rCed && (!/^\d+$/.test(rCed) || rCed.length < 9 || rCed.length > 13)) {
+      setResponsibleCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
+      ok = false;
+    } else setResponsibleCedulaError('');
+
     const rOcc = form.family_information.responsible_occupation;
-    if (rOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(rOcc) || rOcc.length > 20)) {
-      setResponsibleOccupationError('Máximo 20 caracteres, solo letras.');
+    if (rOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(rOcc) || rOcc.length > 40)) {
+      setResponsibleOccupationError('Máximo 40 caracteres, solo letras.');
       ok = false;
     } else setResponsibleOccupationError('');
-    const rPhone = form.family_information.responsible_phone;
-    if (rPhone && !/^\d{4}-\d{4}$/.test(rPhone)) {
-      setResponsiblePhoneError('Formato inválido. Use 9999-9999.');
+
+    const rPhoneDigits = (form.family_information.responsible_phone || '').replace(/\D/g, '');
+    if (rPhoneDigits && !/^\d{8}$/.test(rPhoneDigits)) {
+      setResponsiblePhoneError('Formato inválido. Use 88888888 (8 dígitos).');
       ok = false;
     } else setResponsiblePhoneError('');
+
     return ok;
   };
 
   const validateStepDisability = (): boolean => {
+    let ok = true;
+    const types = form.disability_information.disability_type;
+    if (!Array.isArray(types) || types.length === 0) {
+      setDisabilityTypesError('Seleccione al menos un tipo de discapacidad.');
+      ok = false;
+    } else setDisabilityTypesError('');
+
+    const insuranceType = form.disability_information.insurance_type;
+    if (
+      insuranceType !== 'rnc' &&
+      insuranceType !== 'independiente' &&
+      insuranceType !== 'privado' &&
+      insuranceType !== 'otro'
+    ) {
+      setInsuranceTypeError('Seleccione el tipo de seguro.');
+      ok = false;
+    } else setInsuranceTypeError('');
+
+    const origin = form.disability_information.disability_origin;
+    if (
+      origin !== 'nacimiento' &&
+      origin !== 'accidente' &&
+      origin !== 'enfermedad'
+    ) {
+      setDisabilityOriginError('Seleccione el origen de la discapacidad.');
+      ok = false;
+    } else setDisabilityOriginError('');
+
+    const certificate = form.disability_information.disability_certificate;
+    if (certificate !== 'si' && certificate !== 'no' && certificate !== 'en_tramite') {
+      setDisabilityCertificateError('Seleccione el estado del certificado de discapacidad.');
+      ok = false;
+    } else setDisabilityCertificateError('');
+
     const diseases = form.disability_information.medical_additional.diseases;
     if (diseases && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-[\]{}"'/_]*$/.test(diseases) || diseases.length > 200)) {
       setDiseasesError(diseases.length > 200 ? 'Máximo 200 caracteres.' : 'No se permiten números.');
-      return false;
-    }
-    setDiseasesError('');
-    return true;
+      ok = false;
+    } else setDiseasesError('');
+    return ok;
   };
 
   const validateStepDocuments = (): boolean => {
@@ -867,12 +1260,30 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       return false;
     }
 
+    const incompleteExtra = extraDocuments.some(
+      e => (e.title.trim() && !e.file) || (!e.title.trim() && e.file)
+    );
+    if (incompleteExtra) {
+      setDocumentsStepError('En documentos adicionales: cada fila debe tener título y archivo, o elimínela.');
+      return false;
+    }
+
+    const fileCount =
+      Object.values(documentFiles).filter(Boolean).length + extraDocuments.filter(e => e.file).length;
+    if (fileCount > MAX_RECORD_UPLOAD_FILES) {
+      setDocumentsStepError(`Puede adjuntar como máximo ${MAX_RECORD_UPLOAD_FILES} archivos en total. Reduzca la cantidad.`);
+      return false;
+    }
+
     setDocumentsStepError('');
     return true;
   };
 
   const validateStepSocioeconomic = (): boolean => {
-    return true;
+    const members = form.socioeconomic_information.working_family_members;
+    const { ok, errors } = validateAllWorkingFamilyMembers(members);
+    setWorkingFamilyMemberErrors(ok ? [] : errors);
+    return ok;
   };
 
   const goToNextStep = () => {
@@ -897,170 +1308,324 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const generalObsStored = form.documentation_requirements.general_observations ?? '';
+  const parsedGeneralObservations = useMemo(
+    () => parseGeneralObservationsStored(generalObsStored),
+    [generalObsStored]
+  );
+  const generalObservationsRowsForUi = useMemo(
+    () => (parsedGeneralObservations.length > 0 ? parsedGeneralObservations : ['']),
+    [parsedGeneralObservations]
+  );
+
+  const updateGeneralObservationsRow = (idx: number, value: string) => {
+    setGeneralObservationsError('');
+    if (value.length > MAX_GENERAL_OBSERVATION_NOTE_LENGTH) {
+      setGeneralObsRowErrors((prev) => ({
+        ...prev,
+        [idx]: `Máximo ${MAX_GENERAL_OBSERVATION_NOTE_LENGTH} caracteres.`
+      }));
+      return;
+    }
+    if (!GENERAL_OBSERVATIONS_CHAR_PATTERN.test(value)) {
+      setGeneralObsRowErrors((prev) => ({
+        ...prev,
+        [idx]: 'Solo se permiten letras, números y signos de puntuación básicos.'
+      }));
+      return;
+    }
+    setGeneralObsRowErrors((prev) => {
+      const next = { ...prev };
+      delete next[idx];
+      return next;
+    });
+    const base =
+      parsedGeneralObservations.length > 0 ? [...parsedGeneralObservations] : [''];
+    base[idx] = value;
+    handleChange(
+      'documentation_requirements',
+      'general_observations',
+      serializeGeneralObservationsStored(base)
+    );
+  };
+
+  const addGeneralObservationsRow = () => {
+    setGeneralObservationsError('');
+    setGeneralObsRowErrors({});
+    const base =
+      parsedGeneralObservations.length > 0 ? [...parsedGeneralObservations] : [''];
+    if (base.length >= MAX_GENERAL_OBSERVATION_NOTE_COUNT) return;
+    base.push('');
+    handleChange(
+      'documentation_requirements',
+      'general_observations',
+      serializeGeneralObservationsStored(base)
+    );
+  };
+
+  const removeGeneralObservationsRow = (idx: number) => {
+    setGeneralObservationsError('');
+    setGeneralObsRowErrors({});
+    const base =
+      parsedGeneralObservations.length > 0 ? [...parsedGeneralObservations] : [''];
+    if (base.length === 1) {
+      handleChange('documentation_requirements', 'general_observations', '');
+      return;
+    }
+    base.splice(idx, 1);
+    handleChange(
+      'documentation_requirements',
+      'general_observations',
+      serializeGeneralObservationsStored(base)
+    );
+  };
+
+  /** Full checklist for final submit: which step and what is missing or invalid. */
+  const getFinalSubmitStepIssues = (): FinalSubmitGap[] => {
+    const gaps: FinalSubmitGap[] = [];
+    const cpd = form.complete_personal_data;
+
+    const personalItems: string[] = [];
+    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(cpd.full_name) || cpd.full_name.length < 5 || cpd.full_name.length > 40) {
+      personalItems.push('Nombre completo: solo letras y espacios, entre 5 y 40 caracteres.');
+    }
+    if (!/^\d{8}$/.test(cpd.primary_phone)) {
+      personalItems.push('Teléfono principal: use exactamente 8 dígitos (ej. 88888888).');
+    }
+    if (!/^\d{8}$/.test((cpd.secondary_phone || '').trim())) {
+      personalItems.push('Teléfono secundario: 8 dígitos obligatorios.');
+    }
+    if (!/^\d+$/.test(cpd.cedula) || cpd.cedula.length === 0) {
+      personalItems.push('Cédula: obligatoria y solo números.');
+    } else if (cpd.cedula.length < 9 || cpd.cedula.length > 13) {
+      personalItems.push('Cédula: entre 9 y 13 dígitos.');
+    }
+    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(cpd.birth_place) || cpd.birth_place.length > 40 || cpd.birth_place.length === 0) {
+      personalItems.push('Lugar de nacimiento: obligatorio, letras y espacios, máximo 40 caracteres.');
+    }
+    const bd = cpd.birth_date;
+    if (!bd || bd < birthDateLimits.min || bd > birthDateLimits.max) {
+      personalItems.push('Fecha de nacimiento: obligatoria y dentro del rango permitido.');
+    }
+    if (!cpd.province?.trim() || !cpd.canton?.trim() || !cpd.district?.trim()) {
+      personalItems.push('Ubicación: seleccione provincia, cantón y distrito.');
+    }
+    const addr = cpd.exact_address ?? '';
+    if (addr.length === 0) {
+      personalItems.push('Dirección exacta del domicilio: obligatoria.');
+    } else if (addr.length > 150) {
+      personalItems.push('Dirección exacta: máximo 150 caracteres.');
+    }
+    const em = cpd.email;
+    if (!em || String(em).trim().length === 0) {
+      personalItems.push('Correo electrónico: obligatorio.');
+    } else if (String(em).length > 50) {
+      personalItems.push('Correo electrónico: máximo 50 caracteres.');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(em))) {
+      personalItems.push('Correo electrónico: formato no válido.');
+    }
+    if (personalItems.length > 0) {
+      gaps.push({ stepIndex: 0, stepLabel: STEP_LABELS[0], items: personalItems });
+    }
+
+    const isDisplayNameValid = (s: string) => {
+      const t = (s || '').trim();
+      return t.length >= 5 && t.length <= 40 && /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(t);
+    };
+    const mName = (form.family_information.mother_name ?? '').trim();
+    const fName = (form.family_information.father_name ?? '').trim();
+    const rName = (form.family_information.responsible_person ?? '').trim();
+    const motherNameValid = mName.length > 0 && isDisplayNameValid(mName);
+    const fatherNameValid = fName.length > 0 && isDisplayNameValid(fName);
+    const guardianNameValid = rName.length > 0 && isDisplayNameValid(rName);
+    const hasParentPathComplete = motherNameValid || fatherNameValid;
+    const hasGuardianPathComplete = guardianNameValid;
+
+    const familyItems: string[] = [];
+    if (!hasParentPathComplete && !hasGuardianPathComplete) {
+      familyItems.push('Indique al menos un padre o madre con nombre válido, o un encargado legal con nombre válido (mínimo 5 caracteres, solo letras).');
+    }
+    const mCed = form.family_information.mother_cedula;
+    if (mCed && (!/^\d+$/.test(mCed) || mCed.length < 9 || mCed.length > 13)) {
+      familyItems.push('Madre — Cédula: entre 9 y 13 dígitos numéricos.');
+    }
+    if (mName && !isDisplayNameValid(mName)) {
+      familyItems.push('Madre — Nombre: entre 5 y 40 caracteres, solo letras y espacios.');
+    }
+    const mOcc = form.family_information.mother_occupation;
+    if (mOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(mOcc) || mOcc.length > 40)) {
+      familyItems.push('Madre — Ocupación: máximo 40 caracteres, solo letras.');
+    }
+    const mPhoneDigits = (form.family_information.mother_phone || '').replace(/\D/g, '');
+    if (mPhoneDigits && !/^\d{8}$/.test(mPhoneDigits)) {
+      familyItems.push('Madre — Teléfono: 8 dígitos.');
+    }
+    const fCed = form.family_information.father_cedula;
+    if (fCed && (!/^\d+$/.test(fCed) || fCed.length < 9 || fCed.length > 13)) {
+      familyItems.push('Padre — Cédula: entre 9 y 13 dígitos numéricos.');
+    }
+    if (fName && !isDisplayNameValid(fName)) {
+      familyItems.push('Padre — Nombre: entre 5 y 40 caracteres, solo letras y espacios.');
+    }
+    const fOcc = form.family_information.father_occupation;
+    if (fOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(fOcc) || fOcc.length > 40)) {
+      familyItems.push('Padre — Ocupación: máximo 40 caracteres, solo letras.');
+    }
+    const fPhoneDigits = (form.family_information.father_phone || '').replace(/\D/g, '');
+    if (fPhoneDigits && !/^\d{8}$/.test(fPhoneDigits)) {
+      familyItems.push('Padre — Teléfono: 8 dígitos.');
+    }
+    if (rName && !isDisplayNameValid(rName)) {
+      familyItems.push('Encargado legal — Nombre: entre 5 y 40 caracteres, solo letras y espacios.');
+    }
+    const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula;
+    if (rCed && (!/^\d+$/.test(rCed) || rCed.length < 9 || rCed.length > 13)) {
+      familyItems.push('Encargado legal — Cédula: entre 9 y 13 dígitos numéricos.');
+    }
+    const rOcc = form.family_information.responsible_occupation;
+    if (rOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(rOcc) || rOcc.length > 40)) {
+      familyItems.push('Encargado legal — Ocupación: máximo 40 caracteres, solo letras.');
+    }
+    const rPhoneDigits = (form.family_information.responsible_phone || '').replace(/\D/g, '');
+    if (rPhoneDigits && !/^\d{8}$/.test(rPhoneDigits)) {
+      familyItems.push('Encargado legal — Teléfono: 8 dígitos.');
+    }
+    if (familyItems.length > 0) {
+      gaps.push({ stepIndex: 1, stepLabel: STEP_LABELS[1], items: familyItems });
+    }
+
+    const disabilityItems: string[] = [];
+    const types = form.disability_information.disability_type;
+    if (!Array.isArray(types) || types.length === 0) {
+      disabilityItems.push('Tipo(s) de discapacidad: seleccione al menos uno.');
+    }
+    const insuranceType = form.disability_information.insurance_type;
+    if (
+      insuranceType !== 'rnc' &&
+      insuranceType !== 'independiente' &&
+      insuranceType !== 'privado' &&
+      insuranceType !== 'otro'
+    ) {
+      disabilityItems.push('Tipo de seguro: seleccione una opción.');
+    }
+    const origin = form.disability_information.disability_origin;
+    if (
+      origin !== 'nacimiento' &&
+      origin !== 'accidente' &&
+      origin !== 'enfermedad'
+    ) {
+      disabilityItems.push('Origen de la discapacidad: seleccione una opción.');
+    }
+    const certificate = form.disability_information.disability_certificate;
+    if (certificate !== 'si' && certificate !== 'no' && certificate !== 'en_tramite') {
+      disabilityItems.push('Certificado de discapacidad: indique si / no / en trámite.');
+    }
+    const diseases = form.disability_information.medical_additional.diseases;
+    if (diseases && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-[\]{}"'/_]*$/.test(diseases) || diseases.length > 200)) {
+      disabilityItems.push(
+        diseases.length > 200 ? 'Enfermedades que padece: máximo 200 caracteres.' : 'Enfermedades que padece: no se permiten números en el texto.'
+      );
+    }
+    if (disabilityItems.length > 0) {
+      gaps.push({ stepIndex: 2, stepLabel: STEP_LABELS[2], items: disabilityItems });
+    }
+
+    const wmMembers = form.socioeconomic_information.working_family_members;
+    const wmErrors = wmMembers.map(validateWorkingFamilyMemberRow);
+    const wmItems = formatWorkingFamilyRowIssues(wmErrors);
+    if (wmItems.length > 0) {
+      gaps.push({ stepIndex: 3, stepLabel: STEP_LABELS[3], items: wmItems });
+    }
+
+    const docItems: string[] = [];
+    documentTypes.forEach(doc => {
+      if (!doc.required) return;
+      const status =
+        form.documentation_requirements.documents.find(d => d.document_type === doc.key)?.status || 'pendiente';
+      if (status === 'pendiente') {
+        docItems.push(`${doc.label}: el estado no puede ser «Pendiente». Indique entregado, en trámite o no aplica.`);
+      }
+    });
+    extraDocuments.forEach((e, i) => {
+      if (e.title.trim() && !e.file) {
+        docItems.push(`Documento adicional ${i + 1}: falta el archivo o elimine la fila.`);
+      }
+      if (!e.title.trim() && e.file) {
+        docItems.push(`Documento adicional ${i + 1}: indique un título o quite el archivo.`);
+      }
+    });
+    const totalFiles =
+      Object.values(documentFiles).filter(Boolean).length + extraDocuments.filter(x => x.file).length;
+    if (totalFiles > MAX_RECORD_UPLOAD_FILES) {
+      docItems.push(`Adjuntos: máximo ${MAX_RECORD_UPLOAD_FILES} archivos en total (incluye documentos adicionales).`);
+    }
+    if (docItems.length > 0) {
+      gaps.push({ stepIndex: 4, stepLabel: STEP_LABELS[4], items: docItems });
+    }
+
+    const reqItems: string[] = [];
+    const obsRows = parseGeneralObservationsStored(form.documentation_requirements.general_observations);
+    obsRows.forEach((note, i) => {
+      if (!note.trim()) return;
+      if (note.length > MAX_GENERAL_OBSERVATION_NOTE_LENGTH) {
+        reqItems.push(
+          `Observaciones generales (nota ${i + 1}): máximo ${MAX_GENERAL_OBSERVATION_NOTE_LENGTH} caracteres.`
+        );
+      } else if (!GENERAL_OBSERVATIONS_CHAR_PATTERN.test(note)) {
+        reqItems.push(`Observaciones generales (nota ${i + 1}): caracteres no permitidos.`);
+      }
+    });
+    const nonEmptyObs = obsRows.filter((n) => n.trim().length > 0).length;
+    if (nonEmptyObs > MAX_GENERAL_OBSERVATION_NOTE_COUNT) {
+      reqItems.push(`Observaciones generales: máximo ${MAX_GENERAL_OBSERVATION_NOTE_COUNT} notas.`);
+    }
+    if (reqItems.length > 0) {
+      gaps.push({ stepIndex: LAST_STEP_INDEX, stepLabel: STEP_LABELS[LAST_STEP_INDEX], items: reqItems });
+    }
+
+    return gaps;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentStep !== LAST_STEP_INDEX) {
       goToNextStep();
       return;
     }
-    // Validaciones manuales antes del envío
-    let hasErrors = false;
 
-    // Nombre completo
-    const fullName = form.complete_personal_data.full_name;
-    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(fullName) || fullName.length < 5 || fullName.length > 30) {
-      setFullNameError(fullName.length < 5 && fullName.length > 0 ? 'Mínimo 5 caracteres.' :
-        fullName.length > 30 ? 'Máximo 30 caracteres.' :
-          'Solo se permiten letras y espacios.');
-      hasErrors = true;
-    }
-
-    // Teléfono Principal
-    const primaryPhone = form.complete_personal_data.primary_phone;
-    if (!/^\d{4}-\d{4}$/.test(primaryPhone)) {
-      setPrimaryPhoneError('Formato inválido. Use 9999-9999.');
-      hasErrors = true;
-    }
-
-    // Teléfono Secundario (si está lleno)
-    const secondaryPhone = form.complete_personal_data.secondary_phone;
-    if (secondaryPhone && !/^\d{4}-\d{4}$/.test(secondaryPhone)) {
-      setSecondaryPhoneError('Formato inválido. Use 9999-9999.');
-      hasErrors = true;
-    }
-
-    // Cédula
-    const cedula = form.complete_personal_data.cedula;
-    if (!/^\d+$/.test(cedula) || cedula.length === 0) {
-      setCedulaError(cedula.length === 0 ? 'Este campo es obligatorio.' : 'Solo se permiten números.');
-      hasErrors = true;
-    } else if (cedula.length < 9 || cedula.length > 13) {
-      setCedulaError(cedula.length < 9 ? 'Mínimo 9 dígitos.' : 'Máximo 13 caracteres.');
-      hasErrors = true;
-    }
-
-    // Lugar de nacimiento
-    const birthPlace = form.complete_personal_data.birth_place;
-    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(birthPlace) || birthPlace.length > 40 || birthPlace.length === 0) {
-      setBirthPlaceError(birthPlace.length === 0 ? 'Este campo es obligatorio.' :
-        birthPlace.length > 40 ? 'Máximo 40 caracteres.' :
-          'Solo se permiten letras y espacios.');
-      hasErrors = true;
-    }
-
-    if (hasErrors) {
+    const stepIssues = getFinalSubmitStepIssues();
+    if (stepIssues.length > 0) {
+      setFinalSubmitGaps(stepIssues);
+      validateStepPersonal();
+      validateStepFamily();
+      validateStepDisability();
+      validateStepSocioeconomic();
+      validateStepDocuments();
+      const diseasesChk = form.disability_information.medical_additional.diseases;
+      if (diseasesChk && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-[\]{}"'/_]*$/.test(diseasesChk) || diseasesChk.length > 200)) {
+        setDiseasesError(
+          diseasesChk.length > 200 ? 'Máximo 200 caracteres.' : 'No se permiten números.'
+        );
+      }
+      const genObsRows = parseGeneralObservationsStored(form.documentation_requirements.general_observations);
+      let genObsErr = '';
+      for (let i = 0; i < genObsRows.length && !genObsErr; i++) {
+        const note = genObsRows[i];
+        if (!note.trim()) continue;
+        if (note.length > MAX_GENERAL_OBSERVATION_NOTE_LENGTH) {
+          genObsErr = `Observación ${i + 1}: máximo ${MAX_GENERAL_OBSERVATION_NOTE_LENGTH} caracteres.`;
+        } else if (!GENERAL_OBSERVATIONS_CHAR_PATTERN.test(note)) {
+          genObsErr = `Observación ${i + 1}: solo se permiten letras, números y signos de puntuación básicos.`;
+        }
+      }
+      if (genObsRows.filter((n) => n.trim().length > 0).length > MAX_GENERAL_OBSERVATION_NOTE_COUNT) {
+        genObsErr = `Máximo ${MAX_GENERAL_OBSERVATION_NOTE_COUNT} notas.`;
+      }
+      if (genObsErr) setGeneralObservationsError(genObsErr);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-
-    // Dirección de domicilio exacta
-    const exactAddress = form.complete_personal_data.exact_address;
-    if (exactAddress.length === 0) {
-      setAddressError('Este campo es obligatorio.');
-      hasErrors = true;
-    } else if (exactAddress.length > 150) {
-      setAddressError('Máximo 150 caracteres.');
-      hasErrors = true;
-    }
-
-
-    // Validar Información Familiar (solo si se está mostrando)
-    let hasFamilyErrors = false;
-
-    if (showParents) {
-      // Madre
-      const mCed = form.family_information.mother_cedula;
-      if (mCed && (!/^\d+$/.test(mCed) || mCed.length < 9 || mCed.length > 13)) {
-        setMotherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
-        hasFamilyErrors = true;
-      }
-
-      const mName = form.family_information.mother_name;
-      if (mName && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(mName) || mName.length < 5 || mName.length > 30)) {
-        setMotherNameError(
-          mName.length < 5 ? 'Mínimo 5 caracteres.' :
-            mName.length > 30 ? 'Máximo 30 caracteres.' :
-              'Solo letras y espacios.'
-        );
-        hasFamilyErrors = true;
-      }
-
-      const mOcc = form.family_information.mother_occupation;
-      if (mOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(mOcc) || mOcc.length > 20)) {
-        setMotherOccupationError('Máximo 20 caracteres, solo letras.');
-        hasFamilyErrors = true;
-      }
-
-      const mPhone = form.family_information.mother_phone;
-      if (mPhone && !/^\d{4}-\d{4}$/.test(mPhone)) {
-        setMotherPhoneError('Formato inválido. Use 9999-9999.');
-        hasFamilyErrors = true;
-      }
-
-      // Padre
-      const fCed = form.family_information.father_cedula;
-      if (fCed && (!/^\d+$/.test(fCed) || fCed.length < 9 || fCed.length > 13)) {
-        setFatherCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
-        hasFamilyErrors = true;
-      }
-
-      const fName = form.family_information.father_name;
-      if (fName && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(fName) || fName.length < 5 || fName.length > 30)) {
-        setFatherNameError(
-          fName.length < 5 ? 'Mínimo 5 caracteres.' :
-            fName.length > 30 ? 'Máximo 30 caracteres.' :
-              'Solo letras y espacios.'
-        );
-        hasFamilyErrors = true;
-      }
-
-      const fOcc = form.family_information.father_occupation;
-      if (fOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(fOcc) || fOcc.length > 20)) {
-        setFatherOccupationError('Máximo 20 caracteres, solo letras.');
-        hasFamilyErrors = true;
-      }
-
-      const fPhone = form.family_information.father_phone;
-      if (fPhone && !/^\d{4}-\d{4}$/.test(fPhone)) {
-        setFatherPhoneError('Formato inválido. Use 9999-9999.');
-        hasFamilyErrors = true;
-      }
-    }
-
-    if (hasFamilyErrors) {
-      return;
-    }
-
-    // Nombre del Encargado Legal
-    const responsibleName = form.family_information.responsible_person;
-    if (showLegalGuardian && responsibleName && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]+$/.test(responsibleName) || responsibleName.length < 5 || responsibleName.length > 30)) {
-      setResponsibleNameError(
-        responsibleName.length < 5 ? 'Mínimo 5 caracteres.' :
-          responsibleName.length > 30 ? 'Máximo 30 caracteres.' :
-            'Solo se permiten letras y espacios.'
-      );
-      hasErrors = true;
-    }
-    // Cédula del Encargado Legal
-    if (showLegalGuardian) {
-      const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula;
-      if (rCed && (!/^\d+$/.test(rCed) || rCed.length < 9 || rCed.length > 13)) {
-        setResponsibleCedulaError('La cédula debe tener entre 9 y 13 dígitos numéricos.');
-        hasErrors = true;
-      }
-    }
-
-    const fOcc = form.family_information.responsible_occupation;
-    if (fOcc && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(fOcc) || fOcc.length > 20)) {
-      setResponsibleOccupationError('Máximo 20 caracteres, solo letras.');
-      hasErrors = true;
-    }
-
-    // Teléfono del Encargado Legal
-    const rPhone = form.family_information.responsible_phone;
-    if (rPhone && !/^\d{4}-\d{4}$/.test(rPhone)) {
-      setResponsiblePhoneError('Formato inválido. Use 9999-9999.');
-      hasErrors = true;
-    }
+    setFinalSubmitGaps(null);
 
     // Convertir archivos específicos a array con sus tipos
     const specificDocuments = Object.entries(documentFiles)
@@ -1070,27 +1635,14 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         file: file as File
       }));
 
-    // Enfermedades que Padece
-    const diseases = form.disability_information.medical_additional.diseases;
-    if (diseases && (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-[\]{}"'/_]*$/.test(diseases) || diseases.length > 200)) {
-      setDiseasesError(
-        diseases.length > 200 ? 'Máximo 200 caracteres.' :
-          'No se permiten números.'
-      );
-      hasErrors = true;
-    }
+    const extraSubmitParts = extraDocuments
+      .filter(e => e.file && e.title.trim())
+      .map(e => {
+        const file = buildUniqueExtraFile(e.id, e.title, e.file as File);
+        return { type: 'otros' as const, file };
+      });
 
-    // Observaciones Generales
-    const generalObs = form.documentation_requirements.general_observations;
-    if (generalObs && (!/^[0-9a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(generalObs) || generalObs.length > 200)) {
-      setGeneralObservationsError(
-        generalObs.length > 200 ? 'Máximo 200 caracteres.' : 'Solo se permiten letras, números y signos de puntuación básicos.'
-      );
-      hasErrors = true;
-    }
-
-    // Combinar todos los documentos
-    const allDocuments = [...specificDocuments];
+    const allDocuments = [...specificDocuments, ...extraSubmitParts];
 
     const formData: Phase3Data = {
       ...form,
@@ -1107,6 +1659,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
   return (
     <div className="min-w-0 w-full max-w-full overflow-x-hidden box-border bg-white rounded-lg shadow-sm p-4 sm:p-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
+      {/* Header Hide for now
       <div className="flex items-center gap-3 mb-4 sm:mb-6">
         <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
           <FileText className="w-6 h-6 text-blue-600" />
@@ -1130,11 +1683,57 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           </p>
         </div>
       </div>
+      */}
+
+      {finalSubmitGaps && finalSubmitGaps.length > 0 && (
+        <div
+          className="mb-5 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          role="alert"
+        >
+          <p className="font-semibold text-amber-900 mb-2">
+            Revise la información faltante o con error en los pasos indicados:
+          </p>
+          <div className="space-y-4">
+            {finalSubmitGaps.map((gap) => (
+              <div key={gap.stepIndex}>
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="font-medium text-amber-950">
+                    Paso {gap.stepIndex + 1} — {gap.stepLabel}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-blue-700 underline hover:text-blue-900"
+                    onClick={() => {
+                      setFinalSubmitGaps(null);
+                      setCurrentStep(gap.stepIndex);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Ir a este paso
+                  </button>
+                </div>
+                <ul className="list-disc pl-5 space-y-0.5 text-amber-900">
+                  {gap.items.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="mt-3 text-xs font-medium text-amber-900 underline hover:text-amber-950"
+            onClick={() => setFinalSubmitGaps(null)}
+          >
+            Cerrar resumen
+          </button>
+        </div>
+      )}
 
       {/* Step progress */}
       <div className="mb-6 sm:mb-8 min-w-0">
-        {/* Mobile: single-step + arrows (no overflow); debounce to avoid double-tap skip */}
-        <div className="sm:hidden flex items-center gap-2 min-w-0">
+        {/* Mobile: prev/next only (label hidden to avoid overflow); debounce to avoid double-tap skip */}
+        <div className="sm:hidden flex items-center justify-between gap-2 min-w-0 w-full">
           <button
             type="button"
             onClick={() => {
@@ -1175,10 +1774,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setStepperViewStart(s => Math.max(0, s - 1))}
-              disabled={stepperViewStart === 0}
+              onClick={goToPrevStep}
+              disabled={currentStep === 0}
               className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
-              aria-label="Ver pasos anteriores"
+              aria-label="Paso anterior"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -1214,10 +1813,14 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => setStepperViewStart(s => Math.min(TOTAL_STEPS - STEPS_VISIBLE, s + 1))}
-              disabled={stepperViewStart >= TOTAL_STEPS - STEPS_VISIBLE}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                goToNextStep();
+              }}
+              disabled={currentStep >= TOTAL_STEPS - 1}
               className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none touch-manipulation"
-              aria-label="Ver siguientes pasos"
+              aria-label="Siguiente paso"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -1272,10 +1875,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               />
               <p className="text-xs text-gray-500 mt-1">Esta fecha no puede ser modificada</p>
             </div>
-            {/* ✅ Nombre Completo con validación */}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nombre Completo *
+                Nombre Completo 
               </label>
               <input
                 type="text"
@@ -1311,16 +1914,17 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fullNameError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
+                placeholder="Ej: Nombre, Apellido, Apellido2"
               />
               <p className="text-xs text-gray-500 mt-1">
                 {fullNameCharsLeft} caracteres restantes (mínimo 5, máximo 40)
               </p>
               {fullNameError && <p className="text-xs text-red-500 mt-1">{fullNameError}</p>}
             </div>
-            {/* ✅ Número de Cédula con validación */}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Número de Cédula *
+                Número de Cédula 
               </label>
               <input
                 type="text"
@@ -1349,6 +1953,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${cedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
+                placeholder="Nacional u Dimex."
               />
               {form.complete_personal_data.cedula.length < 9 && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -1359,7 +1964,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sexo *
+                Sexo 
               </label>
               <select
                 value={form.complete_personal_data.gender}
@@ -1372,22 +1977,42 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 <option value="other">Otro</option>
               </select>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de Nacimiento *
+                Fecha de Nacimiento 
               </label>
               <input
                 type="date"
                 value={form.complete_personal_data.birth_date}
-                onChange={(e) => handleChange('complete_personal_data', 'birth_date', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => {
+                  const v = e.target.value;
+                  handleChange('complete_personal_data', 'birth_date', v);
+
+                  if (v && (v < birthDateLimits.min || v > birthDateLimits.max)) {
+                    setBirthDateError('La fecha de nacimiento debe estar entre el rango permitido');
+                    e.target.setCustomValidity('Fecha de nacimiento inválida.');
+                    return;
+                  }
+
+                  setBirthDateError('');
+                  e.target.setCustomValidity('');
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${birthDateError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
+                min={birthDateLimits.min}
+                max={birthDateLimits.max}
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Debe ser una fecha válida (entre {birthDateLimits.min} y {birthDateLimits.max})
+              </p>
+              {birthDateError && <p className="text-xs text-red-500 mt-1">{birthDateError}</p>}
             </div>
-            {/* ✅ Lugar de Nacimiento con validación */}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lugar de Nacimiento *
+                Lugar de Nacimiento 
               </label>
               <input
                 type="text"
@@ -1414,103 +2039,113 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${birthPlaceError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
+                placeholder="Ej: Nicoya, Guanacaste"
               />
               <p className="text-xs text-gray-500 mt-1">
                 {birthPlaceCharsLeft} caracteres restantes (máximo 40)
               </p>
               {birthPlaceError && <p className="text-xs text-red-500 mt-1">{birthPlaceError}</p>}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Teléfono Principal *
+                Teléfono Principal 
               </label>
               <input
                 type="text"
                 value={form.complete_personal_data.primary_phone}
                 onChange={(e) => {
                   const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
-                  let formatted = digits;
-                  if (digits.length > 4) {
-                    formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
-                  }
-                  if (formatted.length > 9) return;
+                  const formatted = digits;
+                  if (formatted.length > 8) return;
 
                   setPrimaryPhoneError('');
                   handleChange('complete_personal_data', 'primary_phone', formatted);
-                  setPrimaryPhoneCharsLeft(9 - formatted.length);
+                  setPrimaryPhoneCharsLeft(8 - formatted.length);
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${primaryPhoneError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
-                placeholder="Ej: 8888-8888"
+                placeholder="Ej: 88888888"
               />
               <p className="text-xs text-gray-500 mt-1">
-                {primaryPhoneCharsLeft} caracteres restantes (máximo 9, formato: 9999-9999)
+                {primaryPhoneCharsLeft} caracteres restantes (máximo 8, formato: 88888888)
               </p>
               {primaryPhoneError && <p className="text-xs text-red-500 mt-1">{primaryPhoneError}</p>}
             </div>
            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Teléfono Secundario *
+                Teléfono Secundario 
               </label>
               <input
                 type="text"
                 value={form.complete_personal_data.secondary_phone}
                 onChange={(e) => {
                   const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
-                  let formatted = digits;
-                  if (digits.length > 4) {
-                    formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
-                  }
-                  if (formatted.length > 9) return;
+                  const formatted = digits;
+                  if (formatted.length > 8) return;
 
                   setSecondaryPhoneError('');
                   handleChange('complete_personal_data', 'secondary_phone', formatted);
-                  setSecondaryPhoneCharsLeft(9 - formatted.length);
+                  setSecondaryPhoneCharsLeft(8 - formatted.length);
                 }}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${secondaryPhoneError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                   }`}
                 required
-                placeholder="Ej: 8888-8888"
+                placeholder="Ej: 88888888"
               />
               <p className="text-xs text-gray-500 mt-1">
-                {secondaryPhoneCharsLeft} caracteres restantes (máximo 9, formato: 9999-9999)
+                {secondaryPhoneCharsLeft} caracteres restantes (máximo 8, formato: 88888888)
               </p>
               {secondaryPhoneError && <p className="text-xs text-red-500 mt-1">{secondaryPhoneError}</p>}
             </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Correo Electrónico *
+                Correo Electrónico 
               </label>
               <input
                 type="email"
                 value={form.complete_personal_data.email}
-                onChange={(e) => setForm(prev => ({
-                  ...prev,
-                  complete_personal_data: {
-                    ...prev.complete_personal_data,
-                    email: e.target.value
-                  }
-                }))}
+                onChange={(e) => {
+                  const v = e.target.value.slice(0, 50);
+                  setForm(prev => ({
+                    ...prev,
+                    complete_personal_data: {
+                      ...prev.complete_personal_data,
+                      email: v
+                    }
+                  }));
+                  setEmailCharsLeft(Math.max(0, 50 - v.length));
+                  if (!v.trim()) setEmailError('Este campo es obligatorio.');
+                  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) setEmailError('Debe ingresar un correo electrónico válido.');
+                  else setEmailError('');
+                }}
                 readOnly={!isAdminCreation && !isAdminEdit}
                 required
+                maxLength={50}
                 className={`w-full px-3 py-2 border border-gray-300 rounded-md ${!isAdminCreation && !isAdminEdit
                   ? 'bg-gray-50 cursor-not-allowed'
                   : 'bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                   }`}
-                placeholder={isAdminCreation || isAdminEdit ? "Ingrese el correo electrónico" : "Obtenido de su cuenta de usuario"}
+                placeholder={isAdminCreation || isAdminEdit ? "correo electrónico" : "Obtenido de su cuenta"}
               />
               <p className="text-xs text-gray-500 mt-1">
                 {isAdminCreation || isAdminEdit
-                  ? "Correo electrónico de la persona"
+                  ? ""
                   : "Obtenido automáticamente de su cuenta"
                 }
               </p>
+              <p className="text-xs text-gray-500 mt-1 text-left">
+                {emailCharsLeft} caracteres restantes (máximo 50)
+              </p>
+              {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
             </div>
           </div>
+
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dirección de domicilio exacta *
+              Dirección de domicilio exacta 
             </label>
             <textarea
               value={form.complete_personal_data.exact_address ?? ''}
@@ -1531,16 +2166,18 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${addressError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                 }`}
               required
+              placeholder="Direccion exacta"
             />
             <p className="text-xs text-gray-500 mt-1">
               {addressCharsLeft} caracteres restantes (máximo 150)
             </p>
             {addressError && <p className="text-xs text-red-500 mt-1">{addressError}</p>}
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mt-4 min-w-0">
             <div className="min-w-0">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Provincia *
+                Provincia 
               </label>
               <select
                 value={form.complete_personal_data.province}
@@ -1567,7 +2204,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cantón *
+                Cantón 
               </label>
               <select
                 value={form.complete_personal_data.canton || ''}
@@ -1593,7 +2230,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Distrito *
+                Distrito 
               </label>
               <select
                 value={form.complete_personal_data.district || ''}
@@ -1611,6 +2248,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               </select>
             </div>
           </div>
+          {locationStepError && (
+            <p className="mt-2 text-sm text-red-600">{locationStepError}</p>
+          )}
         </div>
         </>
         )}
@@ -1624,7 +2264,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           }`}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 min-w-0">
             <div className="flex items-center gap-2 min-w-0">
-              <h3 className="text-base sm:text-lg font-medium text-gray-900 min-w-0">Información Familiar, al menos uno es requerido</h3>
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 min-w-0">
+                Información Familiar — requiere un padre/madre o encargado legal
+              </h3>
               {needsModification('family_information') && (
                 <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full flex-shrink-0">
                   Requiere Modificación
@@ -1657,14 +2299,38 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
           </div>
 
+          {familyBlockError && (
+            <div className="mb-4 p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">
+              {familyBlockError}
+            </div>
+          )}
+
           {/* Información de la Madre - Only show when parents mode is selected */}
           {showParents && (
             <div className="mb-6">
-              <h4 className="text-md font-medium text-gray-800 mb-3">Información de la Madre</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h4 className="text-md font-medium text-gray-800">Información de la Madre</h4>
+                <button
+                  type="button"
+                  onClick={() => setMotherSectionOpen((v) => !v)}
+                  className="shrink-0 inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors touch-manipulation min-w-[40px] min-h-[40px]"
+                  aria-expanded={motherSectionOpen}
+                  aria-controls="phase3-mother-fields"
+                  aria-label={motherSectionOpen ? 'Ocultar datos de la madre' : 'Mostrar datos de la madre'}
+                  title={motherSectionOpen ? 'Ocultar' : 'Mostrar'}
+                >
+                  {motherSectionOpen ? (
+                    <EyeOff className="w-5 h-5" aria-hidden />
+                  ) : (
+                    <Eye className="w-5 h-5" aria-hidden />
+                  )}
+                </button>
+              </div>
+              {motherSectionOpen && (
+              <div id="phase3-mother-fields" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre de la Madre
+                    Nombre de la Madre {familyPathCompletion.motherFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
@@ -1690,7 +2356,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${motherNameError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
-                    placeholder='Opcional'
+                    placeholder={familyPathCompletion.motherFieldsOptional ? 'Opcional' : 'Mín. 5 caracteres'}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {motherNameCharsLeft} caracteres restantes (mín. 5, máx. 40)
@@ -1699,38 +2365,44 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Número de Cédula Madre
+                    Número de Cédula Madre {familyPathCompletion.motherFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
                     value={form.family_information.mother_cedula}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '');
-                      if (value.length > 13) return;
+                      const rawValue = e.target.value;
+                      const isValid = /^\d*$/.test(rawValue);
+                      const isLengthValid = rawValue.length <= 13;
 
-                      if (value.length > 13) {
+                      if (!isValid) {
+                        setMotherCedulaError('Solo se permiten números.');
+                        return;
+                      }
+
+                      if (!isLengthValid) {
                         setMotherCedulaError('Máximo 13 caracteres.');
                         return;
                       }
 
                       setMotherCedulaError('');
-                      handleChange('family_information', 'mother_cedula', value);
-                      setMotherCedulaCharsLeft(13 - value.length);
+                      handleChange('family_information', 'mother_cedula', rawValue);
+                      setMotherCedulaCharsLeft(13 - rawValue.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${motherCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
-                    placeholder='Opcional'
+                    placeholder="Nacional u Dimex."
                   />
-                  {form.family_information.mother_cedula.length < 9 && form.family_information.mother_cedula.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {motherCedulaCharsLeft} caracteres restantes (entre 9 y 13)
-                  </p>
-                )}
+                  {form.family_information.mother_cedula.length < 9 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {motherCedulaCharsLeft} caracteres restantes (entre 9 y 13 dígitos)
+                    </p>
+                  )}
                 {motherCedulaError && <p className="text-xs text-red-500 mt-1">{motherCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ocupación de la Madre
+                    Ocupación de la Madre {familyPathCompletion.motherFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
@@ -1756,42 +2428,38 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${motherOccupationError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
-                    placeholder='Opcional'
+                    placeholder='Mín. 5 caracteres'
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {motherOccupationCharsLeft} caracteres restantes (máx. 40)
+                    {motherOccupationCharsLeft} caracteres restantes (mín. 5, máx. 40)
                   </p>
                   {motherOccupationError && <p className="text-xs text-red-500 mt-1">{motherOccupationError}</p>}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono de la Madre
+                    Teléfono de la Madre {familyPathCompletion.motherFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
                     value={form.family_information.mother_phone}
                     onChange={(e) => {
                       const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
-                      let formatted = digits;
-                      if (digits.length > 4) {
-                        formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
-                      }
-                      if (formatted.length > 9) return;
-
                       setMotherPhoneError('');
-                      handleChange('family_information', 'mother_phone', formatted);
-                      setMotherPhoneCharsLeft(9 - formatted.length);
+                      handleChange('family_information', 'mother_phone', digits);
+                      setMotherPhoneCharsLeft(8 - digits.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${motherPhoneError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
-                    placeholder='Ej: 8888-8888'
+                    placeholder="Ej: 88888888"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {motherPhoneCharsLeft} caracteres restantes (máx. 9, formato: 9999-9999)
+                    {motherPhoneCharsLeft} caracteres restantes (máximo 8, formato: 88888888)
                   </p>
                   {motherPhoneError && <p className="text-xs text-red-500 mt-1">{motherPhoneError}</p>}
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -1799,11 +2467,29 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           {/* Información del Padre - Only show when parents mode is selected */}
           {showParents && (
             <div className="mb-6">
-              <h4 className="text-md font-medium text-gray-800 mb-3">Información del Padre</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h4 className="text-md font-medium text-gray-800">Información del Padre</h4>
+                <button
+                  type="button"
+                  onClick={() => setFatherSectionOpen((v) => !v)}
+                  className="shrink-0 inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors touch-manipulation min-w-[40px] min-h-[40px]"
+                  aria-expanded={fatherSectionOpen}
+                  aria-controls="phase3-father-fields"
+                  aria-label={fatherSectionOpen ? 'Ocultar datos del padre' : 'Mostrar datos del padre'}
+                  title={fatherSectionOpen ? 'Ocultar' : 'Mostrar'}
+                >
+                  {fatherSectionOpen ? (
+                    <EyeOff className="w-5 h-5" aria-hidden />
+                  ) : (
+                    <Eye className="w-5 h-5" aria-hidden />
+                  )}
+                </button>
+              </div>
+              {fatherSectionOpen && (
+              <div id="phase3-father-fields" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre del Padre
+                    Nombre del Padre {familyPathCompletion.fatherFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
@@ -1829,7 +2515,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fatherNameError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
-                    placeholder='Opcional'
+                    placeholder={familyPathCompletion.fatherFieldsOptional ? 'Opcional' : 'Mín. 5 caracteres'}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {fatherNameCharsLeft} caracteres restantes (mín. 5, máx. 40)
@@ -1838,38 +2524,44 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Número de Cédula Padre
+                    Número de Cédula Padre {familyPathCompletion.fatherFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
                     value={form.family_information.father_cedula}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '');
-                      if (value.length > 13) return;
+                      const rawValue = e.target.value;
+                      const isValid = /^\d*$/.test(rawValue);
+                      const isLengthValid = rawValue.length <= 13;
 
-                      if (value.length > 13) {
+                      if (!isValid) {
+                        setFatherCedulaError('Solo se permiten números.');
+                        return;
+                      }
+
+                      if (!isLengthValid) {
                         setFatherCedulaError('Máximo 13 caracteres.');
                         return;
                       }
 
                       setFatherCedulaError('');
-                      handleChange('family_information', 'father_cedula', value);
-                      setFatherCedulaCharsLeft(13 - value.length);
+                      handleChange('family_information', 'father_cedula', rawValue);
+                      setFatherCedulaCharsLeft(13 - rawValue.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fatherCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
-                    placeholder='Opcional'
+                    placeholder="Nacional u Dimex."
                   />
-                  {form.family_information.father_cedula.length < 9 && form.family_information.father_cedula.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {fatherCedulaCharsLeft} caracteres restantes (entre 9 y 13)
-                  </p>
-                )}
+                  {form.family_information.father_cedula.length < 9 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {fatherCedulaCharsLeft} caracteres restantes (entre 9 y 13 dígitos)
+                    </p>
+                  )}
                 {fatherCedulaError && <p className="text-xs text-red-500 mt-1">{fatherCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ocupación del Padre
+                    Ocupación del Padre {familyPathCompletion.fatherFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
@@ -1895,42 +2587,37 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fatherOccupationError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
-                    placeholder='Opcional'
+                    placeholder='Mín. 5 caracteres'
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {fatherOccupationCharsLeft} caracteres restantes (máx. 40)
+                    {fatherOccupationCharsLeft} caracteres restantes (mín. 5, máx. 40)
                   </p>
                   {fatherOccupationError && <p className="text-xs text-red-500 mt-1">{fatherOccupationError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono del Padre
+                    Teléfono del Padre {familyPathCompletion.fatherFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
                     value={form.family_information.father_phone}
                     onChange={(e) => {
                       const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
-                      let formatted = digits;
-                      if (digits.length > 4) {
-                        formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
-                      }
-                      if (formatted.length > 9) return;
-
                       setFatherPhoneError('');
-                      handleChange('family_information', 'father_phone', formatted);
-                      setFatherPhoneCharsLeft(9 - formatted.length);
+                      handleChange('family_information', 'father_phone', digits);
+                      setFatherPhoneCharsLeft(8 - digits.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${fatherPhoneError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
-                    placeholder='Ej: 8888-8888'
+                    placeholder="Ej: 88888888"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {fatherPhoneCharsLeft} caracteres restantes (máx. 9, formato: 9999-9999)
+                    {fatherPhoneCharsLeft} caracteres restantes (máximo 8, formato: 88888888)
                   </p>
                   {fatherPhoneError && <p className="text-xs text-red-500 mt-1">{fatherPhoneError}</p>}
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -1944,7 +2631,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre del Encargado Legal
+                    Nombre del Encargado Legal {familyPathCompletion.guardianFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
@@ -1970,6 +2657,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${responsibleNameError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
+                    placeholder={familyPathCompletion.guardianFieldsOptional ? 'Opcional' : 'Mín. 5 caracteres'}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {responsibleNameCharsLeft} caracteres restantes (máximo. 40)
@@ -1978,42 +2666,47 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Numero de cedula del encargado Legal
+                    Número de cédula del encargado legal {familyPathCompletion.guardianFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
                     value={(form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula ?? ''}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, ''); // Elimina todo lo que no sea número
-                      if (value.length > 13) return; // Bloquea si ya tiene 13 dígitos (máx.)
+                      const rawValue = e.target.value;
+                      const isValid = /^\d*$/.test(rawValue);
+                      const isLengthValid = rawValue.length <= 13;
 
-                      if (value.length > 0 && value.length < 9) {
-                        setResponsibleCedulaError('Debe tener entre 9 y 13 dígitos.');
-                      } else if (value.length > 13) {
-                        setResponsibleCedulaError('Máximo 13 caracteres.');
-                      } else {
-                        setResponsibleCedulaError('');
+                      if (!isValid) {
+                        setResponsibleCedulaError('Solo se permiten números.');
+                        return;
                       }
 
-                      handleChange('family_information', 'responsible_cedula', value);
-                      setResponsibleCedulaCharsLeft(13 - value.length);
+                      if (!isLengthValid) {
+                        setResponsibleCedulaError('Máximo 13 caracteres.');
+                        return;
+                      }
+
+                      setResponsibleCedulaError('');
+                      handleChange('family_information', 'responsible_cedula', rawValue);
+                      setResponsibleCedulaCharsLeft(13 - rawValue.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${responsibleCedulaError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
+                    placeholder="Nacional u Dimex."
                   />
                   {(() => {
-                  const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula ?? '';
-                  return rCed.length > 0 && rCed.length < 9;
-                })() && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {responsibleCedulaCharsLeft} caracteres restantes (entre 9 y 13 dígitos)
-                  </p>
-                )}
+                    const rCed = (form.family_information as FamilyInformation & { responsible_cedula?: string }).responsible_cedula ?? '';
+                    return rCed.length < 9;
+                  })() && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {responsibleCedulaCharsLeft} caracteres restantes (entre 9 y 13 dígitos)
+                    </p>
+                  )}
                 {responsibleCedulaError && <p className="text-xs text-red-500 mt-1">{responsibleCedulaError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ocupación del Encargado Legal
+                    Ocupación del Encargado Legal {familyPathCompletion.guardianFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
@@ -2039,36 +2732,32 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${responsibleOccupationError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
+                    placeholder='Mín. 5 caracteres'
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {responsibleOccupationCharsLeft} caracteres restantes (máximo 40)
+                    {responsibleOccupationCharsLeft} caracteres restantes (mín. 5, máx. 40)
                   </p>
                   {responsibleOccupationError && <p className="text-xs text-red-500 mt-1">{responsibleOccupationError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono del Encargado Legal
+                    Teléfono del Encargado Legal {familyPathCompletion.guardianFieldsOptional ? '(opcional)' : ''}
                   </label>
                   <input
                     type="text"
                     value={form.family_information.responsible_phone}
                     onChange={(e) => {
                       const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
-                      let formatted = digits;
-                      if (digits.length > 4) {
-                        formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
-                      }
-                      if (formatted.length > 9) return;
-
                       setResponsiblePhoneError('');
-                      handleChange('family_information', 'responsible_phone', formatted);
-                      setResponsiblePhoneCharsLeft(9 - formatted.length);
+                      handleChange('family_information', 'responsible_phone', digits);
+                      setResponsiblePhoneCharsLeft(8 - digits.length);
                     }}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${responsiblePhoneError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
                       }`}
+                    placeholder="Ej: 88888888"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {responsiblePhoneCharsLeft} caracteres restantes (máximo 9, formato: 9999-9999)
+                    {responsiblePhoneCharsLeft} caracteres restantes (máximo 8, formato: 88888888)
                   </p>
                   {responsiblePhoneError && <p className="text-xs text-red-500 mt-1">{responsiblePhoneError}</p>}
                 </div>
@@ -2085,25 +2774,152 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
         <div className="border border-gray-200 rounded-lg p-4 sm:p-6 min-w-0 overflow-hidden">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3">Información de Discapacidad</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Discapacidad *
-              </label>
-              <select
-                name="disability_type"
-                value={form.disability_information.disability_type}
-                onChange={(e) => handleChange('disability_information', 'disability_type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="fisica">Física</option>
-                <option value="visual">Visual</option>
-                <option value="auditiva">Auditiva</option>
-                <option value="psicosocial">Psicosocial</option>
-                <option value="cognitiva">Cognitiva</option>
-                <option value="intelectual">Intelectual</option>
-                <option value="multiple">Múltiple</option>
-              </select>
+            <div className="md:col-span-2 md:row-span-2 space-y-3">
+              <div>
+                <label htmlFor="disability_type_primary" className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de Discapacidad 
+                </label>
+                <select
+                  id="disability_type_primary"
+                  name="disability_type_primary"
+                  value={form.disability_information.disability_type[0] ?? ''}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setDisabilityTypesError('');
+                    setForm((prev) => {
+                      const cur = prev.disability_information.disability_type;
+                      if (!raw) {
+                        return {
+                          ...prev,
+                          disability_information: {
+                            ...prev.disability_information,
+                            disability_type: cur.slice(1)
+                          }
+                        };
+                      }
+                      const v = raw as DisabilityTypeOption;
+                      const rest = cur.slice(1).filter((t) => t !== v);
+                      return {
+                        ...prev,
+                        disability_information: {
+                          ...prev.disability_information,
+                          disability_type: [v, ...rest]
+                        }
+                      };
+                    });
+                  }}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    disabilityTypesError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  required
+                >
+                  <option value="">Seleccionar</option>
+                  {DISABILITY_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {disabilityTypesCount < DISABILITY_TYPE_OPTIONS.length && (
+                <>
+                  {!showDisabilityTypeAddMore ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDisabilityTypeAddMore(true)}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-800 underline-offset-2 hover:underline"
+                    >
+                      + Agregar otro tipo de discapacidad
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label htmlFor="disability_type_add_more" className="text-sm font-medium text-gray-700">
+                          Agregar otro tipo
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDisabilityTypeAddMore(false);
+                            setDisabilityTypeAddMore('');
+                          }}
+                          className="text-sm text-gray-600 hover:text-gray-900"
+                        >
+                          Ocultar
+                        </button>
+                      </div>
+                      <select
+                        id="disability_type_add_more"
+                        name="disability_type_add_more"
+                        value={disabilityTypeAddMore}
+                        onChange={(e) => {
+                          const v = e.target.value as DisabilityTypeOption | '';
+                          if (v) {
+                            setDisabilityTypesError('');
+                            setForm((prev) => {
+                              const cur = prev.disability_information.disability_type;
+                              if (cur.includes(v)) return prev;
+                              return {
+                                ...prev,
+                                disability_information: {
+                                  ...prev.disability_information,
+                                  disability_type: [...cur, v]
+                                }
+                              };
+                            });
+                          }
+                          setDisabilityTypeAddMore('');
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Seleccione un tipo adicional…</option>
+                        {DISABILITY_TYPE_OPTIONS.filter(
+                          (o) => !form.disability_information.disability_type.includes(o.value)
+                        ).map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {form.disability_information.disability_type.length > 1 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.disability_information.disability_type.slice(1).map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-blue-50 text-blue-900 text-sm border border-blue-200"
+                    >
+                      {DISABILITY_TYPE_OPTIONS.find((o) => o.value === t)?.label ?? t}
+                      <button
+                        type="button"
+                        className="p-0.5 rounded-full hover:bg-blue-200 text-blue-800"
+                        aria-label={`Quitar ${DISABILITY_TYPE_OPTIONS.find((o) => o.value === t)?.label ?? t}`}
+                        onClick={() => {
+                          setDisabilityTypesError('');
+                          setForm((prev) => ({
+                            ...prev,
+                            disability_information: {
+                              ...prev.disability_information,
+                              disability_type: prev.disability_information.disability_type.filter((x) => x !== t)
+                            }
+                          }));
+                        }}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {disabilityTypesError && (
+                <p className="text-xs text-red-500">{disabilityTypesError}</p>
+              )}
             </div>
 
             <div>
@@ -2112,7 +2928,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               </label>
               <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
                 <p className="text-sm text-gray-600">
-                  El dictamen médico debe ser subido como documento en la sección de "Documentos Requeridos".
+                  El dictamen médico debe ser subido como documento en la sección de "Documentos".
                 </p>
               </div>
             </div>
@@ -2123,16 +2939,25 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               </label>
               <select
                 name="insurance_type"
-                value={form.disability_information.insurance_type}
-                onChange={(e) => handleChange('disability_information', 'insurance_type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={form.disability_information.insurance_type ?? ''}
+                onChange={(e) => {
+                  setInsuranceTypeError('');
+                  handleChange('disability_information', 'insurance_type', e.target.value);
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  insuranceTypeError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
                 required
               >
+                <option value="">Seleccionar</option>
                 <option value="rnc">RnC (Regimen no contributivo)</option>
                 <option value="independiente">Independiente</option>
                 <option value="privado">Privado</option>
                 <option value="otro">Otro</option>
               </select>
+              {insuranceTypeError && (
+                <p className="text-xs text-red-500 mt-1">{insuranceTypeError}</p>
+              )}
             </div>
 
             <div>
@@ -2141,15 +2966,24 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               </label>
               <select
                 name="disability_origin"
-                value={form.disability_information.disability_origin}
-                onChange={(e) => handleChange('disability_information', 'disability_origin', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={form.disability_information.disability_origin ?? ''}
+                onChange={(e) => {
+                  setDisabilityOriginError('');
+                  handleChange('disability_information', 'disability_origin', e.target.value);
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  disabilityOriginError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
                 required
               >
+                <option value="">Seleccionar</option>
                 <option value="nacimiento">Nacimiento</option>
                 <option value="accidente">Accidente</option>
                 <option value="enfermedad">Enfermedad</option>
               </select>
+              {disabilityOriginError && (
+                <p className="text-xs text-red-500 mt-1">{disabilityOriginError}</p>
+              )}
             </div>
 
             <div>
@@ -2158,15 +2992,24 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               </label>
               <select
                 name="disability_certificate"
-                value={form.disability_information.disability_certificate}
-                onChange={(e) => handleChange('disability_information', 'disability_certificate', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={form.disability_information.disability_certificate ?? ''}
+                onChange={(e) => {
+                  setDisabilityCertificateError('');
+                  handleChange('disability_information', 'disability_certificate', e.target.value);
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  disabilityCertificateError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
                 required
               >
+                <option value="">Seleccionar</option>
                 <option value="si">Sí</option>
                 <option value="no">No</option>
                 <option value="en_tramite">En trámite</option>
               </select>
+              {disabilityCertificateError && (
+                <p className="text-xs text-red-500 mt-1">{disabilityCertificateError}</p>
+              )}
             </div>
           </div>
         </div>
@@ -2188,20 +3031,31 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   Tipo de Sangre
                 </label>
                 <select
-                  value={form.disability_information.medical_additional.blood_type}
-                  onChange={(e) => setForm(prev => ({
-                    ...prev,
-                    disability_information: {
-                      ...prev.disability_information,
-                      medical_additional: {
-                        ...prev.disability_information.medical_additional,
-                        blood_type: e.target.value as 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
+                  value={form.disability_information.medical_additional.blood_type ?? ''}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      disability_information: {
+                        ...prev.disability_information,
+                        medical_additional: {
+                          ...prev.disability_information.medical_additional,
+                          blood_type: e.target.value as
+                            | 'A+'
+                            | 'A-'
+                            | 'B+'
+                            | 'B-'
+                            | 'AB+'
+                            | 'AB-'
+                            | 'O+'
+                            | 'O-'
+                            | ''
+                        }
                       }
-                    }
-                  }))}
+                    }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Seleccione tipo de sangre</option>
+                  <option value="">Seleccionar</option>
                   <option value="A+">A+</option>
                   <option value="A-">A-</option>
                   <option value="B+">B+</option>
@@ -2540,52 +3394,113 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               <button
                 type="button"
                 onClick={addWorkingFamilyMember}
-                className="flex items-center justify-center gap-1 px-3 py-2 sm:py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 min-h-[44px] sm:min-h-0 touch-manipulation w-full sm:w-auto"
+                disabled={!canAddWorkingFamilyMember}
+                title={
+                  !canAddWorkingFamilyMember
+                    ? 'Complete correctamente todos los campos del familiar actual antes de agregar otro.'
+                    : undefined
+                }
+                className="flex items-center justify-center gap-1 px-3 py-2 sm:py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 min-h-[44px] sm:min-h-0 touch-manipulation w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600"
               >
                 <Plus className="w-4 h-4" />
                 Agregar Familiar
               </button>
             </div>
             <div className="space-y-3">
-              {form.socioeconomic_information.working_family_members.map((member, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-gray-200 rounded min-w-0">
-                  <input
-                    type="text"
-                    placeholder="Nombre"
-                    value={member.name}
-                    onChange={(e) => updateWorkingFamilyMember(index, 'name', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Tipo de Trabajo"
-                    value={member.work_type}
-                    onChange={(e) => updateWorkingFamilyMember(index, 'work_type', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Lugar de Trabajo"
-                    value={member.work_place}
-                    onChange={(e) => updateWorkingFamilyMember(index, 'work_place', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Teléfono del Trabajo"
-                    value={member.work_phone}
-                    onChange={(e) => updateWorkingFamilyMember(index, 'work_phone', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeWorkingFamilyMember(index)}
-                    className="flex items-center justify-center px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+              {form.socioeconomic_information.working_family_members.map((member, index) => {
+                const rowErr = workingFamilyMemberErrors[index];
+                const workingMemberNameCharsLeft = Math.max(
+                  0,
+                  WORKING_FAMILY_MEMBER_NAME_MAX - member.name.length
+                );
+                const workTypeCharsLeft = Math.max(0, WORKING_FAMILY_WORK_FIELD_MAX - member.work_type.length);
+                const workPlaceCharsLeft = Math.max(0, WORKING_FAMILY_WORK_FIELD_MAX - member.work_place.length);
+                const workPhoneCharsLeft = Math.max(
+                  0,
+                  WORKING_FAMILY_PHONE_DIGITS_MAX - member.work_phone.length
+                );
+                return (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border border-gray-200 rounded min-w-0">
+                    <div className="min-w-0 md:col-span-1">
+                      <input
+                        type="text"
+                        placeholder="Nombre Completo"
+                        value={member.name}
+                        maxLength={WORKING_FAMILY_MEMBER_NAME_MAX}
+                        onChange={(e) => updateWorkingFamilyMember(index, 'name', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          rowErr?.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        autoComplete="name"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {workingMemberNameCharsLeft} caracteres restantes (mín. {WORKING_FAMILY_MEMBER_NAME_MIN}, máx.{' '}
+                        {WORKING_FAMILY_MEMBER_NAME_MAX})
+                      </p>
+                      {rowErr?.name && <p className="text-xs text-red-500 mt-1">{rowErr.name}</p>}
+                    </div>
+                    <div className="min-w-0 md:col-span-1">
+                      <input
+                        type="text"
+                        placeholder="Tipo de Trabajo"
+                        value={member.work_type}
+                        maxLength={WORKING_FAMILY_WORK_FIELD_MAX}
+                        onChange={(e) => updateWorkingFamilyMember(index, 'work_type', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          rowErr?.work_type ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {workTypeCharsLeft} caracteres restantes (máx. {WORKING_FAMILY_WORK_FIELD_MAX})
+                      </p>
+                      {rowErr?.work_type && <p className="text-xs text-red-500 mt-1">{rowErr.work_type}</p>}
+                    </div>
+                    <div className="min-w-0 md:col-span-1">
+                      <input
+                        type="text"
+                        placeholder="Lugar de Trabajo"
+                        value={member.work_place}
+                        maxLength={WORKING_FAMILY_WORK_FIELD_MAX}
+                        onChange={(e) => updateWorkingFamilyMember(index, 'work_place', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          rowErr?.work_place ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {workPlaceCharsLeft} caracteres restantes (máx. {WORKING_FAMILY_WORK_FIELD_MAX})
+                      </p>
+                      {rowErr?.work_place && <p className="text-xs text-red-500 mt-1">{rowErr.work_place}</p>}
+                    </div>
+                    <div className="min-w-0 md:col-span-1">
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        placeholder="Teléfono del Trabajo"
+                        value={member.work_phone}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, WORKING_FAMILY_PHONE_DIGITS_MAX);
+                          updateWorkingFamilyMember(index, 'work_phone', digits);
+                        }}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          rowErr?.work_phone ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {workPhoneCharsLeft} caracteres restantes (máx. {WORKING_FAMILY_PHONE_DIGITS_MAX})
+                      </p>
+                      {rowErr?.work_phone && <p className="text-xs text-red-500 mt-1">{rowErr.work_phone}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeWorkingFamilyMember(index)}
+                      className="flex items-center justify-center px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md md:self-start"
+                      aria-label="Eliminar familiar"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })}
               {form.socioeconomic_information.working_family_members.length === 0 && (
                 <div className="text-center py-4 text-gray-500">
                   No hay familiares trabajando registrados. Haga clic en "Agregar Familiar" para comenzar.
@@ -2599,7 +3514,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         {currentStep === 4 && (
         <>
-        {/* Subida de Documentos - compact on mobile */}
+        {/* Subida de Documentos — móvil: título legible + estado y archivo apilados */}
         <div className="border border-gray-200 rounded-lg p-3 sm:p-6">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">Documentos Requeridos</h3>
 
@@ -2612,46 +3527,71 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             {documentTypes.map((doc) => {
               const documentStatus = form.documentation_requirements.documents.find(d => d.document_type === doc.key)?.status || 'pendiente';
               const hasFile = documentFiles[doc.key];
+              const statusLockedByFile = Boolean(hasFile);
 
               return (
-                <div key={doc.key} className={`border rounded-lg p-2.5 sm:p-4 ${documentStatus === 'entregado' ? 'border-green-200 bg-green-50' :
+                <div key={doc.key} className={`border rounded-lg p-2 sm:p-4 ${documentStatus === 'entregado' ? 'border-green-200 bg-green-50' :
                   documentStatus === 'en_tramite' ? 'border-yellow-200 bg-yellow-50' :
                     'border-gray-200'
                 }`}>
-                  {/* Mobile: compact one-line row + optional filename */}
-                  <div className="flex sm:hidden flex-col gap-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-medium text-gray-700 truncate min-w-0 flex-1">{doc.label}{doc.required ? ' *' : ''}</span>
-                      <select
-                        className="text-[10px] border border-gray-300 rounded px-1.5 py-0.5 bg-white flex-shrink-0"
-                        value={documentStatus}
-                        onChange={(e) => {
-                          const status = e.target.value as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
-                          updateDocumentStatus(doc.key, status);
-                        }}
+                  {/* Mobile: compact stack — still readable */}
+                  <div className="flex sm:hidden flex-col gap-1.5 min-w-0">
+                    <h4 className="text-[13px] font-semibold text-gray-900 leading-tight break-words">
+                      {doc.label}
+                      {doc.required && <span className="text-red-500 font-semibold"> *</span>}
+                    </h4>
+                    <label className="sr-only" htmlFor={`doc-status-${doc.key}`}>
+                      Estado de {doc.label}
+                    </label>
+                    <select
+                      id={`doc-status-${doc.key}`}
+                      className="w-full text-xs border border-gray-300 rounded-md px-2.5 py-2 bg-white min-h-[40px] touch-manipulation disabled:opacity-60 disabled:cursor-not-allowed"
+                      value={documentStatus}
+                      disabled={statusLockedByFile}
+                      title={statusLockedByFile ? 'Quite el archivo adjunto para poder cambiar el estado.' : undefined}
+                      onChange={(e) => {
+                        const status = e.target.value as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
+                        updateDocumentStatus(doc.key, status);
+                      }}
+                    >
+                      <option value="pendiente">Pendiente</option>
+                      <option value="entregado">Entregado</option>
+                      <option value="en_tramite">En trámite</option>
+                      <option value="no_aplica">No aplica</option>
+                    </select>
+                    <div className="flex items-stretch gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRefs.current[doc.key]?.click()}
+                        className="flex-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-2 rounded-md min-h-[40px] touch-manipulation active:bg-blue-100"
                       >
-                        <option value="pendiente">Pendiente</option>
-                        <option value="entregado">Entregado</option>
-                        <option value="en_tramite">En trámite</option>
-                        <option value="no_aplica">No aplica</option>
-                      </select>
-                      <button type="button" onClick={() => fileInputRefs.current[doc.key]?.click()} className="flex-shrink-0 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded min-h-[36px] touch-manipulation">
                         Elegir archivo
                       </button>
                       {hasFile && (
-                        <button type="button" onClick={() => handleDocumentChange(doc.key, null)} className="text-red-500 p-1 -m-1 touch-manipulation" aria-label="Quitar">
+                        <button
+                          type="button"
+                          onClick={() => handleDocumentChange(doc.key, null)}
+                          className="flex-shrink-0 flex items-center justify-center px-2 border border-red-200 rounded-md text-red-600 bg-red-50 min-h-[40px] min-w-[40px] touch-manipulation"
+                          aria-label="Quitar archivo"
+                        >
                           <X className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                     {documentStatus === 'entregado' && !hasFile && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-green-700">
-                        <CheckCircle className="w-3 h-3 flex-shrink-0" />
-                        <span>Ya subido</span>
+                      <div className="flex items-center gap-1.5 text-[11px] text-green-800 bg-green-100/80 border border-green-200 rounded px-2 py-1.5 leading-snug">
+                        <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 text-green-600" />
+                        <span>Ya entregado / registrado en el sistema.</span>
                       </div>
                     )}
                     {hasFile && (
-                      <p className="text-[10px] text-green-600 truncate pl-0.5">{documentFiles[doc.key]?.name}</p>
+                      <p className="text-xs text-green-700 break-all leading-snug">
+                        <span className="font-medium text-green-800">Seleccionado: </span>
+                        {documentFiles[doc.key]?.name}
+                      </p>
+                    )}
+                    {statusLockedByFile && (
+                      <p className="text-[11px] text-gray-600">Para cambiar el estado, quite primero el archivo con ✕.</p>
                     )}
                   </div>
                   {/* Desktop: full card */}
@@ -2666,8 +3606,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                       <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-gray-700">{doc.label} {doc.required && <span className="text-red-500">*</span>}</label>
                         <select
-                          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
                           value={documentStatus}
+                          disabled={statusLockedByFile}
+                          title={statusLockedByFile ? 'Quite el archivo adjunto para poder cambiar el estado.' : undefined}
                           onChange={(e) => {
                             const status = e.target.value as 'pendiente' | 'entregado' | 'en_tramite' | 'no_aplica';
                             updateDocumentStatus(doc.key, status);
@@ -2691,6 +3633,9 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         <p className="text-xs text-green-600">{documentFiles[doc.key]?.name}</p>
                       </div>
                     )}
+                    {statusLockedByFile && (
+                      <p className="mt-1 text-xs text-gray-600">Para cambiar el estado, quite primero el archivo.</p>
+                    )}
                   </div>
                   <input
                     ref={el => { fileInputRefs.current[doc.key] = el; }}
@@ -2704,6 +3649,131 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
               );
             })}
           </div>
+
+          <div className="mt-4 sm:mt-5 pt-3 border-t border-gray-200">
+            <h4 className="text-[11px] sm:text-sm font-medium text-gray-900 mb-0.5 sm:mb-1">Adicionales (opcional)</h4>
+            <p className="sm:hidden text-[10px] text-gray-500 mb-1.5 leading-snug">
+              Hasta {MAX_RECORD_UPLOAD_FILES} archivos (papelera = quitar fila).
+            </p>
+            <p className="hidden sm:block text-[11px] sm:text-xs text-gray-600 mb-2 leading-snug">
+              Agregue otros archivos con un título descriptivo. Puede editar el título o reemplazar el archivo; use eliminar para quitar la fila.
+              Total máximo de archivos en este paso: {MAX_RECORD_UPLOAD_FILES}.
+            </p>
+            <div className="space-y-1.5 sm:space-y-2">
+              {extraDocuments.map((row, idx) => (
+                <div
+                  key={row.id}
+                  className="relative rounded-md sm:rounded-lg border border-gray-200 bg-white p-2 sm:p-2.5 md:p-3 shadow-sm"
+                >
+                  <div className="flex items-start gap-1 pr-8 sm:gap-1.5 sm:pr-9">
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-[10px] sm:text-[11px] font-medium text-gray-700 mb-0 sm:mb-0.5" htmlFor={`extra-doc-title-${row.id}`}>
+                        <span className="sm:hidden">Título · doc. {idx + 1}</span>
+                        <span className="hidden sm:inline">Título del documento {idx + 1}</span>
+                      </label>
+                      <input
+                        id={`extra-doc-title-${row.id}`}
+                        type="text"
+                        value={row.title}
+                        maxLength={40}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setExtraDocuments(prev =>
+                            prev.map(r => (r.id === row.id ? { ...r, title: v } : r))
+                          );
+                        }}
+                        className="w-full text-[11px] sm:text-xs border border-gray-300 rounded-md px-1.5 py-1 sm:px-2 sm:py-1.5 bg-gray-50/50 focus:bg-white focus:ring-1 focus:ring-indigo-500/40 focus:border-indigo-400"
+                        placeholder="Ej: Constancia adicional…"
+                        required
+                      />
+                      <p className="hidden sm:block text-xs text-gray-500 mt-1">
+                        {40 - row.title.length} caracteres restantes (máximo 40)
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExtraDocuments(prev => prev.filter(r => r.id !== row.id));
+                      const inp = extraFileInputRefs.current[row.id];
+                      if (inp) inp.value = '';
+                      delete extraFileInputRefs.current[row.id];
+                    }}
+                    className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors touch-manipulation"
+                    aria-label="Eliminar fila de documento adicional"
+                  >
+                    <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  </button>
+
+                  <div className="mt-1.5 sm:hidden flex items-stretch gap-1">
+                    <button
+                      type="button"
+                      onClick={() => extraFileInputRefs.current[row.id]?.click()}
+                      className="inline-flex flex-1 min-w-0 items-center justify-center gap-1 rounded-md bg-indigo-600 px-2 py-1.5 text-[11px] font-medium text-white shadow-sm hover:bg-indigo-700 active:bg-indigo-800 min-h-[36px] touch-manipulation"
+                    >
+                      <Upload className="w-3 h-3 shrink-0 opacity-90" />
+                      Archivo
+                    </button>
+                    {row.file && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExtraDocuments(prev =>
+                            prev.map(r => (r.id === row.id ? { ...r, file: null } : r))
+                          );
+                          const inp = extraFileInputRefs.current[row.id];
+                          if (inp) inp.value = '';
+                        }}
+                        className="inline-flex shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white px-2 text-gray-600 hover:bg-gray-50 min-h-[36px] min-w-[36px] touch-manipulation"
+                        aria-label="Quitar archivo"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={el => {
+                      extraFileInputRefs.current[row.id] = el;
+                    }}
+                    type="file"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      setExtraDocuments(prev =>
+                        prev.map(r => (r.id === row.id ? { ...r, file: f } : r))
+                      );
+                    }}
+                    className="hidden sm:block w-full mt-1.5 text-xs text-gray-600 file:mr-2 file:cursor-pointer file:rounded-md file:border file:border-indigo-200 file:bg-white file:px-3 file:py-2 file:text-xs file:font-medium file:text-indigo-700 hover:file:bg-indigo-50 file:shadow-sm min-h-[38px]"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  />
+
+                  {row.file && (
+                    <p className="mt-1 sm:mt-1.5 text-[10px] sm:text-[11px] text-green-700 break-all leading-snug line-clamp-2 sm:line-clamp-none">
+                      <span className="font-medium text-green-800 sm:font-medium">
+                        <span className="sm:hidden">✓ </span>
+                        <span className="hidden sm:inline">Seleccionado: </span>
+                      </span>
+                      {row.file.name}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const id =
+                  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                    ? crypto.randomUUID()
+                    : `ex-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                setExtraDocuments(prev => [...prev, { id, title: '', file: null }]);
+              }}
+              className="mt-2 sm:mt-3 w-full sm:w-auto inline-flex items-center justify-center gap-1 sm:gap-1.5 rounded-md border border-dashed border-indigo-200 bg-indigo-50/50 px-2 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs font-medium text-indigo-800 hover:border-indigo-300 hover:bg-indigo-50 min-h-[36px] sm:min-h-[40px] touch-manipulation"
+            >
+              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+              <span className="sm:hidden">Otro documento</span>
+              <span className="hidden sm:inline">Agregar otro documento</span>
+            </button>
+          </div>
         </div>
 
         </>
@@ -2711,6 +3781,27 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
 
         {currentStep === 5 && (
         <>
+        {submitError && (
+          <div className="mb-4 sm:mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-medium text-red-800">No se pudo completar el envío</h4>
+                <p className="mt-1 text-sm text-red-700 break-words">{submitError}</p>
+                <p className="mt-2 text-xs text-red-600">
+                  En unos segundos se abrirá el paso Documentos para que vuelva a cargar los archivos. También puede ir ahora.
+                </p>
+                <button
+                  type="button"
+                  className="mt-3 text-sm font-semibold text-red-800 underline underline-offset-2 hover:text-red-900"
+                  onClick={() => submitError && applyDocumentRetryReset(submitError)}
+                >
+                  Ir a Documentos ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Documentación y Requisitos (step 6) */}
         <div className="border border-gray-200 rounded-lg p-4 sm:p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Documentación y Requisitos</h3>
@@ -2763,48 +3854,66 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
             </div>
           </div>
 
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Observaciones Generales
-            </label>
-            <textarea
-              value={form.documentation_requirements.general_observations ?? ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Permitir letras, números, espacios y signos de puntuación básicos
-                const isValid = /^[0-9a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/.test(value);
-                const length = value.length;
-
-                if (!isValid) {
-                  setGeneralObservationsError('Solo se permiten letras, números y signos de puntuación básicos.');
-                  return;
-                }
-
-                if (length > 200) {
-                  setGeneralObservationsError('Máximo 200 caracteres.');
-                  return;
-                }
-
-                setGeneralObservationsError('');
-                handleChange('documentation_requirements', 'general_observations', value);
-                setGeneralObservationsCharsLeft(200 - length);
-              }}
-              rows={3}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${generalObservationsError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'
-                }`}
-              placeholder="Opcional"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {generalObservationsCharsLeft} caracteres restantes (máximo 200)
-            </p>
-            {generalObservationsError && <p className="text-xs text-red-500 mt-1">{generalObservationsError}</p>}
+          <div className="mt-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones generales</label>
+              <p className="text-xs text-gray-500">
+                Opcional. Hasta {MAX_GENERAL_OBSERVATION_NOTE_COUNT} notas, {MAX_GENERAL_OBSERVATION_NOTE_LENGTH} caracteres cada una.
+              </p>
+            </div>
+            {generalObservationsRowsForUi.map((text, idx) => (
+              <div key={idx} className="rounded-lg border border-gray-200 bg-gray-50/50 p-3">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-xs font-medium text-gray-600">Nota {idx + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeGeneralObservationsRow(idx)}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-red-600 hover:bg-red-50 touch-manipulation"
+                    aria-label={`Eliminar observación ${idx + 1}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Quitar
+                  </button>
+                </div>
+                <textarea
+                  value={text}
+                  onChange={(e) => updateGeneralObservationsRow(idx, e.target.value)}
+                  rows={2}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm ${
+                    generalObsRowErrors[idx]
+                      ? 'border-red-500 focus:ring-red-200'
+                      : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  placeholder="Opcional"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {Math.max(0, MAX_GENERAL_OBSERVATION_NOTE_LENGTH - text.length)} caracteres restantes (máximo{' '}
+                  {MAX_GENERAL_OBSERVATION_NOTE_LENGTH})
+                </p>
+                {generalObsRowErrors[idx] && (
+                  <p className="text-xs text-red-500 mt-1">{generalObsRowErrors[idx]}</p>
+                )}
+              </div>
+            ))}
+            {generalObservationsRowsForUi.length < MAX_GENERAL_OBSERVATION_NOTE_COUNT && (
+              <button
+                type="button"
+                onClick={addGeneralObservationsRow}
+                className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 touch-manipulation"
+              >
+                <Plus className="w-3.5 h-3.5 shrink-0" />
+                Agregar otra observación
+              </button>
+            )}
+            {generalObservationsError && (
+              <p className="text-xs text-red-500">{generalObservationsError}</p>
+            )}
           </div>
         </div>
         </>
         )}
 
-        {/* Spacer so last step content isn't hidden behind sticky nav on mobile */}
-        <div className="h-20 sm:h-0" aria-hidden />
+        
 
         {/* Step navigation: sticky on mobile, safe area, full-width touch targets */}
         <div
