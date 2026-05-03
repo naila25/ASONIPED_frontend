@@ -167,49 +167,30 @@ const AdminRecordEdit: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 min-w-0">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="mb-5 sm:mb-8">
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 min-w-0">
             <button
               onClick={handleBack}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex-shrink-0 p-1.5 sm:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               title="Volver"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <FileText className="w-6 h-6 text-orange-600" />
+
+            <div className="flex-shrink-0 p-2 sm:p-3 bg-orange-100 rounded-md sm:rounded-lg">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
             </div>
-            
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 leading-tight break-words">
                 Editar Expediente - {record.record_number}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-0 leading-snug">
                 Edición administrativa con capacidad de sobreescribir
               </p>
             </div>
           </div>
         </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
-                  Error al actualizar expediente
-                </h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Upload Progress */}
         {saving && uploadProgress > 0 && (
@@ -247,6 +228,8 @@ const AdminRecordEdit: React.FC = () => {
             uploadProgress={uploadProgress}
             isModification={true} // Flag to indicate this is editing existing record
             isAdminEdit={true} // Flag to indicate this is admin editing
+            submitError={error}
+            onClearSubmitError={() => setError(null)}
           />
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, User, Heart, Accessibility, Home, FileCheck, AlertCircle, CheckCircle, Clock, ExternalLink, Download, Eye } from 'lucide-react';
 import type { RecordWithDetails } from '../Types/records';
+import { formatDisabilityTypesSpanish, parseGeneralObservationsStored } from '../Types/records';
 import { getFileUrl, getFileName, formatFileSize, getFileIcon, previewFile, downloadFile, canPreviewInBrowser } from '../Utils/fileUtils';
 
 /** Entry shape from registration_requirements.document_statuses (array or JSON) */
@@ -488,14 +489,10 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record }) => {
               <label className="block text-sm font-medium text-gray-700">Tipo de Discapacidad</label>
               <p className="text-sm text-gray-900">
                 {(() => {
-                  const disabilityType = record.disability_information?.disability_type || record.disability_data?.disability_type;
-                  return disabilityType === 'fisica' ? 'Física' :
-                         disabilityType === 'visual' ? 'Visual' :
-                         disabilityType === 'auditiva' ? 'Auditiva' :
-                         disabilityType === 'psicosocial' ? 'Psicosocial' :
-                         disabilityType === 'cognitiva' ? 'Cognitiva' :
-                         disabilityType === 'intelectual' ? 'Intelectual' :
-                         disabilityType === 'multiple' ? 'Múltiple' : 'No especificado';
+                  const disabilityType =
+                    record.disability_information?.disability_type ?? record.disability_data?.disability_type;
+                  const label = formatDisabilityTypesSpanish(disabilityType);
+                  return label || 'No especificado';
                 })()}
               </p>
             </div>
@@ -899,15 +896,30 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record }) => {
               </div>
             </div>
             
-            {/* Observaciones generales */}
-            {record.registration_requirements.general_observations && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Observaciones Generales</label>
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                  <p className="text-sm text-gray-700">{record.registration_requirements.general_observations}</p>
+            {/* Observaciones generales (una o varias notas; almacenadas como JSON o texto legacy) */}
+            {(() => {
+              const raw = record.registration_requirements?.general_observations;
+              const notes = parseGeneralObservationsStored(raw).filter((n) => n.trim().length > 0);
+              if (notes.length === 0) return null;
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Observaciones generales</label>
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+                    {notes.length === 1 ? (
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{notes[0]}</p>
+                    ) : (
+                      <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                        {notes.map((n, i) => (
+                          <li key={i} className="whitespace-pre-wrap pl-1">
+                            {n}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}

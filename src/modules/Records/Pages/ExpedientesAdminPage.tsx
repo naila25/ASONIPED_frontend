@@ -928,6 +928,7 @@ const ExpedientesAdminPage: React.FC = () => {
           comment={comment}
           setComment={setComment}
           requireComment={pendingAction === 'add-note' || pendingAction === 'request-modification' || pendingAction === 'reject-phase1' || pendingAction === 'reject-record'}
+          confirmTone={pendingAction === 'add-note' ? 'success' : undefined}
           confirmLabel={
             pendingAction === 'add-note' ? 'Agregar' :
             pendingAction.includes('approve') ? 'Aprobar' :
@@ -956,6 +957,7 @@ const ExpedientesAdminPage: React.FC = () => {
           setComment={() => {}}
           requireComment={false}
           hideComment={true}
+          confirmTone="danger"
           confirmLabel="Eliminar"
           loading={deleteLoading}
           onConfirm={confirmDeleteRecord}

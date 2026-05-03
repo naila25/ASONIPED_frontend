@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, User, Eye, Ear, Brain, Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { getDisabilityAnalytics } from '../../Records/Services/recordsApi';
+import { formatDisabilityTypesSpanish, normalizeDisabilityTypes } from '../../Records/Types/records';
 
 interface DisabilityRecord {
   id: number;
@@ -111,9 +112,10 @@ const DisabilityAnalytics: React.FC = () => {
     
     records.forEach(record => {
       const disabilityInfo = record.disability_information;
-      if (disabilityInfo?.disability_type) {
-        const count = disabilityMap.get(disabilityInfo.disability_type) || 0;
-        disabilityMap.set(disabilityInfo.disability_type, count + 1);
+      const codes = normalizeDisabilityTypes(disabilityInfo?.disability_type ?? null);
+      for (const type of codes) {
+        const count = disabilityMap.get(type) || 0;
+        disabilityMap.set(type, count + 1);
       }
     });
     
@@ -276,7 +278,7 @@ const DisabilityAnalytics: React.FC = () => {
                     <Icon className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium text-gray-900 truncate">{type}</div>
+                    <div className="font-medium text-gray-900 truncate">{formatDisabilityTypesSpanish(type) || type}</div>
                     <div className="text-sm text-gray-500">{count} beneficiarios</div>
                   </div>
                 </div>
@@ -451,7 +453,7 @@ const DisabilityAnalytics: React.FC = () => {
               <div className="grid grid-cols-2 gap-2">
                 {disabilityTypes.slice(0, 4).map(({ type, count }) => (
                   <div key={type} className="flex items-center justify-between gap-1.5 p-2 bg-gray-50 rounded">
-                    <span className="text-xs text-gray-700 truncate">{type}</span>
+                    <span className="text-xs text-gray-700 truncate">{formatDisabilityTypesSpanish(type) || type}</span>
                     <span className="text-xs font-semibold text-gray-900 flex-shrink-0">{count}</span>
                   </div>
                 ))}
