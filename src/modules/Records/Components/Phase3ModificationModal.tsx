@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertCircle, FileText, CheckSquare, Square } from 'lucide-react';
 import type { RecordWithDetails } from '../Types/records';
 
@@ -21,6 +22,7 @@ const Phase3ModificationModal: React.FC<Phase3ModificationModalProps> = ({
   loading,
   record
 }) => {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const [comment, setComment] = useState('');
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<number[]>([]);
@@ -103,11 +105,38 @@ const Phase3ModificationModal: React.FC<Phase3ModificationModalProps> = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isOpen]);
+
+  const handleOverlayMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === overlayRef.current) handleClose();
+    },
+    [handleClose]
+  );
+
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+  /** Portal + high z-index: must sit above RecordDetailsModal (z-[100]) and escape admin main overflow. */
+  const modal = (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-[200]"
+      onMouseDown={handleOverlayMouseDown}
+      aria-modal="true"
+      role="dialog"
+      aria-labelledby="phase3-mod-title"
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -116,7 +145,7 @@ const Phase3ModificationModal: React.FC<Phase3ModificationModalProps> = ({
                 <AlertCircle className="w-6 h-6 text-orange-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 id="phase3-mod-title" className="text-lg font-semibold text-gray-900">
                   Solicitar Modificación - Fase 3
                 </h3>
                 <p className="text-sm text-gray-600">
@@ -265,6 +294,9 @@ const Phase3ModificationModal: React.FC<Phase3ModificationModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modal, document.body);
 };
 
 export default Phase3ModificationModal;
