@@ -1,11 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { fetchVolunteerOptions, addVolunteerOption, deleteVolunteerOption, updateVolunteerOption } from '../Services/fetchVolunteers';
 import type { VolunteerOption } from '../Types/volunteer';
-import {  Search, Plus, Edit, Trash2, Calendar, MapPin, Image, FileText, Table, Grid3X3, Clock, Users } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  MapPin,
+  Image,
+  FileText,
+  Clock,
+  Users,
+  ClipboardList,
+  XCircle,
+} from 'lucide-react';
 import { getAPIBaseURLSync } from '../../../shared/Services/config';
+import AttendancePageHeader from '../../Attendance/Components/AttendancePageHeader';
 
 // Admin page for managing volunteer options (CRUD)
 const VolunteerOptionsPage = () => {
+  const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
+  const LIMITS = {
+    title: 255,
+    location: 255,
+    description: 4000,
+    skills: 4000,
+    tools: 4000,
+    imageUrl: 1000,
+    hour: 10,
+  } as const;
+
   // State for options, form, loading, error, and UI
   const [options, setOptions] = useState<VolunteerOption[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -22,11 +48,11 @@ const VolunteerOptionsPage = () => {
   });
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [optionToDelete, setOptionToDelete] = useState<VolunteerOption | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
-  
   // Pagination state for card view
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
@@ -50,36 +76,47 @@ const VolunteerOptionsPage = () => {
     const timer = setTimeout(() => {
       loadOptions();
     }, 0);
-    
-    detectZoomLevel();
-    
-    // Listen for zoom changes
-    window.addEventListener('resize', detectZoomLevel);
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', detectZoomLevel);
     };
   }, []);
 
-  // Detect zoom level based on device pixel ratio and visual viewport
-  const detectZoomLevel = () => {
-    const zoom = window.visualViewport ? window.visualViewport.scale : window.devicePixelRatio;
-    setZoomLevel(zoom);
+  // (Previously used for table view truncation; table view removed.)
+  // Remove noisy technical payloads rendered as plain text from API responses.
+  const sanitizeTechnicalText = (value?: string) => {
+    if (!value) return '';
+    return value
+      .replace(/\{\s*message\s*:\s*"[^"]*"\s*\}/gi, '')
+      .replace(/message\s*:\s*"[^"]*"/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   };
 
-  // Get character limit based on zoom level
-  const getCharacterLimit = (baseLimit: number) => {
-    if (zoomLevel <= 0.8) return Math.floor(baseLimit * 1.5); // More characters at lower zoom
-    if (zoomLevel <= 1.0) return baseLimit; // Normal at 100%
-    if (zoomLevel <= 1.2) return Math.floor(baseLimit * 0.8); // Fewer characters at higher zoom
-    if (zoomLevel <= 1.5) return Math.floor(baseLimit * 0.6); // Even fewer at very high zoom
-    return Math.floor(baseLimit * 0.4); // Minimum at extreme zoom
+  const formatDisplayDate = (rawDate: string) => {
+    try {
+      if (rawDate.includes('/')) {
+        const [day, month, year] = rawDate.split('/');
+        const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        if (!isNaN(dateObj.getTime())) return dateObj.toLocaleDateString('es-ES');
+      }
+      const dateObj = new Date(rawDate);
+      if (!isNaN(dateObj.getTime())) return dateObj.toLocaleDateString('es-ES');
+      return rawDate;
+    } catch {
+      return rawDate;
+    }
   };
 
-  // Truncate text based on zoom level
-  const truncateText = (text: string, baseLimit: number) => {
-    const limit = getCharacterLimit(baseLimit);
-    return text.length > limit ? `${text.substring(0, limit)}...` : text;
+  const getSpotsSummary = (option: VolunteerOption) => {
+    const available = option.available_spots;
+    const total = option.spots;
+    if (available !== undefined && total !== undefined) {
+      return `${available}/${total} cupos disponibles`;
+    }
+    if (total !== undefined) {
+      return `${total} cupos disponibles`;
+    }
+    return 'Cupos no definidos';
   };
 
   // Fetch all volunteer options from API
@@ -123,7 +160,9 @@ const VolunteerOptionsPage = () => {
           const [day, month, year] = d.split('/');
           if (day && month && year) return `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
         }
-      } catch {}
+      } catch {
+        return d;
+      }
       return d;
     };
     setForm({
@@ -140,44 +179,90 @@ const VolunteerOptionsPage = () => {
     setIsAdding(false);
   };
 
-  // Delete an option after confirmation
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar esta opción de voluntariado?')) {
-      return;
-    }
+  const openDeleteModal = (option: VolunteerOption) => {
+    setOptionToDelete(option);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!optionToDelete?.id) return;
     try {
-      await deleteVolunteerOption(Number(id));
+      setIsDeleting(true);
+      await deleteVolunteerOption(Number(optionToDelete.id));
       await loadOptions();
+      setIsDeleteModalOpen(false);
+      setOptionToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error deleting option');
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const validateVolunteerOptionForm = (data: Omit<VolunteerOption, 'id'>): string | null => {
+    const title = data.title.trim();
+    const description = data.description.trim();
+    const location = data.location.trim();
+    const date = data.date?.trim();
+    const hour = data.hour?.trim();
+    const imageUrl = data.imageUrl?.trim();
+    const skills = (data.skills ?? '').trim();
+    const tools = (data.tools ?? '').trim();
+    const spots = typeof data.spots === 'number' ? data.spots : Number(data.spots);
+
+    if (!title) return 'El título es obligatorio.';
+    if (title.length > LIMITS.title) return `El título no puede superar ${LIMITS.title} caracteres.`;
+
+    if (!location) return 'La ubicación es obligatoria.';
+    if (location.length > LIMITS.location) return `La ubicación no puede superar ${LIMITS.location} caracteres.`;
+
+    if (!description) return 'La descripción es obligatoria.';
+    if (description.length > LIMITS.description) return `La descripción no puede superar ${LIMITS.description} caracteres.`;
+
+    if (skills.length > LIMITS.skills) return `Las habilidades no pueden superar ${LIMITS.skills} caracteres.`;
+    if (tools.length > LIMITS.tools) return `Las herramientas no pueden superar ${LIMITS.tools} caracteres.`;
+
+    if (!date) return 'La fecha es requerida.';
+
+    if (!hour) return 'La hora es requerida.';
+    if (hour.length > LIMITS.hour) return `La hora no puede superar ${LIMITS.hour} caracteres.`;
+    if (!/^\d{2}:\d{2}$/.test(hour)) return 'La hora debe tener formato HH:MM.';
+
+    if (!Number.isFinite(spots) || spots <= 0) return 'Los cupos deben ser un número mayor a 0.';
+    if (spots > 999) return 'Los cupos no pueden ser mayores a 999.';
+
+    if (imageUrl) {
+      if (imageUrl.length > LIMITS.imageUrl) return `La URL de la imagen no puede superar ${LIMITS.imageUrl} caracteres.`;
+      try {
+        const u = new URL(imageUrl);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return 'La URL de la imagen debe ser http(s).';
+      } catch {
+        return 'La URL de la imagen no es válida.';
+      }
+    }
+
+    // Prevent past dates (allow today)
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const inputDate = new Date(date);
+      if (!isNaN(inputDate.getTime()) && inputDate < today) return 'La fecha no puede ser anterior a hoy.';
+    } catch {
+      // ignore date parse failures; input type="date" already constrains format
+    }
+
+    return null;
   };
 
   // Submit add/edit form
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
     try {
-      // Validations
-      if (form.title.length > 100) throw new Error('El título no puede exceder 100 caracteres');
-      if (form.description.length > 500) throw new Error('La descripción no puede exceder 500 caracteres');
-      if ((form.skills || '').length > 500) throw new Error('Las habilidades no pueden exceder 500 caracteres');
-      if ((form.tools || '').length > 500) throw new Error('Las herramientas no pueden exceder 500 caracteres');
-      if (!form.date) throw new Error('La fecha es requerida');
-      // Prevent past dates
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      let inputDate;
-      try {
-        // Handle DD/MM/YYYY format
-        if (form.date.includes('/')) {
-          const [day, month, year] = form.date.split('/');
-          inputDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else {
-          inputDate = new Date(form.date);
-        }
-        if (!isNaN(inputDate.getTime()) && inputDate < today) throw new Error('La fecha no puede ser anterior a hoy');
-      } catch (error) {
-        throw new Error('Formato de fecha inválido. Use DD/MM/YYYY');
+      const validationError = validateVolunteerOptionForm(form);
+      if (validationError) {
+        setError(validationError);
+        return;
       }
 
       if (editingId) {
@@ -236,31 +321,60 @@ const VolunteerOptionsPage = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
+  const pageHeaderActions = (
+    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="relative w-full min-w-[12rem] sm:w-72">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Buscar opciones..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-4 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-sky-500"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={handleAdd}
+        className="inline-flex min-h-[44px] items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-sky-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+      >
+        <Plus className="h-4 w-4" />
+        <span className="hidden sm:inline">Nueva opción</span>
+        <span className="sm:hidden">Nueva</span>
+      </button>
+    </div>
+  );
+
   // Show skeleton UI instead of full loading screen for better perceived performance
   if (loading && options.length === 0) {
     return (
-      <div className="space-y-6 min-w-0">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
-            <div className="h-6 bg-gray-200 rounded w-64 animate-pulse"></div>
-            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
-              <div className="h-10 bg-gray-200 rounded w-48 animate-pulse"></div>
-              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+      <div className="min-h-screen bg-gray-50">
+        <AttendancePageHeader
+          accent="sky"
+          icon={<ClipboardList className="h-6 w-6" />}
+          title="Opciones de voluntariado"
+          description="Crea, edita y organiza las opciones publicadas para los voluntarios."
+          actions={pageHeaderActions}
+          showSubNav={false}
+        />
+        <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="space-y-6 min-w-0">
+            <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
+              <div className="mb-8 h-10 max-w-2xl animate-pulse rounded-lg bg-gray-200" />
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                  <div className="h-48 animate-pulse bg-gray-200" />
+                  <div className="space-y-3 p-6">
+                    <div className="h-6 animate-pulse rounded bg-gray-200" />
+                    <div className="h-4 animate-pulse rounded bg-gray-200" />
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="h-48 bg-gray-200 animate-pulse"></div>
-              <div className="p-6 space-y-3">
-                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     );
@@ -269,21 +383,32 @@ const VolunteerOptionsPage = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full">
-          <div className="flex items-center space-x-3 text-red-600 mb-4">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <h3 className="text-lg font-medium">Error</h3>
-          </div>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+      <div className="min-h-screen bg-gray-50">
+        <AttendancePageHeader
+          accent="sky"
+          icon={<ClipboardList className="h-6 w-6" />}
+          title="Opciones de voluntariado"
+          description="Crea, edita y organiza las opciones publicadas para los voluntarios."
+          actions={pageHeaderActions}
+          showSubNav={false}
+        />
+        <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+          <div
+            className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
           >
-            Intentar nuevamente
-          </button>
+            <div className="flex items-start gap-2">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+              <span>{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex min-h-[44px] shrink-0 items-center rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              Reintentar
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -291,49 +416,26 @@ const VolunteerOptionsPage = () => {
 
   // Main render
   return (
-    <div className="space-y-6 min-w-0">
-      {/* Header */}
-     
-      {/* Search and Actions */}
+    <div className="min-h-screen bg-gray-50">
+      <AttendancePageHeader
+        accent="sky"
+        icon={<ClipboardList className="h-6 w-6" />}
+        title="Opciones de voluntariado"
+        description="Crea, edita y organiza las opciones publicadas para los voluntarios."
+        actions={pageHeaderActions}
+        showSubNav={false}
+      />
+
+      <div className="mx-auto max-w-8xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="space-y-6 min-w-0">
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-20 space-y-4 lg:space-y-0">
-          <h2 className="text-lg font-semibold text-gray-900">Opciones de Voluntariado</h2>
-          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-            {/* View Mode Toggle */}
-            <button
-              onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-sm font-medium text-gray-700"
-            >
-              {viewMode === 'cards' ? <Table className="w-4 h-4" /> : <Grid3X3 className="w-4 h-4" />}
-              {viewMode === 'cards' ? 'Vista de tabla' : 'Vista de tarjetas'}
-            </button>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar opciones..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={handleAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nueva Opción</span>
-              <span className="sm:hidden">Nueva</span>
-            </button>
-          </div>
-        </div>
 
         {/* Add/Edit Option Form */}
         {(isAdding || editingId) && (
           <div className="mb-6 bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                <FileText className="w-5 h-5 text-sky-600 flex-shrink-0" />
                 <h3 className="text-lg font-semibold text-gray-900 truncate">
                   {editingId ? 'Editar Opción' : 'Nueva Opción'}
                 </h3>
@@ -358,11 +460,13 @@ const VolunteerOptionsPage = () => {
                     name="title"
                     value={form.title}
                     onChange={handleChange}
-                    maxLength={100}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    maxLength={LIMITS.title}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     required
                   />
-                  <div className="text-xs text-gray-500 mt-1">{form.title.length}/100</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {form.title.length}/{LIMITS.title} caracteres ({remainingChars(form.title, LIMITS.title)} restantes)
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -373,11 +477,13 @@ const VolunteerOptionsPage = () => {
                     name="location"
                     value={form.location}
                     onChange={handleChange}
-                    maxLength={100}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    maxLength={LIMITS.location}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     required
                   />
-                  <div className="text-xs text-gray-500 mt-1">{form.location.length}/100</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {form.location.length}/{LIMITS.location} caracteres ({remainingChars(form.location, LIMITS.location)} restantes)
+                  </div>
                 </div>
               </div>
 
@@ -392,7 +498,7 @@ const VolunteerOptionsPage = () => {
                     name="hour"
                     value={(form as { hour?: string }).hour || ''}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -407,7 +513,7 @@ const VolunteerOptionsPage = () => {
                     onChange={handleChange}
                     min="1"
                     max="999"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -424,11 +530,13 @@ const VolunteerOptionsPage = () => {
                   value={form.description}
                   onChange={handleChange}
                   rows={3}
-                    maxLength={500}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  maxLength={LIMITS.description}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                   required
                 />
-                  <div className="text-xs text-gray-500 mt-1">{form.description.length}/500</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {form.description.length}/{LIMITS.description} caracteres ({remainingChars(form.description, LIMITS.description)} restantes)
+                </div>
               </div>
 
               <div>
@@ -441,10 +549,13 @@ const VolunteerOptionsPage = () => {
         value={(form as { skills?: string }).skills || ""}
         onChange={handleChange}
         rows={3}
-        maxLength={500}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        maxLength={LIMITS.skills}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
       />
-      <div className="text-xs text-gray-500 mt-1">{(form as { skills?: string }).skills?.length || 0}/500</div>
+      <div className="text-xs text-gray-500 mt-1">
+        {((form as { skills?: string }).skills || '').length}/{LIMITS.skills} caracteres (
+        {remainingChars((form as { skills?: string }).skills, LIMITS.skills)} restantes)
+      </div>
     </div>
 
      <div>
@@ -457,10 +568,13 @@ const VolunteerOptionsPage = () => {
         value={(form as { tools?: string }).tools || ""}
         onChange={handleChange}
         rows={3}
-        maxLength={500}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        maxLength={LIMITS.tools}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
       />
-      <div className="text-xs text-gray-500 mt-1">{(form as { tools?: string }).tools?.length || 0}/500</div>
+      <div className="text-xs text-gray-500 mt-1">
+        {((form as { tools?: string }).tools || '').length}/{LIMITS.tools} caracteres (
+        {remainingChars((form as { tools?: string }).tools, LIMITS.tools)} restantes)
+      </div>
     </div>
     </div>
 
@@ -475,10 +589,14 @@ const VolunteerOptionsPage = () => {
                     value={form.imageUrl}
                     onChange={handleChange}
                     placeholder="https://res.cloudinary.com/..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    maxLength={LIMITS.imageUrl}
                   />
                   <div className="text-xs text-gray-500 mt-1">
                     Pega aquí la URL de la imagen desde Cloudinary
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {form.imageUrl.length}/{LIMITS.imageUrl} caracteres ({remainingChars(form.imageUrl, LIMITS.imageUrl)} restantes)
                   </div>
                   {form.imageUrl && (
                     <div className="mt-4">
@@ -503,7 +621,7 @@ const VolunteerOptionsPage = () => {
                     value={form.date}
                     onChange={handleChange}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -518,7 +636,7 @@ const VolunteerOptionsPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                  className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
                 >
                   {editingId ? 'Actualizar' : 'Crear'}
                 </button>
@@ -527,114 +645,12 @@ const VolunteerOptionsPage = () => {
           </div>
         )}
 
-        {/* Conditional Rendering: Table or Cards */}
-        {viewMode === 'table' ? (
-          /* Options Table - refined layout */
-          <div className="-mx-4 sm:mx-0 overflow-x-auto">
-            <div className="inline-block min-w-full align-middle">
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <table className="min-w-full table-auto text-sm">
-                  <thead className="bg-white sticky top-0 z-10 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-16">IMG</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-48">TÍTULO</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-64">DESCRIPCIÓN</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-48">HABILIDADES</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-48">HERRAMIENTAS</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-28">FECHA</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-24">HORA</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">UBICACIÓN</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-24">CUPOS</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 tracking-wider w-32">ACCIONES</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOptions.map((option, idx) => (
-                      <tr key={option.id} className={`border-b last:border-0 ${idx % 2 === 1 ? 'bg-gray-50/60' : ''} hover:bg-gray-50 transition-colors`}>
-                        <td className="px-4 py-3 align-top">
-                          <img
-                            src={option.imageUrl?.startsWith('http') ? option.imageUrl : `${getAPIBaseURLSync()}${option.imageUrl}`}
-                            alt={option.title}
-                            className="h-11 w-11 object-cover rounded-md border border-gray-200"
-                          />
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="font-semibold text-gray-900 leading-snug line-clamp-2" title={option.title}>
-                            {option.title}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2" title={option.description}>
-                            {option.description}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2" title={(option as unknown as { skills?: string }).skills || ''}>
-                            {(option as unknown as { skills?: string }).skills || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="text-gray-700 leading-relaxed line-clamp-2" title={(option as unknown as { tools?: string }).tools || ''}>
-                            {(option as unknown as { tools?: string }).tools || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={option.date}>
-                            {truncateText(option.date, 12)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={(option as unknown as { hour?: string }).hour || 'No especificada'}>
-                            <Clock className="w-3 h-3 mr-1" />
-                            {formatHour12((option as unknown as { hour?: string }).hour) || '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs" title={option.location}>
-                            {truncateText(option.location, 15)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top whitespace-nowrap text-gray-900">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 text-green-700 border border-green-200 text-xs font-medium" title={`${option.spots || 'N/A'} cupos disponibles`}>
-                            <Users className="w-3 h-3 mr-1" />
-                            {option.spots || '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col gap-2">
-                            <button
-                              onClick={() => handleEdit(option)}
-                              className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 transition-colors duration-200"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => handleDelete(option.id)}
-                              className="inline-flex items-center justify-center gap-1.5 px-2 py-1.5 bg-red-600 text-white rounded-md text-xs hover:bg-red-700 transition-colors duration-200"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-
-
-            {/* Options Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {currentOptions.map((option) => (
-              <div key={option.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
+        {/* Options Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {currentOptions.map((option) => (
+            <div key={option.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col">
                 {/* Image Section */}
-                <div className="relative h-48 bg-gray-100 flex-shrink-0">
+                <div className="relative h-48 bg-gray-100">
                   {option.imageUrl ? (
                     <img
                       src={option.imageUrl.startsWith('http') ? option.imageUrl : `${getAPIBaseURLSync()}${option.imageUrl}`}
@@ -649,7 +665,7 @@ const VolunteerOptionsPage = () => {
                   {/* Status Badge */}
                   <div className="absolute top-3 right-3">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                      Activa
+                      Voluntariado
                     </span>
                   </div>
                 </div>
@@ -662,97 +678,49 @@ const VolunteerOptionsPage = () => {
                   </h3>
 
                   {/* Description */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow" title={option.description}>
-                    {option.description}
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3" title={sanitizeTechnicalText(option.description)}>
+                    {sanitizeTechnicalText(option.description) || 'Sin descripción'}
                   </p>
 
                   {/* Meta Information */}
-                  <div className="space-y-3 mb-4 flex-shrink-0">
-                  {/* Date */}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">Fecha:</span>
-                    <span>{(() => {
-                      try {
-                        // Handle DD/MM/YYYY format from database
-                        if (option.date.includes('/')) {
-                          const [day, month, year] = option.date.split('/');
-                          const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                          if (!isNaN(dateObj.getTime())) {
-                            return dateObj.toLocaleDateString('es-ES');
-                          }
-                        }
-                        // Fallback for other formats
-                        const dateObj = new Date(option.date);
-                        if (!isNaN(dateObj.getTime())) {
-                          return dateObj.toLocaleDateString('es-ES');
-                        }
-                        return option.date; // Show raw date if parsing fails
-                      } catch (error) {
-                        return option.date; // Show raw date if parsing fails
-                      }
-                    })()}</span>
-                  </div>
-
-                  {/* Hour */}
-                  {(option as unknown as { hour?: string }).hour && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium">Hora:</span>
-                      <span>{formatHour12((option as unknown as { hour?: string }).hour)}</span>
-                    </div>
-                  )}
-
-                  {/* Location */}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">Ubicación:</span>
-                    <span className="truncate" title={option.location}>{option.location}</span>
-                  </div>
-
-                  {/* Spots */}
-                  {option.spots && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium">Cupos:</span>
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                        {option.spots} disponibles
+                  <div className="mb-4 flex-shrink-0">
+                    <div className="text-sm text-gray-600 mb-2 flex flex-wrap items-center gap-2" title={`Fecha: ${formatDisplayDate(option.date)}`}>
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span><span className="font-medium text-gray-700">Fecha:</span> {formatDisplayDate(option.date)}</span>
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={`Hora: ${formatHour12((option as unknown as { hour?: string }).hour) || 'Hora no definida'}`}>
+                        <Clock className="w-3.5 h-3.5 mr-1" />
+                        {formatHour12((option as unknown as { hour?: string }).hour) || 'Hora no definida'}
                       </span>
                     </div>
-                  )}
-
-                    {/* Skills */}
-                    {(option as unknown as { skills?: string }).skills && (
-                      <div className="text-sm">
-                        <span className="font-medium text-gray-700 block mb-1">Habilidades:</span>
-                        <p className="text-gray-600 text-xs line-clamp-2" title={(option as unknown as { skills?: string }).skills}>
-                          {(option as unknown as { skills?: string }).skills}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Tools */}
-                    {(option as unknown as { tools?: string }).tools && (
-                      <div className="text-sm">
-                        <span className="font-medium text-gray-700 block mb-1">Herramientas:</span>
-                        <p className="text-gray-600 text-xs line-clamp-2" title={(option as unknown as { tools?: string }).tools}>
-                          {(option as unknown as { tools?: string }).tools}
-                        </p>
-                      </div>
-                    )}
+                    <div className="text-sm text-gray-600 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 min-w-0" title={option.location}>
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span className="truncate"><span className="font-medium text-gray-700">Ubicación:</span> {option.location}</span>
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium" title={getSpotsSummary(option)}>
+                        <Users className="w-3.5 h-3.5 mr-1" />
+                        {getSpotsSummary(option)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100 mt-auto">
                     <button
+                      type="button"
                       onClick={() => handleEdit(option)}
+                      disabled={isDeleting}
                       className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
                     >
                       <Edit className="w-4 h-4" />
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(option.id)}
+                      type="button"
+                      onClick={() => openDeleteModal(option)}
+                      disabled={isDeleting}
                       className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors duration-200"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -761,8 +729,59 @@ const VolunteerOptionsPage = () => {
                   </div>
                 </div>
               </div>
-            ))}
+          ))}
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {isDeleteModalOpen && optionToDelete && (
+          <div
+            className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50"
+            onClick={() => !isDeleting && setIsDeleteModalOpen(false)}
+          >
+            <div
+              className="bg-white p-6 rounded-lg w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Confirmar Eliminación</h2>
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="p-1 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <XCircle className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <p className="text-gray-700 mb-6">
+                ¿Estás seguro de que deseas eliminar la opción <strong>{optionToDelete.title}</strong>? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                      Eliminando...
+                    </>
+                  ) : (
+                    'Eliminar'
+                  )}
+                </button>
+              </div>
             </div>
+          </div>
+        )}
 
             {/* Pagination Info for Cards */}
             <div className="mb-6 text-center">
@@ -781,7 +800,7 @@ const VolunteerOptionsPage = () => {
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     currentPage === 1
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-orange-500 text-white hover:bg-orange-500'
+                      : 'bg-sky-500 text-white hover:bg-sky-600'
                   }`}
                 >
                   Anterior
@@ -795,7 +814,7 @@ const VolunteerOptionsPage = () => {
                       onClick={() => handlePageChange(page)}
                       className={`px-3 py-2 rounded-lg font-medium transition-colors ${
                         currentPage === page
-                          ? 'bg-orange-500 text-white'
+                          ? 'bg-sky-500 text-white'
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
@@ -811,21 +830,22 @@ const VolunteerOptionsPage = () => {
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     currentPage === totalPages
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-sky-500 text-white hover:bg-sky-600'
                   }`}
                 >
                   Siguiente
                 </button>
               </div>
             )}
-          </>
-        )}
+        
 
         {filteredOptions.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             {searchTerm ? 'No se encontraron opciones que coincidan con la búsqueda' : 'No hay opciones de voluntariado disponibles'}
           </div>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );

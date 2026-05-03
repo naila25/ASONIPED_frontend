@@ -33,6 +33,7 @@ const ExpedientesPage: React.FC = () => {
   const [showIDCardModal, setShowIDCardModal] = useState(false);
   const [idCardRecordId, setIdCardRecordId] = useState<number | null>(null);
   const [showPhase3Form, setShowPhase3Form] = useState(false);
+  const [phase3SubmitError, setPhase3SubmitError] = useState<string | null>(null);
   const [showIntroduction, setShowIntroduction] = useState(true);
   const [isPhase3Modification, setIsPhase3Modification] = useState(false);
   const [modificationDetails, setModificationDetails] = useState<{
@@ -87,6 +88,7 @@ const ExpedientesPage: React.FC = () => {
       }
       
       setError(null);
+      setPhase3SubmitError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando expediente');
     } finally {
@@ -305,6 +307,7 @@ const ExpedientesPage: React.FC = () => {
     try {
       if (submitting) return; // Guardar contra envíos duplicados
       setSubmitting(true);
+      setPhase3SubmitError(null);
       setUploadProgress(0);
       if (!record) {
         throw new Error('No hay expediente para completar');
@@ -337,8 +340,9 @@ const ExpedientesPage: React.FC = () => {
       await loadUserRecord();
       setShowPhase3Form(false);
       setError(null);
+      setPhase3SubmitError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error procesando expediente');
+      setPhase3SubmitError(err instanceof Error ? err.message : 'Error procesando expediente');
     } finally {
       setSubmitting(false);
       setUploadProgress(0);
@@ -346,6 +350,7 @@ const ExpedientesPage: React.FC = () => {
   };
 
   const handleContinueToPhase3 = () => {
+    setPhase3SubmitError(null);
     setShowPhase3Form(true);
   };
 
@@ -413,15 +418,13 @@ const ExpedientesPage: React.FC = () => {
   if (!record) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="max-w-8xl mx-auto px-4">
             <div className="text-center mb-6">
               <FileText className="w-12 h-12 text-blue-600 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Solicitud de Expediente</h1>
               <p className="text-gray-600">Complete el formulario inicial para comenzar su proceso de expediente</p>
             </div>
             <Phase1Form onSubmit={handlePhase1Submit} loading={submitting} />
-          </div>
         </div>
       </div>
     );
@@ -438,7 +441,7 @@ const ExpedientesPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">Expediente Completado</h1>
             </div>
             <div className="flex items-center justify-between">
-              <p className="text-gray-600">Su expediente ha sido aprobado y está activo. A continuación puede ver todos los detalles.</p>
+              <p className="text-gray-600">Expediente aprobado y activo. Carnet disponible.</p>
               <button
                 onClick={openMyIdCard}
                 className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
@@ -477,18 +480,22 @@ const ExpedientesPage: React.FC = () => {
           );
         })()}
         
-        {/* Estado del expediente */}
-        <div className="mt-6">
-          {(() => {
-            // Igualmente, sobreescribimos la fase mostrada en el componente de estado
-            const phaseOverride =
-              record.phase === 'phase2' && record.status === 'approved' && showPhase3Form
-                ? 'phase3'
-                : record.phase;
-            const recordForStatus = { ...record, phase: phaseOverride } as typeof record;
-            return <RecordStatus record={recordForStatus} />;
-          })()}
-        </div>
+        {/* Estado del expediente: ocultar cuando el usuario está llenando el formulario de Fase 3 */}
+        {!(showPhase3Form && (
+          (record.phase === 'phase2' && record.status === 'approved') ||
+          (record.phase === 'phase3' && record.status === 'needs_modification')
+        )) && (
+          <div className="mt-6">
+            {(() => {
+              const phaseOverride =
+                record.phase === 'phase2' && record.status === 'approved' && showPhase3Form
+                  ? 'phase3'
+                  : record.phase;
+              const recordForStatus = { ...record, phase: phaseOverride } as typeof record;
+              return <RecordStatus record={recordForStatus} />;
+            })()}
+          </div>
+        )}
 
         {/* Contenido específico según la fase */}
         {record.phase === 'phase1' && record.status === 'pending' && (
@@ -547,6 +554,8 @@ const ExpedientesPage: React.FC = () => {
               loading={submitting}
               currentRecord={record}
               uploadProgress={uploadProgress}
+              submitError={phase3SubmitError}
+              onClearSubmitError={() => setPhase3SubmitError(null)}
             />
           </div>
         )}
@@ -619,7 +628,10 @@ const ExpedientesPage: React.FC = () => {
               </div>
               
               <button
-                onClick={() => setShowPhase3Form(true)}
+                onClick={() => {
+                  setPhase3SubmitError(null);
+                  setShowPhase3Form(true);
+                }}
                 className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
@@ -647,6 +659,8 @@ const ExpedientesPage: React.FC = () => {
               uploadProgress={uploadProgress}
               isModification={true}
               modificationDetails={modificationDetails}
+              submitError={phase3SubmitError}
+              onClearSubmitError={() => setPhase3SubmitError(null)}
             />
           </div>
         )}

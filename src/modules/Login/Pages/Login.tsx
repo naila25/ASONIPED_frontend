@@ -2,17 +2,53 @@ import { useState, useEffect } from 'react';
 import { login } from '../Services/auth';
 import { getStatistics, type Statistics } from '../../../shared/Services/statistics.service';
 
-// Validation function for user data
-const validateUserInput = (username: string, email: string, fullName: string, phone: string, password: string): string | null => {
-  
-  if (!/^[A-Za-z]{1,15}$/.test(username)) {
-    return 'El usuario solo debe contener letras y máximo 15 caracteres.';
+const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
+
+const getRegisterErrorMessageEs = (errorData: unknown): string => {
+  const obj = errorData as { error?: unknown; message?: unknown } | null;
+  const backendError = (obj?.error ?? obj?.message ?? '').toString();
+
+  if (!backendError) return 'Error en el registro';
+
+  if (backendError === 'Username already exists') return 'El usuario ya está registrado.';
+  if (backendError === 'Email is already registered') return 'El correo electrónico ya está registrado.';
+
+  // Backend might already return Spanish validation errors; surface them as-is.
+  return backendError;
+};
+
+// Validation function for user data (keep in sync with UserManagement + backend constraints)
+const validateUserInput = (
+  username: string,
+  email: string,
+  fullName: string,
+  phone: string,
+  password: string
+): string | null => {
+  if (!/^[A-Za-z0-9]{1,20}$/.test(username)) {
+    return 'El usuario solo debe contener letras y números y máximo 20 caracteres.';
   }
-  
+
+  if (password.length > 30) {
+    return 'La contraseña debe tener máximo 30 caracteres.';
+  }
+
+  if (password.length > 0 && password.length < 6) {
+    return 'La contraseña debe tener mínimo 6 caracteres.';
+  }
+
+  if (email.length > 50) {
+    return 'El correo electrónico debe tener máximo 50 caracteres.';
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return 'Debe ingresar un correo electrónico válido.';
   }
- 
+
+  if (fullName.length > 60) {
+    return 'El nombre completo debe tener máximo 60 caracteres.';
+  }
+
   if (!/^([A-Za-zÁÉÍÓÚáéíóúÑñ]+(\s+|$)){2,}$/.test(fullName.trim())) {
     return 'Debe ingresar un nombre completo válido (al menos dos palabras).';
   }
@@ -20,10 +56,7 @@ const validateUserInput = (username: string, email: string, fullName: string, ph
   if (!/^[0-9]{8}$/.test(phone)) {
     return 'El teléfono debe tener exactamente 8 dígitos.';
   }
- 
-  if (!/^[A-Za-z0-9]{6,20}$/.test(password)) {
-    return 'La contraseña debe tener mínimo 6 caracteres y máximo 20 caracteres y solo letras y números.';
-  }
+
   return null;
 };
 
@@ -32,6 +65,7 @@ const AdminLogin = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -138,8 +172,8 @@ const AdminLogin = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || 'Error en el registro');
+        const errorData = await response.json().catch(() => ({}));
+        setError(getRegisterErrorMessageEs(errorData));
         return;
       }
 
@@ -162,9 +196,9 @@ const AdminLogin = () => {
   const handleSubmit = isLogin ? handleLogin : handleRegister;
 
   return (
-    <div className="min-h-[100dvh] flex flex-col lg:flex-row">
-      {/* Left Panel - Login Form */}
-      <div className="w-full lg:w-1/2 bg-gray-900 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-1 flex-col lg:flex-row w-full min-h-[calc(100dvh-6rem)]">
+      {/* Left Panel — flex-1 fills the shell height on mobile so bg-gray-900 reaches the bottom */}
+      <div className="flex-1 lg:flex-initial w-full lg:w-1/2 bg-gray-900 flex items-center justify-center p-4 sm:p-6 lg:p-8 min-h-0">
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
@@ -304,10 +338,21 @@ const AdminLogin = () => {
                 type="text"
                 placeholder="Usuario"
                 value={username}
-                onChange={e => setUsername(e.target.value)}
+                onChange={e => {
+                  const value = e.target.value;
+                  // Enforce username rules in both login and register
+                  // (letters+numbers, max 20)
+                  if (/^[A-Za-z0-9]{0,20}$/.test(value)) setUsername(value);
+                }}
+                maxLength={20}
+                pattern="^[A-Za-z0-9]{1,20}$"
+                title="Solo letras y números. Máximo 20 caracteres."
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 required
               />
+              <p className="mt-1 text-xs text-gray-400 text-right">
+                {remainingChars(username, 20)} caracteres restantes
+              </p>
             </div>
 
             {!isLogin && (
@@ -317,10 +362,14 @@ const AdminLogin = () => {
                     type="email"
                     placeholder="Correo electrónico"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value.slice(0, 50))}
+                    maxLength={50}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     required
                   />
+                  <p className="mt-1 text-xs text-gray-400 text-right">
+                    {remainingChars(email, 50)} caracteres restantes
+                  </p>
                 </div>
                 
                 <div>
@@ -328,10 +377,14 @@ const AdminLogin = () => {
                     type="text"
                     placeholder="Nombre completo"
                     value={fullName}
-                    onChange={e => setFullName(e.target.value)}
+                    onChange={e => setFullName(e.target.value.slice(0, 60))}
+                    maxLength={60}
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     required
                   />
+                  <p className="mt-1 text-xs text-gray-400 text-right">
+                    {remainingChars(fullName, 60)} caracteres restantes
+                  </p>
                 </div>
                 
                 <div>
@@ -347,21 +400,92 @@ const AdminLogin = () => {
                       }
                     }}
                     maxLength={8}
+                    inputMode="numeric"
+                    pattern="^[0-9]{8}$"
+                    title="Debe tener exactamente 8 dígitos (sin guiones)."
                     className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                   />
+                  <p className="mt-1 text-xs text-gray-400 text-right">
+                    {remainingChars(phone, 8)} caracteres restantes
+                  </p>
                 </div>
               </>
             )}
             
-            <div>
+            <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="Contraseña"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                onChange={e => setPassword(e.target.value.slice(0, 30))}
+                maxLength={30}
+                minLength={isLogin ? undefined : 6}
+                title={isLogin ? undefined : 'Mínimo 6 y máximo 30 caracteres.'}
+                className="w-full pr-12 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-300 hover:text-white transition-colors"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? (
+                  // Eye off
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M3 3l18 18"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M9.88 5.09A10.94 10.94 0 0112 5c7 0 10 7 10 7a17.48 17.48 0 01-3.32 4.78"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M6.61 6.61A17.26 17.26 0 002 12s3 7 10 7a10.9 10.9 0 005.39-1.39"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : (
+                  // Eye
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </button>
+              <p className="mt-1 text-xs text-gray-400 text-right">
+                {remainingChars(password, 30)} caracteres restantes
+              </p>
             </div>
             
             <button

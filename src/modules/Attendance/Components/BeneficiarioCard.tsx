@@ -14,9 +14,9 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
   };
 
   const getAttendanceTypeColor = () => {
-    return record.attendance_type === 'beneficiario' 
-      ? 'bg-blue-100 text-blue-800' 
-      : 'bg-purple-100 text-purple-800';
+    return record.attendance_type === 'beneficiario'
+      ? 'bg-emerald-100 text-emerald-800'
+      : 'bg-gray-100 text-gray-800';
   };
 
   const getAttendanceTypeText = () => {
@@ -28,9 +28,7 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
   };
 
   const getMethodColor = () => {
-    return record.attendance_method === 'qr_scan' 
-      ? 'text-green-600' 
-      : 'text-orange-600';
+    return record.attendance_method === 'qr_scan' ? 'text-emerald-600' : 'text-orange-600';
   };
 
   const getMethodText = () => {
@@ -44,29 +42,29 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-3 flex-1">
+    <div className="min-w-0 w-full rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           {/* Avatar */}
-          <div className={`p-2 rounded-lg ${
-            record.attendance_type === 'beneficiario' 
-              ? 'bg-blue-100' 
-              : 'bg-purple-100'
-          }`}>
-            <FaUser className={`w-5 h-5 ${
-              record.attendance_type === 'beneficiario' 
-                ? 'text-blue-600' 
-                : 'text-purple-600'
-            }`} />
+          <div
+            className={`rounded-lg p-2 ${
+              record.attendance_type === 'beneficiario' ? 'bg-emerald-100' : 'bg-gray-100'
+            }`}
+          >
+            <FaUser
+              className={`h-5 w-5 ${
+                record.attendance_type === 'beneficiario' ? 'text-emerald-600' : 'text-gray-600'
+              }`}
+            />
           </div>
 
           {/* Main Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium text-gray-900 truncate">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <h3 className="min-w-0 font-medium text-gray-900 break-words sm:truncate">
                 {record.full_name}
               </h3>
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getAttendanceTypeColor()}`}>
+              <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-1 text-xs font-medium ${getAttendanceTypeColor()}`}>
                 {getAttendanceTypeText()}
               </span>
             </div>
@@ -114,7 +112,7 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
         </div>
 
         {/* Right Side - Method and Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
           {/* Method Indicator */}
           <div className="flex items-center gap-1">
             {(() => {
@@ -148,16 +146,12 @@ export default function BeneficiarioCard({ record, onRemove, showActions = true 
       </div>
 
       {/* Status Indicator */}
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <div className="flex items-center gap-2">
-          <FaCheckCircle className="w-4 h-4 text-green-500" />
-          <span className="text-sm text-green-600 font-medium">
-            Asistencia confirmada
-          </span>
+      <div className="mt-3 border-t border-gray-100 pt-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <FaCheckCircle className="h-4 w-4 shrink-0 text-green-500" />
+          <span className="text-sm font-medium text-green-600">Asistencia confirmada</span>
           {record.created_by_name && (
-            <span className="text-sm text-gray-500 ml-auto">
-              Registrado por: {record.created_by_name}
-            </span>
+            <span className="text-sm text-gray-500 sm:ml-auto">Registrado por: {record.created_by_name}</span>
           )}
         </div>
       </div>

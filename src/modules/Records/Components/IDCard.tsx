@@ -1,5 +1,25 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import type { RecordWithDetails } from '../Types/records';
+import type {
+  CompletePersonalData,
+  DisabilityDataPayload,
+  DisabilityInformation,
+  MedicalAdditionalInfo,
+  RecordWithDetails
+} from '../Types/records';
+import { formatDisabilityTypesSpanish } from '../Types/records';
+
+/** Parent fields sometimes present on API payloads though not on `CompletePersonalData`. */
+type CompletePersonalDataWithParents = CompletePersonalData & {
+  mother_name?: string;
+  father_name?: string;
+  mother_phone?: string;
+  father_phone?: string;
+};
+
+/** Disability block may include legacy/enrollment `medical_conditions`. */
+type IDCardDisabilitySource = (DisabilityInformation | DisabilityDataPayload) & {
+  medical_conditions?: string | null;
+};
 import { buildAttendanceQrData } from '../Utils/idCard';
 import logo from '../../../assets/logoasoniped.png';
 import { getAPIBaseURLSync, getAPIBaseURL } from '../../../shared/Services/config';
@@ -13,9 +33,11 @@ type IDCardProps = {
 
 
 const IDCard: React.FC<IDCardProps> = ({ record, qrUrl, className }) => {
-  const cpd = record.complete_personal_data;
-  const disability = (record.disability_information || record.disability_data) as any;
-  const medicalAdditional = disability?.medical_additional || {};
+  const cpd = record.complete_personal_data as CompletePersonalDataWithParents | undefined;
+  const disability = (record.disability_information ?? record.disability_data) as
+    | IDCardDisabilitySource
+    | undefined;
+  const medicalAdditional = (disability?.medical_additional ?? {}) as Partial<MedicalAdditionalInfo>;
 
   const fullName = cpd?.full_name || record.personal_data?.full_name || '';
   const cedula = cpd?.cedula || record.personal_data?.cedula || '';
@@ -23,28 +45,32 @@ const IDCard: React.FC<IDCardProps> = ({ record, qrUrl, className }) => {
 
   // Parent/guardian info (prefer complete_personal_data keys if present)
   const parentName = useMemo(() => {
-    const fim = (record.family_information as any) || {};
-    const familyMother = fim.mother_name;
-    const familyFather = fim.father_name;
-    const responsible = fim.responsible_person;
-    const mother = record.personal_data?.mother_name || (cpd as any)?.mother_name;
-    const father = record.personal_data?.father_name || (cpd as any)?.father_name;
+    const fim = record.family_information;
+    const familyMother = fim?.mother_name;
+    const familyFather = fim?.father_name;
+    const responsible = fim?.responsible_person;
+    const mother = record.personal_data?.mother_name || cpd?.mother_name;
+    const father = record.personal_data?.father_name || cpd?.father_name;
     // Preference: family info (mother/father) > responsible > personal/complete
     return familyMother || familyFather || responsible || mother || father || '';
   }, [record.personal_data, cpd, record.family_information]);
 
   const parentPhone = useMemo(() => {
-    const fim = (record.family_information as any) || {};
-    const familyMotherPhone = fim.mother_phone;
-    const familyFatherPhone = fim.father_phone;
-    const responsible = fim.responsible_phone;
-    const m = (cpd as any)?.mother_phone || record.personal_data?.mother_phone;
-    const f = (cpd as any)?.father_phone || record.personal_data?.father_phone;
+    const fim = record.family_information;
+    const familyMotherPhone = fim?.mother_phone;
+    const familyFatherPhone = fim?.father_phone;
+    const responsible = fim?.responsible_phone;
+    const m = cpd?.mother_phone || record.personal_data?.mother_phone;
+    const f = cpd?.father_phone || record.personal_data?.father_phone;
     // Preference: family phones > responsible > personal/complete
     return familyMotherPhone || familyFatherPhone || responsible || m || f || '';
   }, [record.personal_data, cpd, record.family_information]);
 
-  const disabilityType = disability?.disability_type || cpd?.pcd_name || record.personal_data?.pcd_name || '';
+  const disabilityTypeRaw = disability?.disability_type;
+  const disabilityType =
+    disabilityTypeRaw !== undefined && disabilityTypeRaw !== null && String(disabilityTypeRaw).trim() !== ''
+      ? formatDisabilityTypesSpanish(disabilityTypeRaw)
+      : (cpd?.pcd_name || record.personal_data?.pcd_name || '');
   const bloodType = medicalAdditional?.blood_type || '';
   const diseases = medicalAdditional?.diseases || (disability?.medical_conditions ?? '') || '';
 
@@ -167,31 +193,30 @@ const IDCard: React.FC<IDCardProps> = ({ record, qrUrl, className }) => {
   )}`;
 
   return (
-    <div className={`w-[580px] min-h-[360px] rounded-2xl overflow-hidden bg-white shadow-[0_8px_25px_rgba(17,24,39,0.15)] border border-gray-200 ${className || ''}`}>
+    <div className={`max-w-[580px] w-full min-w-0 min-h-[360px] rounded-2xl overflow-hidden bg-white shadow-[0_8px_25px_rgba(17,24,39,0.15)] border border-gray-200 ${className || ''}`}>
       {/* Header */}
-      <div className="flex items-center gap-4 px-6 py-4 bg-[#3B5BA9] text-white">
-        <div className="w-12 h-12 rounded-full bg-white grid place-items-center overflow-hidden">
+      <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3 sm:py-4 bg-[#3B5BA9] text-white min-w-0">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-full bg-white grid place-items-center overflow-hidden">
           <img src={logo} alt="ASONIPED Logo" className="w-full h-full object-contain" />
         </div>
-        <div className="flex-1">
-          <h1 className="m-0 text-[19px] tracking-wide font-semibold">CARNET DE IDENTIFICACIÓN DE BENEFICIARIO</h1>
-          <div className="text-[13px] opacity-90 mt-1">ASOCIACIÓN NICOYANA DE PERSONAS CON DISCAPACIDAD</div>
+        <div className="min-w-0 flex-1">
+          <h1 className="m-0 text-xs sm:text-[19px] tracking-wide font-semibold leading-tight">CARNET DE IDENTIFICACIÓN DE BENEFICIARIO</h1>
+          <div className="text-[10px] sm:text-[13px] opacity-90 mt-0.5 sm:mt-1">ASOCIACIÓN NICOYANA DE PERSONAS CON DISCAPACIDAD</div>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="p-5">
-        <div className="grid grid-cols-[200px_1fr] gap-6">
+      {/* Body: stacked on mobile, side-by-side on sm+ */}
+      <div className="p-3 sm:p-5 min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-4 sm:gap-6">
           {/* Photo Section */}
-          <div className="flex flex-col items-center">
-            <div className="w-[180px] h-[200px] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100 mb-4">
+          <div className="flex flex-row sm:flex-col items-center justify-center gap-4 sm:gap-0 sm:justify-start">
+            <div className="w-[120px] h-[140px] sm:w-[180px] sm:h-[200px] flex-shrink-0 rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100 sm:mb-4">
               {passportPhoto ? (
                 <img 
                   src={passportPhoto} 
                   alt="Foto del beneficiario" 
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    // Fallback to placeholder if image fails to load
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
                   }}
@@ -201,42 +226,42 @@ const IDCard: React.FC<IDCardProps> = ({ record, qrUrl, className }) => {
                 Sin foto
               </div>
             </div>
-            <div className="w-[160px] h-[160px] bg-white border border-gray-200 rounded-lg grid place-items-center overflow-hidden">
+            <div className="w-[100px] h-[100px] sm:w-[160px] sm:h-[160px] flex-shrink-0 bg-white border border-gray-200 rounded-lg grid place-items-center overflow-hidden">
               <img src={qrImageSrc} alt="QR Verificación / Asistencia" className="w-full h-full object-contain"/>
             </div>
           </div>
 
           {/* Information Section */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4 min-w-0">
             {/* Personal Info */}
-            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-              <div className="text-[22px] font-extrabold text-slate-900 leading-6 break-words mb-2">{fullName || '—'}</div>
-              <div className="text-slate-600 font-semibold tracking-wide text-[13px] mb-1">
+            <div className="bg-slate-50 rounded-lg p-3 sm:p-4 border border-slate-200 min-w-0">
+              <div className="text-lg sm:text-[22px] font-extrabold text-slate-900 leading-snug break-words mb-1 sm:mb-2">{fullName || '—'}</div>
+              <div className="text-slate-600 font-semibold tracking-wide text-xs sm:text-[13px] mb-1 break-all">
                 {record.record_number || '—'}{cedula ? ` | Ced: ${cedula}` : ''}
               </div>
-              <div className="text-[12px] text-slate-600 break-words">{exactAddress || '—'}</div>
+              <div className="text-[11px] sm:text-[12px] text-slate-600 break-words">{exactAddress || '—'}</div>
               {bloodType && (
-                <div className="text-[12px] text-slate-600 mt-1 font-medium">Tipo de sangre: {bloodType}</div>
+                <div className="text-[11px] sm:text-[12px] text-slate-600 mt-1 font-medium">Tipo de sangre: {bloodType}</div>
               )}
             </div>
 
             {/* Medical & Family Info Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="border border-slate-300 rounded-lg px-4 py-3 min-h-[70px] bg-white">
-                <div className="text-[11px] text-slate-500 mb-2 font-medium uppercase tracking-wide">TIPO DE DISCAPACIDAD</div>
-                <div className="text-[13px] font-semibold text-slate-900 break-words leading-tight">{disabilityType || '—'}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+              <div className="border border-slate-300 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[60px] sm:min-h-[70px] bg-white min-w-0">
+                <div className="text-[10px] sm:text-[11px] text-slate-500 mb-1 sm:mb-2 font-medium uppercase tracking-wide">TIPO DE DISCAPACIDAD</div>
+                <div className="text-xs sm:text-[13px] font-semibold text-slate-900 break-words leading-tight">{disabilityType || '—'}</div>
               </div>
-              <div className="border border-slate-300 rounded-lg px-4 py-3 min-h-[70px] bg-white">
-                <div className="text-[11px] text-slate-500 mb-2 font-medium uppercase tracking-wide">ENFERMEDADES QUE PADECE</div>
-                <div className="text-[13px] font-semibold text-slate-900 break-words leading-tight">{diseases || 'No padece ninguna enfermedad'}</div>
+              <div className="border border-slate-300 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[60px] sm:min-h-[70px] bg-white min-w-0">
+                <div className="text-[10px] sm:text-[11px] text-slate-500 mb-1 sm:mb-2 font-medium uppercase tracking-wide">ENFERMEDADES QUE PADECE</div>
+                <div className="text-xs sm:text-[13px] font-semibold text-slate-900 break-words leading-tight">{diseases || 'No padece ninguna enfermedad'}</div>
               </div>
-              <div className="border border-slate-300 rounded-lg px-4 py-3 min-h-[70px] bg-white">
-                <div className="text-[11px] text-slate-500 mb-2 font-medium uppercase tracking-wide">ENCARGADO</div>
-                <div className="text-[13px] font-semibold text-slate-900 break-words leading-tight">{parentName || '—'}</div>
+              <div className="border border-slate-300 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[60px] sm:min-h-[70px] bg-white min-w-0">
+                <div className="text-[10px] sm:text-[11px] text-slate-500 mb-1 sm:mb-2 font-medium uppercase tracking-wide">ENCARGADO</div>
+                <div className="text-xs sm:text-[13px] font-semibold text-slate-900 break-words leading-tight">{parentName || '—'}</div>
               </div>
-              <div className="border border-slate-300 rounded-lg px-4 py-3 min-h-[70px] bg-white">
-                <div className="text-[11px] text-slate-500 mb-2 font-medium uppercase tracking-wide">TELÉFONO DE CONTACTO</div>
-                <div className="text-[13px] font-semibold text-slate-900 break-words leading-tight">{parentPhone || '—'}</div>
+              <div className="border border-slate-300 rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 min-h-[60px] sm:min-h-[70px] bg-white min-w-0">
+                <div className="text-[10px] sm:text-[11px] text-slate-500 mb-1 sm:mb-2 font-medium uppercase tracking-wide">TELÉFONO DE CONTACTO</div>
+                <div className="text-xs sm:text-[13px] font-semibold text-slate-900 break-words leading-tight">{parentPhone || '—'}</div>
               </div>
             </div>
           </div>

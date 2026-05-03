@@ -339,7 +339,7 @@ const DonacionesVisual = () => {
                 className="mr-2 mt-1" 
               />
               <label htmlFor="privacy" className="text-sm text-gray-700">
-                He leído y acepto el aviso de privacidad
+                Acepto la política de privacidad
               </label>
             </div>
             {errors.aceptacion_privacidad && <p className="text-red-500 text-sm mt-1">{errors.aceptacion_privacidad}</p>}
@@ -353,7 +353,7 @@ const DonacionesVisual = () => {
                 className="mr-2 mt-1" 
               />
               <label htmlFor="comunicacion" className="text-sm text-gray-700">
-                Acepto recibir comunicación de parte de ASONIPED
+                Acepto recibir notificaciones de parte de ASONIPED
               </label>
             </div>
             {errors.aceptacion_comunicacion && <p className="text-red-500 text-sm mt-1">{errors.aceptacion_comunicacion}</p>}
@@ -414,11 +414,7 @@ const DonacionesVisual = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`${
-                isSubmitting 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-orange-500 hover:bg-orange-500'
-              } text-white font-semibold py-2 px-6 rounded transition self-start`}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-500 transition disabled:opacity-50 self-start"
             >
               {isSubmitting ? 'Enviando...' : 'Enviar mensaje'}
             </button>

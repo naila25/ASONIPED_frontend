@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { useParams, Link } from '@tanstack/react-router';
 import { Calendar, ArrowLeft, Clock, MapPin } from 'lucide-react';
 import type { EventNewsItem } from '../Types/eventsNews';
@@ -16,6 +16,13 @@ const EventNewsDetail: React.FC = () => {
   const [item, setItem] = useState<EventNewsItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  /** SPA navigation often keeps scroll position; reset before paint so the detail opens at the top. */
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [id]);
 
   useEffect(() => {
     const fetchData = async () => {

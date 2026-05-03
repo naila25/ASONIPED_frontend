@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 
 interface AdminActionModalProps {
   isOpen: boolean;
@@ -7,6 +8,13 @@ interface AdminActionModalProps {
   comment: string;
   setComment: (value: string) => void;
   requireComment?: boolean;
+  /** When true, comment field is hidden (e.g. simple confirmations like delete) */
+  hideComment?: boolean;
+  /**
+   * Primary button color. If omitted: danger (red) when requireComment, otherwise success (green).
+   * Use `danger` for delete/destructive actions even when no comment is required.
+   */
+  confirmTone?: 'success' | 'danger' | 'warning';
   confirmLabel: string;
   loading?: boolean;
   onConfirm: () => void;
@@ -22,6 +30,8 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
   comment,
   setComment,
   requireComment = false,
+  hideComment = false,
+  confirmTone,
   confirmLabel,
   loading = false,
   onConfirm,
@@ -30,20 +40,29 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
   recordName
 }) => {
   const isConfirmDisabled = useMemo(() => 
-    loading || (requireComment && !comment.trim()), 
-    [loading, requireComment, comment]
+    loading || (!hideComment && requireComment && !comment.trim()), 
+    [loading, hideComment, requireComment, comment]
   );
+
+  const resolvedTone = confirmTone ?? (requireComment ? 'danger' : 'success');
+  const confirmButtonClass =
+    resolvedTone === 'danger'
+      ? 'bg-red-600 hover:bg-red-700'
+      : resolvedTone === 'warning'
+        ? 'bg-amber-600 hover:bg-amber-700'
+        : 'bg-green-600 hover:bg-green-700';
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
-  // Close on ESC
+  // Close on ESC (only while open — avoids duplicate listeners when parent keeps mounted)
   useEffect(() => {
+    if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !loading) onCancel();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [loading, onCancel]);
+  }, [isOpen, loading, onCancel]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -67,19 +86,29 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
     if (next.length <= 500) {
       setComment(next);
     }
-  }, []);
+  }, [setComment]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV && isOpen) {
+      console.log('[AdminActionModal] mounted/open', { title, requireComment });
+    }
+  }, [isOpen, title, requireComment]);
 
   if (!isOpen) return null;
 
-  return (
+  /** Render at `document.body` so `position:fixed` is not trapped by admin `<main className="overflow-y-auto">` (otherwise the dialog can be clipped or not visible). */
+  const modal = (
     <div
       ref={overlayRef}
-      className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200]"
       onMouseDown={handleOverlayClick}
       aria-modal="true"
       role="dialog"
     >
-      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4 transform transition-all">
+      <div
+        className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4 transform transition-all"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className="flex items-start justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button
@@ -101,22 +130,25 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
 
         <p className="text-gray-700 mb-4">{message}</p>
 
-        <div className="mb-1 flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-700">
-            Comentario {requireComment && <span className="text-red-600">(requerido)</span>}
-          </label>
-          <span className="text-xs text-gray-400">{comment.length}/500</span>
-        </div>
-        <textarea
-          value={comment}
-          onChange={handleCommentChange}
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
-          placeholder={requireComment ? 'Describa el motivo...' : 'Comentario (opcional)'}
-        />
-
-        {requireComment && !comment.trim() && (
-          <p className="text-xs text-red-600 -mt-3 mb-3">El comentario es obligatorio para esta acción.</p>
+        {!hideComment && (
+          <>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">
+                Comentario {requireComment && <span className="text-red-600">(requerido)</span>}
+              </label>
+              <span className="text-xs text-gray-400">{comment.length}/500</span>
+            </div>
+            <textarea
+              value={comment}
+              onChange={handleCommentChange}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              placeholder={requireComment ? 'Describa el motivo...' : 'Comentario (opcional)'}
+            />
+            {requireComment && !comment.trim() && (
+              <p className="text-xs text-red-600 -mt-3 mb-3">El comentario es obligatorio para esta acción.</p>
+            )}
+          </>
         )}
 
         <div className="flex justify-end space-x-3">
@@ -129,9 +161,7 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
           <button
             onClick={onConfirm}
             disabled={isConfirmDisabled}
-            className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
-              requireComment ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-600 hover:bg-green-700'
-            }`}
+            className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${confirmButtonClass}`}
           >
             {loading ? 'Procesando...' : confirmLabel}
           </button>
@@ -139,6 +169,9 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modal, document.body);
 };
 
 export default AdminActionModal;

@@ -339,7 +339,10 @@ export default function DashboardHome() {
           ) : calendarEvents.length > 0 ? (
             <div className="space-y-3">
               {calendarEvents.slice(0, 4).map((event) => (
-                <div key={event.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div
+                  key={`${event.type}-${event.id}-${event.date}-${event.time ?? ''}`}
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                >
                   <div className={`p-2 rounded-lg ${
                     event.type === 'workshop' ? 'bg-green-100' :
                     event.type === 'volunteer' ? 'bg-purple-100' :

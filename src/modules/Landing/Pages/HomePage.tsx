@@ -11,17 +11,15 @@ import HistoriasdeVida from "../Components/HistoriasdeVida";
 const Home = () => {
   return (
     <>
-         <HeroSectionComponent />
-         <AboutSection />
-         <DonationSectionComponent /> 
-          {/*<PublicWorkshopsPage />*/} 
-          
-          {/*<Testimonials />*/}
-         <VolunteersSection />
-         <PublicWorkshopsPage />
+        <HeroSectionComponent />
+        <AboutSection />
+        <DonationSectionComponent /> 
+        {/*<PublicWorkshopsPage />*/}   
+        {/*<Testimonials />*/}
+        <VolunteersSection />
+        <PublicWorkshopsPage />
         <HistoriasdeVida /> 
         <EventsNews />
-
         <LocationMap />
 
     </>

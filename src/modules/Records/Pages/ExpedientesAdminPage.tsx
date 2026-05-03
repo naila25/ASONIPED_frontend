@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from '@tanstack/react-router';
-import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, MapPin, Info, ChevronUp, ChevronDown, Trash2, Edit3, Trash, Plus, Users, IdCard } from 'lucide-react';
-import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, requestPhase3Modification, approveRecord, rejectRecord, getRecordById, updateNote, deleteNote, deleteRecord, addNote, handoverRecordToUser } from '../Services/recordsApi';
+import {FileText, Search, CheckCircle, XCircle, Clock, AlertCircle, User, BarChart3, ChevronUp, ChevronDown, Trash2, Edit3, Plus, Users, IdCard, Filter } from 'lucide-react';
+import {getRecords, getRecordStats, approvePhase1, rejectPhase1, requestPhase1Modification, requestPhase3Modification, approveRecord, rejectRecord, getRecordById, deleteRecord, addNote, handoverRecordToUser } from '../Services/recordsApi';
 import type { Record, RecordStats, RecordWithDetails } from '../Types/records';
-import Phase3Details from './Phase3Details';
-import Phase4Details from './Phase4Details';
+import RecordDetailsModal from '../Components/RecordDetailsModal';
 import Phase3ModificationModal from '../Components/Phase3ModificationModal';
 import AdminActionModal from '../Components/AdminActionModal';
 import HandoverModal from '../Components/HandoverModal';
@@ -14,7 +13,6 @@ import IDCardModal from '../Components/IDCardModal';
 const ExpedientesAdminPage: React.FC = () => {
   // State Management
   const [records, setRecords] = useState<Record[]>([]);
-  const [allRecords, setAllRecords] = useState<Record[]>([]); // For analytics
   const [stats, setStats] = useState<RecordStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +20,6 @@ const ExpedientesAdminPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [phaseFilter, setPhaseFilter] = useState<string>('');
   const [creatorFilter, setCreatorFilter] = useState<string>('');
   const [selectedRecord, setSelectedRecord] = useState<RecordWithDetails | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -30,9 +27,6 @@ const ExpedientesAdminPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [pendingAction, setPendingAction] = useState<string>('');
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
-  const [editingNoteText, setEditingNoteText] = useState('');
-  const [noteLoading, setNoteLoading] = useState<number | null>(null);
   const [deletingRecordId, setDeletingRecordId] = useState<number | null>(null);
   const [showPhase3ModModal, setShowPhase3ModModal] = useState(false);
   const [phase3ModLoading, setPhase3ModLoading] = useState(false);
@@ -43,23 +37,19 @@ const ExpedientesAdminPage: React.FC = () => {
   const [showIDCardModal, setShowIDCardModal] = useState(false);
   const [idCardRecordId, setIdCardRecordId] = useState<number | null>(null);
   const [pendingExpandRecordId, setPendingExpandRecordId] = useState<number | null>(null);
+  const [mobileLoadingRecordId, setMobileLoadingRecordId] = useState<number | null>(null);
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+  const [showRecordDetailsModal, setShowRecordDetailsModal] = useState(false);
+  const [analyticsTab, setAnalyticsTab] = useState('overview');
+  const [recordIdToDelete, setRecordIdToDelete] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // ===== DATA LOADING =====
-  const loadAllRecordsForAnalytics = useCallback(async () => {
-    try {
-      // Load all records for analytics (no pagination, no filters)
-      const allRecordsResponse = await getRecords(1, 1000, '', '', '', '');
-      setAllRecords(allRecordsResponse.records);
-    } catch (err) {
-      console.error('Error loading all records for analytics:', err);
-    }
-  }, []);
-
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [recordsResponse, statsResponse] = await Promise.all([
-        getRecords(currentPage, 10, statusFilter, phaseFilter, searchTerm, creatorFilter),
+        getRecords(currentPage, 10, statusFilter, '', searchTerm, creatorFilter),
         getRecordStats()
       ]);
 
@@ -72,48 +62,48 @@ const ExpedientesAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, phaseFilter, searchTerm, creatorFilter]);
+  }, [currentPage, statusFilter, searchTerm, creatorFilter]);
 
   // ===== EFFECTS =====
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  useEffect(() => {
-    loadAllRecordsForAnalytics();
-  }, [loadAllRecordsForAnalytics]);
-
-  // ===== ROW EXPANSION =====
-  const toggleRowExpansion = useCallback(async (recordId: number) => {
-    const newExpandedRows = new Set(expandedRows);
-
-    if (newExpandedRows.has(recordId)) {
-      newExpandedRows.delete(recordId);
+  // ===== RECORD DETAILS MODAL (view in modal instead of expanded row) =====
+  const openRecordDetails = useCallback(async (recordId: number) => {
+    if (showRecordDetailsModal && selectedRecord?.id === recordId) {
+      setShowRecordDetailsModal(false);
       setSelectedRecord(null);
-    } else {
-      try {
-        const recordDetails = await getRecordById(recordId);
-        setSelectedRecord(recordDetails);
-        newExpandedRows.add(recordId);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
-        return;
-      }
+      setExpandedRows(new Set());
+      return;
     }
+    setMobileLoadingRecordId(recordId);
+    try {
+      const recordDetails = await getRecordById(recordId);
+      setSelectedRecord(recordDetails);
+      setExpandedRows(new Set([recordId]));
+      setShowRecordDetailsModal(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
+    } finally {
+      setMobileLoadingRecordId(null);
+    }
+  }, [showRecordDetailsModal, selectedRecord?.id]);
 
-    setExpandedRows(newExpandedRows);
-  }, [expandedRows]);
+  const closeRecordDetailsModal = useCallback(() => {
+    setShowRecordDetailsModal(false);
+    setSelectedRecord(null);
+    setExpandedRows(new Set());
+    setMobileLoadingRecordId(null);
+  }, []);
 
-  // After switching from enhanced view to table view, expand the queued record
+  // After switching from enhanced view to table view, open modal for the queued record
   useEffect(() => {
     if (!showEnhancedView && pendingExpandRecordId) {
-      // Defer to ensure the table is rendered before expanding
-      setTimeout(() => {
-        toggleRowExpansion(pendingExpandRecordId);
-        setPendingExpandRecordId(null);
-      }, 0);
+      openRecordDetails(pendingExpandRecordId);
+      setPendingExpandRecordId(null);
     }
-  }, [showEnhancedView, pendingExpandRecordId, toggleRowExpansion]);
+  }, [showEnhancedView, pendingExpandRecordId, openRecordDetails]);
 
   // ===== ACTION HANDLERS =====
   const handleAction = async (recordId: number, action: string) => {
@@ -170,15 +160,11 @@ const ExpedientesAdminPage: React.FC = () => {
     }
   };
 
-  const initiateAction = useCallback((action: string, recordId?: number) => {
+  const initiateAction = useCallback((action: string, _recordId?: number) => {
+    void _recordId; // kept for call-site API; selectedRecord is used by modal
     setPendingAction(action);
-    const targetRecordId = recordId || selectedRecord?.id;
-    if (targetRecordId) {
-      // Verificar que el record existe, pero mantener selectedRecord actual
-      records.find(r => r.id === targetRecordId);
-    }
     setShowModal(true);
-  }, [selectedRecord?.id, records]);
+  }, []);
 
   const handlePhase3Modification = useCallback(async (data: {
     comment: string;
@@ -188,14 +174,6 @@ const ExpedientesAdminPage: React.FC = () => {
     if (!selectedRecord) return;
 
     try {
-      console.log('=== ADMIN: REQUESTING PHASE 3 MODIFICATION ===');
-      console.log('Record ID:', selectedRecord.id);
-      console.log('Data:', data);
-      console.log('Sections to modify:', data.sectionsToModify);
-      console.log('Sections to modify length:', data.sectionsToModify?.length);
-      console.log('Documents to replace:', data.documentsToReplace);
-      console.log('Documents to replace length:', data.documentsToReplace?.length);
-      
       setPhase3ModLoading(true);
       await requestPhase3Modification(
         selectedRecord.id,
@@ -203,15 +181,8 @@ const ExpedientesAdminPage: React.FC = () => {
         data.sectionsToModify,
         data.documentsToReplace
       );
-
-      console.log('Phase 3 modification requested successfully');
-      // Reload data and close modal
       await loadData();
-      // Small delay to ensure data is fully loaded and UI updates
-      setTimeout(() => {
-        setShowPhase3ModModal(false);
-      }, 500);
-      // Don't clear selectedRecord here - keep it for the form
+      setShowPhase3ModModal(false);
     } catch (err) {
       console.error('Error requesting Phase 3 modification:', err);
       setError(err instanceof Error ? err.message : 'Error solicitando modificación de Fase 3');
@@ -220,88 +191,60 @@ const ExpedientesAdminPage: React.FC = () => {
     }
   }, [selectedRecord, loadData]);
 
-  // ===== NOTE MANAGEMENT =====
-  const startEditNote = (noteId: number, currentText: string) => {
-    setEditingNoteId(noteId);
-    setEditingNoteText(currentText);
-  };
-
-  const cancelEditNote = () => {
-    setEditingNoteId(null);
-    setEditingNoteText('');
-  };
-
-  const saveEditNote = async (noteId: number) => {
-    try {
-      setNoteLoading(noteId);
-      await updateNote(noteId, editingNoteText);
-
-      if (selectedRecord) {
-        const updatedRecord = await getRecordById(selectedRecord.id);
-        setSelectedRecord(updatedRecord);
-      }
-
-      setEditingNoteId(null);
-      setEditingNoteText('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error actualizando comentario');
-    } finally {
-      setNoteLoading(null);
-    }
-  };
-
-  const handleDeleteNote = async (noteId: number) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este comentario?')) {
-      return;
-    }
-
-    try {
-      setNoteLoading(noteId);
-      await deleteNote(noteId);
-
-      if (selectedRecord) {
-        const updatedRecord = await getRecordById(selectedRecord.id);
-        setSelectedRecord(updatedRecord);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error eliminando comentario');
-    } finally {
-      setNoteLoading(null);
-    }
-  };
-
   // ===== RECORD DELETION =====
-  const handleDeleteRecord = async (recordId: number) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este expediente? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
+  const handleDeleteRecord = useCallback(async (recordId: number) => {
     try {
       setDeletingRecordId(recordId);
+      setDeleteLoading(true);
       await deleteRecord(recordId);
-
       await loadData();
-
       if (expandedRows.has(recordId)) {
         const newExpandedRows = new Set(expandedRows);
         newExpandedRows.delete(recordId);
         setExpandedRows(newExpandedRows);
         setSelectedRecord(null);
       }
+      setRecordIdToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error eliminando expediente');
     } finally {
       setDeletingRecordId(null);
+      setDeleteLoading(false);
     }
-  };
+  }, [expandedRows, loadData]);
 
-  const handleHandoverRecord = async (userId: number) => {
+  const openDeleteConfirm = useCallback((recordId: number) => {
+    setRecordIdToDelete(recordId);
+  }, []);
+
+  const confirmDeleteRecord = useCallback(() => {
+    if (recordIdToDelete == null) return;
+    handleDeleteRecord(recordIdToDelete);
+  }, [recordIdToDelete, handleDeleteRecord]);
+
+  const handleHandoverRecord = useCallback(async (userId: number) => {
     if (!handoverRecordId) return;
-    
+    const id = handoverRecordId;
+
     try {
       setHandoverLoading(true);
-      await handoverRecordToUser(handoverRecordId, userId);
-      await loadData(); // Refresh the records list
+      await handoverRecordToUser(id, userId);
+
+      // Refresh full record so details modal (if open) shows handed_over and hides "Entregar a usuario"
+      try {
+        const updated = await getRecordById(id);
+        setSelectedRecord((prev) => (prev?.id === id ? updated : prev));
+      } catch {
+        setSelectedRecord((prev) => (prev?.id === id ? null : prev));
+      }
+
+      await loadData(); // Refresh list from server
+
+      // Ensure this record is marked handed over in the list (in case list API doesn't return the flag)
+      setRecords((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, handed_over_to_user: true } : r))
+      );
+
       setShowHandoverModal(false);
       setHandoverRecordId(null);
     } catch (err) {
@@ -309,12 +252,12 @@ const ExpedientesAdminPage: React.FC = () => {
     } finally {
       setHandoverLoading(false);
     }
-  };
+  }, [handoverRecordId, loadData]);
 
-  const initiateHandover = (recordId: number) => {
+  const initiateHandover = useCallback((recordId: number) => {
     setHandoverRecordId(recordId);
     setShowHandoverModal(true);
-  };
+  }, []);
 
   // ===== UTILITY FUNCTIONS =====
   const getStatusInfo = useCallback((status: string) => {
@@ -338,69 +281,74 @@ const ExpedientesAdminPage: React.FC = () => {
     }
   }, []);
 
-  const getPhaseInfo = useCallback((phase: string) => {
-    switch (phase) {
-      case 'phase1':
-        return { color: 'blue', text: 'Fase 1 - Registro Inicial' };
-      case 'phase2':
-        return { color: 'yellow', text: 'Fase 2 - Revisión Admin' };
-      case 'phase3':
-        return { color: 'purple', text: 'Fase 3 - Formulario Completo' };
-      case 'phase4':
-        return { color: 'green', text: 'Fase 4 - Revisión Final' };
-      case 'completed':
-        return { color: 'green', text: 'Completado' };
-      default:
-        return { color: 'gray', text: 'Desconocido' };
-    }
-  }, []);
-
   // ===== RENDER HELPERS =====
+  const getStatusBadgeClass = (status: string): string => {
+    const base = 'inline-flex w-fit items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium';
+    switch (status) {
+      case 'draft': return `${base} bg-gray-100 text-gray-800`;
+      case 'pending': return `${base} bg-yellow-100 text-yellow-800`;
+      case 'needs_modification': return `${base} bg-orange-100 text-orange-800`;
+      case 'approved': return `${base} bg-green-100 text-green-800`;
+      case 'rejected': return `${base} bg-red-100 text-red-800`;
+      case 'active': return `${base} bg-green-100 text-green-800`;
+      case 'inactive': return `${base} bg-gray-100 text-gray-800`;
+      default: return `${base} bg-gray-100 text-gray-800`;
+    }
+  };
+
+  const getPhaseBadgeClass = (phase: string): string => {
+    const base = 'inline-flex w-fit items-center px-1.5 py-0.5 rounded text-xs font-medium';
+    switch (phase) {
+      case 'phase1': return `${base} bg-blue-100 text-blue-800`;
+      case 'phase2': return `${base} bg-yellow-100 text-yellow-800`;
+      case 'phase3': return `${base} bg-purple-100 text-purple-800`;
+      case 'phase4': return `${base} bg-green-100 text-green-800`;
+      case 'completed': return `${base} bg-green-100 text-green-800`;
+      default: return `${base} bg-gray-100 text-gray-800`;
+    }
+  };
+
+  const getPhaseShortText = (phase: string): string => {
+    switch (phase) {
+      case 'phase1': return 'Fase 1';
+      case 'phase2': return 'Fase 2';
+      case 'phase3': return 'Fase 3';
+      case 'phase4': return 'Fase 4';
+      case 'completed': return 'Completado';
+      default: return '—';
+    }
+  };
+
   const renderStatusBadge = useCallback((status: string) => {
     const statusInfo = getStatusInfo(status);
     const StatusIcon = statusInfo.icon;
-
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.color}-100 text-${statusInfo.color}-800`}>
-        <StatusIcon className="w-3 h-3 mr-1" />
+      <span className={getStatusBadgeClass(status)}>
+        <StatusIcon className="w-3 h-3 shrink-0" />
         {statusInfo.text}
       </span>
     );
   }, [getStatusInfo]);
 
   const renderPhaseBadge = useCallback((phase: string) => {
-    const phaseInfo = getPhaseInfo(phase);
-
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${phaseInfo.color}-100 text-${phaseInfo.color}-800`}>
-        {phaseInfo.text}
+      <span className={getPhaseBadgeClass(phase)}>
+        {getPhaseShortText(phase)}
       </span>
     );
-  }, [getPhaseInfo]);
-
-  // Handle Phase 3 modification click - moved outside to avoid hooks rule violation
-  const handlePhase3ModClick = useCallback(async (recordId: number) => {
-    try {
-      const recordDetails = await getRecordById(recordId);
-      setSelectedRecord(recordDetails);
-      setShowPhase3ModModal(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
-    }
   }, []);
 
+  // Handle Phase 3 modification click - moved outside to avoid hooks rule violation
   const renderActionButtons = useCallback((record: Record) => {
-    const isPhase1Pending = record.phase === 'phase1' && record.status === 'pending';
-    const isPhase3Pending = record.phase === 'phase3' && record.status === 'pending';
-
     return (
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
         <button
-          onClick={() => toggleRowExpansion(record.id)}
+          type="button"
+          onClick={() => (showRecordDetailsModal && selectedRecord?.id === record.id) ? closeRecordDetailsModal() : openRecordDetails(record.id)}
           className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50"
-          title={expandedRows.has(record.id) ? "Ocultar detalles" : "Ver detalles"}
+          title={showRecordDetailsModal && selectedRecord?.id === record.id ? "Cerrar detalles" : "Ver detalles"}
         >
-          {expandedRows.has(record.id) ? (
+          {showRecordDetailsModal && selectedRecord?.id === record.id ? (
             <ChevronUp className="w-4 h-4" />
           ) : (
             <ChevronDown className="w-4 h-4" />
@@ -408,7 +356,8 @@ const ExpedientesAdminPage: React.FC = () => {
         </button>
 
         <button
-          onClick={() => window.location.href = `/admin/expedientes/editar/${record.id}`}
+          type="button"
+          onClick={() => { window.location.href = `/admin/expedientes/editar/${record.id}`; }}
           className="text-orange-600 hover:text-orange-900 transition-colors p-1 rounded hover:bg-orange-50"
           title="Editar expediente (Admin)"
         >
@@ -416,6 +365,7 @@ const ExpedientesAdminPage: React.FC = () => {
         </button>
 
         <button
+          type="button"
           onClick={() => { setIdCardRecordId(record.id); setShowIDCardModal(true); }}
           className="text-indigo-600 hover:text-indigo-900 transition-colors p-1 rounded hover:bg-indigo-50"
           title="Ver carnet"
@@ -423,18 +373,24 @@ const ExpedientesAdminPage: React.FC = () => {
           <IdCard className="w-4 h-4" />
         </button>
 
-        {record.admin_created && !record.handed_over_to_user && (
+        {record.admin_created && !record.handed_over_to_user ? (
           <button
+            type="button"
             onClick={() => initiateHandover(record.id)}
             className="text-green-600 hover:text-green-900 transition-colors p-1 rounded hover:bg-green-50"
             title="Entregar expediente a usuario"
           >
             <Users className="w-4 h-4" />
           </button>
-        )}
+        ) : null}
 
         <button
-          onClick={() => handleDeleteRecord(record.id)}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openDeleteConfirm(record.id);
+          }}
           disabled={deletingRecordId === record.id}
           className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50 disabled:opacity-50"
           title="Eliminar expediente"
@@ -443,317 +399,7 @@ const ExpedientesAdminPage: React.FC = () => {
         </button>
       </div>
     );
-  }, [expandedRows, deletingRecordId, actionLoading, phase3ModLoading, toggleRowExpansion, handleDeleteRecord, initiateAction, handlePhase3ModClick, initiateHandover]);
-
-  const renderExpandedRow = (record: Record) => {
-    if (!expandedRows.has(record.id) || !selectedRecord || selectedRecord.id !== record.id) {
-      return null;
-    }
-
-    return (
-      <tr className="bg-gray-50">
-        <td colSpan={8} className="px-6 py-4">
-          <div className="space-y-6">
-            {/* Información del Expediente - Mostrar detalles completos para Phase 3, Phase 4 y Completed */}
-            {selectedRecord.phase === 'phase3' ? (
-              <Phase3Details record={selectedRecord} />
-            ) : selectedRecord.phase === 'phase4' ? (
-              <Phase4Details record={selectedRecord} hideHeader={true} />
-            ) : selectedRecord.phase === 'completed' ? (
-              <Phase4Details record={selectedRecord} hideHeader={true} />
-            ) : (
-              <>
-                {/* Información Personal */}
-                {selectedRecord.personal_data && (
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                      <User className="w-5 h-5 mr-2" />
-                      Información Personal
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Nombre Completo</label>
-                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.full_name}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Cédula</label>
-                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.cedula}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Género</label>
-                          <p className="mt-1 text-sm text-gray-900">
-                            {selectedRecord.personal_data.gender === 'male' ? 'Masculino' : 'Femenino'}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
-                          <p className="mt-1 text-sm text-gray-900">
-                            {new Date(selectedRecord.personal_data.birth_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Nacionalidad</label>
-                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.birth_place}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Dirección</label>
-                          <p className="mt-1 text-sm text-gray-900 flex items-center">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            {selectedRecord.personal_data.address}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Provincia</label>
-                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.province}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Cantón</label>
-                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.canton || 'No disponible'}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Distrito</label>
-                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.district}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Teléfono</label>
-                          <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.phone || 'No disponible'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Información de la PCD */}
-                {selectedRecord.personal_data && (
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                      <Info className="w-5 h-5 mr-2" />
-                      Información de la Persona con Discapacidad
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Tipo de Discapacidad</label>
-                        <p className="mt-1 text-sm text-gray-900">{selectedRecord.personal_data.pcd_name}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Información Familiar</label>
-                        <div className="space-y-2">
-                          {/* Show parents only if at least one exists */}
-                          {(selectedRecord.personal_data.mother_name || selectedRecord.personal_data.father_name) && (
-                            <>
-                              {selectedRecord.personal_data.mother_name && (
-                                <p className="text-sm text-gray-900">
-                                  <span className="font-medium">Madre:</span> {selectedRecord.personal_data.mother_name}
-                                  {selectedRecord.personal_data.mother_cedula && ` (Cédula: ${selectedRecord.personal_data.mother_cedula})`}
-                                  {selectedRecord.personal_data.mother_phone && ` - Tel: ${selectedRecord.personal_data.mother_phone}`}
-                                </p>
-                              )}
-                              {selectedRecord.personal_data.father_name && (
-                                <p className="text-sm text-gray-900">
-                                  <span className="font-medium">Padre:</span> {selectedRecord.personal_data.father_name}
-                                  {selectedRecord.personal_data.father_cedula && ` (Cédula: ${selectedRecord.personal_data.father_cedula})`}
-                                  {selectedRecord.personal_data.father_phone && ` - Tel: ${selectedRecord.personal_data.father_phone}`}
-                                </p>
-                              )}
-                            </>
-                          )}
-                          
-                          {/* Show legal guardian if no parents or if explicitly provided */}
-                          {selectedRecord.personal_data.legal_guardian_name && (
-                            <p className="text-sm text-gray-900">
-                              <span className="font-medium">Encargado Legal:</span> {selectedRecord.personal_data.legal_guardian_name}
-                              {selectedRecord.personal_data.legal_guardian_cedula && ` (Cédula: ${selectedRecord.personal_data.legal_guardian_cedula})`}
-                              {selectedRecord.personal_data.legal_guardian_phone && ` - Tel: ${selectedRecord.personal_data.legal_guardian_phone}`}
-                            </p>
-                          )}
-                          
-                          {/* Show message if no family information */}
-                          {!selectedRecord.personal_data.mother_name && 
-                           !selectedRecord.personal_data.father_name && 
-                           !selectedRecord.personal_data.legal_guardian_name && (
-                            <p className="text-sm text-gray-500 italic">No hay información familiar disponible</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Comentarios y Notas */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-medium text-gray-900 flex items-center">
-                  <FileText className="w-5 h-5 mr-2" />
-                  Comentarios y Notas
-                </h4>
-                                 {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4' || selectedRecord.phase === 'completed') && (
-                  <button
-                    onClick={() => initiateAction('add-note', selectedRecord.id)}
-                    className="flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                  >
-                    <Edit3 className="w-4 h-4 mr-1" />
-                    Agregar Comentario
-                  </button>
-                )}
-              </div>
-              
-              {selectedRecord.notes && selectedRecord.notes.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedRecord.notes.map((note, index: number) => (
-                    <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          note.type === 'milestone' ? 'bg-green-100 text-green-800' :
-                          note.type === 'activity' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {note.type === 'milestone' ? 'Hito' :
-                           note.type === 'activity' ? 'Actividad' : 'Nota'}
-                        </span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-500">
-                            {note.created_at ? new Date(note.created_at).toLocaleDateString() : 'Sin fecha'}
-                          </span>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => note.id && startEditNote(note.id, note.note || '')}
-                              className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
-                              title="Editar comentario"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => note.id && handleDeleteNote(note.id)}
-                              className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
-                              title="Eliminar comentario"
-                            >
-                              <Trash className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {editingNoteId === note.id ? (
-                        <div className="space-y-2">
-                          <textarea
-                            value={editingNoteText}
-                            onChange={(e) => setEditingNoteText(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            rows={3}
-                            placeholder="Editar comentario..."
-                          />
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => note.id && saveEditNote(note.id)}
-                              disabled={noteLoading === note.id}
-                              className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-                            >
-                              {noteLoading === note.id ? 'Guardando...' : 'Guardar'}
-                            </button>
-                            <button
-                              onClick={cancelEditNote}
-                              className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-900">{note.note}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                                     <p className="text-gray-500 text-sm">
-                     {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4' || selectedRecord.phase === 'completed')
-                       ? 'No hay comentarios aún. Use el botón "Agregar Comentario" para añadir observaciones sobre este expediente.'
-                       : 'No hay comentarios para este expediente.'
-                     }
-                   </p>
-                </div>
-              )}
-            </div>
-
-            {/* Acciones */}
-            {(selectedRecord.phase === 'phase1' && selectedRecord.status === 'pending') && (
-              <div className="border-t border-gray-200 pt-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Acciones</h4>
-                <div className="flex space-x-4 justify-center">
-                  <button
-                    onClick={() => initiateAction('approve-phase1', selectedRecord.id)}
-                    className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Aprobar Fase 1
-                  </button>
-                  <button
-                    onClick={() => initiateAction('request-modification', selectedRecord.id)}
-                    className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Solicitar Modificación
-                  </button>
-                  <button
-                    onClick={() => initiateAction('reject-phase1', selectedRecord.id)}
-                    className="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Rechazar Fase 1
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {((selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4') && selectedRecord.status === 'pending') && (
-              <div className="border-t border-gray-200 pt-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Acciones</h4>
-                <div className="flex space-x-4 justify-center">
-                  <button
-                    onClick={() => initiateAction('approve-record', selectedRecord.id)}
-                    className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Aprobar Expediente Completo
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const recordDetails = await getRecordById(selectedRecord.id);
-                        setSelectedRecord(recordDetails);
-                        setShowPhase3ModModal(true);
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
-                      }
-                    }}
-                    disabled={phase3ModLoading}
-                    className="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors disabled:opacity-50"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Solicitar Modificación Fase 3
-                  </button>
-                  <button
-                    onClick={() => initiateAction('reject-record', selectedRecord.id)}
-                    className="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Rechazar Expediente Completo
-                  </button>   
-                </div>
-              </div>
-            )}
-          </div>
-        </td>
-      </tr>
-    );
-  };
+  }, [showRecordDetailsModal, selectedRecord?.id, deletingRecordId, closeRecordDetailsModal, openRecordDetails, openDeleteConfirm, initiateHandover]);
 
   // ===== LOADING & ERROR STATES =====
   if (loading && !stats) {
@@ -789,39 +435,34 @@ const ExpedientesAdminPage: React.FC = () => {
 
   // ===== MAIN RENDER =====
   return (
-    <div className="space-y-6 min-w-0">
-      {/* Header */}
+    <div className="space-y-4 sm:space-y-6 min-w-0 max-w-8xl mx-auto px-3 sm:px-6 lg:px-8">
+      {/* Header - stacks on mobile */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
-              <FileText className="w-6 h-6 text-blue-600" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Gestión de Expedientes</h1>
-              <p className="text-gray-600 text-sm sm:text-base">Administra y revisa todos los expedientes de beneficiarios de ASONIPED</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">Gestión de Expedientes</h1>
+              <p className="text-gray-500 text-xs sm:text-sm mt-0.5 hidden sm:block">Administra y revisa los expedientes de beneficiarios</p>
             </div>
           </div>
-          
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3">
-            {/* View Toggle Button */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 shrink-0">
             <button
               onClick={() => setShowEnhancedView(!showEnhancedView)}
-              className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-lg transition-colors ${
+              className={`inline-flex items-center justify-center px-3 py-2.5 sm:px-4 sm:py-2 border text-sm font-medium rounded-lg transition-colors min-h-[44px] touch-manipulation ${
                 showEnhancedView
                   ? 'border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100'
                   : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
               }`}
             >
               <BarChart3 className="w-4 h-4 mr-2" />
-              {showEnhancedView ? 'Vista Tabla' : 'Vista Ampliada'}
+              {showEnhancedView ? 'Vista Tabla' : 'Graficos'}
             </button>
-            
-            {/* Crear Expediente Button */}
             <Link
               to="/admin/expedientes/crear-directo"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+              className="inline-flex items-center justify-center px-3 py-2.5 sm:px-4 sm:py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors min-h-[44px] touch-manipulation"
             >
               <Plus className="w-4 h-4 mr-2" />
               Crear Expediente
@@ -832,16 +473,18 @@ const ExpedientesAdminPage: React.FC = () => {
 
       {/* Enhanced Analytics View */}
       {showEnhancedView ? (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 min-w-0 overflow-x-hidden">
           {/* Advanced Filters */}
 
           {/* Analytics Charts */}
           <AnalyticsCharts
             records={records}
             stats={stats}
+            onTabChange={setAnalyticsTab}
           />
 
-          {/* Recent Records Summary */}
+          {/* Recent Records Summary - only on Resumen tab */}
+          {analyticsTab === 'overview' && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Expedientes Recientes</h3>
@@ -893,131 +536,136 @@ const ExpedientesAdminPage: React.FC = () => {
               ))}
             </div>
           </div>
+          )}
         </div>
       ) : (
         <>
-          {/* Original Table View */}
-          {/* Stats Cards 
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600">Total Expedientes</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                <FileText className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-yellow-500">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600">Pendientes</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.pending}</p>
-              </div>
-              <div className="p-3 bg-yellow-100 rounded-lg flex-shrink-0">
-                <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600">Activos</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.active}</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Expedientes</h2>
-          <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Buscar expedientes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          {/* Mobile: toggle to show/hide filters */}
+          <button
+            type="button"
+            onClick={() => setShowFiltersMobile((v) => !v)}
+            className="lg:hidden flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-medium touch-manipulation"
+          >
+            <Filter className="w-4 h-4" />
+            {showFiltersMobile ? 'Ocultar filtros' : 'Mostrar filtros'}
+          </button>
+        </div>
+
+        <div className={`rounded-lg bg-gray-50 border border-gray-200 p-3 sm:p-4 ${showFiltersMobile ? 'block' : 'hidden lg:block'}`}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+            <div className="w-full sm:w-48 sm:max-w-[12rem]">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Número, nombre..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-8 pr-2 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
-            <div className="flex gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Todos los estados</option>
-                <option value="draft">Borrador</option>
-                <option value="pending">Pendiente</option>
-                <option value="approved">Aprobado</option>
-                <option value="rejected">Rechazado</option>
-                <option value="active">Activo</option>
-                <option value="inactive">Inactivo</option>
-              </select>
-              <select
-                value={phaseFilter}
-                onChange={(e) => setPhaseFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Todas las fases</option>
-                <option value="phase1">Fase 1</option>
-                <option value="phase2">Fase 2</option>
-                <option value="phase3">Fase 3</option>
-                <option value="phase4">Fase 4</option>
-                <option value="completed">Completado</option>
-              </select>
-              <select
-                value={creatorFilter}
-                onChange={(e) => setCreatorFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Todos los creadores</option>
-                <option value="user">Creados por usuarios</option>
-                <option value="admin">Creados por administradores</option>
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:flex lg:gap-3">
+              <div className="min-w-[120px]">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Todos</option>
+                  <option value="pending">Pendiente</option>
+                  <option value="approved">Aprobado</option>
+                </select>
+              </div>
+              <div className="min-w-[120px]">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Creador</label>
+                <select
+                  value={creatorFilter}
+                  onChange={(e) => setCreatorFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Todos</option>
+                  <option value="user">Usuarios</option>
+                  <option value="admin">Administradores</option>
+                </select>
+              </div>
             </div>
+            {(searchTerm || statusFilter || creatorFilter) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('');
+                  setCreatorFilter('');
+                }}
+                className="shrink-0 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Limpiar filtros
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Records Table */}
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
+        {/* Mobile: card list (tap to open record details modal) */}
+        <div className="lg:hidden space-y-2">
+          {records.map((record) => {
+            const name = record.complete_personal_data?.full_name ||
+              record.personal_data?.full_name ||
+              'Sin nombre';
+            const displayName = name.length > 14 ? `${name.slice(0, 14)}...` : name;
+            const isLoading = mobileLoadingRecordId === record.id;
+            return (
+              <button
+                key={record.id}
+                type="button"
+                onClick={() => openRecordDetails(record.id)}
+                disabled={isLoading}
+                className="w-full text-left block bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md active:bg-gray-50 transition-all touch-manipulation disabled:opacity-70"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-gray-900 truncate">{displayName}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{record.record_number}</div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {renderStatusBadge(record.status)}
+                      {renderPhaseBadge(record.phase)}
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-blue-600 text-sm font-medium">
+                    {isLoading ? 'Cargando…' : 'Ver expediente'}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden lg:block overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
+            <div className="overflow-hidden shadow  md:rounded-lg">
+              <table className="w-full table-auto divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[20%]">
                       Número
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[30%]">
                       Nombre
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
-                      Estado
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[15%] whitespace-nowrap">
+                      Estado / Fase
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                      Fase
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                      Creador
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[15%]">
                       Fecha
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[20%]">
                       Acciones
                     </th>
                   </tr>
@@ -1026,57 +674,57 @@ const ExpedientesAdminPage: React.FC = () => {
                   {records.map((record) => (
                     <React.Fragment key={record.id}>
                       <tr className="hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                           {record.record_number}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                           <div className="flex items-center">
                             <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-3">
                               <User className="w-4 h-4 text-gray-600" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <div className="font-medium text-gray-900">
-                                {record.complete_personal_data?.full_name || record.personal_data?.full_name || 'Sin nombre'}
+                                {(() => {
+                                  const name = record.complete_personal_data?.full_name ||
+                                    record.personal_data?.full_name ||
+                                    'Sin nombre';
+                                  return name.length > 7 ? `${name.slice(0, 20)}...` : name;
+                                })()}
                               </div>
-                              <div className="text-gray-500">
-                                {record.complete_personal_data?.cedula || record.personal_data?.cedula || 'Sin cédula'}
+                              <div className="text-gray-500 text-xs truncate">
+                                {record.complete_personal_data?.cedula ||
+                                  record.personal_data?.cedula ||
+                                  'Sin cédula'}
+                              </div>
+                              <div className="mt-0.5">
+                                {record.admin_created ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-orange-50 text-orange-700 border border-orange-100">
+                                    <User className="w-3 h-3 mr-1" />
+                                    Admin
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                    <User className="w-3 h-3 mr-1" />
+                                    Usuario
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          {renderStatusBadge(record.status)}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap">
-                          {renderPhaseBadge(record.phase)}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div className="flex items-center">
-                            {record.admin_created ? (
-                              <>
-                                <div className="h-6 w-6 rounded-full bg-orange-100 flex items-center justify-center mr-2">
-                                  <User className="w-3 h-3 text-orange-600" />
-                                </div>
-                                <span className="text-orange-700 font-medium">Admin</span>
-                              </>
-                            ) : (
-                              <>
-                                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                                  <User className="w-3 h-3 text-blue-600" />
-                                </div>
-                                <span className="text-blue-700 font-medium">Usuario</span>
-                              </>
-                            )}
+                        <td className="px-2 py-3 w-[1%] align-top">
+                          <div className="flex flex-col gap-0.5 items-start">
+                            {renderStatusBadge(record.status)}
+                            {renderPhaseBadge(record.phase)}
                           </div>
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                           {new Date(record.created_at).toLocaleDateString()}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-2 py-3 whitespace-nowrap text-xs sm:text-sm font-medium">
                           {renderActionButtons(record)}
                         </td>
                       </tr>
-                      {renderExpandedRow(record)}
                     </React.Fragment>
                   ))}
                 </tbody>
@@ -1085,24 +733,24 @@ const ExpedientesAdminPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination - touch-friendly on mobile */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6">
-            <div className="text-sm text-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 sm:mt-6">
+            <div className="text-sm text-gray-700 order-2 sm:order-1">
               Página {currentPage} de {totalPages}
             </div>
-            <div className="flex space-x-2">
+            <div className="flex gap-2 order-1 sm:order-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="min-h-[44px] px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
               >
                 Anterior
               </button>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="min-h-[44px] px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
               >
                 Siguiente
               </button>
@@ -1112,7 +760,7 @@ const ExpedientesAdminPage: React.FC = () => {
 
         {records.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            {searchTerm || statusFilter || phaseFilter
+            {searchTerm || statusFilter || creatorFilter
               ? 'No se encontraron expedientes que coincidan con los filtros'
               : 'No hay expedientes disponibles'
             }
@@ -1120,11 +768,149 @@ const ExpedientesAdminPage: React.FC = () => {
         )}
       </div>
 
+      {/* Record details modal (desktop + mobile): view in modal instead of expanded row */}
+      <RecordDetailsModal
+        isOpen={showRecordDetailsModal && !!selectedRecord}
+        record={selectedRecord}
+        onClose={closeRecordDetailsModal}
+        editHref={selectedRecord ? `/admin/expedientes/editar/${selectedRecord.id}` : undefined}
+      >
+        {selectedRecord && (() => {
+          const listRecord = records.find((r) => r.id === selectedRecord.id);
+          const isHandedOver = listRecord?.handed_over_to_user === true || selectedRecord.handed_over_to_user === true;
+          const canHandover = selectedRecord.admin_created && !isHandedOver;
+          return (
+          <div className="flex flex-col gap-3 min-w-0">
+            {/* Acciones del expediente: carnet, entregar (solo si no está ya entregado), eliminar */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIdCardRecordId(selectedRecord.id);
+                  setShowIDCardModal(true);
+                  closeRecordDetailsModal();
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100"
+              >
+                <IdCard className="w-3.5 h-3.5 flex-shrink-0" />
+                Ver carnet
+              </button>
+              {canHandover && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeRecordDetailsModal();
+                    initiateHandover(selectedRecord.id);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100"
+                >
+                  <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                  Entregar a usuario
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  closeRecordDetailsModal();
+                  openDeleteConfirm(selectedRecord.id);
+                }}
+                disabled={deletingRecordId === selectedRecord.id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
+                Eliminar
+              </button>
+            </div>
+
+            {/* Acciones de revisión (según fase) */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-2 border-t border-gray-200">
+              {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4' || selectedRecord.phase === 'completed') && (
+                <button
+                  type="button"
+                  onClick={() => initiateAction('add-note', selectedRecord.id)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100"
+                >
+                  <Edit3 className="w-3.5 h-3.5 flex-shrink-0" />
+                  Agregar comentario
+                </button>
+              )}
+              {selectedRecord.phase === 'phase1' && selectedRecord.status === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('approve-phase1', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Aprobar Fase 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('request-modification', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 flex-shrink-0" />
+                    Solicitar modificación
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('reject-phase1', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100"
+                  >
+                    <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Rechazar Fase 1
+                  </button>
+                </>
+              )}
+              {(selectedRecord.phase === 'phase3' || selectedRecord.phase === 'phase4') && selectedRecord.status === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('approve-record', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Aprobar expediente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const recordDetails = await getRecordById(selectedRecord.id);
+                        setSelectedRecord(recordDetails);
+                        setShowPhase3ModModal(true);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Error cargando detalles del expediente');
+                      }
+                    }}
+                    disabled={phase3ModLoading}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 disabled:opacity-50"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 flex-shrink-0" />
+                    Solicitar mod. Fase 3
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => initiateAction('reject-record', selectedRecord.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100"
+                  >
+                    <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Rechazar expediente
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          );
+        })()}
+      </RecordDetailsModal>
+
       {/* Modal unificado para acciones de Fase 1 y expediente */}
       {showModal && selectedRecord && (
         <AdminActionModal
           isOpen={showModal}
           title={
+            pendingAction === 'add-note' ? 'Agregar Comentario' :
             pendingAction === 'approve-phase1' ? 'Aprobar Fase 1' :
             pendingAction === 'reject-phase1' ? 'Rechazar Fase 1' :
             pendingAction === 'request-modification' ? 'Solicitar Modificación' :
@@ -1132,6 +918,7 @@ const ExpedientesAdminPage: React.FC = () => {
             'Rechazar Expediente Completo'
           }
           message={
+            pendingAction === 'add-note' ? 'Escriba el comentario para el expediente.' :
             pendingAction.includes('approve') ?
               '¿Está seguro de que desea aprobar este expediente?' :
               pendingAction === 'request-modification' ?
@@ -1140,8 +927,10 @@ const ExpedientesAdminPage: React.FC = () => {
           }
           comment={comment}
           setComment={setComment}
-          requireComment={pendingAction === 'request-modification' || pendingAction === 'reject-phase1' || pendingAction === 'reject-record'}
+          requireComment={pendingAction === 'add-note' || pendingAction === 'request-modification' || pendingAction === 'reject-phase1' || pendingAction === 'reject-record'}
+          confirmTone={pendingAction === 'add-note' ? 'success' : undefined}
           confirmLabel={
+            pendingAction === 'add-note' ? 'Agregar' :
             pendingAction.includes('approve') ? 'Aprobar' :
             pendingAction === 'request-modification' ? 'Solicitar Modificación' :
             'Rechazar'
@@ -1155,6 +944,26 @@ const ExpedientesAdminPage: React.FC = () => {
           }}
           recordNumber={selectedRecord.record_number}
           recordName={selectedRecord.complete_personal_data?.full_name || selectedRecord.personal_data?.full_name}
+        />
+      )}
+
+      {/* Delete record: simple confirmation only (no comment) */}
+      {recordIdToDelete !== null && (
+        <AdminActionModal
+          isOpen={true}
+          title="Eliminar expediente"
+          message="¿Está seguro de que desea eliminar este expediente? Esta acción no se puede deshacer."
+          comment=""
+          setComment={() => {}}
+          requireComment={false}
+          hideComment={true}
+          confirmTone="danger"
+          confirmLabel="Eliminar"
+          loading={deleteLoading}
+          onConfirm={confirmDeleteRecord}
+          onCancel={() => setRecordIdToDelete(null)}
+          recordNumber={records.find(r => r.id === recordIdToDelete)?.record_number}
+          recordName={records.find(r => r.id === recordIdToDelete)?.complete_personal_data?.full_name || records.find(r => r.id === recordIdToDelete)?.personal_data?.full_name}
         />
       )}
 

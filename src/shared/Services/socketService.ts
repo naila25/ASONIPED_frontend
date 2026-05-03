@@ -1,6 +1,30 @@
 import { io, Socket } from 'socket.io-client';
 import { getToken } from '../../modules/Login/Services/auth';
 import { getAPIBaseURL } from './config';
+import type { TicketMessage } from '../../modules/Tickets/Services/ticketService';
+import type { SendMessage } from '../../modules/Tickets/Services/anonymousTicketService';
+
+/** Outgoing payload for `new_message` (matches REST + optional socket fields). */
+export type TicketSocketSendPayload = Pick<
+  TicketMessage,
+  'module_type' | 'module_id' | 'sender_id' | 'message'
+> &
+  Partial<Pick<TicketMessage, 'sender_name' | 'timestamp'>>;
+
+/** Incoming `message_received` payloads (id/timestamp may arrive slightly after send). */
+export type TicketSocketIncomingMessage = Pick<
+  TicketMessage,
+  'module_type' | 'module_id' | 'sender_id' | 'message'
+> &
+  Partial<Pick<TicketMessage, 'id' | 'timestamp' | 'sender_name'>>;
+
+/** Incoming `anonymous_message_received` payloads. */
+export interface AnonymousSocketIncomingMessage {
+  sender_type: 'user' | 'admin';
+  message: string;
+  timestamp?: string;
+  created_at?: string;
+}
 
 class SocketService {
   private socket: Socket | null = null;
@@ -9,49 +33,36 @@ class SocketService {
   /**
    * Connect to Socket.io server with authentication
    */
-  connect(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const token = getToken();
-        
-        // Get backend URL from config (uses VITE_BACKEND_URL in production)
-        const backendURL = await getAPIBaseURL();
-        
-        // Configure connection options
-        const connectionOptions: any = {
-          transports: ['websocket', 'polling'],
-          timeout: 10000,
-          reconnection: true,
-          reconnectionAttempts: 5,
-          reconnectionDelay: 1000,
-          forceNew: true
-        };
+  async connect(): Promise<void> {
+    const token = getToken();
+    const backendURL = await getAPIBaseURL();
 
-        // Add token if available (for authenticated users)
-        if (token) {
-          connectionOptions.auth = { token };
-        }
-        
+    const connectionOptions: Record<string, unknown> = {
+      transports: ['websocket', 'polling'],
+      timeout: 10000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      forceNew: true,
+    };
+
+    if (token) {
+      connectionOptions.auth = { token };
+    }
+
+    return new Promise((resolve, reject) => {
+      try {
         this.socket = io(backendURL, connectionOptions);
 
         this.socket.on('connect', () => {
-          console.log('🔌 Connected to Socket.io server');
-          console.log('🔌 Socket ID:', this.socket?.id);
-          console.log('🔌 Backend URL:', backendURL);
-          console.log('🔌 Connection type:', token ? 'Authenticated' : 'Anonymous');
-          console.log('🔌 Socket instance:', this.socket);
           this.isConnected = true;
           resolve();
         });
 
         this.socket.on('connect_error', (error) => {
-          console.error('❌ Socket.io connection error:', error);
-          console.error('❌ Error details:', error.message);
           this.isConnected = false;
-          
-          // For anonymous users, don't reject on auth errors
+
           if (!token && error.message.includes('Authentication error')) {
-            console.log('🔌 Anonymous user - continuing without authentication');
             this.isConnected = true;
             resolve();
           } else {
@@ -60,15 +71,12 @@ class SocketService {
         });
 
         this.socket.on('disconnect', () => {
-          console.log('🔌 Disconnected from Socket.io server');
           this.isConnected = false;
         });
 
         this.socket.on('reconnect', () => {
-          console.log('🔌 Reconnected to Socket.io server');
           this.isConnected = true;
         });
-
       } catch (error) {
         reject(error);
       }
@@ -100,12 +108,7 @@ class SocketService {
    */
   joinAnonymousTicketRoom(ticketId: string): void {
     if (this.socket && this.isConnected) {
-      console.log(`🎫 Joining anonymous ticket room: ${ticketId}`);
-      console.log(`🎫 Socket status:`, { isConnected: this.isConnected, socketId: this.socket?.id });
       this.socket.emit('join_anonymous_ticket_room', ticketId);
-    } else {
-      console.warn(`⚠️ Cannot join room ${ticketId}: WebSocket not connected`);
-      console.warn(`⚠️ Socket status:`, { isConnected: this.isConnected, socket: !!this.socket });
     }
   }
 
@@ -130,7 +133,7 @@ class SocketService {
   /**
    * Send a new message
    */
-  sendMessage(ticketId: number, message: any): void {
+  sendMessage(ticketId: number, message: TicketSocketSendPayload): void {
     if (this.socket && this.isConnected) {
       this.socket.emit('new_message', { ticketId, message });
     }
@@ -139,12 +142,9 @@ class SocketService {
   /**
    * Send a new anonymous message
    */
-  sendAnonymousMessage(ticketId: string, message: any): void {
+  sendAnonymousMessage(ticketId: string, message: SendMessage): void {
     if (this.socket && this.isConnected) {
-      console.log('📡 Sending anonymous message via WebSocket:', { ticketId, message });
       this.socket.emit('new_anonymous_message', { ticketId, message });
-    } else {
-      console.warn('⚠️ Cannot send message: WebSocket not connected');
     }
   }
 
@@ -153,7 +153,7 @@ class SocketService {
   /**
    * Listen for new messages
    */
-  onMessageReceived(callback: (message: any) => void): void {
+  onMessageReceived(callback: (message: TicketSocketIncomingMessage) => void): void {
     if (this.socket) {
       this.socket.on('message_received', callback);
     }
@@ -162,7 +162,7 @@ class SocketService {
   /**
    * Listen for new anonymous messages
    */
-  onAnonymousMessageReceived(callback: (message: any) => void): void {
+  onAnonymousMessageReceived(callback: (message: AnonymousSocketIncomingMessage) => void): void {
     if (this.socket) {
       this.socket.on('anonymous_message_received', callback);
     }
@@ -196,7 +196,7 @@ class SocketService {
   }
 
   /**
-   * Get socket instance for debugging
+   * Get socket instance
    */
   getSocket(): Socket | null {
     return this.socket;

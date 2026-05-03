@@ -27,6 +27,8 @@ export interface TestimonialItem {
   videoUrl?: string;
   image?: string;
   role?: string;
+  /** Orden en la lista (landing historias) */
+  orden?: number;
 }
 
 export interface FooterData {
