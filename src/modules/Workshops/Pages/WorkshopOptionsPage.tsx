@@ -51,12 +51,13 @@ const blankForm: FormState = {
 const WorkshopOptionsPage: React.FC = () => {
   const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
 
+  // Define character limits for validation and user feedback
   const LIMITS = {
-    title: 255,
-    location: 255,
-    description: 4000,
-    materiales: 4000,
-    aprender: 4000,
+    title: 100,
+    location: 100,
+    description: 1000,
+    materiales: 1000,
+    aprender: 1000,
     imageUrl: 1000,
     hour: 10,
   } as const;

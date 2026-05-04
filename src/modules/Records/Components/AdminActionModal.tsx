@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 
 interface AdminActionModalProps {
   isOpen: boolean;
@@ -9,6 +10,11 @@ interface AdminActionModalProps {
   requireComment?: boolean;
   /** When true, comment field is hidden (e.g. simple confirmations like delete) */
   hideComment?: boolean;
+  /**
+   * Primary button color. If omitted: danger (red) when requireComment, otherwise success (green).
+   * Use `danger` for delete/destructive actions even when no comment is required.
+   */
+  confirmTone?: 'success' | 'danger' | 'warning';
   confirmLabel: string;
   loading?: boolean;
   onConfirm: () => void;
@@ -25,6 +31,7 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
   setComment,
   requireComment = false,
   hideComment = false,
+  confirmTone,
   confirmLabel,
   loading = false,
   onConfirm,
@@ -37,16 +44,25 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
     [loading, hideComment, requireComment, comment]
   );
 
+  const resolvedTone = confirmTone ?? (requireComment ? 'danger' : 'success');
+  const confirmButtonClass =
+    resolvedTone === 'danger'
+      ? 'bg-red-600 hover:bg-red-700'
+      : resolvedTone === 'warning'
+        ? 'bg-amber-600 hover:bg-amber-700'
+        : 'bg-green-600 hover:bg-green-700';
+
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
-  // Close on ESC
+  // Close on ESC (only while open — avoids duplicate listeners when parent keeps mounted)
   useEffect(() => {
+    if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !loading) onCancel();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [loading, onCancel]);
+  }, [isOpen, loading, onCancel]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -72,17 +88,27 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
     }
   }, [setComment]);
 
+  useEffect(() => {
+    if (import.meta.env.DEV && isOpen) {
+      console.log('[AdminActionModal] mounted/open', { title, requireComment });
+    }
+  }, [isOpen, title, requireComment]);
+
   if (!isOpen) return null;
 
-  return (
+  /** Render at `document.body` so `position:fixed` is not trapped by admin `<main className="overflow-y-auto">` (otherwise the dialog can be clipped or not visible). */
+  const modal = (
     <div
       ref={overlayRef}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[110]"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200]"
       onMouseDown={handleOverlayClick}
       aria-modal="true"
       role="dialog"
     >
-      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4 transform transition-all">
+      <div
+        className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4 transform transition-all"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className="flex items-start justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button
@@ -135,9 +161,7 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
           <button
             onClick={onConfirm}
             disabled={isConfirmDisabled}
-            className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
-              requireComment ? 'bg-green-500 hover:bg-green-600' : 'bg-red-600 hover:bg-red-700'
-            }`}
+            className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${confirmButtonClass}`}
           >
             {loading ? 'Procesando...' : confirmLabel}
           </button>
@@ -145,6 +169,9 @@ const AdminActionModal: React.FC<AdminActionModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modal, document.body);
 };
 
 export default AdminActionModal;

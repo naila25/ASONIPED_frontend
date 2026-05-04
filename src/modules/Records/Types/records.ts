@@ -17,12 +17,15 @@ export interface PersonalData {
   mother_name: string;
   mother_cedula: string;
   mother_phone?: string;
+  mother_occupation?: string;
   father_name: string;
   father_cedula: string;
   father_phone?: string;
+  father_occupation?: string;
   legal_guardian_name?: string;
   legal_guardian_cedula?: string;
   legal_guardian_phone?: string;
+  legal_guardian_occupation?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -82,15 +85,86 @@ export interface FamilyMember {
   marital_status: string;
 }
 
+/** Códigos permitidos para tipo(s) de discapacidad (BD: lista separada por comas). */
+export type DisabilityTypeOption =
+  | 'fisica'
+  | 'visual'
+  | 'auditiva'
+  | 'psicosocial'
+  | 'cognitiva'
+  | 'intelectual'
+  | 'multiple';
+
+const DISABILITY_TYPE_CODES = new Set<string>([
+  'fisica',
+  'visual',
+  'auditiva',
+  'psicosocial',
+  'cognitiva',
+  'intelectual',
+  'multiple'
+]);
+
+export const DISABILITY_TYPE_OPTIONS: { value: DisabilityTypeOption; label: string }[] = [
+  { value: 'fisica', label: 'Física' },
+  { value: 'visual', label: 'Visual' },
+  { value: 'auditiva', label: 'Auditiva' },
+  { value: 'psicosocial', label: 'Psicosocial' },
+  { value: 'cognitiva', label: 'Cognitiva' },
+  { value: 'intelectual', label: 'Intelectual' },
+  { value: 'multiple', label: 'Múltiple' }
+];
+
+const DISABILITY_TYPE_LABEL: { [K in DisabilityTypeOption]: string } = {
+  fisica: 'Física',
+  visual: 'Visual',
+  auditiva: 'Auditiva',
+  psicosocial: 'Psicosocial',
+  cognitiva: 'Cognitiva',
+  intelectual: 'Intelectual',
+  multiple: 'Múltiple'
+};
+
+/** Normaliza entrada de API (string con comas) o del formulario (array) a códigos únicos válidos. */
+export function normalizeDisabilityTypes(input: unknown): DisabilityTypeOption[] {
+  const out: DisabilityTypeOption[] = [];
+  const add = (token: string) => {
+    const s = token.trim().toLowerCase();
+    if (!DISABILITY_TYPE_CODES.has(s)) return;
+    const v = s as DisabilityTypeOption;
+    if (!out.includes(v)) out.push(v);
+  };
+  if (Array.isArray(input)) {
+    for (const item of input) {
+      if (typeof item === 'string') add(item);
+    }
+    return out;
+  }
+  if (typeof input === 'string' && input.trim()) {
+    for (const part of input.split(',')) add(part);
+    return out;
+  }
+  return [];
+}
+
+/** Etiquetas en español separadas por coma; cadena vacía si no hay códigos válidos. */
+export function formatDisabilityTypesSpanish(input: unknown): string {
+  return normalizeDisabilityTypes(input)
+    .map((t) => DISABILITY_TYPE_LABEL[t])
+    .join(', ');
+}
+
 // Información de discapacidad actualizada
 export interface DisabilityInformation {
   id?: number;
   record_id?: number;
-  disability_type: 'fisica' | 'visual' | 'auditiva' | 'psicosocial' | 'cognitiva' | 'intelectual' | 'multiple';
+  disability_type: DisabilityTypeOption[];
   medical_diagnosis: string;
-  insurance_type: 'rnc' | 'independiente' | 'privado' | 'otro';
-  disability_origin: 'nacimiento' | 'accidente' | 'enfermedad';
-  disability_certificate: 'si' | 'no' | 'en_tramite';
+  /** Vacío en el formulario hasta que el usuario elija; la API guarda solo valores válidos. */
+  insurance_type: 'rnc' | 'independiente' | 'privado' | 'otro' | '';
+  /** Vacío en el formulario hasta que el usuario elija. */
+  disability_origin: 'nacimiento' | 'accidente' | 'enfermedad' | '';
+  disability_certificate: 'si' | 'no' | 'en_tramite' | '';
   conapdis_registration: 'si' | 'no' | 'en_tramite';
   medical_additional: MedicalAdditionalInfo;
   created_at?: string;
@@ -116,7 +190,8 @@ export interface MedicalAdditionalInfo {
   id?: number;
   disability_info_id?: number;
   diseases: string;
-  blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  /** Vacío en el formulario hasta que el usuario elija. */
+  blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | '';
   biomechanical_benefit: BiomechanicalBenefit[];
   permanent_limitations: PermanentLimitation[];
   medical_observations?: string;
@@ -296,7 +371,8 @@ export interface RecordWithDetails extends Record {
 // Tipos para las fases del proceso
 export interface Phase1Data {
   full_name: string;
-  pcd_name: 'fisica' | 'visual' | 'auditiva' | 'psicosocial' | 'cognitiva' | 'intelectual' | 'multiple';
+  /** Códigos separados por coma; mismo formato que usa `normalizeDisabilityTypes`. */
+  pcd_name: string;
   cedula: string;
   gender: 'male' | 'female' | 'other';
   birth_date: string;
@@ -309,12 +385,15 @@ export interface Phase1Data {
   mother_name?: string;
   mother_cedula?: string;
   mother_phone?: string;
+  mother_occupation?: string;
   father_name?: string;
   father_cedula?: string;
   father_phone?: string;
+  father_occupation?: string;
   legal_guardian_name?: string;
   legal_guardian_cedula?: string;
   legal_guardian_phone?: string;
+  legal_guardian_occupation?: string;
 }
 
 export interface Phase3Data {
@@ -350,4 +429,30 @@ export interface RecordStats {
   phase3: number;
   phase4: number;
   completed: number;
+}
+
+/** Stored in `general_observations` TEXT as JSON `string[]` or legacy plain string. */
+export const MAX_GENERAL_OBSERVATION_NOTE_LENGTH = 200;
+export const MAX_GENERAL_OBSERVATION_NOTE_COUNT = 10;
+export const GENERAL_OBSERVATIONS_CHAR_PATTERN = /^[0-9a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/;
+
+export function parseGeneralObservationsStored(raw: string | undefined | null): string[] {
+  if (raw == null || String(raw).trim() === '') return [];
+  const str = String(raw);
+  try {
+    const parsed = JSON.parse(str) as unknown;
+    if (Array.isArray(parsed) && parsed.every((x): x is string => typeof x === 'string')) {
+      return parsed;
+    }
+  } catch {
+    /* legacy plain text */
+  }
+  return [str];
+}
+
+export function serializeGeneralObservationsStored(rows: string[]): string {
+  if (rows.length === 0) return '';
+  const anyContent = rows.some((r) => r.trim().length > 0);
+  if (rows.length === 1 && !anyContent) return '';
+  return JSON.stringify(rows);
 }

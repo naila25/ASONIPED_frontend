@@ -1,5 +1,25 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import type { RecordWithDetails } from '../Types/records';
+import type {
+  CompletePersonalData,
+  DisabilityDataPayload,
+  DisabilityInformation,
+  MedicalAdditionalInfo,
+  RecordWithDetails
+} from '../Types/records';
+import { formatDisabilityTypesSpanish } from '../Types/records';
+
+/** Parent fields sometimes present on API payloads though not on `CompletePersonalData`. */
+type CompletePersonalDataWithParents = CompletePersonalData & {
+  mother_name?: string;
+  father_name?: string;
+  mother_phone?: string;
+  father_phone?: string;
+};
+
+/** Disability block may include legacy/enrollment `medical_conditions`. */
+type IDCardDisabilitySource = (DisabilityInformation | DisabilityDataPayload) & {
+  medical_conditions?: string | null;
+};
 import { buildAttendanceQrData } from '../Utils/idCard';
 import logo from '../../../assets/logoasoniped.png';
 import { getAPIBaseURLSync, getAPIBaseURL } from '../../../shared/Services/config';
@@ -13,9 +33,11 @@ type IDCardProps = {
 
 
 const IDCard: React.FC<IDCardProps> = ({ record, qrUrl, className }) => {
-  const cpd = record.complete_personal_data;
-  const disability = (record.disability_information || record.disability_data) as any;
-  const medicalAdditional = disability?.medical_additional || {};
+  const cpd = record.complete_personal_data as CompletePersonalDataWithParents | undefined;
+  const disability = (record.disability_information ?? record.disability_data) as
+    | IDCardDisabilitySource
+    | undefined;
+  const medicalAdditional = (disability?.medical_additional ?? {}) as Partial<MedicalAdditionalInfo>;
 
   const fullName = cpd?.full_name || record.personal_data?.full_name || '';
   const cedula = cpd?.cedula || record.personal_data?.cedula || '';
@@ -23,28 +45,32 @@ const IDCard: React.FC<IDCardProps> = ({ record, qrUrl, className }) => {
 
   // Parent/guardian info (prefer complete_personal_data keys if present)
   const parentName = useMemo(() => {
-    const fim = (record.family_information as any) || {};
-    const familyMother = fim.mother_name;
-    const familyFather = fim.father_name;
-    const responsible = fim.responsible_person;
-    const mother = record.personal_data?.mother_name || (cpd as any)?.mother_name;
-    const father = record.personal_data?.father_name || (cpd as any)?.father_name;
+    const fim = record.family_information;
+    const familyMother = fim?.mother_name;
+    const familyFather = fim?.father_name;
+    const responsible = fim?.responsible_person;
+    const mother = record.personal_data?.mother_name || cpd?.mother_name;
+    const father = record.personal_data?.father_name || cpd?.father_name;
     // Preference: family info (mother/father) > responsible > personal/complete
     return familyMother || familyFather || responsible || mother || father || '';
   }, [record.personal_data, cpd, record.family_information]);
 
   const parentPhone = useMemo(() => {
-    const fim = (record.family_information as any) || {};
-    const familyMotherPhone = fim.mother_phone;
-    const familyFatherPhone = fim.father_phone;
-    const responsible = fim.responsible_phone;
-    const m = (cpd as any)?.mother_phone || record.personal_data?.mother_phone;
-    const f = (cpd as any)?.father_phone || record.personal_data?.father_phone;
+    const fim = record.family_information;
+    const familyMotherPhone = fim?.mother_phone;
+    const familyFatherPhone = fim?.father_phone;
+    const responsible = fim?.responsible_phone;
+    const m = cpd?.mother_phone || record.personal_data?.mother_phone;
+    const f = cpd?.father_phone || record.personal_data?.father_phone;
     // Preference: family phones > responsible > personal/complete
     return familyMotherPhone || familyFatherPhone || responsible || m || f || '';
   }, [record.personal_data, cpd, record.family_information]);
 
-  const disabilityType = disability?.disability_type || cpd?.pcd_name || record.personal_data?.pcd_name || '';
+  const disabilityTypeRaw = disability?.disability_type;
+  const disabilityType =
+    disabilityTypeRaw !== undefined && disabilityTypeRaw !== null && String(disabilityTypeRaw).trim() !== ''
+      ? formatDisabilityTypesSpanish(disabilityTypeRaw)
+      : (cpd?.pcd_name || record.personal_data?.pcd_name || '');
   const bloodType = medicalAdditional?.blood_type || '';
   const diseases = medicalAdditional?.diseases || (disability?.medical_conditions ?? '') || '';
 
