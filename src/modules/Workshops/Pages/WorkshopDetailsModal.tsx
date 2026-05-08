@@ -29,6 +29,12 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
     enrolled_count: workshop?.enrolled_count || 0,
   });
 
+  const truncateText = (value: string, maxLength = 150): string => {
+    const trimmed = value.trim();
+    if (trimmed.length <= maxLength) return trimmed;
+    return `${trimmed.slice(0, maxLength).trimEnd()}...`;
+  };
+
   // Format HH:MM (24h) to 12-hour AM/PM for display
   const formatHour12 = (hhmm?: string): string => {
     if (!hhmm) return '';
@@ -144,10 +150,10 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-lg font-semibold mb-2">{workshop.titulo}</h2>
+      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden">
+        <div className="p-6 min-w-0">
+          <div className="flex justify-between items-start mb-4 max-w-full overflow-hidden">
+            <h2 className="text-lg font-semibold mb-2 min-w-0 truncate" title={workshop.titulo}>{workshop.titulo}</h2>
             <button
               onClick={onClose}
               className="text-gray-700 hover:text-gray-800"
@@ -187,7 +193,18 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
               <MdDescription className="text-orange-500" />
               Descripción del taller:
             </span>
-            <p className="text-neutral-700">{workshop.descripcion}</p>
+            <p
+              className="text-neutral-700 min-w-0 break-words line-clamp-4"
+              title={workshop.descripcion}
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 4,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }}
+            >
+              {workshop.descripcion}
+            </p>
 
             {workshop.aprender && (
               <>
@@ -195,7 +212,9 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                   <FaRegLightbulb className="text-orange-500" />
                   ¿Qué aprenderás?
                 </span>
-                <p className="text-neutral-700">{workshop.aprender}</p>
+                <p className="break-words whitespace-pre-wrap text-neutral-700" title={workshop.aprender}>
+                  {truncateText(workshop.aprender, 150)}
+                </p>
               </>
             )}
 
@@ -205,17 +224,32 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                   <FaTools className="text-orange-500" />
                   Materiales necesarios:
                 </span>
-                <div className="text-neutral-700">
-                  {Array.isArray(workshop.materiales) ? 
-                    workshop.materiales.join(', ') : 
-                    workshop.materiales
-                  }
+                <div className="break-words whitespace-pre-wrap text-neutral-700" title={Array.isArray(workshop.materiales) ? workshop.materiales.join(', ') : workshop.materiales}>
+                  {truncateText(
+                    Array.isArray(workshop.materiales)
+                      ? workshop.materiales.join(', ')
+                      : workshop.materiales,
+                    150
+                  )}
                 </div>
               </>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-700">
-              <div className="flex items-center gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 break-words text-neutral-700">
+              <div className="flex flex-wrap items-start gap-2 min-w-0" title={workshop.fecha ? (() => {
+                try {
+                  if (workshop.fecha.includes('/')) {
+                    return workshop.fecha;
+                  }
+                  const date = new Date(workshop.fecha);
+                  if (!isNaN(date.getTime())) {
+                    return date.toLocaleDateString('es-ES');
+                  }
+                  return workshop.fecha;
+                } catch {
+                  return workshop.fecha;
+                }
+              })() : 'Por definir'}>
                 <FaCalendarAlt className="text-orange-500" />
                 <span className="font-medium text-gray-900">Fecha:</span> {workshop.fecha ? (() => {
                   try {
@@ -235,17 +269,20 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                 })() : 'Por definir'}
               </div>
               {workshop.hora && (
-                <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-start gap-2 min-w-0" title={formatHour12(workshop.hora)}>
                   <FaClock className="text-orange-500" />
                   <span className="font-medium text-gray-900">Hora:</span> {formatHour12(workshop.hora)}
                 </div>
               )}
-              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0" title={workshop.ubicacion || 'Por definir'}>
                 <MdLocationOn className="text-orange-500" />
-                <span className="font-medium text-gray-900">Ubicación:</span> {workshop.ubicacion || 'Por definir'}
+                <span className="font-medium text-gray-900">Ubicación:</span>
+                <span className="min-w-0 truncate whitespace-nowrap" title={workshop.ubicacion || 'Por definir'}>
+                  {truncateText(workshop.ubicacion || 'Por definir', 150)}
+                </span>
               </div>
               {enrollmentStatus.available_spots !== undefined && (
-                <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-start gap-2 min-w-0" title={`${enrollmentStatus.available_spots} disponibles${enrollmentStatus.enrolled_count > 0 ? ` (${enrollmentStatus.enrolled_count} inscritos)` : ''}`}>
                   <FaUsers className="text-orange-500" />
                   <span className="font-medium text-gray-900">Cupos:</span>
                   <span className={enrollmentStatus.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
