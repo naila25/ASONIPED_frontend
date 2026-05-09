@@ -256,7 +256,7 @@ export default function DashboardHome() {
               </div>
             ) : activities.length > 0 ? (
               activities.map((activity) => (
-                <div key={activity.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                <div key={activity.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg max-w-full overflow-hidden">
                   <div className={`p-2 rounded-lg ${
                     activity.type === 'workshop' ? 'bg-green-100' :
                     activity.type === 'volunteer' ? 'bg-purple-100' :
@@ -276,15 +276,15 @@ export default function DashboardHome() {
                       <FileText className="w-4 h-4 text-blue-600" />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{activity.title}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{activity.title}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 min-w-0 flex-wrap sm:flex-nowrap break-words">
                       <Clock className="w-3 h-3" />
                       <span>{formatDisplayDate(activity.date)}</span>
                       {activity.time && <span>• {formatHour12(activity.time)}</span>}
                     </div>
                     {activity.description && (
-                      <p className="text-xs text-gray-400 mt-1">{activity.description}</p>
+                      <p className="text-xs text-gray-400 mt-1 break-words">{activity.description}</p>
                     )}
                   </div>
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -341,7 +341,7 @@ export default function DashboardHome() {
               {calendarEvents.slice(0, 4).map((event) => (
                 <div
                   key={`${event.type}-${event.id}-${event.date}-${event.time ?? ''}`}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg max-w-full overflow-hidden"
                 >
                   <div className={`p-2 rounded-lg ${
                     event.type === 'workshop' ? 'bg-green-100' :
@@ -356,15 +356,15 @@ export default function DashboardHome() {
                       <Calendar className="w-4 h-4 text-orange-600" />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{event.title}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{event.title}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 min-w-0 flex-wrap sm:flex-nowrap break-words">
                       <Clock className="w-3 h-3" />
                       <span>{formatDisplayDate(event.date)}</span>
                       <span>• {formatHour12(event.time)}</span>
                     </div>
                     {event.location && (
-                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1 min-w-0 break-words">
                         <MapPin className="w-3 h-3" />
                         <span>{event.location}</span>
                       </div>

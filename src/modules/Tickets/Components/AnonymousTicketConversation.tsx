@@ -41,7 +41,9 @@ const AnonymousMessageList = memo(function AnonymousMessageList({
           key={message.id}
           className={`flex ${message.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
         >
-          <div className={`max-w-[75%] ${message.sender_type === 'user' ? 'order-2' : 'order-1'}`}>
+          <div
+            className={`min-w-0 max-w-[75%] ${message.sender_type === 'user' ? 'order-2' : 'order-1'}`}
+          >
             {message.sender_type !== 'user' && (
               <div className="flex items-center gap-2 mb-1 ml-1">
                 <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
@@ -51,13 +53,15 @@ const AnonymousMessageList = memo(function AnonymousMessageList({
               </div>
             )}
             <div
-              className={`rounded-2xl px-4 py-3 ${
+              className={`min-w-0 max-w-full overflow-hidden rounded-2xl px-4 py-3 ${
                 message.sender_type === 'user'
                   ? 'bg-blue-500 text-white'
                   : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
               }`}
             >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message}</p>
+              <p className="min-w-0 max-w-full text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+                {message.message}
+              </p>
               <div
                 className={`flex items-center justify-between mt-2 ${
                   message.sender_type === 'user' ? 'text-blue-100' : 'text-gray-400'
@@ -343,25 +347,26 @@ const AnonymousTicketConversation: React.FC<AnonymousTicketConversationProps> = 
   }, [ticket.status, ticket.ticket_id, ticket.id, loadMessages, onTicketUpdate]);
 
   return (
-    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden h-full min-h-0">
+    <div className="bg-white flex min-w-0 flex-col border border-gray-100 rounded-lg overflow-hidden h-full min-h-0">
       {/* Header - Minimalista */}
       <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-between gap-3 min-w-0">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <FaArrowLeft className="text-gray-600 text-sm" />
             </button>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-lg">
+            <div className="min-w-0 flex-1">
+              <h3 className="min-w-0 font-semibold text-gray-900 text-lg [overflow-wrap:anywhere]">
                 Ticket Anónimo: {ticket.ticket_id}
               </h3>
-              <p className="text-gray-500 text-sm">{ticket.asunto}</p>
+              <p className="min-w-0 text-gray-500 text-sm [overflow-wrap:anywhere]">{ticket.asunto}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex shrink-0 items-center space-x-2">
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
               ticket.status === 'open' 
                 ? 'bg-green-100 text-green-700' 
@@ -418,7 +423,7 @@ const AnonymousTicketConversation: React.FC<AnonymousTicketConversationProps> = 
       {/* Messages Container */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container"
+        className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-gray-50 px-4 py-6 min-h-0 messages-container"
       >
         {loading ? (
           <div className="text-center text-gray-500">Cargando mensajes...</div>
@@ -430,8 +435,8 @@ const AnonymousTicketConversation: React.FC<AnonymousTicketConversationProps> = 
           <div className="text-center text-gray-500">
             <p className="mb-2">No hay mensajes aún</p>
             {ticket.mensaje && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-blue-800 text-sm">
+              <div className="min-w-0 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="min-w-0 text-blue-800 text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">
                   <strong>Mensaje inicial:</strong> {ticket.mensaje}
                 </p>
               </div>
@@ -450,8 +455,8 @@ const AnonymousTicketConversation: React.FC<AnonymousTicketConversationProps> = 
         ) : (
           <>
             {ticket.mensaje && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-blue-800 text-sm">
+              <div className="min-w-0 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="min-w-0 text-blue-800 text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">
                   <strong>Mensaje inicial:</strong> {ticket.mensaje}
                 </p>
               </div>

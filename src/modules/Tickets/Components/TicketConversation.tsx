@@ -60,27 +60,31 @@ const TicketMessageList = memo(function TicketMessageList({
             key={message.id}
             className={`flex ${own ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[75%] ${own ? 'order-2' : 'order-1'}`}>
+            <div className={`min-w-0 max-w-[75%] ${own ? 'order-2' : 'order-1'}`}>
               {!own && (
-                <div className="flex items-center gap-2 mb-1 ml-1">
-                  <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
+                <div className="flex min-w-0 items-center gap-2 mb-1 ml-1">
+                  <div className="w-6 h-6 shrink-0 bg-gray-200 rounded-full flex items-center justify-center">
                     {isFromAdmin ? (
                       <FaUserShield className="text-blue-500" />
                     ) : (
                       <FaUser className="text-gray-500" />
                     )}
                   </div>
-                  <span className="text-xs font-medium text-gray-600">{senderName}</span>
+                  <span className="min-w-0 text-xs font-medium text-gray-600 [overflow-wrap:anywhere]">
+                    {senderName}
+                  </span>
                 </div>
               )}
               <div
-                className={`rounded-2xl px-4 py-3 ${
+                className={`min-w-0 max-w-full overflow-hidden rounded-2xl px-4 py-3 ${
                   own
                     ? 'bg-blue-500 text-white'
                     : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
                 }`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.message}</p>
+                <p className="min-w-0 max-w-full text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+                  {message.message}
+                </p>
                 <div
                   className={`flex items-center justify-between mt-2 ${
                     own ? 'text-blue-100' : 'text-gray-400'
@@ -403,25 +407,26 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
   }
 
   return (
-    <div className="bg-white flex flex-col border border-gray-100 rounded-lg overflow-hidden h-full min-h-0">
+    <div className="bg-white flex min-w-0 flex-col border border-gray-100 rounded-lg overflow-hidden h-full min-h-0">
              {/* Header - Minimalista */}
        <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-between gap-3 min-w-0">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <FaArrowLeft className="text-gray-600 text-sm" />
             </button>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-lg">
+            <div className="min-w-0 flex-1">
+              <h3 className="min-w-0 font-semibold text-gray-900 text-lg [overflow-wrap:anywhere]">
                 Ticket #{ticket.id}
               </h3>
-              <p className="text-gray-500 text-sm">{ticket.asunto}</p>
+              <p className="min-w-0 text-gray-500 text-sm [overflow-wrap:anywhere]">{ticket.asunto}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
               ticket.status === 'open' 
                 ? 'bg-green-100 text-green-700' 
@@ -433,9 +438,11 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
             
             
             {ticket.admin_name && (
-              <div className="flex items-center space-x-1 text-xs text-gray-500">
-                <FaUserShield className="text-blue-500" />
-                <span>{ticket.admin_name}</span>
+              <div className="flex min-w-0 max-w-[12rem] items-center gap-1 text-xs text-gray-500 sm:max-w-xs">
+                <FaUserShield className="shrink-0 text-blue-500" />
+                <span className="min-w-0 truncate" title={ticket.admin_name}>
+                  {ticket.admin_name}
+                </span>
               </div>
             )}
           </div>
@@ -445,7 +452,7 @@ const TicketConversation: React.FC<TicketConversationProps> = ({
              {/* Messages - Diseño limpio */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 min-h-0 messages-container"
+        className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-gray-50 px-4 py-6 min-h-0 messages-container"
       >
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
