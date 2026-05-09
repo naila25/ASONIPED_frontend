@@ -48,7 +48,7 @@ const TicketConversationModal: React.FC<TicketConversationModalProps> = ({
       aria-modal="true"
     >
       <div
-        className="bg-white w-full h-[100dvh] sm:h-[90dvh] sm:max-h-[900px] sm:max-w-5xl rounded-none sm:rounded-xl shadow-xl overflow-hidden flex flex-col min-h-0 isolate [contain:layout_style_paint]"
+        className="bg-white w-full min-w-0 h-[100dvh] sm:h-[90dvh] sm:max-h-[900px] sm:max-w-5xl rounded-none sm:rounded-xl shadow-xl overflow-hidden flex flex-col min-h-0 isolate [contain:layout_style_paint]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         {children}

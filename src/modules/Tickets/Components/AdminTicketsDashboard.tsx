@@ -6,6 +6,10 @@ import { FaTicketAlt, FaCheckCircle, FaEye, FaSearch, FaArchive } from 'react-ic
 import TicketConversation from '../Components/TicketConversation';
 import AdminAnonymousTicketConversation from './AdminAnonymousTicketConversation';
 import TicketConversationModal from './TicketConversationModal';
+import {
+  truncateTicketFieldPreview,
+  useTicketFieldPreviewMax,
+} from '../Hooks/useTicketFieldPreviewMax';
 
 const AdminTicketsDashboard: React.FC = () => {
   const [tickets, setTickets] = useState<DonationTicket[]>([]);
@@ -20,6 +24,7 @@ const AdminTicketsDashboard: React.FC = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [pageSize, setPageSize] = useState<5 | 10>(10);
   const [page, setPage] = useState(1);
+  const fieldPreviewMax = useTicketFieldPreviewMax();
 
   const loadTickets = useCallback(async () => {
     try {
@@ -319,17 +324,23 @@ const AdminTicketsDashboard: React.FC = () => {
               </div>
             </div>
 
-            {paginatedTickets.map((ticket: DonationTicket) => (
+            {paginatedTickets.map((ticket: DonationTicket) => {
+              const subjectFull = ticket.asunto?.trim() || 'Sin asunto';
+              const subjectShown = truncateTicketFieldPreview(subjectFull, fieldPreviewMax);
+              return (
             <div key={ticket.id}>
               {/* Card con borde izquierdo de color según estado y padding más generoso */}
               <div className={`bg-white border border-gray-200 border-l-4 ${getCardAccent(ticket.status)} rounded-lg p-5 sm:p-7 hover:shadow-md transition-shadow`}>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 min-w-0">
                       {/* Ícono toma el color del estado */}
-                      <FaTicketAlt className={getIconColor(ticket.status)} />
-                      <h3 className="font-semibold text-gray-800 break-words">
-                        Ticket #{ticket.id} - {ticket.asunto}
+                      <FaTicketAlt className={`shrink-0 ${getIconColor(ticket.status)}`} />
+                      <h3
+                        className="min-w-0 max-w-full font-semibold text-gray-800 [overflow-wrap:anywhere]"
+                        title={`Ticket #${ticket.id} - ${subjectFull}`}
+                      >
+                        Ticket #{ticket.id} - {subjectShown}
                       </h3>
                       {/* Badge de estado con colores semánticos */}
                       {getStatusBadge(ticket.status)}
@@ -358,15 +369,37 @@ const AdminTicketsDashboard: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-600 space-y-1">
+                    <div className="text-sm text-gray-600 space-y-1 min-w-0">
                       {ticket.ticket_type === 'anonymous' ? (
                         <>
                           <p className="text-violet-600 font-medium">Usuario Anónimo</p>
-                          {ticket.nombre && <p><strong>Nombre:</strong> {ticket.nombre}</p>}
-                          {ticket.correo && <p><strong>Correo:</strong> {ticket.correo}</p>}
+                          {ticket.nombre && (
+                            <p className="min-w-0 [overflow-wrap:anywhere]" title={ticket.nombre}>
+                              <strong>Nombre:</strong> {truncateTicketFieldPreview(ticket.nombre, fieldPreviewMax)}
+                            </p>
+                          )}
+                          {ticket.correo && (
+                            <p className="min-w-0 [overflow-wrap:anywhere]" title={ticket.correo}>
+                              <strong>Correo:</strong> {truncateTicketFieldPreview(ticket.correo, fieldPreviewMax)}
+                            </p>
+                          )}
                         </>
                       ) : (
-                        <p><strong>Solicitante:</strong> {ticket.nombre} ({ticket.correo})</p>
+                        <p
+                          className="min-w-0 [overflow-wrap:anywhere]"
+                          title={
+                            ticket.nombre ?? ticket.correo
+                              ? `${ticket.nombre ?? ''} (${ticket.correo ?? ''})`
+                              : undefined
+                          }
+                        >
+                          <strong>Solicitante:</strong>{' '}
+                          {ticket.nombre
+                            ? truncateTicketFieldPreview(ticket.nombre, fieldPreviewMax)
+                            : ''}{' '}
+                          (
+                          {ticket.correo ? truncateTicketFieldPreview(ticket.correo, fieldPreviewMax) : ''})
+                        </p>
                       )}
                       <p><strong>Creado:</strong> {formatDate(ticket.created_at)}</p>
                       {ticket.closed_at && (
@@ -407,7 +440,8 @@ const AdminTicketsDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            ))}
+            );
+            })}
 
             {/* Pagination controls (bottom) */}
             {totalPages > 1 && (

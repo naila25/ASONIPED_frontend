@@ -29,12 +29,6 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
     enrolled_count: workshop?.enrolled_count || 0,
   });
 
-  const truncateText = (value: string, maxLength = 150): string => {
-    const trimmed = value.trim();
-    if (trimmed.length <= maxLength) return trimmed;
-    return `${trimmed.slice(0, maxLength).trimEnd()}...`;
-  };
-
   // Format HH:MM (24h) to 12-hour AM/PM for display
   const formatHour12 = (hhmm?: string): string => {
     if (!hhmm) return '';
@@ -194,7 +188,7 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
               Descripción del taller:
             </span>
             <p
-              className="text-neutral-700 min-w-0 break-words line-clamp-4"
+              className="text-neutral-700 min-w-0 max-w-full line-clamp-4 [overflow-wrap:anywhere]"
               title={workshop.descripcion}
               style={{
                 display: '-webkit-box',
@@ -212,8 +206,11 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                   <FaRegLightbulb className="text-orange-500" />
                   ¿Qué aprenderás?
                 </span>
-                <p className="break-words whitespace-pre-wrap text-neutral-700" title={workshop.aprender}>
-                  {truncateText(workshop.aprender, 150)}
+                <p
+                  className="min-w-0 max-w-full whitespace-pre-wrap text-neutral-700 [overflow-wrap:anywhere]"
+                  title={workshop.aprender}
+                >
+                  {workshop.aprender}
                 </p>
               </>
             )}
@@ -224,18 +221,18 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                   <FaTools className="text-orange-500" />
                   Materiales necesarios:
                 </span>
-                <div className="break-words whitespace-pre-wrap text-neutral-700" title={Array.isArray(workshop.materiales) ? workshop.materiales.join(', ') : workshop.materiales}>
-                  {truncateText(
-                    Array.isArray(workshop.materiales)
-                      ? workshop.materiales.join(', ')
-                      : workshop.materiales,
-                    150
-                  )}
+                <div
+                  className="min-w-0 max-w-full whitespace-pre-wrap text-neutral-700 [overflow-wrap:anywhere]"
+                  title={Array.isArray(workshop.materiales) ? workshop.materiales.join(', ') : workshop.materiales}
+                >
+                  {Array.isArray(workshop.materiales)
+                    ? workshop.materiales.join(', ')
+                    : workshop.materiales}
                 </div>
               </>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 break-words text-neutral-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-700 [overflow-wrap:anywhere]">
               <div className="flex flex-wrap items-start gap-2 min-w-0" title={workshop.fecha ? (() => {
                 try {
                   if (workshop.fecha.includes('/')) {
@@ -277,8 +274,8 @@ export const WorkshopDetailsModal = ({ isOpen, onClose, workshop }: Props) => {
                 <div className="flex items-center gap-2 min-w-0" title={workshop.ubicacion || 'Por definir'}>
                 <MdLocationOn className="text-orange-500" />
                 <span className="font-medium text-gray-900">Ubicación:</span>
-                <span className="min-w-0 truncate whitespace-nowrap" title={workshop.ubicacion || 'Por definir'}>
-                  {truncateText(workshop.ubicacion || 'Por definir', 150)}
+                <span className="min-w-0 flex-1 [overflow-wrap:anywhere]" title={workshop.ubicacion || 'Por definir'}>
+                  {workshop.ubicacion || 'Por definir'}
                 </span>
               </div>
               {enrollmentStatus.available_spots !== undefined && (
