@@ -25,6 +25,11 @@ function HistoriasdeVidaInner({
   const hasContent = historias.length > 0;
   const showHeading = Boolean(title?.trim() || subtitle?.trim());
 
+  const [current, setCurrent] = useState(0);
+
+  const prev = () => setCurrent((c) => (c - 1 + historias.length) % historias.length);
+  const next = () => setCurrent((c) => (c + 1) % historias.length);
+
   return (
     <section className="max-w-7xl mx-auto px-6 py-10 text-center mt-10" aria-labelledby={title ? 'historias-titulo' : undefined}>
       {!title && hasContent && <h2 className="sr-only">Testimonios</h2>}
@@ -43,30 +48,90 @@ function HistoriasdeVidaInner({
       )}
 
       {hasContent ? (
-        <div className="flex overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide gap-4 md:gap-10 px-2 md:px-0">
-          {historias.map((historia, index) => (
-            <div
-              key={`${historia.nombre}-${index}`}
-              className="snap-center min-w-full md:min-w-[32%]"
-            >
-              <div className="w-full h-52 border border-gray-300 rounded-md overflow-hidden mb-3">
-                {historia.esVideo && historia.videoUrl ? (
-                  <iframe
-                    src={historia.videoUrl}
-                    title={historia.nombre}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : null}
-              </div>
-
-              <h3 className="font-bold text-lg text-center text-gray-800 mb-2">{historia.nombre}</h3>
-
-              <p className="text-gray-700 text-sm text-justify">{historia.historia}</p>
+        <>
+          {/* Mobile: controlled carousel */}
+          <div className="md:hidden w-full">
+            <div className="w-full">
+              {historias[current] && (
+                <div key={current} className="w-full">
+                  <div className="w-full h-52 border border-gray-300 rounded-md overflow-hidden mb-3">
+                    {historias[current].esVideo && historias[current].videoUrl ? (
+                      <iframe
+                        src={historias[current].videoUrl}
+                        title={historias[current].nombre}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : null}
+                  </div>
+                  <h3 className="font-bold text-lg text-center text-gray-800 mb-2">
+                    {historias[current].nombre}
+                  </h3>
+                  <p className="text-gray-700 text-sm text-justify">
+                    {historias[current].historia}
+                  </p>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+
+            {/* Controls */}
+            {historias.length > 1 && (
+              <div className="flex items-center justify-center gap-6 mt-6">
+                <button
+                  onClick={prev}
+                  className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition"
+                  aria-label="Anterior"
+                >
+                  ‹
+                </button>
+
+                {/* Dots */}
+                <div className="flex gap-2">
+                  {historias.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrent(i)}
+                      className={`w-2 h-2 rounded-full transition ${
+                        i === current ? 'bg-orange-500' : 'bg-gray-300'
+                      }`}
+                      aria-label={`Ir al testimonio ${i + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={next}
+                  className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition"
+                  aria-label="Siguiente"
+                >
+                  ›
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: all cards in a row */}
+          <div className="hidden md:flex gap-4 w-full">
+            {historias.map((historia, index) => (
+              <div key={`${historia.nombre}-${index}`} className="w-[32%]">
+                <div className="w-full h-52 border border-gray-300 rounded-md overflow-hidden mb-3">
+                  {historia.esVideo && historia.videoUrl ? (
+                    <iframe
+                      src={historia.videoUrl}
+                      title={historia.nombre}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : null}
+                </div>
+                <h3 className="font-bold text-lg text-center text-gray-800 mb-2">{historia.nombre}</h3>
+                <p className="text-gray-700 text-sm text-justify">{historia.historia}</p>
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         <p className="text-neutral-500 text-center py-8 max-w-xl mx-auto">
           No hay testimonios publicados por el momento.
