@@ -2,10 +2,13 @@ import React, { useState, useEffect, useCallback, memo } from 'react';
 import { getTicketMessages } from '../Services/ticketService';
 import type { TicketMessage } from '../Services/ticketService';
 import { FaComments, FaUser, FaUserShield } from 'react-icons/fa';
+import { truncateTicketFieldPreview } from '../Hooks/useTicketFieldPreviewMax';
 
 interface TicketPreviewProps {
   ticketId: number;
   maxMessages?: number;
+  /** Same 20 (mobile) / 40 (sm+) cap as ticket list rows when passed from parent. */
+  previewMax: number;
 }
 
 function formatPreviewDate(dateString: string) {
@@ -20,6 +23,7 @@ function formatPreviewDate(dateString: string) {
 const TicketPreview: React.FC<TicketPreviewProps> = memo(function TicketPreview({
   ticketId,
   maxMessages = 2,
+  previewMax,
 }) {
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,30 +70,36 @@ const TicketPreview: React.FC<TicketPreviewProps> = memo(function TicketPreview(
   }
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       <div className="flex items-center gap-2 text-xs text-gray-500">
-        <FaComments />
+        <FaComments className="shrink-0" />
         <span>Últimos mensajes:</span>
       </div>
-      {messages.map((message) => (
-        <div key={message.id} className="text-xs bg-gray-50 rounded p-2">
-          <div className="flex items-center gap-2 mb-1">
-            {getSenderIcon(message)}
-            <span className="font-medium text-gray-700">
-              {message.sender_name || 'Usuario'}
-            </span>
-            <span className="text-gray-500">
-              {formatPreviewDate(message.timestamp)}
-            </span>
+      {messages.map((message) => {
+        const senderLabel = message.sender_name || 'Usuario';
+        const senderShown = truncateTicketFieldPreview(senderLabel, previewMax);
+        const bodyShown = truncateTicketFieldPreview(message.message, previewMax * 3);
+        return (
+          <div key={message.id} className="min-w-0 max-w-full rounded bg-gray-50 p-2 text-xs">
+            <div className="mb-1 flex min-w-0 flex-wrap items-center gap-2">
+              <span className="shrink-0">{getSenderIcon(message)}</span>
+              <span
+                className="min-w-0 font-medium text-gray-700 [overflow-wrap:anywhere]"
+                title={senderLabel}
+              >
+                {senderShown}
+              </span>
+              <span className="shrink-0 text-gray-500">{formatPreviewDate(message.timestamp)}</span>
+            </div>
+            <p
+              className="min-w-0 text-gray-600 [overflow-wrap:anywhere] line-clamp-2 whitespace-pre-wrap"
+              title={message.message}
+            >
+              {bodyShown}
+            </p>
           </div>
-          <p className="text-gray-600 line-clamp-2">
-            {message.message.length > 100 
-              ? `${message.message.substring(0, 100)}...` 
-              : message.message
-            }
-          </p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 });

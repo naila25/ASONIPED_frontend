@@ -12,6 +12,10 @@ import type { DonationTicket } from '../Services/ticketService';
 import { FaTicketAlt, FaTimesCircle, FaEye } from 'react-icons/fa';
 import TicketPreview from './TicketPreview';
 import TicketConversationModal from './TicketConversationModal';
+import {
+  truncateTicketFieldPreview,
+  useTicketFieldPreviewMax,
+} from '../Hooks/useTicketFieldPreviewMax';
 
 const TicketConversation = lazy(() => import('./TicketConversation'));
 
@@ -67,31 +71,39 @@ function statusBadge(status: 'open' | 'closed' | 'archived') {
 type TicketRowProps = {
   ticket: DonationTicket;
   onViewConversation: (ticket: DonationTicket) => void;
+  fieldPreviewMax: number;
 };
 
 const UserTicketRow = memo(function UserTicketRow({
   ticket,
   onViewConversation,
+  fieldPreviewMax,
 }: TicketRowProps) {
+  const subjectFull = ticket.asunto?.trim() || 'Sin asunto';
+  const subjectShown = truncateTicketFieldPreview(subjectFull, fieldPreviewMax);
+
   return (
     <div>
-      <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow [contain:layout]">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <FaTicketAlt className="text-orange-500 shrink-0" />
-              <h3 className="font-semibold text-gray-800">
-                Ticket #{ticket.id} - {ticket.asunto}
+      <div className="rounded-lg border border-gray-200 bg-white p-5 transition-shadow [contain:layout] hover:shadow-md sm:p-7">
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex min-w-0 flex-wrap items-center gap-3">
+              <FaTicketAlt className="shrink-0 text-orange-500" />
+              <h3
+                className="min-w-0 max-w-full font-semibold text-gray-800 [overflow-wrap:anywhere]"
+                title={`Ticket #${ticket.id} - ${subjectFull}`}
+              >
+                Ticket #{ticket.id} - {subjectShown}
               </h3>
               {statusBadge(ticket.status)}
               {ticket.status === 'open' && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">Activo</span>
+                <span className="rounded-full bg-red-500 px-2 py-1 text-xs text-white">Activo</span>
               )}
             </div>
 
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>
-                <strong>Asunto:</strong> {ticket.asunto}
+            <div className="text-sm text-gray-600 space-y-1 min-w-0">
+              <p className="min-w-0 [overflow-wrap:anywhere]" title={subjectFull}>
+                <strong>Asunto:</strong> {subjectShown}
               </p>
               <p>
                 <strong>Creado:</strong> {formatTicketListDate(ticket.created_at)}
@@ -102,21 +114,22 @@ const UserTicketRow = memo(function UserTicketRow({
                 </p>
               )}
               {ticket.admin_name && (
-                <p>
-                  <strong>Asignado a:</strong> {ticket.admin_name}
+                <p className="min-w-0 [overflow-wrap:anywhere]" title={ticket.admin_name}>
+                  <strong>Asignado a:</strong>{' '}
+                  {truncateTicketFieldPreview(ticket.admin_name, fieldPreviewMax)}
                 </p>
               )}
             </div>
 
             <div className="mt-3">
-              <TicketPreview ticketId={ticket.id} maxMessages={1} />
+              <TicketPreview ticketId={ticket.id} maxMessages={1} previewMax={fieldPreviewMax} />
             </div>
           </div>
 
-          <div className="flex gap-2 shrink-0">
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
             <button
               type="button"
-              className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-white transition-colors hover:bg-orange-600 sm:w-auto"
               onClick={() => onViewConversation(ticket)}
             >
               <FaEye />
@@ -139,6 +152,7 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'open' | 'closed' | 'archived'>('open');
   const [selectedTicket, setSelectedTicket] = useState<DonationTicket | null>(null);
+  const fieldPreviewMax = useTicketFieldPreviewMax();
 
   const loadTickets = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
     try {
@@ -253,6 +267,7 @@ const UserTicketsList: React.FC<UserTicketsListProps> = ({ userId }) => {
               key={ticket.id}
               ticket={ticket}
               onViewConversation={handleViewConversation}
+              fieldPreviewMax={fieldPreviewMax}
             />
           ))}
         </div>

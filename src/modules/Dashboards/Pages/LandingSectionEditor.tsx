@@ -680,12 +680,12 @@ export function LandingSectionEditor({
                   <input
                     value={heroData?.titulo || ""}
                     onChange={(e) => handleHeroChange("titulo", e.target.value)}
-                    maxLength={100}
+                    maxLength={60}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {(heroData?.titulo || " ").length}/100 caracteres
+                    {(heroData?.titulo || " ").length}/60 caracteres
                   </div>
                 </div>
                 <div>
@@ -695,12 +695,12 @@ export function LandingSectionEditor({
                   <textarea
                     value={heroData?.descripcion || ""}
                     onChange={(e) => handleHeroChange("descripcion", e.target.value)}
-                    maxLength={250}
+                    maxLength={200}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {(heroData?.descripcion || "").length}/250 caracteres
+                    {(heroData?.descripcion || "").length}/200 caracteres
                   </div>
                 </div>
               </div>
@@ -771,15 +771,15 @@ export function LandingSectionEditor({
               </div>
               <div className="flex justify-end space-x-2 mt-6">
                 <button
-                  type="button"
-                  onClick={onCancel}
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
-                >Cancelar</button>
-                <button
                   type="submit"
                   disabled={loading}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
                 >{loading ? "Guardando..." : "Guardar"}</button>
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
+                >Cancelar</button>
               </div>
             </div>
           </form>
@@ -808,12 +808,12 @@ export function LandingSectionEditor({
                   <input
                     value={String((data as Record<string, unknown>).titulo || "")}
                     onChange={(e) => handleChange("titulo" as unknown as keyof SectionData, e.target.value)}
-                    maxLength={100}
+                    maxLength={60}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {((data as Record<string, unknown>).titulo as string || "").length}/100 caracteres
+                    {((data as Record<string, unknown>).titulo as string || "").length}/60 caracteres
                   </div>
                 </div>
                 <div>
@@ -875,11 +875,6 @@ export function LandingSectionEditor({
               <div className="flex justify-end space-x-2 mt-6">
                 <button
                   type="button"
-                  onClick={onCancel}
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
-                >Cancelar</button>
-                <button
-                  type="button"
                   onClick={async () => {
                     const payload = {
                       titulo: String((data as Record<string, unknown>).titulo || ""),
@@ -908,6 +903,11 @@ export function LandingSectionEditor({
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
                 >Guardar</button>
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
+                >Cancelar</button>
               </div>
             </div>
           </form>
@@ -1098,12 +1098,12 @@ export function LandingSectionEditor({
                   <input
                     value={String((data as Record<string, unknown>).titulo || "")}
                     onChange={(e) => handleChange("titulo" as unknown as keyof SectionData, e.target.value)}
-                    maxLength={100}
+                    maxLength={60}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {((data as Record<string, unknown>).titulo as string || "").length}/100 caracteres
+                    {((data as Record<string, unknown>).titulo as string || "").length}/60 caracteres
                   </div>
                 </div>
                 <div>
@@ -1129,12 +1129,12 @@ export function LandingSectionEditor({
                   value={String((data as Record<string, unknown>).descripcion || "")}
 
                   onChange={(e) => handleChange("descripcion" as unknown as keyof SectionData, e.target.value)}
-                  maxLength={500}
+                  maxLength={200}
                   className="border border-gray-300 rounded-lg px-3 py-2 w-full h-24 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                 />
                 <div className="text-xs text-gray-500 mt-1">
-                  {((data as Record<string, unknown>).descripcion as string || "").length}/500 caracteres
+                  {((data as Record<string, unknown>).descripcion as string || "").length}/200 caracteres
                 </div>
               </div>
               <div className="space-y-3">
@@ -1182,12 +1182,7 @@ export function LandingSectionEditor({
                 </div>
               </div>
               <div className="flex justify-end space-x-2 mt-6">
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
-                >Cancelar</button>
-                <button
+               <button
                   type="button"
                   onClick={async () => {
                     const payload = {
@@ -1218,6 +1213,11 @@ export function LandingSectionEditor({
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
                 >Guardar</button>
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
+                >Cancelar</button>
               </div>
             </div>
           </form>
@@ -1255,12 +1255,12 @@ export function LandingSectionEditor({
                   <input
                     value={donationData?.header?.titulo || ""}
                     onChange={(e) => handleDonationHeaderChange("titulo", e.target.value)}
-                    maxLength={150}
+                    maxLength={60}
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <div className="text-xs text-gray-500 mt-1">
-                    {(donationData?.header?.titulo || "").length}/150 caracteres
+                    {(donationData?.header?.titulo || "").length}/60 caracteres
                   </div>
                 </div>
                 <div>
@@ -1338,12 +1338,12 @@ export function LandingSectionEditor({
                     <input
                       value={cardForm.titulo_card}
                       onChange={e => handleCardFormChange("titulo_card", e.target.value)}
-                      maxLength={100}
+                      maxLength={60}
                       className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     />
                     <div className="text-xs text-gray-500 mt-1">
-                      {cardForm.titulo_card.length}/100 caracteres
+                      {cardForm.titulo_card.length}/60 caracteres
                     </div>
                   </div>
                   <div>
@@ -1477,11 +1477,6 @@ export function LandingSectionEditor({
             <div className="flex justify-end space-x-2 mt-6">
               <button
                 type="button"
-                onClick={onCancel}
-                className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
-              >Cancelar</button>
-              <button
-                type="button"
                 onClick={async () => {
                   if (!donationData) return;
                   try {
@@ -1520,6 +1515,11 @@ export function LandingSectionEditor({
                 disabled={loading}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
               >{loading ? "Guardando..." : "Guardar"}</button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 transition-colors duration-200"
+              >Cancelar</button>
             </div>
           </div>
         )}
@@ -1577,7 +1577,7 @@ export function LandingSectionEditor({
                   <input
                     value={historiasData.header.titulo}
                     onChange={(e) => handleHistoriasHeaderChange("titulo", e.target.value)}
-                    maxLength={150}
+                    maxLength={60}
                     className={`border rounded-lg px-3 py-2 w-full ${
                       historiasHeaderErrors.titulo ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"
                     }`}
@@ -1586,7 +1586,7 @@ export function LandingSectionEditor({
                     <p className="text-red-600 text-xs mt-1">{historiasHeaderErrors.titulo}</p>
                   )}
                   <div className="text-xs text-gray-500 mt-1">
-                    {(historiasData.header.titulo || "").length}/150 caracteres
+                    {(historiasData.header.titulo || "").length}/60 caracteres
                   </div>
                 </div>
                 <div>
@@ -1594,7 +1594,7 @@ export function LandingSectionEditor({
                   <textarea
                     value={historiasData.header.descripcion}
                     onChange={(e) => handleHistoriasHeaderChange("descripcion", e.target.value)}
-                    maxLength={500}
+                    maxLength={200}
                     rows={4}
                     className={`border rounded-lg px-3 py-2 w-full ${
                       historiasHeaderErrors.descripcion ? "border-red-500 ring-1 ring-red-500" : "border-gray-300"
@@ -1604,7 +1604,7 @@ export function LandingSectionEditor({
                     <p className="text-red-600 text-xs mt-1">{historiasHeaderErrors.descripcion}</p>
                   )}
                   <div className="text-xs text-gray-500 mt-1">
-                    {(historiasData.header.descripcion || "").length}/500 caracteres
+                    {(historiasData.header.descripcion || "").length}/200 caracteres
                   </div>
                 </div>
               </div>
@@ -1741,19 +1741,19 @@ export function LandingSectionEditor({
                   )}
                 </div>
                 <div className="flex gap-2 justify-end">
+                 <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {editingItemId ? "Actualizar" : "Agregar"}
+                  </button>
                   <button
                     type="button"
                     onClick={resetItemForm}
                     className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
                   >
                     Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {editingItemId ? "Actualizar" : "Agregar"}
                   </button>
                 </div>
               </form>
@@ -1801,13 +1801,6 @@ export function LandingSectionEditor({
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={onCancel}
-                className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
-              >
-                Cerrar
-              </button>
-              <button
-                type="button"
                 onClick={() => {
                   if (!historiasData) return;
                   onSave({
@@ -1821,6 +1814,13 @@ export function LandingSectionEditor({
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 Guardar y cerrar
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                Cerrar
               </button>
             </div>
           </div>

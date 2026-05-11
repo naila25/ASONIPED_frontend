@@ -359,7 +359,7 @@ export default function AdminDashboardHome() {
           ) : recentActivities.length > 0 ? (
             <div className="space-y-4">
               {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                <div key={activity.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg max-w-full overflow-hidden">
                   <div className={`p-2 rounded-lg ${
                     activity.type === 'expediente' ? 'bg-blue-100' :
                     activity.type === 'ticket' ? 'bg-green-100' :
@@ -382,9 +382,9 @@ export default function AdminDashboardHome() {
                       <Calendar className="w-4 h-4 text-indigo-600" />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{activity.title}</p>
-                    <p className="text-sm text-gray-500">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{activity.title}</p>
+                    <p className="text-sm text-gray-500 min-w-0 break-words">
                       {activity.user && `${activity.user} • `}
                       {activity.workshop && `${activity.workshop} • `}
                       {activity.event && `${activity.event} • `}
@@ -419,7 +419,7 @@ export default function AdminDashboardHome() {
           ) : calendarEvents.length > 0 ? (
             <div className="space-y-3">
               {calendarEvents.slice(0, 4).map((event) => (
-                <div key={event.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div key={event.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg max-w-full overflow-hidden">
                   <div className={`p-2 rounded-lg ${
                     event.type === 'workshop' ? 'bg-green-100' :
                     event.type === 'volunteer' ? 'bg-purple-100' :
@@ -433,15 +433,15 @@ export default function AdminDashboardHome() {
                       <Calendar className="w-4 h-4 text-orange-600" />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{event.title}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{event.title}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 min-w-0 flex-wrap sm:flex-nowrap break-words">
                       <Clock className="w-3 h-3" />
                       <span>{formatDisplayDate(event.date)}</span>
                       <span>• {formatHour12(event.time)}</span>
                     </div>
                     {event.location && (
-                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1 min-w-0 break-words">
                         <MapPin className="w-3 h-3" />
                         <span>{event.location}</span>
                       </div>
