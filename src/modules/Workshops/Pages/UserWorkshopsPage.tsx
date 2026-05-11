@@ -27,6 +27,9 @@ export default function UserWorkshopsPage() {
   const [error, setError] = useState<string | null>(null);
   const [enrollments, setEnrollments] = useState<WorkshopEnrollment[]>([]);
   const [cancellingEnrollment, setCancellingEnrollment] = useState<number | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [workshopToCancel, setWorkshopToCancel] = useState<WorkshopEnrollment | null>(null);
+  const [noticeModal, setNoticeModal] = useState<{ title: string; message: string } | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState<WorkshopEnrollment | null>(null);
 
@@ -90,21 +93,42 @@ export default function UserWorkshopsPage() {
   };
 
   const handleCancelEnrollment = async (workshopId: number) => {
-    if (!confirm('¿Estás seguro de que quieres cancelar tu inscripción en este taller?')) {
-      return;
-    }
-
     try {
       setCancellingEnrollment(workshopId);
       await cancelWorkshopEnrollment(workshopId);
       await load(); // Reload data
-      alert('Tu inscripción ha sido cancelada exitosamente');
+      setIsCancelModalOpen(false);
+      setWorkshopToCancel(null);
+      setNoticeModal({
+        title: 'Cancelación exitosa',
+        message: 'Tu inscripción ha sido cancelada exitosamente',
+      });
     } catch (error) {
       console.error('Error cancelling enrollment:', error);
-      alert(error instanceof Error ? error.message : 'Error al cancelar la inscripción. Inténtalo nuevamente.');
+      setIsCancelModalOpen(false);
+      setWorkshopToCancel(null);
+      setNoticeModal({
+        title: 'Error al cancelar',
+        message: error instanceof Error ? error.message : 'Error al cancelar la inscripción. Inténtalo nuevamente.',
+      });
     } finally {
       setCancellingEnrollment(null);
     }
+  };
+
+  const openCancelModal = (enrollment: WorkshopEnrollment) => {
+    setWorkshopToCancel(enrollment);
+    setIsCancelModalOpen(true);
+  };
+
+  const closeCancelModal = () => {
+    if (cancellingEnrollment) return;
+    setIsCancelModalOpen(false);
+    setWorkshopToCancel(null);
+  };
+
+  const closeNoticeModal = () => {
+    setNoticeModal(null);
   };
 
   const cleanDescription = (description: string) => {
@@ -304,7 +328,7 @@ export default function UserWorkshopsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleCancelEnrollment(enrollment.workshop_id)}
+                    onClick={() => openCancelModal(enrollment)}
                     disabled={cancellingEnrollment === enrollment.workshop_id}
                     className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                   >
@@ -491,7 +515,7 @@ export default function UserWorkshopsPage() {
                   {enrollment.status === 'enrolled' && (
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       <button
-                        onClick={() => handleCancelEnrollment(enrollment.workshop_id)}
+                        onClick={() => openCancelModal(enrollment)}
                         disabled={cancellingEnrollment === enrollment.workshop_id}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -510,6 +534,90 @@ export default function UserWorkshopsPage() {
           ))}
           </div>
         )}
+
+      {isCancelModalOpen && workshopToCancel && (
+        <div
+          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50"
+          onClick={closeCancelModal}
+        >
+          <div
+            className="bg-white p-6 rounded-lg w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Confirmar Cancelación</h2>
+              <button
+                onClick={closeCancelModal}
+                disabled={cancellingEnrollment === workshopToCancel.workshop_id}
+                className="p-1 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <FaTimes className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-gray-700 mb-6">
+              ¿Estás seguro de que deseas cancelar tu inscripción en <strong>{workshopToCancel.workshop_titulo}</strong>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeCancelModal}
+                disabled={cancellingEnrollment === workshopToCancel.workshop_id}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleCancelEnrollment(workshopToCancel.workshop_id)}
+                disabled={cancellingEnrollment === workshopToCancel.workshop_id}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {cancellingEnrollment === workshopToCancel.workshop_id ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    Cancelando...
+                  </>
+                ) : (
+                  'Cancelar inscripción'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {noticeModal && (
+        <div
+          className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 bg-black/50"
+          onClick={closeNoticeModal}
+        >
+          <div
+            className="bg-white p-6 rounded-lg w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">{noticeModal.title}</h2>
+              <button
+                onClick={closeNoticeModal}
+                className="p-1 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <FaTimes className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-gray-700 mb-6">
+              {noticeModal.message}
+            </p>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={closeNoticeModal}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         </>
       )}
     </div>
