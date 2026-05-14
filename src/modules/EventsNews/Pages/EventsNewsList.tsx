@@ -7,6 +7,12 @@ import eventos from '../../../assets/eventos.jpeg';
 const ITEMS_PER_PAGE = 9;
 
 const EventsNewsList: React.FC = () => {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   const formatHour12 = (hhmm?: string) => {
     if (!hhmm) return '';
     const [h, m] = hhmm.split(':');
