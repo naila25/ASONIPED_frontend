@@ -39,6 +39,19 @@ export default function UserWorkshopsPage() {
     return `${t.slice(0, maxChars)}…`;
   };
 
+  const truncateLocation = (location: string, maxChars = 20) => {
+    const text = (location ?? '').trim();
+    if (!text) return '—';
+    if (text.length <= maxChars) return text;
+    return `${text.slice(0, maxChars).trimEnd()}...`;
+  };
+
+  const truncateDescription = (description: string, maxChars = 100) => {
+    const text = cleanDescription(description);
+    if (text.length <= maxChars) return text;
+    return `${text.slice(0, maxChars).trimEnd()}...`;
+  };
+
   const load = async () => {
     try {
       setLoading(true);
@@ -295,7 +308,7 @@ export default function UserWorkshopsPage() {
                       <div className="min-w-0">
                         <h3 className="truncate text-base font-semibold text-gray-900">{truncateTitle(enrollment.workshop_titulo, 20)}</h3>
                         <p className="mt-1 line-clamp-1 text-sm text-gray-600">
-                          {enrollment.workshop_ubicacion || '—'} · {enrollment.workshop_fecha || '—'}
+                          {truncateLocation(enrollment.workshop_ubicacion)} · {enrollment.workshop_fecha || '—'}
                         </p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusColor(enrollment.status)}`}>
@@ -387,7 +400,7 @@ export default function UserWorkshopsPage() {
                     <div className="flex-1">
                       <h3 className="text-2xl font-bold text-gray-800 mb-2">{enrollment.workshop_titulo}</h3>
                       <p className="text-gray-600 text-base leading-relaxed">
-                        {cleanDescription(enrollment.workshop_descripcion)}
+                        {truncateDescription(enrollment.workshop_descripcion)}
                       </p>
                     </div>
                     <div className="mt-4 lg:mt-0 lg:ml-6">
@@ -429,7 +442,7 @@ export default function UserWorkshopsPage() {
                         <FaMapMarkerAlt className="w-5 h-5 mr-3 text-orange-500" />
                         <div>
                           <div className="text-sm font-medium text-gray-500">Ubicación</div>
-                          <div className="text-base">{enrollment.workshop_ubicacion}</div>
+                          <div className="text-base">{truncateLocation(enrollment.workshop_ubicacion)}</div>
                         </div>
                       </div>
                     )}
