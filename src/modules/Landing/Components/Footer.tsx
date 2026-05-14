@@ -38,13 +38,13 @@ const Footer = () => {
         <div>
           <h3 className="text-base font-semibold mb-4 border-b border-white-700 pb-2">Horarios</h3>
           <p className="flex items-center gap-2 mb-2"> Lunes a Viernes</p>
-          <p>7:00 am – 5:00 pm</p>
+          <p>7:00 am – 4:00 pm</p>
         </div>
       </div>
 
       
       <div className="mt-10 text-center text-white text-sm">
-        <p>Copyright 2025 © ASONIPED. Derechos Reservados R</p>
+        <p>Copyright 2026 © ASONIPED. Derechos Reservados R</p>
         <div className="mt-4">
           <a href="#" className="text-white text-lg"></a> 
         </div>
