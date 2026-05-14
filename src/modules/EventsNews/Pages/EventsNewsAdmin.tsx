@@ -47,7 +47,6 @@ const initialForm: Omit<EventNewsItem, 'id'> = {
   type: 'evento',
   hour: '',
 };
-
 const EventsNewsAdmin: React.FC = () => {
   const remainingChars = (value: string | undefined, max: number) => max - (value?.length ?? 0);
 
@@ -98,9 +97,10 @@ const EventsNewsAdmin: React.FC = () => {
     const imageUrl = data.imageUrl?.trim();
 
     if (!title) return 'El título es obligatorio.';
-    if (title.length > 255) return 'El título no puede superar 255 caracteres.';
+    if (title.length > 60) return 'El título no puede superar 60 caracteres.';
 
     if (!description) return 'La descripción es obligatoria.';
+    if (description.length > 200) return 'La descripción no puede superar 200 caracteres.';
 
     if (!date) return 'La fecha es obligatoria.';
     if (date.length > 50) return 'La fecha no puede superar 50 caracteres.';
@@ -316,12 +316,12 @@ const EventsNewsAdmin: React.FC = () => {
                     value={form.title}
                     onChange={handleChange}
                     placeholder="Título del evento"
-                    maxLength={255}
+                    maxLength={60}
                     className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     required
                   />
                   <p className="mt-1 text-xs text-gray-500 text-right">
-                    {remainingChars(form.title, 255)} caracteres restantes
+                    {remainingChars(form.title, 60)} caracteres restantes
                   </p>
                 </div>
                 <div>
@@ -355,13 +355,13 @@ const EventsNewsAdmin: React.FC = () => {
                   value={form.description}
                   onChange={handleChange}
                   placeholder="Descripción del evento"
-                  maxLength={8000}
+                  maxLength={200}
                   className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                   required
                   rows={3}
                 />
                 <p className="mt-1 text-xs text-gray-500 text-right">
-                  {remainingChars(form.description, 8000)} caracteres restantes
+                  {remainingChars(form.description, 200)} caracteres restantes
                 </p>
               </div>
               <div>
@@ -392,6 +392,13 @@ const EventsNewsAdmin: React.FC = () => {
               </div>
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                >
+                  {submitting ? 'Creando...' : 'Crear Evento'}
+                </button>
+                <button
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
@@ -400,13 +407,6 @@ const EventsNewsAdmin: React.FC = () => {
                   className="px-4 py-2 border border-gray-400 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
-                >
-                  {submitting ? 'Creando...' : 'Crear Evento'}
                 </button>
               </div>
             </form>
@@ -448,12 +448,12 @@ const EventsNewsAdmin: React.FC = () => {
             value={editForm.title}
             onChange={handleEditChange}
             placeholder="Título del evento o noticia"
-            maxLength={255}
+            maxLength={60}
             className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             required
           />
           <p className="mt-1 text-xs text-gray-500 text-right">
-            {remainingChars(editForm.title, 255)} caracteres restantes
+            {remainingChars(editForm.title, 60)} caracteres restantes
           </p>
         </div>
         <div>
@@ -488,13 +488,13 @@ const EventsNewsAdmin: React.FC = () => {
           value={editForm.description}
           onChange={handleEditChange}
           placeholder="Escribe una breve descripción..."
-          maxLength={8000}
+          maxLength={200}
           className="w-full px-3 py-2 border border-gray-400 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           rows={3}
           required
         />
         <p className="mt-1 text-xs text-gray-500 text-right">
-          {remainingChars(editForm.description, 8000)} caracteres restantes
+          {remainingChars(editForm.description, 200)} caracteres restantes
         </p>
       </div>
 
@@ -535,6 +535,13 @@ const EventsNewsAdmin: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row gap-3 mt-6">
         <button
+          type="submit"
+          disabled={submitting}
+          className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+        >
+          {submitting ? 'Guardando...' : 'Guardar Cambios'}
+        </button>
+        <button
           type="button"
           onClick={() => {
             setShowEditModal(false);
@@ -543,13 +550,6 @@ const EventsNewsAdmin: React.FC = () => {
           className="px-4 py-2 border border-gray-400 rounded-lg hover:bg-gray-50 transition-colors"
         >
           Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
-        >
-          {submitting ? 'Guardando...' : 'Guardar Cambios'}
         </button>
       </div>
     </form>
