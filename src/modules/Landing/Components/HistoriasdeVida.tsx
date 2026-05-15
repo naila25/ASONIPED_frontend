@@ -42,7 +42,9 @@ function HistoriasdeVidaInner({
             </h2>
           )}
           {subtitle?.trim() && (
-            <p className="text-neutral-700 mb-12 max-w-3xl mx-auto">&ldquo;{subtitle.trim()}&rdquo;</p>
+            <p className="text-neutral-700 text-base md:text-lg leading-relaxed mb-12 max-w-3xl mx-auto relative z-10">
+              &ldquo;{subtitle.trim()}&rdquo;
+            </p>
           )}
         </>
       )}
