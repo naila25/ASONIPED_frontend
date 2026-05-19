@@ -53,7 +53,7 @@ const VolunteerCard = ({
           className="w-full h-48 object-cover rounded-t-lg flex-shrink-0"
         />
         <div className="p-4 flex flex-col flex-grow">
-          <h3 className="text-lg font-semibold mb-2 line-clamp-2">{title}</h3>
+          <h3 className="text-lg font-semibold mb-2 truncate">{title}</h3>
           <p className="text-neutral-700 text-sm mb-4 line-clamp-3 flex-grow">
             {description}
           </p>
@@ -68,9 +68,9 @@ const VolunteerCard = ({
                 {formatTime12Hour(hour)}
               </span>
             )}
-            <span className="flex items-center">
-              <MdLocationOn className="w-4 h-4 mr-2 text-gray-800" />
-              {location}
+            <span className="flex items-center min-w-0 overflow-hidden">
+              <MdLocationOn className="w-4 h-4 mr-2 text-gray-800 flex-shrink-0" />
+              <span className="truncate">{location}</span>
             </span>
             {available_spots !== undefined ? (
               <span className="flex items-center">
