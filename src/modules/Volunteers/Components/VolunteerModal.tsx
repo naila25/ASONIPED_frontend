@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { registerForVolunteer, cancelVolunteerRegistration } from '../Services/volunteerRegistrations';
 import type { VolunteerOption } from '../Types/volunteer';
-import { FaTools, FaRegLightbulb, FaRegCalendarAlt, FaClock, FaUsers } from "react-icons/fa";   
-import { MdLocationOn, MdDescription } from "react-icons/md";  
+import { FaTools, FaRegLightbulb, FaRegCalendarAlt, FaClock, FaUsers } from 'react-icons/fa';
+import { MdLocationOn, MdDescription } from 'react-icons/md';
 import { getToken } from '../../Login/Services/auth';
 import { formatTime12Hour } from '../../../shared/Utils/timeUtils';
 import { getAPIBaseURLSync } from '../../../shared/Services/config';
 
-// Modal for displaying volunteer opportunity details and registration form
 interface VolunteerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -17,19 +16,14 @@ interface VolunteerModalProps {
 
 const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => {
   const [submitting, setSubmitting] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [justRegistered, setJustRegistered] = useState(false);
-  const [registrationStatus, setRegistrationStatus] = useState<{
-    is_registered: boolean;
-    available_spots: number;
-    registered_count: number;
-  }>({
+  const [registrationStatus, setRegistrationStatus] = useState({
     is_registered: volunteer.is_registered || false,
     available_spots: volunteer.available_spots || volunteer.spots || 0,
     registered_count: volunteer.registered_count || 0,
   });
 
-  // Handle ESC key press to close modal
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -46,42 +40,40 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
     };
   }, [isOpen, onClose]);
 
-  // Detect auth and update registration status when modal opens
   useEffect(() => {
     const token = getToken();
     setIsAuthenticated(Boolean(token));
-    
-    // Update registration status when modal opens
+
     if (isOpen) {
       setRegistrationStatus({
         is_registered: volunteer.is_registered || false,
         available_spots: volunteer.available_spots || volunteer.spots || 0,
         registered_count: volunteer.registered_count || 0,
       });
-      setJustRegistered(false); // Reset just registered state
+      setJustRegistered(false);
     }
   }, [isOpen, volunteer.is_registered, volunteer.available_spots, volunteer.spots, volunteer.registered_count]);
 
   const handleRegister = async () => {
     if (submitting) return;
-    
+
     const token = getToken();
-    
+
     if (!isAuthenticated || !token) {
       window.location.href = '/admin/login';
       return;
     }
-    
+
     try {
       setSubmitting(true);
       const result = await registerForVolunteer(parseInt(volunteer.id));
-      
+
       setRegistrationStatus({
         is_registered: true,
         available_spots: result.available_spots,
         registered_count: result.registered_count,
       });
-      
+
       setJustRegistered(true);
     } catch (error) {
       console.error('Error registering:', error);
@@ -94,15 +86,15 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
 
   const handleUnregister = async () => {
     if (submitting) return;
-    
+
     if (!window.confirm('¿Estás seguro de que quieres cancelar tu inscripción?')) {
       return;
     }
-    
+
     try {
       setSubmitting(true);
       const result = await cancelVolunteerRegistration(parseInt(volunteer.id));
-      
+
       setRegistrationStatus({
         is_registered: false,
         available_spots: result.available_spots,
@@ -117,131 +109,139 @@ const VolunteerModal = ({ isOpen, onClose, volunteer }: VolunteerModalProps) => 
     }
   };
 
-  // Do not render if modal is not open
   if (!isOpen) return null;
 
-  // Main render: details or registration form
+  const displayImageUrl = volunteer.imageUrl?.startsWith('http')
+    ? volunteer.imageUrl
+    : `${getAPIBaseURLSync()}${volunteer.imageUrl}`;
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden box-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="box-border w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-lg bg-white shadow-lg">
         <div className="p-6">
-          <div>
-            <div className="flex justify-between items-start mb-4 gap-3 min-w-0">
-              <h2 className="text-lg font-semibold mb-2 flex-1 min-w-0 truncate">{volunteer.title}</h2>
-              <button
-                onClick={onClose}
-                className="text-gray-700 hover:text-gray-800 flex-shrink-0"
-              >
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-3 min-w-0">
+              <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">{volunteer.title}</h2>
+              <button onClick={onClose} className="flex-shrink-0 text-gray-700 hover:text-gray-800">
                 ✕
               </button>
             </div>
 
-            <div className="space-y-4">
-              <img
-                src={volunteer.imageUrl?.startsWith('http') ? volunteer.imageUrl : `${getAPIBaseURLSync()}${volunteer.imageUrl}`}
-                alt={volunteer.title}
-                className="w-full h-48 object-cover rounded"
-              />
+            <img src={displayImageUrl} alt={volunteer.title} className="h-48 w-full rounded object-cover" />
 
-              <span className="font-medium text-gray-900 flex items-center gap-2">
+            <div>
+              <span className="flex items-center gap-2 font-medium text-gray-900">
                 <MdDescription className="text-orange-500" />
                 Descripción del voluntariado:
               </span>
-              <p className="text-neutral-700 line-clamp-4">{volunteer.description}</p>
+              <p className="line-clamp-4 text-neutral-700">{volunteer.description}</p>
+            </div>
 
-                <span className="font-medium text-gray-900 flex items-center gap-2">
-                  <FaRegLightbulb className="text-orange-500" />
-                  Habilidades necesarias:
-                </span>
-                <p className="text-neutral-700 line-clamp-4">{(volunteer as VolunteerOption & { skills?: string }).skills || '—'}</p>
+            <div>
+              <span className="flex items-center gap-2 font-medium text-gray-900">
+                <FaRegLightbulb className="text-orange-500" />
+                Habilidades necesarias:
+              </span>
+              <p className="line-clamp-4 text-neutral-700">{(volunteer as VolunteerOption & { skills?: string }).skills || '—'}</p>
+            </div>
 
-                <span className="font-medium text-gray-900 flex items-center gap-2">
-                  <FaTools className="text-orange-500" />
-                  Herramientas necesarias:
-                </span>
-                <p className="text-neutral-700 line-clamp-4">{(volunteer as VolunteerOption & { tools?: string }).tools || '—'}</p>
+            <div>
+              <span className="flex items-center gap-2 font-medium text-gray-900">
+                <FaTools className="text-orange-500" />
+                Herramientas necesarias:
+              </span>
+              <p className="line-clamp-4 text-neutral-700">{(volunteer as VolunteerOption & { tools?: string }).tools || '—'}</p>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-neutral-700">
-                  <div className="flex items-center gap-2">
-                    <FaRegCalendarAlt className="text-orange-500" />
-                    <span className="font-medium text-gray-900">Fecha:</span> {volunteer.date}
-                  </div>
-                  {volunteer.hour && (
-                    <div className="flex items-center gap-2">
-                      <FaClock className="text-orange-500" />
-                      <span className="font-medium text-gray-900">Hora:</span> {formatTime12Hour(volunteer.hour)}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <MdLocationOn className="text-orange-500 flex-shrink-0" />
-                    <span className="font-medium text-gray-900 flex-shrink-0">Ubicación:</span>
-                    <span className="truncate">{volunteer.location}</span>
-                  </div>
-                  {registrationStatus.available_spots !== undefined && (
-                    <div className="flex items-center gap-2">
-                      <FaUsers className="text-orange-500" />
-                      <span className="font-medium text-gray-900">Cupos:</span> 
-                      <span className={registrationStatus.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
-                        {registrationStatus.available_spots} disponibles
-                      </span>
-                      {registrationStatus.registered_count > 0 && (
-                        <span className="text-gray-500 text-sm">
-                          ({registrationStatus.registered_count} registrados)
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Auth notice */}
-                {!isAuthenticated && !registrationStatus.is_registered && (
-                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md p-3 text-sm">
-                    Debes iniciar sesión para registrarte. 
-                    <a href="/admin/login" className="font-medium underline ml-1">Iniciar sesión</a>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex flex-col justify-center items-center gap-3">
-                  {registrationStatus.is_registered && !justRegistered && isAuthenticated && (
-                    <p
-                      className="text-center text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 w-full max-w-md"
-                      role="status"
-                    >
-                      Ya estás inscrito en este voluntariado.
-                    </p>
-                  )}
-                  {justRegistered ? (
-                    <div className="text-center space-y-3">
-                      <div className="text-green-600 font-semibold mb-2">¡Te has inscrito exitosamente!</div>
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                        <Link
-                          to="/user/voluntariado"
-                          className="inline-flex items-center justify-center bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-500 transition"
-                        >
-                          Ir a Mi Voluntariado
-                        </Link>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={registrationStatus.is_registered ? handleUnregister : handleRegister}
-                      disabled={submitting || !isAuthenticated}
-                      className={`px-6 py-2 rounded-lg transition disabled:opacity-50 ${
-                        registrationStatus.is_registered
-                          ? 'bg-red-600 text-white hover:bg-red-500'
-                          : registrationStatus.available_spots === 0
-                          ? 'bg-gray-400 text-white cursor-not-allowed'
-                          : isAuthenticated
-                          ? 'bg-green-600 text-white hover:bg-green-500'
-                          : 'bg-blue-600 text-white hover:bg-blue-500'
-                      }`}
-                    >
-                      {submitting ? 'Procesando...' : registrationStatus.is_registered ? 'Cancelar Inscripción' : registrationStatus.available_spots === 0 ? 'Sin Cupos Disponibles' : isAuthenticated ? 'Registrarse' : 'Iniciar Sesión para Registrarse'}
-                    </button>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 gap-4 text-neutral-700 md:grid-cols-2">
+              <div className="flex items-center gap-2">
+                <FaRegCalendarAlt className="text-orange-500" />
+                <span className="font-medium text-gray-900">Fecha:</span> {volunteer.date}
               </div>
+
+              {volunteer.hour && (
+                <div className="flex items-center gap-2">
+                  <FaClock className="text-orange-500" />
+                  <span className="font-medium text-gray-900">Hora:</span> {formatTime12Hour(volunteer.hour)}
+                </div>
+              )}
+
+              <div className="flex min-w-0 items-center gap-2">
+                <MdLocationOn className="flex-shrink-0 text-orange-500" />
+                <span className="flex-shrink-0 font-medium text-gray-900">Ubicación:</span>
+                <span className="truncate">{volunteer.location}</span>
+              </div>
+
+              {registrationStatus.available_spots !== undefined && (
+                <div className="flex items-center gap-2">
+                  <FaUsers className="text-orange-500" />
+                  <span className="font-medium text-gray-900">Cupos:</span>
+                  <span className={registrationStatus.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
+                    {registrationStatus.available_spots} disponibles
+                  </span>
+                  {registrationStatus.registered_count > 0 && (
+                    <span className="text-sm text-gray-500">({registrationStatus.registered_count} registrados)</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {!isAuthenticated && !registrationStatus.is_registered && (
+              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+                Debes iniciar sesión para registrarte.
+                <a href="/admin/login" className="ml-1 font-medium underline">
+                  Iniciar sesión
+                </a>
+              </div>
+            )}
+
+            <div className="flex flex-col items-center justify-center gap-3">
+              {registrationStatus.is_registered && !justRegistered && isAuthenticated && (
+                <p
+                  className="w-full max-w-md rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-medium text-green-700"
+                  role="status"
+                >
+                  Ya estás inscrito en este voluntariado.
+                </p>
+              )}
+
+              {justRegistered ? (
+                <div className="space-y-3 text-center">
+                  <div className="mb-2 font-semibold text-green-600">¡Te has inscrito exitosamente!</div>
+                  <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                    <Link
+                      to="/user/voluntariado"
+                      className="inline-flex items-center justify-center rounded-lg bg-orange-600 px-6 py-2 text-white transition hover:bg-orange-500"
+                    >
+                      Ir a Mi Voluntariado
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={registrationStatus.is_registered ? handleUnregister : handleRegister}
+                  disabled={submitting || !isAuthenticated}
+                  className={`rounded-lg px-6 py-2 transition disabled:opacity-50 ${
+                    registrationStatus.is_registered
+                      ? 'bg-red-600 text-white hover:bg-red-500'
+                      : registrationStatus.available_spots === 0
+                      ? 'cursor-not-allowed bg-gray-400 text-white'
+                      : isAuthenticated
+                      ? 'bg-green-600 text-white hover:bg-green-500'
+                      : 'bg-blue-600 text-white hover:bg-blue-500'
+                  }`}
+                >
+                  {submitting
+                    ? 'Procesando...'
+                    : registrationStatus.is_registered
+                    ? 'Cancelar Inscripción'
+                    : registrationStatus.available_spots === 0
+                    ? 'Sin Cupos Disponibles'
+                    : isAuthenticated
+                    ? 'Registrarse'
+                    : 'Iniciar Sesión para Registrarse'}
+                </button>
+              )}
             </div>
           </div>
         </div>
