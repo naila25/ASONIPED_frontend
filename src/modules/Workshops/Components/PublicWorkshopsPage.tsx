@@ -106,7 +106,7 @@ export default function PublicWorkshopsPage() {
               {(isMobile ? workshops : visibleWorkshops).map((workshop) => (
                 <div
                   key={workshop.id}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex-shrink-0 snap-center flex flex-col border border-gray-200"
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden w-[320px] sm:w-[360px] flex-shrink-0 snap-center flex h-full flex-col border border-gray-200"
                 >
                   <div className="relative h-[220px]">
                     {workshop.imagen && !workshop.imagen.startsWith("blob:") ? (
@@ -150,7 +150,7 @@ export default function PublicWorkshopsPage() {
                     )}
                   </div>
 
-                  <div className="p-5 flex flex-col items-start">
+                  <div className="flex flex-1 flex-col items-start p-5">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">
                       {workshop.titulo}
                     </h3>
@@ -159,7 +159,7 @@ export default function PublicWorkshopsPage() {
                     </p>
                     <button
                       onClick={() => setSelectedWorkshop(workshop)}
-                      className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
+                      className="mt-auto bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-orange-600"
                     >
                       Ver más
                     </button>

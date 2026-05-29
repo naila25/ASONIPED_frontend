@@ -53,11 +53,51 @@ export default function VoluntariadoPage() {
   const [selectedRegistration, setSelectedRegistration] = useState<VolunteerRegistration | null>(null);
   const [proposalDetailsOpen, setProposalDetailsOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<VolunteerProposal | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [registrationToCancel, setRegistrationToCancel] = useState<VolunteerRegistration | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [proposalToDelete, setProposalToDelete] = useState<VolunteerProposal | null>(null);
+  const [noticeModal, setNoticeModal] = useState<{ title: string; message: string } | null>(null);
 
-  const truncateTitle = (title: string, maxChars = 15) => {
-    const t = (title ?? '').trim();
-    if (t.length <= maxChars) return t;
-    return `${t.slice(0, maxChars)}…`;
+  const formatVolunteerDate = (dateValue?: string) => {
+    if (!dateValue) return '—';
+    const trimmed = dateValue.trim();
+    if (!trimmed) return '—';
+    if (trimmed.includes('/')) return trimmed;
+
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) return trimmed;
+
+    return parsed.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const formatVolunteerRegistrationDate = (dateValue?: string) => {
+    if (!dateValue) return '—';
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return dateValue;
+
+    return parsed.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const truncateTitle = (title: string, maxChars = 20) => {
+    const value = (title ?? '').trim();
+    if (value.length <= maxChars) return value;
+    return `${value.slice(0, maxChars)}…`;
+  };
+
+  const truncateLocation = (location: string, maxChars = 20) => {
+    const text = (location ?? '').trim();
+    if (!text) return '—';
+    if (text.length <= maxChars) return text;
+    return `${text.slice(0, maxChars).trimEnd()}...`;
   };
 
   const load = async () => {
@@ -86,18 +126,23 @@ export default function VoluntariadoPage() {
   }, []);
 
   useEffect(() => {
-    if (!detailsOpen && !proposalDetailsOpen) return;
+    if (!detailsOpen && !proposalDetailsOpen && !cancelModalOpen && !deleteModalOpen && !noticeModal) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setDetailsOpen(false);
         setSelectedRegistration(null);
         setProposalDetailsOpen(false);
         setSelectedProposal(null);
+        setCancelModalOpen(false);
+        setRegistrationToCancel(null);
+        setDeleteModalOpen(false);
+        setProposalToDelete(null);
+        setNoticeModal(null);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [detailsOpen, proposalDetailsOpen]);
+  }, [detailsOpen, proposalDetailsOpen, cancelModalOpen, deleteModalOpen, noticeModal]);
 
   const openDetails = (registration: VolunteerRegistration) => {
     setSelectedRegistration(registration);
@@ -131,39 +176,78 @@ export default function VoluntariadoPage() {
     }
   };
 
-  const handleCancelRegistration = async (volunteerOptionId: number) => {
-    if (!confirm('¿Estás seguro de que quieres cancelar tu inscripción en este voluntariado?')) {
-      return;
-    }
+  const openCancelModal = (registration: VolunteerRegistration) => {
+    setRegistrationToCancel(registration);
+    setCancelModalOpen(true);
+  };
 
+  const closeCancelModal = () => {
+    if (cancellingRegistration) return;
+    setCancelModalOpen(false);
+    setRegistrationToCancel(null);
+  };
+
+  const handleCancelRegistration = async (volunteerOptionId: number) => {
     try {
       setCancellingRegistration(volunteerOptionId);
       await cancelVolunteerRegistration(volunteerOptionId);
-      await load(); // Reload data
-      alert('Tu inscripción ha sido cancelada exitosamente');
+      await load();
+      setCancelModalOpen(false);
+      setRegistrationToCancel(null);
+      setNoticeModal({
+        title: 'Cancelación exitosa',
+        message: 'Tu inscripción ha sido cancelada exitosamente',
+      });
     } catch (error) {
       console.error('Error cancelling enrollment:', error);
-      alert(error instanceof Error ? error.message : 'Error al cancelar la inscripción. Inténtalo nuevamente.');
+      setCancelModalOpen(false);
+      setRegistrationToCancel(null);
+      setNoticeModal({
+        title: 'Error al cancelar',
+        message: error instanceof Error ? error.message : 'Error al cancelar la inscripción. Inténtalo nuevamente.',
+      });
     } finally {
       setCancellingRegistration(null);
     }
   };
 
-  const handleDeleteProposal = async (proposalId: number) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta propuesta? Esta acción no se puede deshacer.')) {
-      return;
-    }
+  const openDeleteModal = (proposal: VolunteerProposal) => {
+    setProposalToDelete(proposal);
+    setDeleteModalOpen(true);
+  };
 
+  const closeDeleteModal = () => {
+    if (deletingProposal) return;
+    setDeleteModalOpen(false);
+    setProposalToDelete(null);
+  };
+
+  const handleDeleteProposal = async (proposalId: number) => {
     try {
       setDeletingProposal(proposalId);
       await deleteMyProposal(proposalId);
-      await load(); // Reload data
-      alert('Propuesta eliminada exitosamente');
-    } catch {
-      alert('Error al eliminar la propuesta. Inténtalo nuevamente.');
+      await load();
+      setDeleteModalOpen(false);
+      setProposalToDelete(null);
+      setNoticeModal({
+        title: 'Propuesta eliminada exitosamente',
+        message: 'Tu propuesta ha sido eliminada exitosamente',
+      });
+    } catch (error) {
+      console.error('Error deleting proposal:', error);
+      setDeleteModalOpen(false);
+      setProposalToDelete(null);
+      setNoticeModal({
+        title: 'Error al eliminar',
+        message: error instanceof Error ? error.message : 'Error al eliminar la propuesta. Inténtalo nuevamente.',
+      });
     } finally {
       setDeletingProposal(null);
     }
+  };
+
+  const closeNoticeModal = () => {
+    setNoticeModal(null);
   };
 
   const cleanDescription = (description: string) => {
@@ -210,6 +294,169 @@ export default function VoluntariadoPage() {
         <h1 className="text-2xl font-bold text-gray-900">Mi Voluntariado</h1>
         <p className="text-gray-600">Gestiona tus participaciones en programas de voluntariado</p>
       </div>
+
+      {cancelModalOpen && registrationToCancel && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmar cancelación de voluntariado"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              closeCancelModal();
+            }
+          }}
+        >
+          <div className="w-full max-w-[calc(100vw-2rem)] rounded-lg bg-white p-5 shadow-lg sm:max-w-md sm:p-6" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Confirmar Cancelación</h2>
+              <button
+                type="button"
+                onClick={closeCancelModal}
+                disabled={cancellingRegistration === registrationToCancel.volunteer_option_id}
+                className="rounded-lg p-1 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                aria-label="Cerrar modal"
+              >
+                <FaTimes className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="mb-6 space-y-2 text-gray-700">
+              <p>¿Estás seguro de que deseas cancelar tu inscripción en?</p>
+              <p
+                className="max-w-full truncate font-semibold text-gray-900"
+                title={registrationToCancel.volunteer_option.title}
+              >
+                {registrationToCancel.volunteer_option.title}
+              </p>
+              <p>Esta acción no se puede deshacer.</p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeCancelModal}
+                disabled={cancellingRegistration === registrationToCancel.volunteer_option_id}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCancelRegistration(registrationToCancel.volunteer_option_id)}
+                disabled={cancellingRegistration === registrationToCancel.volunteer_option_id}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {cancellingRegistration === registrationToCancel.volunteer_option_id ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Cancelando...
+                  </>
+                ) : (
+                  'Cancelar inscripción'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteModalOpen && proposalToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmar eliminación de propuesta"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              closeDeleteModal();
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Confirmar Eliminación</h2>
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deletingProposal === proposalToDelete.id}
+                className="rounded-lg p-1 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                aria-label="Cerrar modal"
+              >
+                <FaTimes className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <p className="mb-6 text-gray-700">
+              ¿Estás seguro de que deseas eliminar tu propuesta <strong>{proposalToDelete.title}</strong>? Esta acción no se puede deshacer.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deletingProposal === proposalToDelete.id}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteProposal(proposalToDelete.id)}
+                disabled={deletingProposal === proposalToDelete.id}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deletingProposal === proposalToDelete.id ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Eliminando...
+                  </>
+                ) : (
+                  'Eliminar propuesta'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {noticeModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={noticeModal.title}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              closeNoticeModal();
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">{noticeModal.title}</h2>
+              <button
+                type="button"
+                onClick={closeNoticeModal}
+                className="rounded-lg p-1 transition-colors hover:bg-gray-200"
+                aria-label="Cerrar aviso"
+              >
+                <FaTimes className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="mb-6 text-gray-700">{noticeModal.message}</p>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={closeNoticeModal}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile-only details modal */}
       {detailsOpen && selectedRegistration && (
@@ -458,42 +705,36 @@ export default function VoluntariadoPage() {
           <div className="mb-10 min-w-0 space-y-6">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Mis Registros Activos</h2>
             {registrations.filter(r => r.status === 'registered').map((registration) => (
-            <div key={registration.id} className="min-w-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
-              {/* Mobile: compact card */}
-              <div className="min-w-0 overflow-x-hidden p-4 md:hidden">
-                <div className="flex min-w-0 items-start gap-3">
+            <div key={registration.id} className="min-w-0 overflow-hidden rounded-lg bg-white shadow-md">
+              {/* Mobile: stacked card */}
+              <div className="p-4 md:hidden">
+                <div className="flex items-start gap-3">
                   <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-gray-100 ring-1 ring-gray-200">
                     {registration.volunteer_option.imageUrl ? (
                       <img
-                        src={registration.volunteer_option.imageUrl?.startsWith('http') ? registration.volunteer_option.imageUrl : `${getAPIBaseURLSync()}${registration.volunteer_option.imageUrl}`}
+                        src={registration.volunteer_option.imageUrl.startsWith('http') ? registration.volunteer_option.imageUrl : `${getAPIBaseURLSync()}${registration.volunteer_option.imageUrl}`}
                         alt={registration.volunteer_option.title}
                         className="h-full w-full object-cover"
                       />
                     ) : null}
                   </div>
 
-                  <div className="min-w-0 flex-1 basis-0">
-                    {/* Column on narrow screens so text uses full width; row from sm+ so badge doesn’t steal flex width */}
-                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
-                      <div className="min-w-0 w-full max-w-full sm:flex-1 sm:basis-0">
-                        <h3 className="text-base font-semibold leading-snug text-gray-900 [overflow-wrap:anywhere]">
-                          {registration.volunteer_option.title}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-semibold text-gray-900" title={registration.volunteer_option.title}>
+                          {truncateTitle(registration.volunteer_option.title, 20)}
                         </h3>
-                        <p className="mt-1 text-sm leading-snug text-gray-600 [overflow-wrap:anywhere]">
-                          {registration.volunteer_option.location || '—'} · {registration.volunteer_option.date || '—'}
-                        </p>
-                        <p className="mt-2 text-sm leading-snug text-gray-600 [overflow-wrap:anywhere]">
-                          {cleanDescription(registration.volunteer_option.description)}
+                        <p className="mt-1 line-clamp-1 text-sm text-gray-600">
+                          {truncateLocation(registration.volunteer_option.location)} · {formatVolunteerDate(registration.volunteer_option.date)}
                         </p>
                       </div>
-                      <span
-                        className={`shrink-0 self-start rounded-full px-2.5 py-1 text-xs font-semibold sm:self-auto ${getStatusColor(registration.status)}`}
-                      >
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusColor(registration.status)}`}>
                         {getStatusText(registration.status)}
                       </span>
                     </div>
 
-                    <div className="mt-3 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-xs text-gray-600">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600">
                       {registration.volunteer_option.hour && (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1">
                           <FaClock className="h-3.5 w-3.5 text-gray-400" />
@@ -502,7 +743,7 @@ export default function VoluntariadoPage() {
                       )}
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1">
                         <FaUsers className="h-3.5 w-3.5 text-gray-400" />
-                        {registration.volunteer_option.available_spots}/{registration.volunteer_option.spots}
+                        {registration.volunteer_option.available_spots}
                       </span>
                     </div>
                   </div>
@@ -512,13 +753,13 @@ export default function VoluntariadoPage() {
                   <button
                     type="button"
                     onClick={() => openDetails(registration)}
-                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
                   >
                     Ver detalles
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleCancelRegistration(registration.volunteer_option_id)}
+                    onClick={() => openCancelModal(registration)}
                     disabled={cancellingRegistration === registration.volunteer_option_id}
                     className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                   >
@@ -532,107 +773,104 @@ export default function VoluntariadoPage() {
                 </div>
               </div>
 
-              {/* Desktop: keep current design */}
-              <div className="hidden min-w-0 md:flex md:flex-col lg:flex-row">
-                {/* Image Section */}
-                {registration.volunteer_option.imageUrl && (
-                  <div className="h-64 shrink-0 lg:h-auto lg:w-80">
-                    <img 
-                      src={registration.volunteer_option.imageUrl?.startsWith('http') ? registration.volunteer_option.imageUrl : `${getAPIBaseURLSync()}${registration.volunteer_option.imageUrl}`} 
-                      alt={registration.volunteer_option.title} 
-                      className="h-full w-full object-cover" 
+              {/* Tablet/desktop: same structure as workshops */}
+              <div className="hidden min-h-0 md:grid md:grid-cols-1 md:grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,20rem)_1fr] lg:grid-rows-1">
+                <div className="relative aspect-video w-full min-h-0 overflow-hidden bg-gray-100 lg:aspect-auto lg:h-full lg:min-h-0">
+                  {registration.volunteer_option.imageUrl ? (
+                    <img
+                      src={registration.volunteer_option.imageUrl.startsWith('http') ? registration.volunteer_option.imageUrl : `${getAPIBaseURLSync()}${registration.volunteer_option.imageUrl}`}
+                      alt={registration.volunteer_option.title}
+                      className="absolute inset-0 h-full w-full object-cover object-center"
                     />
-                  </div>
-                )}
-                
-                {/* Content Section */}
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-gray-500">
+                      Imagen no disponible
+                    </div>
+                  )}
+                </div>
+
                 <div className="min-w-0 flex-1 p-6">
-                  <div className="mb-4 flex min-w-0 flex-col lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0 flex-1 lg:pr-4">
-                      <h3 className="mb-2 break-words text-2xl font-bold text-gray-800">
+                  <div className="mb-4 flex flex-col lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-2xl font-bold text-gray-800" title={registration.volunteer_option.title}>
                         {registration.volunteer_option.title}
                       </h3>
-                      <p className="min-w-0 break-words text-base leading-relaxed text-gray-600">
+                      <p className="mt-2 line-clamp-2 text-base leading-relaxed text-gray-600">
                         {cleanDescription(registration.volunteer_option.description)}
                       </p>
                     </div>
-                    <div className="mt-4 shrink-0 lg:mt-0 lg:ml-0">
+                    <div className="mt-4 lg:mt-0 lg:ml-6">
                       <span className={`rounded-full px-4 py-2 text-sm font-medium ${getStatusColor(registration.status)}`}>
                         {getStatusText(registration.status)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 md:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 pt-4 border-t border-gray-100 md:grid-cols-3">
                     {registration.volunteer_option.date && (
-                      <div className="flex min-w-0 items-start text-gray-600">
-                        <FaRegCalendarAlt className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                      <div className="flex items-center text-gray-600">
+                        <FaRegCalendarAlt className="w-5 h-5 mr-3 text-orange-500" />
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-500">Fecha</div>
-                          <div className="break-words text-base">{registration.volunteer_option.date}</div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {registration.volunteer_option.location && (
-                      <div className="flex min-w-0 items-start text-gray-600">
-                        <FaMapMarkerAlt className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium text-gray-500">Ubicación</div>
-                          <div className="break-words text-base">{registration.volunteer_option.location}</div>
+                          <div className="text-base text-gray-900">
+                            {formatVolunteerDate(registration.volunteer_option.date)}
+                          </div>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex min-w-0 items-start text-gray-600">
-                      <FaClock className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-gray-500">
-                          {registration.status === 'cancelled' ? 'Fecha de cancelación' : 'Fecha de inscripción'}
+                    {registration.volunteer_option.location && (
+                      <div className="flex items-center text-gray-600">
+                        <FaMapMarkerAlt className="w-5 h-5 mr-3 text-orange-500" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-500">Ubicación</div>
+                          <div className="max-w-xs truncate text-base text-gray-900">
+                            {registration.volunteer_option.location}
+                          </div>
                         </div>
-                        <div className="break-words text-base">
-                          {new Date(registration.status === 'cancelled' ? registration.cancellation_date! : registration.registration_date).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                      </div>
+                    )}
+
+                    <div className="flex items-center text-gray-600">
+                      <FaClock className="w-5 h-5 mr-3 text-orange-500" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-500">Fecha de inscripción</div>
+                        <div className="text-base text-gray-900">
+                          {formatVolunteerRegistrationDate(registration.registration_date)}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Hour and Spots */}
                   <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-3">
                     {registration.volunteer_option.hour && (
-                      <div className="flex min-w-0 items-start text-gray-600">
-                        <FaClock className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+                      <div className="flex items-center text-gray-600">
+                        <FaClock className="w-5 h-5 mr-3 text-orange-500" />
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-500">Hora</div>
-                          <div className="break-words text-base">{formatTime12Hour(registration.volunteer_option.hour)}</div>
+                          <div className="text-base text-gray-900">{formatTime12Hour(registration.volunteer_option.hour)}</div>
                         </div>
                       </div>
                     )}
-                    
-                    <div className="flex min-w-0 items-start text-gray-600">
-                      <FaUsers className="mr-3 mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
+
+                    <div className="flex items-center text-gray-600">
+                      <FaUsers className="w-5 h-5 mr-3 text-orange-500" />
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-500">Cupos disponibles</div>
-                        <div className="break-words text-base">
+                        <div className="text-base text-gray-900">
                           <span className={registration.volunteer_option.available_spots > 0 ? 'text-green-600' : 'text-red-600'}>
                             {registration.volunteer_option.available_spots}
                           </span>
-                          <span className="ml-1 text-sm text-gray-500">
-                            / {registration.volunteer_option.spots} total
-                          </span>
+                          <span className="ml-1 text-sm text-gray-500">/ {registration.volunteer_option.spots} total</span>
                         </div>
                       </div>
                     </div>
+
+                    <div className="hidden md:block" />
                   </div>
 
-                  {/* Notes */}
                   {registration.notes && (
-                    <div className="mt-4 border-t border-gray-100 pt-4">
+                    <div className="mt-4 pt-4 border-t border-gray-100">
                       <div className="mb-1 text-sm font-medium text-gray-500">Notas</div>
                       <div className="min-w-0 break-words rounded-lg bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-wrap">
                         {registration.notes}
@@ -640,23 +878,21 @@ export default function VoluntariadoPage() {
                     </div>
                   )}
 
-                  {/* Action Button - Only show for registered status */}
-                  {registration.status === 'registered' && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <button
-                        onClick={() => handleCancelRegistration(registration.volunteer_option_id)}
-                        disabled={cancellingRegistration === registration.volunteer_option_id}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {cancellingRegistration === registration.volunteer_option_id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        ) : (
-                          <FaTimes className="w-4 h-4" />
-                        )}
-                        {cancellingRegistration === registration.volunteer_option_id ? 'Cancelando...' : 'Cancelar Inscripción'}
-                      </button>
-                    </div>
-                  )}
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => openCancelModal(registration)}
+                      disabled={cancellingRegistration === registration.volunteer_option_id}
+                      className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                    >
+                      {cancellingRegistration === registration.volunteer_option_id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      ) : (
+                        <FaTimes className="h-4 w-4" />
+                      )}
+                      {cancellingRegistration === registration.volunteer_option_id ? 'Cancelando...' : 'Cancelar inscripción'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -757,7 +993,7 @@ export default function VoluntariadoPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteProposal(proposal.id)}
+                        onClick={() => openDeleteModal(proposal)}
                         disabled={deletingProposal === proposal.id}
                         className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                       >
@@ -900,7 +1136,7 @@ export default function VoluntariadoPage() {
                       <div className="mt-4 border-t border-gray-100 pt-4">
                         <button
                           type="button"
-                          onClick={() => handleDeleteProposal(proposal.id)}
+                          onClick={() => openDeleteModal(proposal)}
                           disabled={deletingProposal === proposal.id}
                           className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                         >
