@@ -174,14 +174,14 @@ export interface DisabilityInformation {
 export interface BiomechanicalBenefit {
   id?: number;
   disability_info_id?: number;
-  type: 'silla_ruedas' | 'baston' | 'andadera' | 'audifono' | 'baston_guia' | 'otro';
+  type: 'silla_ruedas' | 'baston' | 'andadera' | 'audifono' | 'baston_guia' | 'otro' | 'ninguno';
   other_description?: string;
 }
 
 export interface PermanentLimitation {
   id?: number;
   disability_info_id?: number;
-  limitation: 'moverse_caminar' | 'ver_lentes' | 'oir_audifono' | 'comunicarse_hablar' | 'entender_aprender' | 'relacionarse';
+  limitation: 'moverse_caminar' | 'ver_lentes' | 'oir_audifono' | 'comunicarse_hablar' | 'entender_aprender' | 'relacionarse' | 'ninguno';
   degree: 'leve' | 'moderada' | 'severa' | 'no_se_sabe';
   observations?: string;
 }
@@ -191,7 +191,7 @@ export interface MedicalAdditionalInfo {
   disability_info_id?: number;
   diseases: string;
   /** Vacío en el formulario hasta que el usuario elija. */
-  blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | '';
+  blood_type: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | 'no_indica' | '';
   biomechanical_benefit: BiomechanicalBenefit[];
   permanent_limitations: PermanentLimitation[];
   medical_observations?: string;
@@ -432,7 +432,7 @@ export interface RecordStats {
 }
 
 /** Stored in `general_observations` TEXT as JSON `string[]` or legacy plain string. */
-export const MAX_GENERAL_OBSERVATION_NOTE_LENGTH = 200;
+export const MAX_GENERAL_OBSERVATION_NOTE_LENGTH = 400;
 export const MAX_GENERAL_OBSERVATION_NOTE_COUNT = 10;
 export const GENERAL_OBSERVATIONS_CHAR_PATTERN = /^[0-9a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ.,;:¿?¡!()-]*$/;
 
