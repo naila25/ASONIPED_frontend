@@ -191,7 +191,10 @@ const DisabilityAnalytics: React.FC = () => {
     });
     
     return Array.from(bloodTypeMap.entries())
-      .map(([bloodType, count]) => ({ bloodType, count }))
+      .map(([bloodType, count]) => ({
+        bloodType: bloodType === 'no_indica' ? 'No Indica' : bloodType,
+        count
+      }))
       .sort((a, b) => b.count - a.count);
   };
 

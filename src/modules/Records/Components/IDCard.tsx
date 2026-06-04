@@ -71,7 +71,8 @@ const IDCard: React.FC<IDCardProps> = ({ record, qrUrl, className }) => {
     disabilityTypeRaw !== undefined && disabilityTypeRaw !== null && String(disabilityTypeRaw).trim() !== ''
       ? formatDisabilityTypesSpanish(disabilityTypeRaw)
       : (cpd?.pcd_name || record.personal_data?.pcd_name || '');
-  const bloodType = medicalAdditional?.blood_type || '';
+  const rawBloodType = medicalAdditional?.blood_type || '';
+  const bloodType = rawBloodType === 'no_indica' ? 'No Indica' : rawBloodType;
   const diseases = medicalAdditional?.diseases || (disability?.medical_conditions ?? '') || '';
 
   const [backendUrl, setBackendUrl] = useState<string>('');

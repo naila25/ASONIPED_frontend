@@ -457,7 +457,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
 
     const bp = (form.birth_place || '').trim();
     if (
-      !/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(form.birth_place || '') ||
+      !/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ,]*$/.test(form.birth_place || '') ||
       bp.length === 0 ||
       (form.birth_place || '').length > 40
     ) {
@@ -466,7 +466,7 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
           ? 'Este campo es obligatorio.'
           : (form.birth_place || '').length > 40
             ? 'Máximo 40 caracteres.'
-            : 'Solo se permiten letras y espacios.'
+            : 'Solo se permiten letras, comas y espacios.'
       );
       ok = false;
     } else setBirthPlaceError('');
@@ -965,11 +965,11 @@ const Phase1Form: React.FC<Phase1FormProps> = ({
             value={form.birth_place}
             onChange={(e) => {
               const value = e.target.value;
-              const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(value);
+              const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ,]*$/.test(value);
               const length = value.length;
 
               if (!isValid) {
-                setBirthPlaceError('Solo se permiten letras y espacios.');
+                setBirthPlaceError('Solo se permiten letras, comas y espacios.');
                 return;
               }
 
