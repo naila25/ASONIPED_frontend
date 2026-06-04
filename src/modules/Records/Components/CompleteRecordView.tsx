@@ -573,6 +573,7 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record }) => {
                      record.disability_information.medical_additional.blood_type === 'AB-' ? 'AB-' :
                      record.disability_information.medical_additional.blood_type === 'O+' ? 'O+' :
                      record.disability_information.medical_additional.blood_type === 'O-' ? 'O-' :
+                     record.disability_information.medical_additional.blood_type === 'no_indica' ? 'No Indica' :
                      'No especificado'}
                   </p>
                 </div>
@@ -600,7 +601,8 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record }) => {
                          benefit.type === 'andadera' ? 'Andadera' :
                          benefit.type === 'audifono' ? 'Audífono' :
                          benefit.type === 'baston_guia' ? 'Bastón guía' :
-                         benefit.type === 'otro' ? 'Otro' : benefit.type}
+                         benefit.type === 'otro' ? 'Otro' :
+                         benefit.type === 'ninguno' ? 'Ninguno (a)' : benefit.type}
                       </span>
                     </div>
                   ))}
@@ -623,7 +625,8 @@ const CompleteRecordView: React.FC<CompleteRecordViewProps> = ({ record }) => {
                            limitation.limitation === 'oir_audifono' ? 'Oír con audífono' :
                            limitation.limitation === 'comunicarse_hablar' ? 'Comunicarse/hablar' :
                            limitation.limitation === 'entender_aprender' ? 'Entender/aprender' :
-                           limitation.limitation === 'relacionarse' ? 'Relacionarse' : limitation.limitation}
+                           limitation.limitation === 'relacionarse' ? 'Relacionarse' :
+                           limitation.limitation === 'ninguno' ? 'Ninguno (a)' : limitation.limitation}
                         </span>
                         <span className={`text-xs px-2 py-1 rounded-full ${
                           limitation.degree === 'leve' ? 'bg-green-100 text-green-800' :

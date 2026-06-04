@@ -1,14 +1,105 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FileText, Plus, ArrowLeft, CheckCircle } from 'lucide-react';
 import { createAdminDirectRecord } from '../Services/recordsApi';
 import type { Phase3Data } from '../Types/records';
-import Phase3Form  from '../Components/Phase3Form';
+import Phase3Form from '../Components/Phase3Form';
+
+const RecordSuccessModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onCreateAnother: () => void;
+  recordId: number;
+  adminName: string;
+}> = ({ isOpen, onClose, onCreateAnother, recordId, adminName }) => {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === overlayRef.current) {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const modal = (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200]"
+      onMouseDown={handleOverlayClick}
+      aria-modal="true"
+      role="dialog"
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-4 transform transition-all"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between mb-2">
+          <div className="min-w-0">
+            <h3 className="text-lg font-semibold text-gray-900">¡Expediente creado!</h3>
+            <p className="text-sm text-gray-500 mt-1">Registro #{recordId} creado correctamente.</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="text-sm text-gray-600 mb-3">
+          <div><span className="font-medium">ID:</span> {recordId}</div>
+          <div className="mt-1"><span className="font-medium">Creado por:</span> {adminName || 'Administrador'}</div>
+        </div>
+
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cerrar
+          </button>
+          <button
+            type="button"
+            onClick={onCreateAnother}
+            className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Crear otro
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return typeof document === 'undefined' ? null : createPortal(modal, document.body);
+};
 
 const AdminDirectRecordCreation: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdRecordId, setCreatedRecordId] = useState<number | null>(null);
   const [adminName, setAdminName] = useState<string>('');
   const [resetTrigger, setResetTrigger] = useState(0);
@@ -33,11 +124,10 @@ const AdminDirectRecordCreation: React.FC = () => {
       });
 
       console.log('Record created successfully:', result);
-      setCreatedRecordId(result.id);
+      const recordId = (result as any).id ?? (result as any).record_id;
+      setCreatedRecordId(recordId);
       setSuccess(true);
-      // Show success alert only for Admin Direct Phase 3
-      window.alert('¡Expediente creado exitosamente!');
-      // Force remount of the form so all inputs/files are cleared next time it's shown
+      setShowSuccessModal(true);
       setFormKey(prev => prev + 1);
     } catch (err) {
       console.error('Error creating admin record:', err);
@@ -50,6 +140,7 @@ const AdminDirectRecordCreation: React.FC = () => {
 
   const handleCreateAnother = () => {
     setSuccess(false);
+    setShowSuccessModal(false);
     setError(null);
     setCreatedRecordId(null);
     // Reset form when going back to create another record
@@ -57,56 +148,20 @@ const AdminDirectRecordCreation: React.FC = () => {
     setFormKey(prev => prev + 1);
   };
 
-  // Success state
-  if (success && createdRecordId) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="max-w-4xl mx-auto min-w-0">
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-8">
-            <div className="text-center min-w-0">
-              <div className="mx-auto flex items-center justify-center h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-green-100 mb-4 sm:mb-6">
-                <CheckCircle className="h-7 w-7 sm:h-8 sm:w-8 text-green-600" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-                ¡Expediente Creado Exitosamente!
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-                El expediente ha sido creado directamente por el administrador y está activo.
-              </p>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6 text-left min-w-0">
-                <p className="text-xs sm:text-sm text-green-800"><strong>ID del Expediente:</strong> {createdRecordId}</p>
-                <p className="text-xs sm:text-sm text-green-800 mt-1"><strong>Estado:</strong> Activo (sin revisión requerida)</p>
-                <p className="text-xs sm:text-sm text-green-800 mt-1"><strong>Creado por:</strong> {adminName}</p>
-                <p className="text-xs sm:text-sm text-green-800 mt-1"><strong>Fecha de creación:</strong> {new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-                <button
-                  type="button"
-                  onClick={handleCreateAnother}
-                  className="inline-flex items-center justify-center px-4 sm:px-6 py-3 min-h-[48px] border border-transparent text-sm sm:text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors touch-manipulation"
-                >
-                  <Plus className="w-5 h-5 mr-2 flex-shrink-0" />
-                  Crear Otro Expediente
-                </button>
-                <button
-                  type="button"
-                  onClick={() => window.history.back()}
-                  className="inline-flex items-center justify-center px-4 sm:px-6 py-3 min-h-[48px] border border-gray-300 text-sm sm:text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors touch-manipulation"
-                >
-                  <ArrowLeft className="w-5 h-5 mr-2 flex-shrink-0" />
-                  Volver al Dashboard
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+  };
 
   // Main form state
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8 overflow-x-hidden px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <RecordSuccessModal
+        isOpen={showSuccessModal && success && !!createdRecordId}
+        onClose={closeSuccessModal}
+        onCreateAnother={handleCreateAnother}
+        recordId={createdRecordId ?? 0}
+        adminName={adminName}
+      />
       <div className="max-w-7xl mx-auto min-w-0">
         {/* Header — más compacto en móvil */}
         <div className="mb-5 sm:mb-8">

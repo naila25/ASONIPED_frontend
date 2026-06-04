@@ -1057,8 +1057,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
       ok = false;
     } else setCedulaError('');
     const birthPlace = form.complete_personal_data.birth_place;
-    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(birthPlace) || birthPlace.length > 40 || birthPlace.length === 0) {
-      setBirthPlaceError(birthPlace.length === 0 ? 'Este campo es obligatorio.' : birthPlace.length > 40 ? 'Máximo 40 caracteres.' : 'Solo se permiten letras y espacios.');
+    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ,]*$/.test(birthPlace) || birthPlace.length > 40 || birthPlace.length === 0) {
+      setBirthPlaceError(birthPlace.length === 0 ? 'Este campo es obligatorio.' : birthPlace.length > 40 ? 'Máximo 40 caracteres.' : 'Solo se permiten letras, comas y espacios.');
       ok = false;
     } else setBirthPlaceError('');
 
@@ -1400,8 +1400,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
     } else if (cpd.cedula.length < 9 || cpd.cedula.length > 13) {
       personalItems.push('Cédula: entre 9 y 13 dígitos.');
     }
-    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(cpd.birth_place) || cpd.birth_place.length > 40 || cpd.birth_place.length === 0) {
-      personalItems.push('Lugar de nacimiento: obligatorio, letras y espacios, máximo 40 caracteres.');
+    if (!/^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ,]*$/.test(cpd.birth_place) || cpd.birth_place.length > 40 || cpd.birth_place.length === 0) {
+      personalItems.push('Lugar de nacimiento: obligatorio, letras, comas y espacios, máximo 40 caracteres.');
     }
     const bd = cpd.birth_date;
     if (!bd || bd < birthDateLimits.min || bd > birthDateLimits.max) {
@@ -2019,11 +2019,11 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 value={form.complete_personal_data.birth_place}
                 onChange={(e) => {
                   const value = e.target.value;
-                  const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ]*$/.test(value);
+                  const isValid = /^[a-zA-Z\sáéíóúÁÉÍÓÚñÑüÜ,]*$/.test(value);
                   const length = value.length;
 
                   if (!isValid) {
-                    setBirthPlaceError('Solo se permiten letras y espacios.');
+                    setBirthPlaceError('Solo se permiten letras, comas y espacios.');
                     return;
                   }
 
@@ -2950,7 +2950,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 required
               >
                 <option value="">Seleccionar</option>
-                <option value="rnc">RnC (Regimen no contributivo)</option>
+                <option value="rnc">RNC (Régimen No Contributivo)</option>
                 <option value="independiente">Independiente</option>
                 <option value="privado">Privado</option>
                 <option value="otro">Otro</option>
@@ -3048,6 +3048,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                             | 'AB-'
                             | 'O+'
                             | 'O-'
+                            | 'no_indica'
                             | ''
                         }
                       }
@@ -3064,6 +3065,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                   <option value="AB-">AB-</option>
                   <option value="O+">O+</option>
                   <option value="O-">O-</option>
+                  <option value="no_indica">No Indica</option>
                 </select>
               </div>
               <div>
@@ -3083,8 +3085,8 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                       return;
                     }
 
-                    if (length > 200) {
-                      setDiseasesError('Máximo 200 caracteres.');
+                    if (length > 400) {
+                      setDiseasesError('Máximo 400 caracteres.');
                       return;
                     }
 
@@ -3099,13 +3101,13 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         }
                       }
                     }));
-                    setDiseasesCharsLeft(200 - length);
+                    setDiseasesCharsLeft(400 - length);
                   }}
                   rows={2}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 resize-none ${diseasesError ? 'border-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                   placeholder="Describa las enfermedades que padece el beneficiario (Opcional)"
                 />
-                <p className="text-xs text-gray-500 mt-0.5">{diseasesCharsLeft} caracteres (máx. 200)</p>
+                <p className="text-xs text-gray-500 mt-0.5">{diseasesCharsLeft} caracteres (máx. 400)</p>
                 {diseasesError && <p className="text-xs text-red-500 mt-1">{diseasesError}</p>}
               </div>
             </div>
@@ -3115,7 +3117,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
           <div className="bg-white rounded-lg p-3 sm:p-4 mb-4 shadow-sm">
             <h4 className="text-base font-medium text-gray-800 mb-2">Beneficios Biomecánicos</h4>
             <p className="text-sm text-gray-600 mb-3">Seleccione los dispositivos de asistencia que utiliza el beneficiario</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {[
                 {
                   key: 'silla_ruedas',
@@ -3140,7 +3142,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 {
                   key: 'otro',
                   label: 'Otro',
+                },
+                {
+                  key: 'ninguno',
+                  label: 'Ninguno (a)',
                 }
+
               ].map((benefit) => (
                 <label key={benefit.key} className={`flex items-center p-2.5 sm:p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 ${form.disability_information.medical_additional.biomechanical_benefit.some(b => b.type === benefit.key)
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
@@ -3160,7 +3167,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                               ...prev.disability_information.medical_additional,
                               biomechanical_benefit: [
                                 ...currentBenefits,
-                                { type: benefit.key as 'silla_ruedas' | 'baston' | 'andadera' | 'audifono' | 'baston_guia' | 'otro', other_description: benefit.key === 'otro' ? '' : undefined }
+                                { type: benefit.key as 'silla_ruedas' | 'baston' | 'andadera' | 'audifono' | 'baston_guia' | 'otro' | 'ninguno', other_description: benefit.key === 'otro' ? '' : undefined }
                               ]
                             }
                           }
@@ -3217,6 +3224,10 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 {
                   key: 'relacionarse',
                   label: 'Relacionarse',
+                },
+                {
+                  key: 'ninguno',
+                  label: 'Ninguno (a)',
                 }
               ].map((limitation) => (
                 <div key={limitation.key} className="bg-gray-50 rounded-lg p-2.5 sm:p-3">
@@ -3238,10 +3249,12 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                                   ...prev.disability_information,
                                   medical_additional: {
                                     ...prev.disability_information.medical_additional,
-                                    permanent_limitations: [
-                                      ...currentLimitations,
-                                      { limitation: limitation.key as 'moverse_caminar' | 'ver_lentes' | 'oir_audifono' | 'comunicarse_hablar' | 'entender_aprender' | 'relacionarse', degree: 'leve' }
-                                    ]
+                                    permanent_limitations: limitation.key === 'ninguno'
+                                      ? [{ limitation: 'ninguno', degree: 'no_se_sabe' }]
+                                      : [
+                                        ...currentLimitations.filter(l => l.limitation !== 'ninguno'),
+                                        { limitation: limitation.key as 'moverse_caminar' | 'ver_lentes' | 'oir_audifono' | 'comunicarse_hablar' | 'entender_aprender' | 'relacionarse' | 'ninguno', degree: 'leve' }
+                                      ]
                                   }
                                 }
                               }));
@@ -3262,7 +3275,7 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                         />
                         <span className="text-sm text-gray-600">Presente</span>
                       </label>
-                      {form.disability_information.medical_additional.permanent_limitations.some(l => l.limitation === limitation.key) && (
+                      {limitation.key !== 'ninguno' && form.disability_information.medical_additional.permanent_limitations.some(l => l.limitation === limitation.key) && (
                         <select
                           value={form.disability_information.medical_additional.permanent_limitations.find(l => l.limitation === limitation.key)?.degree || 'leve'}
                           onChange={(e) => {
@@ -3826,7 +3839,31 @@ const Phase3Form: React.FC<Phase3FormProps> = ({
                 </select>
               </div>
             </div>
-            <p className="text-xs text-blue-700 mt-2">Subir comprobante en Documentos requeridos.</p>
+            <div className="mt-3">
+              <label className="block text-sm font-medium text-blue-900 mb-2">Comprobante de Pago</label>
+              <input
+                ref={(el) => { fileInputRefs.current['informacion_pago'] = el; }}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={(e) => handleDocumentChange('informacion_pago', e.target.files?.[0] || null)}
+                className="w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {documentFiles.informacion_pago ? (
+                <div className="mt-2 flex items-center gap-2 text-xs text-gray-700">
+                  <span>Archivo seleccionado:</span>
+                  <span className="font-medium truncate">{documentFiles.informacion_pago.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDocumentChange('informacion_pago', null)}
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-blue-700 mt-2">Sube el comprobante de pago aquí o en Documentos requeridos.</p>
+              )}
+            </div>
           </div>
 
           {/* Resumen de documentos */}
