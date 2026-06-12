@@ -121,11 +121,12 @@ export default function PerfilPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
               <input
                 value={name}
-                maxLength={40}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
-                placeholder="Tu nombre"
-                required
+                readOnly
+                //maxLength={40}
+                //onChange={(e) => setName(e.target.value)}
+                 className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-700 rounded-lg"
+                //placeholder="Tu nombre"
+                //required
               />
             </div>
             <div>
@@ -133,10 +134,11 @@ export default function PerfilPage() {
               <input
                 type="email"
                 value={email}
-                maxLength={30}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
-                placeholder="tu@correo.com"
+                readOnly
+                //maxLength={30}
+                //onChange={(e) => setEmail(e.target.value)}
+                 className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-700 rounded-lg"
+                //placeholder="tu@correo.com"
               />
             </div>
             <div>
@@ -148,14 +150,15 @@ export default function PerfilPage() {
                 autoComplete="tel"
                 maxLength={10}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
-                placeholder="8888-8888"
+                readOnly
+                //onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
+                 className="w-full px-3 py-2 border border-gray-200 bg-gray-50 text-gray-700 rounded-lg"
+                //placeholder="8888-8888"
               />
             </div>
           </div>
         )}
-        <div className="flex justify-end">
+        {/* <div className="flex justify-end">
           <button
             type="submit"
             disabled={saving || loading}
@@ -164,10 +167,10 @@ export default function PerfilPage() {
             <Save className="w-4 h-4" />
             Guardar cambios
           </button>
-        </div>
+        </div> */}
       </form>
 
-      {/* Contraseña */}
+      {/* Contraseña 
       <form onSubmit={handleChangePassword} className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4">
         <h2 className="text-lg font-semibold text-gray-900">Cambiar contraseña</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -246,6 +249,7 @@ export default function PerfilPage() {
           </button>
         </div>
       </form>
+      */}
     </div>
   );
 }
